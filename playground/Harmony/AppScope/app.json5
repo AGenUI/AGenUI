@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "com.amap.agenui.demo",
-    "vendor": "amap",
+    "bundleName": "com.harmony.agenui",
+    "vendor": "AGenUI",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "icon": "$media:layered_image",

@@ -6,7 +6,7 @@
     android:layout_gravity="end"
     android:orientation="vertical">
 
-    <!-- 导航抽屉头部 -->
+    <!-- Drawer header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -24,12 +24,12 @@
             android:textStyle="bold" />
 
     </LinearLayout>
-    <!-- Tab 切换 -->
+    <!-- Tab switcher -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
+        android:background="@color/drawer_background"
         app:tabMode="fixed"
         app:tabGravity="fill"
         app:tabTextColor="@color/text_secondary"
@@ -49,7 +49,7 @@
 
     </com.google.android.material.tabs.TabLayout>
 
-    <!-- JSON 编辑器 -->
+    <!-- JSON editor -->
     <EditText
         android:id="@+id/etJsonEditor"
         android:layout_width="match_parent"
@@ -61,10 +61,11 @@
         android:inputType="textMultiLine"
         android:fontFamily="monospace"
         android:textSize="@dimen/text_size_caption"
-        android:textColor="#212121"
-        android:background="@color/white" />
+        android:textColor="@color/editor_text"
+        android:textColorHint="@color/text_hint"
+        android:background="@color/editor_background" />
 
-    <!-- 操作按钮区域 -->
+    <!-- Action buttons area -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -72,7 +73,7 @@
         android:padding="@dimen/spacing_medium"
         android:background="@color/drawer_background">
 
-        <!-- 格式化和验证按钮 -->
+        <!-- Format and validate buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -99,7 +100,7 @@
 
         </LinearLayout>
 
-        <!-- 取消和保存按钮 -->
+        <!-- Cancel and save buttons -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

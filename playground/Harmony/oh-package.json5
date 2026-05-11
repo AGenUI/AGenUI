@@ -1,6 +1,6 @@
 {
   "modelVersion": "6.0.0",
-  "description": "AGenUI SDK Demo Project",
+  "description": "AGenUI Playground - HarmonyOS demo app for AGenUI SDK",
   "dependencies": {
   },
   "devDependencies": {
