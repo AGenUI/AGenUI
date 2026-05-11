@@ -6,12 +6,13 @@ const DOMAIN = 0x0000;
 const TAG = 'ResourceCopyUtil';
 
 /**
- * 将 rawfile 中的指定目录下所有文件拷贝到应用沙箱目录
+ * Copies every file under a rawfile directory into the app sandbox.
  *
- * @param context      - Ability 上下文，用于访问 resourceManager 和 filesDir
- * @param rawfileDir   - rawfile 中的源目录名，例如 'ui_templates'
- * @param sandboxSubDir - 沙箱内的目标子路径，例如 'data/ui_templates'；不传则与 rawfileDir 同名
- * @returns 拷贝目标目录的沙箱绝对路径
+ * @param context Ability context used to access resourceManager and filesDir
+ * @param rawfileDir Source directory name under rawfile, for example `ui_templates`
+ * @param sandboxSubDir Target subdirectory in the sandbox, for example `data/ui_templates`.
+ * Defaults to `rawfileDir`.
+ * @returns Absolute sandbox path of the copied target directory
  */
 export async function copyRawfileDirToSandbox(
   context: Context,
@@ -22,7 +23,7 @@ export async function copyRawfileDirToSandbox(
   const targetSubDir = sandboxSubDir ?? rawfileDir;
   const sandboxTargetDir = `${context.filesDir}/${targetSubDir}`;
 
-  // 确保目标目录存在（支持多级路径逐级创建）
+  // Ensure the target directory exists, creating nested segments as needed.
   const parts = targetSubDir.split('/');
   let buildPath = context.filesDir;
   for (const part of parts) {
@@ -36,7 +37,7 @@ export async function copyRawfileDirToSandbox(
     }
   }
 
-  // 获取 rawfile 目录下所有文件列表
+  // Read the file list under the rawfile directory.
   const fileList: string[] = resourceManager.getRawFileListSync(rawfileDir);
   hilog.info(DOMAIN, TAG, 'Found %{public}d files in rawfile/%{public}s', fileList.length, rawfileDir);
 
@@ -45,10 +46,10 @@ export async function copyRawfileDirToSandbox(
     const sandboxFilePath = `${sandboxTargetDir}/${fileName}`;
 
     try {
-      // 读取 rawfile 中的文件内容
+      // Read the rawfile content.
       const rawfileContent: Uint8Array = resourceManager.getRawFileContentSync(rawfilePath);
 
-      // 写入到沙箱目标路径
+      // Write the file into the sandbox target path.
       const file = fs.openSync(sandboxFilePath, fs.OpenMode.CREATE | fs.OpenMode.TRUNC | fs.OpenMode.WRITE_ONLY);
       fs.writeSync(file.fd, rawfileContent.buffer);
       fs.closeSync(file);

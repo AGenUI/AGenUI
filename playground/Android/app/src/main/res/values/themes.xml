@@ -14,11 +14,11 @@
         <!-- Customize your theme here. -->
     </style>
     
-    <!-- NoActionBar theme for Demo -->
+    <!-- NoActionBar theme for Playground -->
     <style name="Theme.AGenUIPlayground.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <!-- 沉浸式状态栏 -->
+        <!-- Immersive status bar -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
