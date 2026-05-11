@@ -5,7 +5,7 @@
 **AGenUI: A high-performance A2UI rendering engine simultaneously supporting iOS, Android, and HarmonyOS**
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20HarmonyOS-blue)](#)
+[![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20HarmonyOS-blue)](#)
 [![Android SDK](https://img.shields.io/badge/Android-API%2021%2B-green)](#)
 [![iOS](https://img.shields.io/badge/iOS-13%2B-lightgrey)](#)
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS%20NEXT-API%2017%2B-red)](#)
@@ -17,25 +17,6 @@ English | [中文](README.zh-CN.md)
 </div>
 
 > This project is under active development and evolving rapidly. Contributions, feedback, and discussions are warmly welcome.
-
----
-
-## Table of Contents
-
-- [What is AGenUI?](#what-is-agenui)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Components](#components)
-  - [A2UI Protocol Components](#a2ui-protocol-components)
-  - [SDK Built-in Extension Components](#sdk-built-in-extension-components)
-  - [Playground Example Components](#playground-example-components)
-- [Catalog File](#catalog-file)
-- [Quick Start](#quick-start)
-  - [Building from Source](#building-from-source)
-  - [Debugging with the Playground](#debugging-with-the-playground)
-  - [Integrating the AGenUI SDK](#integrating-the-agenui-sdk)
-- [Contributing](#contributing)
-- [License](#license)
 
 ---
 

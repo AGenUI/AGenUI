@@ -5,7 +5,7 @@
 **AGenUI: 同步支持 iOS、Android 和 HarmonyOS 的高性能 A2UI 渲染引擎**
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20HarmonyOS-blue)](#)
+[![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20HarmonyOS-blue)](#)
 [![Android SDK](https://img.shields.io/badge/Android-API%2021%2B-green)](#)
 [![iOS](https://img.shields.io/badge/iOS-13%2B-lightgrey)](#)
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS%20NEXT-API%2017%2B-red)](#)
@@ -17,25 +17,6 @@
 </div>
 
 > 本项目正在积极开发与持续演进中，欢迎贡献代码、反馈意见和参与讨论。
-
----
-
-## 目录
-
-- [什么是 AGenUI？](#什么是-agenui)
-- [核心特性](#核心特性)
-- [架构设计](#架构设计)
-- [组件](#组件)
-  - [A2UI 协议组件](#a2ui-协议组件)
-  - [SDK 内置扩展组件](#sdk-内置扩展组件)
-  - [Playground 示例组件](#playground-示例组件)
-- [Catalog 文件](#catalog-文件)
-- [快速上手](#快速上手)
-  - [从源码构建](#从源码构建)
-  - [使用 Playground 调试](#使用-playground-调试)
-  - [接入 AGenUI SDK](#接入-agenui-sdk)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
 
 ---
 
