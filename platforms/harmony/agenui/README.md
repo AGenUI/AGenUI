@@ -42,7 +42,7 @@
 
 **AGenUI** leverages native system UI capabilities to render **interactive cards, forms, lists, images, media players, and more**, delivering a high-performance, smooth user experience.
 
-<img src="../../../docs/images/a2ui_rendering_effect.png" alt="A2UI components rendering showcase" height="720">
+<img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/a2ui_rendering_effect.png" alt="A2UI components rendering showcase" height="720">
 
 ---
 
@@ -64,7 +64,7 @@ AGenUI adopts a **shared C++ core engine + HarmonyOS component rendering engine*
 The C++ layer implements capabilities shared across all platforms, including streaming data parsing, virtual component tree management, render data caching, theme/style resolution, and component change diffing. The C++ layer synchronizes the parsed component protocol to the HarmonyOS rendering engine to trigger drawing.
 
 <div align="center">
-<img src="../../../docs/images/architecture.svg" alt="AGenUI SDK architecture" width="720"/>
+<img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/architecture.svg" alt="AGenUI SDK architecture" width="720"/>
 </div>
 
 ### HarmonyOS SDK Directory
@@ -83,7 +83,7 @@ The C++ layer implements capabilities shared across all platforms, including str
 ## Components
 
 <div align="center">
-<img src="../../../docs/images/components.svg" alt="AGenUI built-in components" width="760"/>
+<img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/components.svg" alt="AGenUI built-in components" width="760"/>
 </div>
 
 ### A2UI Protocol Components
