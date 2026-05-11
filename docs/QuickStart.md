@@ -1,176 +1,309 @@
-# AGenUI SDK — Quick Start
+# QuickStart
 
-## iOS
-
-### Prerequisites
-
-- iOS 13+
-- CocoaPods
-
-### Installation
-
-```ruby
-pod 'AGenUI', :git => 'https://github.com/acoder-ai-infra/AGenUI-A2UI-iOS.git', :tag => '0.9.8'
-```
-
-### Usage
-
-**1. Initialize and register listener**
-
-Conform your `UIViewController` to `SurfaceManagerListener` and register it:
-
-```swift
-import AGenUI
-
-class MyViewController: UIViewController, SurfaceManagerListener {
-
-    private let surfaceManager = SurfaceManager()
-    private let scrollView = UIScrollView()
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        surfaceManager.addListener(self)
-    }
-
-    // Called when a Surface is created
-    func onCreateSurface(_ surface: Surface) {
-        // Set the Surface size to match the view width
-        surface.updateSize(width: view.bounds.width, height: .infinity)
-        scrollView.addSubview(surface.view)
-    }
-
-    // Called when a Surface is destroyed
-    func onDeleteSurface(_ surfaceId: String) {
-        scrollView.subviews.forEach { $0.removeFromSuperview() }
-    }
-}
-```
-
-Remove a listener when it is no longer needed:
-
-```swift
-surfaceManager.removeListener(self)
-// or remove all at once:
-surfaceManager.removeAllListeners()
-```
-
-**2. Feed data**
-
-Send `createSurface` first, then `updateComponents` (and optionally `updateDataModel`). To replace an existing Surface, send `deleteSurface` before creating a new one:
-
-```swift
-// 1. Delete previous Surface (if any)
-surfaceManager.receiveTextChunk("""
-{"version":"v0.9","deleteSurface":{"surfaceId":"my_surface"}}
-""")
-
-// 2. Create a new Surface
-surfaceManager.receiveTextChunk("""
-{"version":"v0.9","createSurface":{"surfaceId":"my_surface","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
-""")
-
-// 3. Send component data (complete packet or streaming chunks)
-surfaceManager.receiveTextChunk(componentsJSON)
-
-// 4. Send data model (optional)
-surfaceManager.receiveTextChunk(dataModelJSON)
-```
-
-**3. Theme (optional)**
-
-```swift
-// Register theme and DesignToken
-let result = surfaceManager.registerDefaultTheme(themeJson, designToken: tokenJson)
-// result.result == true on success
-
-// Switch light / dark mode at runtime
-surfaceManager.setDayNightMode("dark") // "light" | "dark"
-```
-
----
+English | [中文](QuickStart.zh-CN.md)
 
 ## Android
 
 ### Prerequisites
 
-- minSdk 21
+- Android Studio Hedgehog or later
+- Android API 21 (Android 5.0) or later
+- JDK 11
+- Android NDK `25.2.9519653`
 
 ### Installation
 
+#### Option 1: Build AAR from local source
+
+Run the build script to generate the AAR:
+
+```bash
+./scripts/android/build.sh
+```
+
+Copy the generated `dist/android/release/AGenUI-Client-Android-release.aar` into your project's `libs/` directory, then add it to `build.gradle`:
+
 ```groovy
-// settings.gradle
-allprojects {
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.aar'])
+}
+```
+
+#### Option 2: Local Maven
+
+```bash
+./scripts/android/build.sh --publish-local
+```
+
+Add the local Maven repository in `settings.gradle`:
+
+```groovy
+dependencyResolutionManagement {
     repositories {
-        google()
-        mavenCentral()
+        mavenLocal()
     }
 }
+```
 
-// app/build.gradle
+Add the dependency in `build.gradle`:
+
+```groovy
 dependencies {
-    // AGenUI SDK
-    implementation 'com.amap.genui:agenui-sdk:0.9.8'
+    implementation 'com.amap.genui:agenui-sdk:0.1.0'
 }
 ```
 
 ### Usage
 
-**1. Initialize**
+**1. Initialize the engine**
+
+Initialize in `Application.onCreate()`:
 
 ```java
-SurfaceManager surfaceManager = new SurfaceManager(context);
+public class MyApplication extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        AGenUI.getInstance().initialize(this);
+    }
+}
 ```
 
-SDK initializes automatically on construction (idempotent).
-
-**2. Handle Surface lifecycle**
+**2. Create a SurfaceManager and add a listener**
 
 ```java
-surfaceManager.addListener(new ISurfaceListener() {
-    @Override
-    public void onCreateSurface(String surfaceId, Surface surface) {
-        // surface.getContainer() is a plain Android View
-        runOnUiThread(() -> container.addView(surface.getContainer()));
-    }
+public class MyActivity extends AppCompatActivity {
+    private SurfaceManager surfaceManager;
 
     @Override
-    public void onDeleteSurface(String surfaceId) {
-        runOnUiThread(() -> container.removeAllViews());
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        surfaceManager = new SurfaceManager(this);
+
+        surfaceManager.addListener(new ISurfaceManagerListener() {
+            @Override
+            public void onCreateSurface(Surface surface) {
+                // Add the Surface's root container to the page layout
+                runOnUiThread(() -> container.addView(surface.getContainer()));
+            }
+
+            @Override
+            public void onDeleteSurface(Surface surface) {
+                // Surface destroyed — remove from layout
+            }
+
+            @Override
+            public void onReceiveActionEvent(String event) {
+                // Handle component interaction events (button clicks, etc.)
+            }
+        });
     }
-});
+}
 ```
 
-Remove a listener when it is no longer needed:
+**3. Remove a listener**
 
 ```java
 surfaceManager.removeListener(listener);
 ```
 
-**3. Feed data**
+**4. Feed streaming data**
+
+Call the following methods in order to drive A2UI protocol parsing:
 
 ```java
-surfaceManager.receiveTextChunk(jsonString);
+// Mark the start of a streaming session for a complete JSON protocol message;
+// the engine handles streaming state internally
+surfaceManager.beginTextStream();
+
+// Call for each incoming data chunk
+surfaceManager.receiveTextChunk(chunk);
+// More streaming data...
+
+// Mark the end of a streaming session;
+// the engine handles streaming state and clears internal buffers
+surfaceManager.endTextStream();
 ```
 
-**4. Theme (optional)**
+**5. Register a theme (optional)**
 
 ```java
-// Throws ThemeException on failure
-surfaceManager.registerDefaultTheme(themeJson, designTokenJson);
+try {
+    AGenUI.getInstance().registerDefaultTheme(themeJson, designTokenJson);
+} catch (ThemeException e) {
+    // Theme format error
+}
 
-// Switch light / dark mode at runtime
-surfaceManager.setDayNightMode("dark"); // "light" | "dark"
+// Switch day/night mode
+AGenUI.getInstance().setDayNightMode("dark"); // "light" or "dark"
 ```
 
-**5. Release**
+**6. Release resources**
 
-Call `release()` in `onDestroy()` to destroy all Surfaces and clean up resources:
+Release in `onDestroy()`:
 
 ```java
 @Override
 protected void onDestroy() {
     super.onDestroy();
-    surfaceManager.release();
+    surfaceManager.destroy();
+}
+```
+
+---
+
+## iOS
+
+### Prerequisites
+
+- Xcode 15 or later
+- iOS 13.0 or later
+- Swift 5.0 or later
+- CocoaPods
+
+### Installation
+
+#### Option 1: CocoaPods (recommended)
+
+Add to your `Podfile`:
+
+```ruby
+pod 'AGenUI'
+```
+
+Run:
+
+```bash
+pod install
+```
+
+#### Option 2: Manual Framework integration
+
+If you cannot use a package manager, you can integrate the Framework manually.
+
+**Step 1: Build the Framework**
+
+```bash
+# Generate Framework (x86 architecture)
+./scripts/ios/build.sh -t framework -c Release
+
+# Or generate XCFramework (arm64 + x86, supporting device + simulator + Apple Silicon Mac)
+./scripts/ios/build.sh -t xcframework -c Release
+```
+
+Artifact locations:
+- Framework: `dist/ios/release/AGenUI.framework`
+- XCFramework: `dist/ios/release/AGenUI.xcframework`
+
+**Step 2: Add to your project**
+
+1. Drag the generated `.framework` or `.xcframework` into your Xcode project
+2. Under Target → **General → Frameworks, Libraries, and Embedded Content**:
+   - Set to **"Embed & Sign"**
+3. In **Build Settings → Search Paths → Framework Search Paths**, add:
+   ```
+   $(PROJECT_DIR)/Frameworks
+   ```
+
+**Step 3: Handle resource files**
+
+AGenUI SDK includes a resource Bundle that must be added manually:
+
+1. Locate the resource file: `platforms/ios/AGenUI/Assets/AGenUI.bundle`
+2. Drag `AGenUI.bundle` into your Xcode project
+3. Make sure it is included in **Copy Bundle Resources**
+
+---
+
+### Usage
+
+**1. Create a SurfaceManager and add a listener**
+
+```swift
+import AGenUI
+
+class MyViewController: UIViewController {
+    private let surfaceManager = SurfaceManager()
+    private var surfaceViews: [String: UIView] = [:]
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        surfaceManager.addListener(self)
+    }
+}
+
+extension MyViewController: SurfaceManagerListener {
+    func onCreateSurface(_ surface: Surface) {
+        // Add the Surface's view to the page
+        view.addSubview(surface.view)
+        surfaceViews[surface.surfaceId] = surface.view
+    }
+
+    func onDeleteSurface(_ surface: Surface) {
+        surfaceViews[surface.surfaceId]?.removeFromSuperview()
+        surfaceViews.removeValue(forKey: surface.surfaceId)
+    }
+
+    func onReceiveActionEvent(_ event: String) {
+        // Handle component interaction events
+    }
+}
+```
+
+**2. Remove a listener**
+
+```swift
+surfaceManager.removeListener(self)
+```
+
+**3. Feed streaming data**
+
+```swift
+// Mark the start of a streaming session for a complete JSON protocol message;
+// the engine handles streaming state internally
+surfaceManager.beginTextStream()
+
+// Call for each incoming data chunk
+surfaceManager.receiveTextChunk(chunk)
+// More streaming data...
+
+// Mark the end of a streaming session;
+// the engine handles streaming state and clears internal buffers
+surfaceManager.endTextStream()
+```
+
+**4. Register a theme (optional)**
+
+```swift
+let error = AGenUISDK.registerDefaultTheme(themeJson, designToken: designTokenJson)
+if !error.result {
+    print("Theme registration failed: \(error.message)")
+}
+
+// Switch day/night mode
+AGenUISDK.setDayNightMode("dark") // "light" or "dark"
+```
+
+**5. Resize a Surface (optional)**
+
+Once the container size is known, call `updateSize` to trigger layout:
+
+```swift
+// Fixed width and height
+surface.updateSize(width: view.bounds.width, height: view.bounds.height)
+
+// Fixed width, adaptive height
+surface.updateSize(width: view.bounds.width, height: .infinity)
+```
+
+**6. Release resources**
+
+`SurfaceManager` is released automatically on `deinit` — just nil out your reference:
+
+```swift
+deinit {
+    surfaceManager.removeAllListeners()
 }
 ```
 
@@ -180,112 +313,119 @@ protected void onDestroy() {
 
 ### Prerequisites
 
-- DevEco Studio 5.0+
+- DevEco Studio 4.0 or higher
+- HarmonyOS NEXT API17 or above
 
 ### Installation
+
+**Build locally**
+
+```bash
+./scripts/harmony/build.sh          # outputs to dist/harmony/release/
+```
+
+Copy the resulting `agenui.har` into your project and reference it with the `file:` protocol:
 
 ```json5
 {
   "dependencies": {
-    "@ohos/agenui": "0.9.8"
+    "@agenui/agenui": "file:./path/to/agenui.har"
   }
 }
-
-ohpm install @ohos/agenui
 ```
 
 ### Usage
 
+**1. Create a SurfaceManager and render UI**
+
+Implement `ISurfaceManagerListener` as a class to receive surface lifecycle callbacks:
+
 ```typescript
-import { AGenUIContainer, AGenUI, ISurfaceListener } from '@ohos/agenui';
+import { AGenUI, AGenUIContainer, SurfaceManager, ISurfaceManagerListener, Surface } from '@agenui/agenui';
+import { common } from '@kit.AbilityKit';
 
-class SurfaceListenerImpl implements ISurfaceListener{
-  private indexComponent: Index | null = null;
+class SurfaceListenerImpl implements ISurfaceManagerListener {
+  private page: MyPage | null = null;
 
-  constructor(indexComponent: Index) {
-    this.indexComponent = indexComponent;
+  constructor(page: MyPage) {
+    this.page = page;
   }
 
-  onCreateSurface(surfaceId: string): void {
-    // You can perform follow-up operations here, such as binding Surface to UI
-    if (this.indexComponent) {
-      this.indexComponent.addAGenUIContainer(surfaceId);
+  onCreateSurface(surface: Surface): void {
+    if (this.page) {
+      // Bind the surface ID to AGenUIContainer
+      this.page.surfaceId = surface.surfaceId;
     }
   }
 
-  onDeleteSurface(surfaceId: string): void {
-    // You can perform cleanup operations here
-    if (this.indexComponent) {
-      this.indexComponent.removeAGenUIContainer(surfaceId);
+  onDeleteSurface(surface: Surface): void {
+    if (this.page) {
+      this.page.surfaceId = '';
     }
   }
 
+  onReceiveActionEvent(event: string): void {
+    // Handle component interaction events
+  }
 }
 
 @Entry
 @Component
-struct Index {
+struct MyPage {
   @State surfaceId: string = '';
-  
   private surfaceManager: SurfaceManager | null = null;
 
-  aboutToAppear() {
-    // 1. Copy resources from rawfile to sandbox and initialize SDK
+  aboutToAppear(): void {
     const context = getContext(this) as common.UIAbilityContext;
     this.surfaceManager = new SurfaceManager(context);
     this.surfaceManager.addListener(new SurfaceListenerImpl(this));
   }
 
-  // Add AGenUIContainer
-  addAGenUIContainer(surfaceId: string) {
-    this.surfaceId = surfaceId;
-  }
-
-  // Remove AGenUIContainer
-  removeAGenUIContainer(surfaceId: string) {
-    if (this.surfaceId === surfaceId) {
-      this.surfaceId = '';
-    }
-  }
-
   build() {
-    Stack() {
-      // Use AGenUIContainer to render Surface
+    Column() {
       if (this.surfaceId) {
         AGenUIContainer({ surfaceId: this.surfaceId })
-          .width('100%')
-          .height('100%')
+          .width('100%').height('100%')
       }
     }
-    .width('100%')
-      .height('100%')
-      .backgroundColor('#F5F5F5')
   }
 }
 ```
 
-**4. Feed data**
+**2. Feed A2UI protocol data from your LLM stream**
+
+Call `receiveTextChunk()` for each chunk as it arrives — the engine reassembles and parses incrementally:
 
 ```typescript
-this.surfaceManager.receiveTextChunk(jsonString);
+// Mark the start of a streaming session for a complete JSON protocol message;
+// the engine handles streaming state internally
+surfaceManager.beginTextStream();
+
+// Call for each incoming data chunk
+surfaceManager.receiveTextChunk(chunk);
+// More streaming data...
+
+// Mark the end of a streaming session;
+// the engine handles streaming state and clears internal buffers
+surfaceManager.endTextStream();
 ```
 
-**5. Theme (optional)**
+**3. Register a theme (optional)**
 
 ```typescript
-// Throws Error on failure
-this.surfaceManager.registerDefaultTheme(themeJson, designTokenJson);
+const success: boolean = AGenUI.registerDefaultTheme(themeJson, designToken);
 
-// Switch light / dark mode at runtime
-this.surfaceManager.setDayNightMode('dark'); // 'light' | 'dark'
+// Switch between light and dark mode
+AGenUI.setDayNightMode('dark'); // 'light' or 'dark'
 ```
 
-**6. Release**
+**4. Clean up**
 
-Call `release()` in `aboutToDisappear()` to unregister all listeners:
+Release resources when the page is destroyed:
 
 ```typescript
-aboutToDisappear() {
-    this.surfaceManager?.release();
+aboutToDisappear(): void {
+  this.surfaceManager?.destroy();
+  this.surfaceManager = null;
 }
 ```
