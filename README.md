@@ -257,6 +257,14 @@ For larger changes — new platform support, significant engine refactors, new c
 
 ---
 
+## Community & Contact
+
+- **GitHub Issues**: [bug reports and feature requests](https://github.com/AGenUI/AGenUI/issues)
+- **GitHub Discussions**: [Q&A and general discussions](https://github.com/AGenUI/AGenUI/discussions)
+- **Email**: [tengjixiang.ttjx@alibaba-inc.com](mailto:tengjixiang.ttjx@alibaba-inc.com)
+
+---
+
 ## License
 
 AGenUI is released under the [Apache License, Version 2.0](LICENSE).

@@ -256,6 +256,29 @@ agenui.sdk.source=false
 
 ---
 
+## 社区与联系
+
+- **GitHub Issues**：[Bug 反馈和功能建议](https://github.com/AGenUI/AGenUI/issues)
+- **GitHub Discussions**：[问答与通用讨论](https://github.com/AGenUI/AGenUI/discussions)
+- **邮箱**：[tengjixiang.ttjx@alibaba-inc.com](mailto:tengjixiang.ttjx@alibaba-inc.com)
+- **钉钉群**：中文社区
+- **微信群**：中文社区
+
+<div align="center">
+<table>
+  <tr>
+    <th>钉钉群</th>
+    <th>微信群</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/dingtalk_qrcode.jpg" alt="AGenUI 钉钉群二维码" width="220"></td>
+    <td align="center"><img src="docs/images/wechat_qrcode.jpg" alt="AGenUI 微信群二维码" width="220"></td>
+  </tr>
+</table>
+</div>
+
+---
+
 ## 许可证
 
 AGenUI 基于 [Apache License, Version 2.0](LICENSE) 发布。
