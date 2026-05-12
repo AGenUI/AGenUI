@@ -1,10 +1,11 @@
 {
   "name": "@agenui/agenui",
-  "version": "0.0.5-internal",
+  "version": "0.9.9",
   "description": "AGenUI SDK - A2UI Dynamic UI Rendering Engine",
   "main": "./src/main/ets/Index.ets",
   "author": "harmony",
   "license": "Apache-2.0",
+  "repository": "https://github.com/AGenUI/AGenUI",
   "dependencies": {
     "liba2ui-capi.so": "file:./src/main/cpp/types/liba2ui-capi",
   }

@@ -55,8 +55,8 @@ The C++ layer implements capabilities shared across all three platforms, includi
 
 | Path | Contents |
 |---|---|
-| `engine/` | C++ core engine — parser, differ, layout, Function Call framework |
-| `engine/include/` | Public C++ API consumed by platform bridging layers |
+| `core/` | C++ core engine — parser, differ, layout, Function Call framework |
+| `core/include/` | Public C++ API consumed by platform bridging layers |
 | `platforms/ios/` | iOS component renderer + Objective-C bridge |
 | `platforms/android/` | Android component renderer + JNI bridge |
 | `platforms/harmony/` | HarmonyOS component renderer + NAPI bridge |
@@ -149,7 +149,7 @@ When integrating an LLM Agent, supply this file's content or its hosted URL as t
 
 ### Building from Source
 
-All build scripts live in the `scripts/` directory. The C++ engine in `engine/` is compiled automatically — no separate preparation step is needed.
+All build scripts live in the `scripts/` directory. The C++ engine in `core/` is compiled automatically — no separate preparation step is needed.
 
 **Android**
 
