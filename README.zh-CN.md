@@ -261,8 +261,8 @@ agenui.sdk.source=false
 - **GitHub Issues**：[Bug 反馈和功能建议](https://github.com/AGenUI/AGenUI/issues)
 - **GitHub Discussions**：[问答与通用讨论](https://github.com/AGenUI/AGenUI/discussions)
 - **邮箱**：[tengjixiang.ttjx@alibaba-inc.com](mailto:tengjixiang.ttjx@alibaba-inc.com)
-- **钉钉群**：中文社区
-- **微信群**：中文社区
+- **钉钉群**：技术交流群
+- **微信群**：技术交流群
 
 <div align="center">
 <table>
