@@ -145,46 +145,17 @@ You can register your own components at runtime using the same API — see the [
 
 ### Installation
 
-**Build locally**
-
-```bash
-./scripts/harmony/build.sh          # outputs to dist/harmony/release/
+```shell
+ohpm install @agenui/agenui
 ```
-
-Copy the resulting `agenui.har` into your project and reference it with the `file:` protocol:
-
-```json5
+### Dependencies
+```json
 {
   "dependencies": {
-    "@agenui/agenui": "file:./path/to/agenui.har"
+    "@agenui/agenui": "0.9.9"
   }
 }
 ```
-
-### Building from Source
-
-All build scripts live in the `scripts/` directory. The C++ engine in `core/` is compiled automatically — no separate preparation step is needed.
-
-```bash
-# HAR package (Release, default)
-./scripts/harmony/build.sh
-
-# Debug build
-./scripts/harmony/build.sh --mode debug
-
-# Custom output directory
-./scripts/harmony/build.sh -o /path/to/output
-```
-
-The HAR is written to `dist/harmony/release/`.
-
-### Debugging with the Playground
-
-A standalone Playground project is provided under `playground/harmony/`. It references the SDK source directly via `srcPath`, so any change to the AGenUI source is automatically picked up by the next build — breakpoint debugging is fully supported.
-
-- Open the `playground/harmony` directory with DevEco Studio
-- Let it install dependencies and index the source files
-- Pick a simulator, and build & run
 
 ### Integrating the AGenUI SDK
 
