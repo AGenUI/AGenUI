@@ -10,7 +10,7 @@
 [![iOS](https://img.shields.io/badge/iOS-13%2B-lightgrey)](#)
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS%20NEXT-API%2017%2B-red)](#)
 
-[**在线 Demo**](https://genui.amap.com) · [**快速上手**](docs/QuickStart.zh-CN.md) · [**API 参考**](docs/API.zh-CN.md) · [**贡献指南**](CONTRIBUTING.md)
+[**官网**](https://genui.amap.com) · [**快速上手**](docs/QuickStart.zh-CN.md) · [**API 参考**](docs/API.zh-CN.md) · [**贡献指南**](CONTRIBUTING.md)
 
 [English](README.md) | 中文
 
