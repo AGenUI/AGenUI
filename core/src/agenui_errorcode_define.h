@@ -30,7 +30,6 @@ enum AGenUIExeCode {
     ExeCode_ParseError_appendDataModel_no_surfaceId,
     ExeCode_ParseError_appendDataModel_empty_surfaceId,
     ExeCode_ParseError_appendDataModel_notfound_surfaceId,
-    ExeCode_ParseError_appendDataModel_jsonexception,
     ExeCode_ParseError_deleteSurface_no_keywords,
     ExeCode_ParseError_deleteSurface_no_surfaceId,
     ExeCode_ParseError_deleteSurface_empty_surfaceId,

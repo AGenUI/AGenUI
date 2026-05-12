@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// CSS property applier
 /// Responsible for applying parsed CSS properties to components and views
@@ -323,19 +319,7 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyWidth(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let width):
-            view.flex.width(width)
-        case .percentage(let percent):
-            // FlexLayout percentage method: percent is 0.0-1.0, needs to be converted to 0-100
-            view.flex.width(CGFloat(percent * 100)%)
-        case .keyword:
-            // auto keyword: do not set explicit width, let FlexLayout auto-calculate based on content
-            view.flex.width(nil)
-            break
-        default:
-            break
-        }
+        // Layout computed by C++ Engine; iOS only applies visual styles
     }
     
     /// Applies height
@@ -343,19 +327,7 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyHeight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let height):
-            view.flex.height(height)
-        case .percentage(let percent):
-            // FlexLayout percentage method: percent is 0.0-1.0, needs to be converted to 0-100
-            view.flex.height(CGFloat(percent * 100)%)
-        case .keyword:
-            // auto keyword: do not set explicit height, let FlexLayout auto-calculate based on content
-            view.flex.height(nil)
-            break
-        default:
-            break
-        }
+        // Layout computed by C++ Engine; iOS only applies visual styles
     }
     
     /// Applies max width
@@ -363,59 +335,22 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyMaxWidth(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let maxWidth):
-            view.flex.maxWidth(maxWidth)
-        case .percentage(let percent):
-            view.flex.maxWidth(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies max height
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMaxHeight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let maxHeight):
-            view.flex.maxHeight(maxHeight)
-        case .percentage(let percent):
-            view.flex.maxHeight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies min width
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMinWidth(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let minWidth):
-            view.flex.minWidth(minWidth)
-        case .percentage(let percent):
-            view.flex.minWidth(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies min height
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMinHeight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let minHeight):
-            view.flex.minHeight(minHeight)
-        case .percentage(let percent):
-            view.flex.minHeight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     // MARK: - Spacing Control Properties
@@ -425,29 +360,12 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyMargin(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.margin(margin)
-        case .percentage(let percent):
-            view.flex.margin(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies uniform padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPadding(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.padding(padding)
-        case .percentage(let percent):
-            view.flex.padding(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies inline-start margin (RTL support)
@@ -455,49 +373,12 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyMarginInlineStart(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let margin):
-            if isRTL {
-                view.flex.marginRight(margin)
-            } else {
-                view.flex.marginLeft(margin)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.marginRight(CGFloat(percent * 100)%)
-            } else {
-                view.flex.marginLeft(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies inline-end margin (RTL support)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMarginInlineEnd(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let margin):
-            if isRTL {
-                view.flex.marginLeft(margin)
-            } else {
-                view.flex.marginRight(margin)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.marginLeft(CGFloat(percent * 100)%)
-            } else {
-                view.flex.marginRight(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     // MARK: - Layout Alignment Properties
@@ -507,105 +388,32 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyJustifyContent(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "start", "flex-start":
-            view.flex.justifyContent(.start)
-        case "center":
-            view.flex.justifyContent(.center)
-        case "end", "flex-end":
-            view.flex.justifyContent(.end)
-        case "space-between":
-            view.flex.justifyContent(.spaceBetween)
-        case "space-around":
-            view.flex.justifyContent(.spaceAround)
-        case "space-evenly":
-            view.flex.justifyContent(.spaceEvenly)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown justify-content value: \(alignment)")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies cross-axis alignment
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyAlignItems(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "start", "flex-start":
-            view.flex.alignItems(.start)
-        case "center":
-            view.flex.alignItems(.center)
-        case "end", "flex-end":
-            view.flex.alignItems(.end)
-        case "stretch":
-            view.flex.alignItems(.stretch)
-        case "baseline":
-            view.flex.alignItems(.baseline)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown align-items value: \(alignment)")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies self-alignment
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyAlignSelf(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "auto":
-            view.flex.alignSelf(.auto)
-        case "start", "flex-start":
-            view.flex.alignSelf(.start)
-        case "center":
-            view.flex.alignSelf(.center)
-        case "end", "flex-end":
-            view.flex.alignSelf(.end)
-        case "stretch":
-            view.flex.alignSelf(.stretch)
-        case "baseline":
-            view.flex.alignSelf(.baseline)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown align-self value: \(alignment)")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies flex grow factor
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyFlexGrow(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .number(let grow) = value else { return }
-        view.flex.grow(grow)
+        // Layout computed by C++ Engine
     }
     
     /// Applies flex shrink factor
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyFlexShrink(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .number(let shrink) = value else { return }
-        view.flex.shrink(shrink)
+        // Layout computed by C++ Engine
     }
     
     /// Applies aspect ratio
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyFlexAspect(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .number(let ratio) = value else { return }
-        view.flex.aspectRatio(ratio)
+        // Layout computed by C++ Engine
     }
     
     // MARK: - Style Properties
@@ -694,8 +502,14 @@ class CSSPropertyApplier {
     ///   - view: Target view
     private static func applyBorderRadius(_ value: CSSPropertyValue, to view: UIView) {
         guard case .number(let radius) = value else { return }
-        view.layer.cornerRadius = radius
-        view.layer.masksToBounds = value.numberValue != 0
+        // Dispatch to Component.setBorderRadius if available, allowing subclasses to propagate
+        // the radius to inner subviews (e.g., imageView, innerTableView) via override.
+        // For plain UIViews, fall back to setting layer.cornerRadius directly.
+        if let component = view as? Component {
+            component.setBorderRadius(radius)
+        } else {
+            view.layer.cornerRadius = radius
+        }
     }
     
     /// Applies opacity
@@ -715,109 +529,32 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyMarginBlockStart(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginTop(margin)
-        case .percentage(let percent):
-            view.flex.marginTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies block-end margin (maps to margin-bottom)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMarginBlockEnd(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginBottom(margin)
-        case .percentage(let percent):
-            view.flex.marginBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies inline-start padding (RTL support)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPaddingInlineStart(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let padding):
-            if isRTL {
-                view.flex.paddingRight(padding)
-            } else {
-                view.flex.paddingLeft(padding)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.paddingRight(CGFloat(percent * 100)%)
-            } else {
-                view.flex.paddingLeft(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies inline-end padding (RTL support)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPaddingInlineEnd(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let padding):
-            if isRTL {
-                view.flex.paddingLeft(padding)
-            } else {
-                view.flex.paddingRight(padding)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.paddingLeft(CGFloat(percent * 100)%)
-            } else {
-                view.flex.paddingRight(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies block-start padding (maps to padding-top)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPaddingBlockStart(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingTop(padding)
-        case .percentage(let percent):
-            view.flex.paddingTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies block-end padding (maps to padding-bottom)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPaddingBlockEnd(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingBottom(padding)
-        case .percentage(let percent):
-            view.flex.paddingBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     // MARK: - P1 Border Properties
@@ -847,59 +584,22 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyMarginTop(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginTop(margin)
-        case .percentage(let percent):
-            view.flex.marginTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies right margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMarginRight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginRight(margin)
-        case .percentage(let percent):
-            view.flex.marginRight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies bottom margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMarginBottom(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginBottom(margin)
-        case .percentage(let percent):
-            view.flex.marginBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies left margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyMarginLeft(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginLeft(margin)
-        case .percentage(let percent):
-            view.flex.marginLeft(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     // MARK: - Physical Directional Padding Properties
@@ -909,59 +609,22 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyPaddingTop(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingTop(padding)
-        case .percentage(let percent):
-            view.flex.paddingTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies right padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPaddingRight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingRight(padding)
-        case .percentage(let percent):
-            view.flex.paddingRight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies bottom padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPaddingBottom(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingBottom(padding)
-        case .percentage(let percent):
-            view.flex.paddingBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies left padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyPaddingLeft(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingLeft(padding)
-        case .percentage(let percent):
-            view.flex.paddingLeft(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     // MARK: - Flex Layout Extension Properties
@@ -971,62 +634,17 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyFlexWrap(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let wrap) = value else { return }
-        
-        switch wrap {
-        case "wrap":
-            view.flex.wrap(.wrap)
-        case "wrap-reverse":
-            view.flex.wrap(.wrapReverse)
-        case "nowrap":
-            view.flex.wrap(.noWrap)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown flex-wrap value: \(wrap)")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies align-content property
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyAlignContent(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "start", "flex-start":
-            view.flex.alignContent(.start)
-        case "center":
-            view.flex.alignContent(.center)
-        case "end", "flex-end":
-            view.flex.alignContent(.end)
-        case "stretch":
-            view.flex.alignContent(.stretch)
-        case "space-between":
-            view.flex.alignContent(.spaceBetween)
-        case "space-around":
-            view.flex.alignContent(.spaceAround)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown align-content value: \(alignment)")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies flex-basis property
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyFlexBasis(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let basis):
-            view.flex.basis(basis)
-        case .percentage(let percent):
-            view.flex.basis(CGFloat(percent * 100)%)
-        default:
-            break
-        }
+        // Layout computed by C++ Engine
     }
     
     // MARK: - Requirement 9: Display Control and Visual Effects Properties
@@ -1082,11 +700,8 @@ class CSSPropertyApplier {
         switch display {
         case "none":
             view.isHidden = true
-            // display:none takes no space, implemented via FlexLayout
-            view.flex.display(.none)
         default:
             view.isHidden = false
-            view.flex.display(.flex)
         }
     }
     
@@ -1147,13 +762,12 @@ class CSSPropertyApplier {
         // Set shadow color
         view.layer.shadowColor = shadow.color.cgColor
         
-        // Set shadow opacity
-        // Extract alpha value from color
-        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
-        if shadow.color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) {
+        // Set shadow opacity from color's alpha channel
+        var alpha: CGFloat = 0
+        if shadow.color.getRed(nil, green: nil, blue: nil, alpha: &alpha) {
             view.layer.shadowOpacity = Float(alpha)
         } else {
-            // If unable to extract RGBA, try to get white and alpha (for grayscale colors)
+            // Fallback for grayscale colors
             var white: CGFloat = 0
             if shadow.color.getWhite(&white, alpha: &alpha) {
                 view.layer.shadowOpacity = Float(alpha)
@@ -1339,105 +953,27 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyPosition(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let position) = value else {
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid position value type")
-            #endif
-            return
-        }
-        
-        switch position {
-        case "static":
-            view.flex.position(.static)
-        case "relative":
-            view.flex.position(.relative)
-        case "absolute":
-            view.flex.position(.absolute)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Unsupported position value: \(position)")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies top offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyTop(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.top(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.top(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid top value type")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies left offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyLeft(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.left(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.left(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid left value type")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies bottom offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyBottom(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.bottom(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.bottom(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid bottom value type")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies right offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
     private static func applyRight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.right(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.right(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid right value type")
-            #endif
-        }
+        // Layout computed by C++ Engine
     }
     
     /// Applies z-index property

@@ -1,5 +1,5 @@
 #include "agenui_streaming_content_parser.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <cstring>
 #include "nlohmann/json.hpp"
 #include "module/agenui_thread_manager.h"
@@ -33,17 +33,27 @@ namespace agenui {
     }
 
     void StreamingContentParser::processDataBeginning() {
+        AGENUI_LOG("processing begin");
         resetState();
+
+        AGENUI_PERFORMANCE_LOG("stream_begin", "");
     }
 
     void StreamingContentParser::processDataAssembling(const std::string& data) {
+        AGENUI_PERFORMANCE_LOG("stream_assembling_begin", "%s", data.c_str());
+        AGENUI_LOG("%s", data.c_str());
         _extractor.appendData(data);
         auto results = _extractor.driveParser();
         dispatchParseResults(results);
+        
+        AGENUI_PERFORMANCE_LOG("stream_assembling_end", "%s", data.c_str());
     }
 
     void StreamingContentParser::processDataEnding() {
+        AGENUI_LOG("processing end");
         resetState();
+        
+        AGENUI_PERFORMANCE_LOG("stream_end", "");
     }
 
     void StreamingContentParser::dispatchParseResults(const std::vector<ProtocolStreamExtractor::ParseResult>& results) {
@@ -61,15 +71,19 @@ namespace agenui {
             return;
         }
 
+        AGenUIExeCode ret = ExeCode_Parse_success;
         const std::string& data = result.eventJson;
         if (result.eventType == ProtocolStreamExtractor::EventType::CreateSurface) {
-            _coordinator->createSurface(data);
+            ret = _coordinator->createSurface(data);
         } else if (result.eventType == ProtocolStreamExtractor::EventType::UpdateDataModel) {
-            _coordinator->updateDataModel(data);
+            ret = _coordinator->updateDataModel(data);
         } else if (result.eventType == ProtocolStreamExtractor::EventType::AppendDataModel) {
-            _coordinator->appendDataModel(data);
+            ret = _coordinator->appendDataModel(data);
         } else if (result.eventType == ProtocolStreamExtractor::EventType::DeleteSurface) {
-            _coordinator->deleteSurface(data);
+            ret = _coordinator->deleteSurface(data);
+        }
+        if (ret != ExeCode_Parse_success) {
+            AGENUI_LOG("ret:%s, type:%d, data:%s", getExeCodeString(ret).c_str(), result.eventType, data.c_str());
         }
     }
 
@@ -86,7 +100,10 @@ namespace agenui {
         updateJson += "\"surfaceId\":\"" + surfaceId + "\",";
         updateJson += "\"components\":[" + componentJson + "]";
         updateJson += "}}";
-        _coordinator->updateComponents(updateJson);
+        AGenUIExeCode ret = _coordinator->updateComponents(updateJson);
+        if (ret != ExeCode_Parse_success) {
+            AGENUI_LOG("ret:%s, data:%s", getExeCodeString(ret).c_str(), updateJson.c_str());
+        }
     }
 
     void StreamingContentParser::resetState() {

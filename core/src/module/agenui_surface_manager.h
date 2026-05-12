@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <memory>
 #include <string>
 #include <vector>
@@ -139,6 +140,7 @@ private:
 
     // Multi-instance modules (owned)
     EventDispatcher* _dispatcher = nullptr;
+    std::recursive_mutex _cachedListenersMutex;
     std::vector<IAGenUIMessageListener*> _cachedListeners;
     StreamingContentParser* _streamingContentParser = nullptr;
     SurfaceCoordinator* _surfaceCoordinator = nullptr;

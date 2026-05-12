@@ -5,7 +5,6 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 material = "1.12.0"
-flexbox = "3.0.0"
 picasso = "2.8"
 gson = "2.10.1"
 
@@ -15,7 +14,6 @@ ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitV
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
 picasso = { group = "com.squareup.picasso", name = "picasso", version.ref = "picasso" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 

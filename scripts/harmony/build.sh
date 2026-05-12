@@ -78,7 +78,7 @@ if [[ -n "$CUSTOM_OUTPUT_DIR" ]]; then
 fi
 
 [[ -d "$HARMONY_PROJECT_ROOT" ]] || error "Harmony project directory not found: ${HARMONY_PROJECT_ROOT}"
-ensure_engine_dir
+ensure_core_dir
 
 # Resolved after argument parsing so that BUILD_MODE is final.
 SYMBOL_OUTPUT_DIR="${HARMONY_PROJECT_ROOT}/${HARMONY_MODULE}/build/default/outputs/default/symbol/${BUILD_MODE}"

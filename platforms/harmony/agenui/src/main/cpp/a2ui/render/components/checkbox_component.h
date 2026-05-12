@@ -52,6 +52,9 @@ private:
     /** Apply the checked state. */
     void applyValue(const nlohmann::json& properties);
 
+    /** Apply generic CSS border styles (border-width/color/radius) to the container node. */
+    void applyContainerBorderStyles(const nlohmann::json& properties);
+
     /** Extract a string value, including DynamicString input. */
     static std::string extractStringValue(const nlohmann::json& value);
 

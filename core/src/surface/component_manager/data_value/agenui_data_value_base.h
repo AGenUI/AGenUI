@@ -22,9 +22,8 @@ enum class DataType {
     ParseableData,                 // Parseable data
     CallableData,                  // Callable data
     InterpolationBindableData,     // String-interpolation bindable data
+    CheckRuleData,                 // Single check rule data
     ChecksData,                    // Conditional check data
-    ChecksAndData,                 // AND-logic check data
-    ChecksOrData,                  // OR-logic check data
     StylesData,                    // Style data
     TabsData,                      // Tabs data
     EventActionData,               // Event action data

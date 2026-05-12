@@ -1,12 +1,14 @@
 #include "agenui_surface.h"
 #include "agenui_engine_context.h"
+#include "agenui_engine_entry.h"
 #include "agenui_type_define.h"
 #include "module/agenui_surface_manager.h"
+#include "agenui_measurement.h"
 #include "datamodel/agenui_data_model.h"
 #include "virtual_dom/agenui_virtual_dom.h"
 #include "component_manager/agenui_component_manager.h"
 #include "agenui_expression_parser.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "module/agenui_event_dispatcher.h"
 
 namespace agenui {
@@ -18,9 +20,18 @@ Surface::Surface(const std::string& surfaceId, const std::string& theme, Surface
       _virtualDom(nullptr),
       _componentManager(nullptr),
       _surfaceManager(surfaceManager) {
+    AGENUI_PERFORMANCE_LOG("surface_create_begin", "%s", surfaceId.c_str());
+          
     _dataModel = new DataModel();
-    _virtualDom = new VirtualDOM(this);
+    IMeasurementManager* mm = nullptr;
+    IAGenUIEngine* engine = getAGenUIEngine();
+    if (engine) {
+        mm = engine->getMeasurementManager();
+    }
+    _virtualDom = new VirtualDOM(this, mm);
     _componentManager = new ComponentManager(_dataModel, _virtualDom, _theme);
+
+    AGENUI_PERFORMANCE_LOG("surface_create_end", "%s", surfaceId.c_str());
 }
 
 Surface::~Surface() {
@@ -28,6 +39,8 @@ Surface::~Surface() {
     SAFELY_DELETE(_componentManager);
     SAFELY_DELETE(_virtualDom);
     SAFELY_DELETE(_dataModel);
+    
+    AGENUI_PERFORMANCE_LOG("surface_destroy", "%s", _surfaceId.c_str());
 }
 
 const std::string& Surface::getSurfaceId() const {
@@ -43,7 +56,16 @@ void Surface::updateComponentSize(const ComponentRenderInfo& info) {
         VirtualDOM* virtualDomImpl = static_cast<VirtualDOM*>(_virtualDom);
         virtualDomImpl->updateComponentSize(info);
     } else {
-        AGENUI_LOG("Surface::updateComponentSize failed: virtualDom is null");
+        AGENUI_LOG("failed: virtualDom is null");
+    }
+}
+
+void Surface::updateTabsSelectedIndex(const ComponentRenderInfo& info) {
+    if (_virtualDom) {
+        VirtualDOM* virtualDomImpl = static_cast<VirtualDOM*>(_virtualDom);
+        virtualDomImpl->updateTabsSelectedIndex(info.componentId, info.selectedIndex);
+    } else {
+        AGENUI_LOG("failed: virtualDom is null");
     }
 }
 
@@ -52,12 +74,12 @@ void Surface::updateSurfaceSize(const SurfaceLayoutInfo& info) {
         VirtualDOM* virtualDomImpl = static_cast<VirtualDOM*>(_virtualDom);
         virtualDomImpl->updateSurfaceSize(info);
     } else {
-        AGENUI_LOG("Surface::updateSurfaceSize failed: virtualDom is null");
+        AGENUI_LOG("virtualDom is null");
     }
 }
 
 void Surface::sendCachedComponentMessages() {
-#if !defined(TEST_COMPONENT_UPDATE) && !defined(__OHOS__)
+#if !defined(TEST_COMPONENT_UPDATE)
     if (!_cachedComponentMessages.empty() && _surfaceManager) {
         UpdateComponentsMessage message;
         message.surfaceId = _surfaceId;
@@ -110,7 +132,8 @@ void Surface::updateDataModel(const nlohmann::json& dataModelData) {
     if (_dataModel == nullptr) {
         return;
     }
-
+    AGENUI_PERFORMANCE_LOG("surface_updateDataModel_begin", "%s", _surfaceId.c_str());
+    
     if (!dataModelData.contains("path") && !dataModelData.contains("value")) {
         _dataModel->updateData("/", dataModelData.dump());
         sendCachedComponentMessages();
@@ -128,13 +151,16 @@ void Surface::updateDataModel(const nlohmann::json& dataModelData) {
     valueStr = value.dump();
     _dataModel->updateData(path, valueStr);
     sendCachedComponentMessages();
+    
+    AGENUI_PERFORMANCE_LOG("surface_updateDataModel_end", "%s", _surfaceId.c_str());
 }
 
 void Surface::appendDataModel(const nlohmann::json& dataModelData) {
     if (_dataModel == nullptr) {
         return;
     }
-
+    AGENUI_PERFORMANCE_LOG("surface_appendDataModel_begin", "%s", _surfaceId.c_str());
+    
     std::string path = dataModelData.contains("path") ? dataModelData["path"].get<std::string>() : "/";
 
     if (!dataModelData.contains("value")) {
@@ -151,13 +177,12 @@ void Surface::appendDataModel(const nlohmann::json& dataModelData) {
 
     _dataModel->appendData(path, valueStr);
     sendCachedComponentMessages();
+    
+    AGENUI_PERFORMANCE_LOG("surface_appendDataModel_end", "%s", _surfaceId.c_str());
 }
 
 void Surface::onNodeUpdate(const std::string& componentId, const std::string& nodeJson) {
     AGENUI_LOG("onNodeUpdate: %s", nodeJson.c_str());
-#if !defined(TEST_COMPONENT_UPDATE) && !defined(__OHOS__)
-    _cachedComponentMessages[componentId] = nodeJson;
-#else
     if (!_surfaceManager) return;
     ComponentsUpdateMessage message;
     message.componentId = componentId;
@@ -167,7 +192,6 @@ void Surface::onNodeUpdate(const std::string& componentId, const std::string& no
     messages.push_back(message);
 
     _surfaceManager->getEventDispatcher()->dispatchComponentsUpdate(_surfaceId, messages);
-#endif
 }
 
 void Surface::onNodeAdded(const std::string& parentId, const std::string& nodeJson) {
@@ -179,10 +203,6 @@ void Surface::onNodeAdded(const std::string& parentId, const std::string& nodeJs
 
     AGENUI_LOG("onNodeAdded: %s, parentId:%s", nodeJson.c_str(), parentId.c_str());
     std::string componentId = json["id"].get<std::string>();
-#if !defined(TEST_COMPONENT_UPDATE) && !defined(__OHOS__)
-    _cachedComponentMessages[componentId] = nodeJson;
-
-#else
     if (!_surfaceManager) return;
     ComponentsAddMessage message;
     message.parentId = parentId;
@@ -193,12 +213,10 @@ void Surface::onNodeAdded(const std::string& parentId, const std::string& nodeJs
     messages.push_back(message);
 
     _surfaceManager->getEventDispatcher()->dispatchComponentsAdd(_surfaceId, messages);
-#endif
 }
 
 void Surface::onNodeRemoved(const std::string& parentId, const std::string& id) {
     AGENUI_LOG("onNodeRemoved: %s, parentId:%s", id.c_str(), parentId.c_str());
-#if defined(TEST_COMPONENT_UPDATE) || defined(__OHOS__)
     if (!_surfaceManager) return;
     ComponentsRemoveMessage message;
     message.parentId = parentId;
@@ -208,7 +226,6 @@ void Surface::onNodeRemoved(const std::string& parentId, const std::string& id) 
     messages.push_back(message);
 
     _surfaceManager->getEventDispatcher()->dispatchComponentsRemove(_surfaceId, messages);
-#endif
 }
 
 
@@ -243,11 +260,15 @@ void Surface::syncUIToData(const std::string& componentId, const std::string& ch
 }
 
 void Surface::handleUserAction(const std::string& sourceComponentId) {
+    AGENUI_PERFORMANCE_LOG("surface_handleUserAction_begin", "%s", sourceComponentId.c_str());
+    
     if (_componentManager != nullptr && _surfaceManager) {
         EventDispatcher* dispatcher = _surfaceManager->getEventDispatcher();
         _componentManager->executeComponentAction(sourceComponentId, _surfaceId, dispatcher);
     }
     sendCachedComponentMessages();
+    
+    AGENUI_PERFORMANCE_LOG("surface_handleUserAction_end", "%s", sourceComponentId.c_str());
 }
 
 void Surface::refreshStyleTokens() {

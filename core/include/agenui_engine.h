@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "agenui_measurement.h"
 
 namespace agenui {
 
@@ -7,6 +8,9 @@ class ISurfaceManager;
 class IPlatformLayoutBridge;
 class IPlatformInvoker;
 class IPlatformFunction;
+class IMeasurementManager;
+class IRuntimeLogger;
+class IPerfLogger;
 
 /**
  * @brief AGenUI Engine Interface
@@ -98,6 +102,24 @@ public:
      */
     virtual void setDayNightMode(const std::string &mode) = 0;
 
+    /**
+     * @brief Get MeasurementManager
+     * @return MeasurementManager pointer, returns nullptr if uninitialized
+     */
+    virtual IMeasurementManager* getMeasurementManager() = 0;
+
+    /**
+     * @brief Set runtime logger
+     * @param logger Runtime logger implementation (for DEBUG/INFO/WARN/ERROR/FATAL logs).
+     *               Pass nullptr to restore the built-in default logger.
+     */
+    virtual void setRuntimeLogger(IRuntimeLogger* logger) = 0;
+
+    /**
+     * @brief Get the currently active runtime logger
+     * @return Runtime logger interface pointer, never null (falls back to the built-in default)
+     */
+    virtual IRuntimeLogger* getRuntimeLogger() = 0;
 };
 
 } // namespace agenui

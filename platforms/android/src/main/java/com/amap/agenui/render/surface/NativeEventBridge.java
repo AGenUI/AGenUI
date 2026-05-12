@@ -31,7 +31,7 @@ import java.util.Set;
  * JNI Bridge - receives events from the C++ EventDispatcher
  * <p>
  * Responsibilities:
- * 1. Receives createSurface, updateComponents, updateDataModel, and destroySurface events from C++
+ * 1. Receives createSurface, updateComponents, incremental add/update/remove, and destroySurface events from C++
  * 2. Forwards events to SurfaceManager for processing
  * 3. Parses JSON data and updates components
  * 4. Supports progressive rendering (components may arrive in any order)
@@ -53,14 +53,14 @@ public class NativeEventBridge implements IAGenUIMessageListener {
     }
 
     @Override
-    public void onCreateSurface(String surfaceId, String catalogId, Map<String, String> theme, boolean sendDataModel, boolean animated) {
+    public void onCreateSurface(String surfaceId, String catalogId, Map<String, String> theme, boolean sendDataModel, boolean animated, String rawProtocolContent) {
         Log.i(TAG, "========== onCreateSurface ==========");
         Log.i(TAG, "surfaceId=" + surfaceId);
         Log.i(TAG, "catalogId=" + catalogId);
 
         mainHandler.post(() -> {
             // 1. Create Surface (without container)
-            Surface surface = surfaceManager.createSurface(surfaceId);
+            Surface surface = surfaceManager.createSurface(surfaceId, rawProtocolContent);
             if (surface != null) {
                 surface.setAnimationEnabled(animated);
                 Log.d(TAG, "✓ Surface created");
@@ -88,6 +88,28 @@ public class NativeEventBridge implements IAGenUIMessageListener {
         }
         String componentsJson = array.toString();
         mainHandler.post(() -> NativeEventBridge.this.onUpdateComponents(surfaceId, componentsJson));
+    }
+
+    @Override
+    public void onComponentsUpdate(String surfaceId, String[] components) {
+        Log.i(TAG, "onComponentsUpdate: surfaceId=" + surfaceId + ", count=" + (components != null ? components.length : 0));
+        mainHandler.post(() -> applyIncrementalComponentUpdates(surfaceId, components));
+    }
+
+    @Override
+    public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components) {
+        Log.i(TAG, "onComponentsAdd: surfaceId=" + surfaceId
+                + ", parents=" + (parentIds != null ? parentIds.length : 0)
+                + ", components=" + (components != null ? components.length : 0) + ", components=" + (components != null ? Arrays.toString(components) : "null"));
+        mainHandler.post(() -> applyIncrementalComponentAdds(surfaceId, parentIds, components));
+    }
+
+    @Override
+    public void onComponentsRemove(String surfaceId, String[] parentIds, String[] componentIds) {
+        Log.i(TAG, "onComponentsRemove: surfaceId=" + surfaceId
+                + ", parents=" + (parentIds != null ? parentIds.length : 0)
+                + ", componentIds=" + (componentIds != null ? componentIds.length : 0));
+        mainHandler.post(() -> applyIncrementalComponentRemovals(surfaceId, parentIds, componentIds));
     }
 
     @Override
@@ -132,85 +154,90 @@ public class NativeEventBridge implements IAGenUIMessageListener {
                     return;
                 }
                 Log.d(TAG, "✓ Surface found: " + surfaceId);
+                surface.beginLayoutTransaction();
 
                 // Parse component array
-                List<Map<String, Object>> components = gson.fromJson(element, List.class);
-                Log.d(TAG, "✓ Components parsed, count=" + components.size());
+                try {
+                    List<Map<String, Object>> components = gson.fromJson(element, List.class);
+                    Log.d(TAG, "✓ Components parsed, count=" + components.size());
 
 
-                // 1. Build parent-child relationship map (O(n))
-                Log.d(TAG, "--- Step 1: Building parent-child map ---");
-                Map<String, String> parentMap = resolver.buildParentMap(components);
+                    // 1. Build parent-child relationship map (O(n))
+                    Log.d(TAG, "--- Step 1: Building parent-child map ---");
+                    Map<String, String> parentMap = resolver.buildParentMap(components);
 
-                // 2. Validate component tree integrity (optional, for debugging)
-                resolver.validateComponentTree(components, parentMap);
+                    // 2. Validate component tree integrity (optional, for debugging)
+                    resolver.validateComponentTree(components, parentMap);
 
-                // 3. Find root component
-                String rootId = resolver.findRootComponent(components);
+                    // 3. Find root component
+                    String rootId = resolver.findRootComponent(components);
 
-                // 4. Topological sort (O(n))
-                Log.d(TAG, "--- Step 2: Topological sorting ---");
-                List<String> sortedIds = resolver.topologicalSort(components, parentMap);
+                    // 4. Topological sort (O(n))
+                    Log.d(TAG, "--- Step 2: Topological sorting ---");
+                    List<String> sortedIds = resolver.topologicalSort(components, parentMap);
 
-                // 5. Build a map from component ID to component data
-                Map<String, Map<String, Object>> componentMap = new HashMap<>();
-                for (Map<String, Object> comp : components) {
-                    componentMap.put((String) comp.get("id"), comp);
-                }
-
-                // 6. Check whether the container is already bound
-                Log.d(TAG, "Container always available (internal FrameLayout)");
-
-                // 7. Create and add components in topological order (O(n))
-                Log.d(TAG, "--- Step 3: Creating and adding components in order ---");
-                int addedCount = 0;
-                for (String componentId : sortedIds) {
-                    Map<String, Object> componentData = componentMap.get(componentId);
-                    if (componentData == null) {
-                        Log.w(TAG, "⚠ Component data not found: " + componentId);
-                        continue;
+                    // 5. Build a map from component ID to component data
+                    Map<String, Map<String, Object>> componentMap = new HashMap<>();
+                    for (Map<String, Object> comp : components) {
+                        componentMap.put((String) comp.get("id"), comp);
                     }
 
-                    String parentId = parentMap.get(componentId);
+                    // 6. Check whether the container is already bound
+                    Log.d(TAG, "Container always available (internal FrameLayout)");
 
-                    // Streaming render fix: if parentMap has no parent info for this component,
-                    // try to find it in the componentTree (a component there may already reference
-                    // the current component as a child)
-                    if (parentId == null) {
-                        Log.d(TAG, "  → parentMap has no parent info for: " + componentId);
-                        Log.d(TAG, "  → Searching in componentTree...");
-                        parentId = findParentInComponentTree(surface, componentId);
-                        if (parentId != null) {
-                            Log.d(TAG, "  ✓ Found parent in componentTree: " + parentId + " for child: " + componentId);
-                        } else {
-                            Log.d(TAG, "  ⚠ No parent found in componentTree for: " + componentId);
+                    // 7. Create and add components in topological order (O(n))
+                    Log.d(TAG, "--- Step 3: Creating and adding components in order ---");
+                    int addedCount = 0;
+                    for (String componentId : sortedIds) {
+                        Map<String, Object> componentData = componentMap.get(componentId);
+                        if (componentData == null) {
+                            Log.w(TAG, "⚠ Component data not found: " + componentId);
+                            continue;
                         }
-                    } else {
-                        Log.d(TAG, "  ✓ Parent from parentMap: " + parentId + " for child: " + componentId);
+
+                        String parentId = parentMap.get(componentId);
+
+                        // Streaming render fix: if parentMap has no parent info for this component,
+                        // try to find it in the componentTree (a component there may already reference
+                        // the current component as a child)
+                        if (parentId == null) {
+                            Log.d(TAG, "  → parentMap has no parent info for: " + componentId);
+                            Log.d(TAG, "  → Searching in componentTree...");
+                            parentId = findParentInComponentTree(surface, componentId);
+                            if (parentId != null) {
+                                Log.d(TAG, "  ✓ Found parent in componentTree: " + parentId + " for child: " + componentId);
+                            } else {
+                                Log.d(TAG, "  ⚠ No parent found in componentTree for: " + componentId);
+                            }
+                        } else {
+                            Log.d(TAG, "  ✓ Parent from parentMap: " + parentId + " for child: " + componentId);
+                        }
+
+                        // Process component using the shared method
+                        boolean added = processComponent(surface, componentData, parentId);
+                        if (added) {
+                            addedCount++;
+                        }
                     }
 
-                    // Process component using the shared method
-                    boolean added = processComponent(surface, componentData, parentId);
-                    if (added) {
-                        addedCount++;
-                    }
+                    Log.d(TAG, "Step 3 complete: " + addedCount + " new components added");
+
+                    // 7.5. Detect and log orphaned nodes (non-root components with no parent)
+                    detectAndLogOrphanedComponents(surface);
+
+                    // 8. If the container is already bound, the whole component tree's Views need to
+                    //    be created manually, since processComponent only created component objects and
+                    //    parent-child relationships without creating Views.
+
+                    // 9. Handle special Modal component linking (kept for compatibility)
+                    Log.d(TAG, "--- Step 4: Linking Modal components ---");
+                    surface.linkModalComponents();
+
+                    Log.d(TAG, "✓ Components updated for surface: " + surfaceId);
+                    Log.d(TAG, "========== onUpdateComponents END ==========");
+                } finally {
+                    surface.endLayoutTransaction();
                 }
-
-                Log.d(TAG, "Step 3 complete: " + addedCount + " new components added");
-
-                // 7.5. Detect and log orphaned nodes (non-root components with no parent)
-                detectAndLogOrphanedComponents(surface);
-
-                // 8. If the container is already bound, the whole component tree's Views need to
-                //    be created manually, since processComponent only created component objects and
-                //    parent-child relationships without creating Views.
-
-                // 9. Handle special Modal component linking (kept for compatibility)
-                Log.d(TAG, "--- Step 4: Linking Modal components ---");
-                surface.linkModalComponents();
-
-                Log.d(TAG, "✓ Components updated for surface: " + surfaceId);
-                Log.d(TAG, "========== onUpdateComponents END ==========");
             } else {
                 Log.e(TAG, "❌ JSON is not an array!");
             }
@@ -234,11 +261,8 @@ public class NativeEventBridge implements IAGenUIMessageListener {
     private boolean processComponent(Surface surface, Map<String, Object> componentData, String explicitParentId) {
         try {
             // 1. Extract basic component info
-            String componentId = (String) componentData.get("id");
-            String componentType = (String) componentData.get("type");
-            if (componentType == null) {
-                componentType = (String) componentData.get("component");
-            }
+            String componentId = extractComponentId(componentData);
+            String componentType = extractComponentType(componentData);
 
             if (componentId == null || componentType == null) {
                 Log.e(TAG, "❌ Component missing id or type");
@@ -256,18 +280,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
 
                 // Critical fix: when a component already exists, extract and update its properties
                 // (same logic as below)
-                Map<String, Object> updateProperties = (Map<String, Object>) componentData.get("properties");
-                if (updateProperties == null) {
-                    // No "properties" field: use the entire componentData as properties
-                    updateProperties = new HashMap<>(componentData);
-                    updateProperties.remove("id");
-                    updateProperties.remove("type");
-                    updateProperties.remove("component");
-                    updateProperties.remove("parent");
-                    Log.d(TAG, "  ✓ Extracted properties from top-level: " + updateProperties.keySet());
-                } else {
-                    Log.d(TAG, "  ✓ Extracted properties from 'properties' field: " + updateProperties.keySet());
-                }
+                Map<String, Object> updateProperties = extractComponentProperties(componentData);
 
                 // Update component properties
                 if (updateProperties != null && !updateProperties.isEmpty()) {
@@ -297,20 +310,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
 
             // 4. Extract component properties.
             // Properties may be in the "properties" field or directly at the component object's top level.
-            Map<String, Object> properties = (Map<String, Object>) componentData.get("properties");
-            if (properties == null) {
-                // No "properties" field: use the entire componentData as properties,
-                // excluding metadata fields (id, type, component, parent)
-                properties = new HashMap<>(componentData);
-                properties.remove("id");
-                properties.remove("type");
-                properties.remove("component");
-                properties.remove("parent");
-
-                Log.d(TAG, "  ✓ Extracted properties from top-level: " + properties.keySet());
-            } else {
-                Log.d(TAG, "  ✓ Extracted properties from 'properties' field: " + properties.keySet());
-            }
+            Map<String, Object> properties = extractComponentProperties(componentData);
 
             Log.d(TAG, "  Parent ID: " + (parentId != null ? parentId : "ROOT"));
 
@@ -364,6 +364,157 @@ public class NativeEventBridge implements IAGenUIMessageListener {
             Log.e(TAG, "❌ Error processing component", e);
             return false;
         }
+    }
+
+    private void applyIncrementalComponentUpdates(String surfaceId, String[] components) {
+        Surface surface = surfaceManager.getSurface(surfaceId);
+        if (surface == null) {
+            Log.e(TAG, "onComponentsUpdate: Surface not found: " + surfaceId);
+            return;
+        }
+
+        surface.beginLayoutTransaction();
+        try {
+            if (components == null) {
+                return;
+            }
+            for (String componentJson : components) {
+                Map<String, Object> componentData = parseComponentData(componentJson);
+                if (componentData == null) {
+                    continue;
+                }
+
+                String componentId = extractComponentId(componentData);
+                if (componentId == null) {
+                    Log.w(TAG, "onComponentsUpdate: component id missing");
+                    continue;
+                }
+
+                A2UIComponent existingComponent = surface.getComponent(componentId);
+                if (existingComponent == null) {
+                    Log.w(TAG, "onComponentsUpdate: component not found, skip id=" + componentId);
+                    continue;
+                }
+
+                Map<String, Object> updateProperties = extractComponentProperties(componentData);
+                if (updateProperties == null || updateProperties.isEmpty()) {
+                    Log.d(TAG, "onComponentsUpdate: no properties to update, id=" + componentId);
+                    continue;
+                }
+
+                surface.updateComponent(componentId, updateProperties);
+            }
+        } finally {
+            surface.endLayoutTransaction();
+        }
+    }
+
+    private void applyIncrementalComponentAdds(String surfaceId, String[] parentIds, String[] components) {
+        Surface surface = surfaceManager.getSurface(surfaceId);
+        if (surface == null) {
+            Log.e(TAG, "onComponentsAdd: Surface not found: " + surfaceId);
+            return;
+        }
+
+        surface.beginLayoutTransaction();
+        try {
+            if (components == null) {
+                return;
+            }
+
+            for (int i = 0; i < components.length; i++) {
+                Map<String, Object> componentData = parseComponentData(components[i]);
+                if (componentData == null) {
+                    continue;
+                }
+
+                String parentId = parentIds != null && i < parentIds.length ? normalizeParentId(parentIds[i]) : null;
+                processComponent(surface, componentData, parentId);
+            }
+        } finally {
+            surface.endLayoutTransaction();
+        }
+    }
+
+    private void applyIncrementalComponentRemovals(String surfaceId, String[] parentIds, String[] componentIds) {
+        Surface surface = surfaceManager.getSurface(surfaceId);
+        if (surface == null) {
+            Log.e(TAG, "onComponentsRemove: Surface not found: " + surfaceId);
+            return;
+        }
+
+        surface.beginLayoutTransaction();
+        try {
+            if (componentIds == null) {
+                return;
+            }
+
+            for (int i = 0; i < componentIds.length; i++) {
+                String componentId = componentIds[i];
+                String parentId = parentIds != null && i < parentIds.length ? normalizeParentId(parentIds[i]) : null;
+                Log.d(TAG, "onComponentsRemove: removing componentId=" + componentId + ", parentId=" + parentId);
+                if (componentId == null || componentId.isEmpty()) {
+                    continue;
+                }
+                surface.removeComponent(componentId);
+            }
+        } finally {
+            surface.endLayoutTransaction();
+        }
+    }
+
+    private Map<String, Object> parseComponentData(String componentJson) {
+        if (componentJson == null || componentJson.isEmpty()) {
+            Log.w(TAG, "parseComponentData: empty component json");
+            return null;
+        }
+
+        try {
+            return gson.fromJson(componentJson, Map.class);
+        } catch (Exception e) {
+            Log.e(TAG, "parseComponentData: failed to parse component json", e);
+            return null;
+        }
+    }
+
+    private String extractComponentId(Map<String, Object> componentData) {
+        Object componentId = componentData == null ? null : componentData.get("id");
+        return componentId == null ? null : String.valueOf(componentId);
+    }
+
+    private String extractComponentType(Map<String, Object> componentData) {
+        if (componentData == null) {
+            return null;
+        }
+        Object componentType = componentData.get("type");
+        if (componentType == null) {
+            componentType = componentData.get("component");
+        }
+        return componentType == null ? null : String.valueOf(componentType);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractComponentProperties(Map<String, Object> componentData) {
+        if (componentData == null) {
+            return null;
+        }
+
+        Map<String, Object> properties = (Map<String, Object>) componentData.get("properties");
+        if (properties == null) {
+            properties = new HashMap<>(componentData);
+            properties.remove("id");
+            properties.remove("type");
+            properties.remove("component");
+            properties.remove("parent");
+            Log.d(TAG, "  ✓ Extracted properties from top-level: " + properties.keySet());
+        } else {
+            Log.d(TAG, "  ✓ Extracted properties from 'properties' field: " + properties.keySet());
+        }
+        return properties;
+    }
+
+    private String normalizeParentId(String parentId) {
+        return (parentId == null || parentId.isEmpty()) ? null : parentId;
     }
 
     /**

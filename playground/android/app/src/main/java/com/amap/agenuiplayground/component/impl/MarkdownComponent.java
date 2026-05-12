@@ -83,6 +83,8 @@ public class MarkdownComponent extends A2UIComponent {
     private TextView textView;
     private Markwon markwon;
     private StringBuilder currentText = new StringBuilder(); // Stores the current full text
+    private final AsyncRenderSizeReporter asyncRenderSizeReporter =
+            createAsyncRenderSizeReporter("Markdown", TAG);
 
     // MARK: - Line height configuration (reference iOS implementation)
     /**
@@ -119,6 +121,7 @@ public class MarkdownComponent extends A2UIComponent {
         // Set default text size and color
         textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         textView.setTextColor(Color.BLACK);
+        asyncRenderSizeReporter.bind(textView);
 
         // Initialize Markwon and enable plugins
         markwon = Markwon.builder(context)
@@ -170,6 +173,7 @@ public class MarkdownComponent extends A2UIComponent {
             currentText = new StringBuilder(extractTextValue(textValue));
             // Render the complete Markdown using Markwon
             markwon.setMarkdown(textView, currentText.toString());
+            asyncRenderSizeReporter.request();
             Log.d(TAG, "➕ [TEXT] Markdown " + getId() +
                     " total text length: " + currentText.length());
         } else if (properties.containsKey("appendContent")) {
@@ -180,6 +184,7 @@ public class MarkdownComponent extends A2UIComponent {
                 currentText.append(markdownText);
                 // Render the incremented Markdown using Markwon
                 markwon.setMarkdown(textView, currentText.toString());
+                asyncRenderSizeReporter.request();
                 Log.d(TAG, "➕ [TEXT_APPEND] Markdown " + getId() +
                         " appended text, append length: " + markdownText.length() +
                         ", total length: " + currentText.length());
@@ -228,6 +233,7 @@ public class MarkdownComponent extends A2UIComponent {
                 @Override
                 public void run() {
                     markwon.setMarkdown(textView, currentText.toString());
+                    asyncRenderSizeReporter.request();
                     Log.d(TAG, "➕ [TEXT_APPEND_API] Markdown " + getId() +
                             " appended text, append length: " + text.length() +
                             ", total length: " + currentText.length());
@@ -257,6 +263,7 @@ public class MarkdownComponent extends A2UIComponent {
                 @Override
                 public void run() {
                     markwon.setMarkdown(textView, currentText.toString());
+                    asyncRenderSizeReporter.request();
                     Log.d(TAG, "📝 [TEXT_SET_API] Markdown " + getId() +
                             " text set, length: " + finalText.length());
                 }
@@ -284,6 +291,7 @@ public class MarkdownComponent extends A2UIComponent {
                 @Override
                 public void run() {
                     textView.setText("");
+                    asyncRenderSizeReporter.request();
                     Log.d(TAG, "🗑️ [TEXT_CLEAR] Markdown " + getId() + " text cleared");
                 }
             });
@@ -327,6 +335,7 @@ public class MarkdownComponent extends A2UIComponent {
     protected void onDestroy() {
         currentText.setLength(0);
         markwon = null;
+        asyncRenderSizeReporter.unbind();
         textView = null;
     }
 

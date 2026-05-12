@@ -16,6 +16,8 @@ import { FunctionResult, FunctionConfig } from './function/IFunctionCall';
 import { IImageLoader } from './ImageLoader';
 import { IComponentFactory } from './custom/A2UIComponent';
 import { HybridViewManager } from './hybrid/HybridViewManager';
+import { AGenUILogger } from './logger/AGenUILogger';
+import type { IAGenUILogger } from './logger/IAGenUILogger';
 import type { ISurfaceListener } from 'liba2ui-capi.so';
 import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
@@ -108,6 +110,8 @@ export class Surface {
    * Whether component enter animations are enabled
    */
   public animationEnabled: boolean = true;
+  /** Original raw protocol content (the full JSON string that was parsed to create this surface) */
+  public rawProtocolContent: string = '';
   /** Associated SurfaceManager (weak reference semantics)*/
   public surfaceManager: SurfaceManager | null = null;
   /** Component tree (componentId -> Component) */
@@ -155,12 +159,12 @@ export class Surface {
  * Internal adapter that bridges ISurfaceManagerListener to the native ISurfaceListener interface.
  */
 class NativeSurfaceListenerWrapper implements ISurfaceListener {
-  onCreateSurface: (surfaceId: string, messageId: string) => void;
+  onCreateSurface: (surfaceId: string, messageId: string, rawProtocolContent: string) => void;
   onDeleteSurface: (surfaceId: string) => void;
   onActionEventRouted?: (content: string) => void;
 
   constructor(
-    onCreate: (surfaceId: string, messageId: string) => void,
+    onCreate: (surfaceId: string, messageId: string, rawProtocolContent: string) => void,
     onDelete: (surfaceId: string) => void,
     onAction?: (content: string) => void
   ) {
@@ -233,10 +237,11 @@ export class SurfaceManager {
     this._listeners.push(listener);
 
     const nativeWrapper = new NativeSurfaceListenerWrapper(
-      (surfaceId: string, messageId: string) => {
+      (surfaceId: string, messageId: string, rawProtocolContent: string) => {
         if (!this._surfaces.has(surfaceId)) {
           const surface = new Surface(this._surfaceBridge.instanceId, surfaceId);
           surface.messageId = messageId;
+          surface.rawProtocolContent = rawProtocolContent;
           surface.surfaceManager = this;
           this._surfaces.set(surfaceId, surface);
         }
@@ -424,6 +429,17 @@ export class AGenUI {
    */
   static unregisterFunction(name: string): void {
     FunctionManager.getInstance().unregisterFunction(name);
+  }
+
+  // MARK: - Custom Logger
+
+  /**
+   * Sets a custom logger to receive log callbacks from the native engine.
+   *
+   * @param logger Custom logger implementation conforming to IAGenUILogger
+   */
+  static setCustomLogger(logger: IAGenUILogger): void {
+    AGenUILogger.getInstance().setCustomLogger(logger);
   }
 
   // MARK: - Version Information

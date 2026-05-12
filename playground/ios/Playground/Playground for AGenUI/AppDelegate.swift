@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import AGenUI
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -14,7 +15,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Configure global theme color
         setupAppearance()
+        // Inject custom runtime logger into AGenUI module
+        setupRuntimeLogger()
         return true
+    }
+
+    // MARK: - Logger Setup
+
+    private func setupRuntimeLogger() {
+        AGenUISDK.setCustomLogger(PlaygroundRuntimeLogger.shared)
     }
     
     // MARK: - Appearance Configuration

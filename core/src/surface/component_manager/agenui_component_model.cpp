@@ -2,7 +2,7 @@
 #include "data_value/agenui_data_value_parser.h"
 #include "surface/datamodel/agenui_idata_model.h"
 #include "surface/agenui_serializable_data.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 

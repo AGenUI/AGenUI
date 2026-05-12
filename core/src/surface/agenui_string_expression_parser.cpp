@@ -1,6 +1,6 @@
 #include "agenui_string_expression_parser.h"
 #include "agenui_serializable_data_impl.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <algorithm>
 
 namespace agenui {

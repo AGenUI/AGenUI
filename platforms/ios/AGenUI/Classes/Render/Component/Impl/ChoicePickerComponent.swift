@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// ChoicePicker component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -65,7 +61,7 @@ class ChoicePickerComponent: Component {
         // Create options container
         let optionsView = UIView()
         self.optionsContainer = optionsView
-        flex.addItem(optionsView).direction(.column).paddingHorizontal(8).paddingVertical(8)
+        addSubview(optionsView)
         
         // Create error label
         createErrorLabel()
@@ -78,7 +74,158 @@ class ChoicePickerComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Measurement Override
+    
+    /// Measure the intrinsic size of the ChoicePicker component
+    ///
+    /// Logic (aligned with Harmony choice_picker_component_measurement.cpp):
+    /// 1. Parse options array and orientation from paramJson
+    /// 2. Read checkboxSize, textMargin, textSize, choiceGap, etc. from local style config
+    /// 3. Measure text height for each item, compute contentH = max(checkboxH, textHeight)
+    /// 4. Vertical layout: accumulate itemH + choiceGap; Horizontal layout: take max itemH
+    /// 5. Apply MeasureMode constraints
+    override class func measure(paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        // 1. Parse paramJson
+        guard let jsonData = paramJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return .zero
+        }
+        
+        // 2. Extract options and orientation
+        var optionLabels: [String] = []
+        var horizontal = false
+        
+        if let optionsArray = json["options"] as? [[String: Any]] {
+            for item in optionsArray {
+                if let label = item["label"] as? String {
+                    optionLabels.append(label)
+                }
+            }
+        }
+        
+        if let styles = json["styles"] as? [String: Any],
+           let ori = styles["orientation"] as? String {
+            horizontal = (ori == "horizontal")
+        }
+        
+        if optionLabels.isEmpty {
+            return .zero
+        }
+        
+        // 3. Load style config values
+        var checkboxSize: CGFloat = 16
+        var textMargin: CGFloat = 8
+        var textSize: CGFloat = 16
+        var choiceGap: CGFloat = 4
+        
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "ChoicePicker"),
+           let pickerConfig = config["ChoicePicker"] as? [String: Any] {
+            if let size = pickerConfig["checkbox-size"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(size) {
+                checkboxSize = value
+            }
+            if let margin = pickerConfig["text-margin"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(margin) {
+                textMargin = value
+            }
+            if let size = pickerConfig["text-size"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(size) {
+                textSize = value
+            }
+            if let gap = pickerConfig["choice-gap"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(gap) {
+                choiceGap = value
+            }
+        }
+        
+        // 4. Measure each option
+        let constraintWidth: CGFloat = (widthMode == .undefined) ? .greatestFiniteMagnitude : CGFloat(maxWidth)
+        let checkboxH = checkboxSize  // iOS: no extra margin like Harmony's checkboxMar
+        let font = UIFont.systemFont(ofSize: textSize, weight: .regular)
+        
+        var totalHeight: CGFloat = 0
+        var firstItem = true
+        
+        for text in optionLabels {
+            var contentH = checkboxH
+            if !text.isEmpty {
+                let attributedString = NSAttributedString(string: text, attributes: [.font: font])
+                let textAvailWidth = max(1.0, constraintWidth - checkboxSize - textMargin)
+                let textBounds = attributedString.boundingRect(
+                    with: CGSize(width: textAvailWidth, height: .greatestFiniteMagnitude),
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    context: nil)
+                contentH = max(checkboxH, ceil(textBounds.size.height))
+            }
+            
+            if horizontal {
+                totalHeight = max(totalHeight, contentH)
+            } else {
+                if !firstItem { totalHeight += choiceGap }
+                totalHeight += contentH
+                firstItem = false
+            }
+        }
+        
+        var measuredWidth: CGFloat = constraintWidth
+        var measuredHeight: CGFloat = totalHeight
+        
+        // 5. Apply MeasureMode constraints
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+        
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
     // MARK: - Component Override
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        let boundsWidth = bounds.width
+        var currentY: CGFloat = 0
+        
+        if orientation == "horizontal" {
+            // Horizontal layout: buttons side-by-side
+            var currentX: CGFloat = 0
+            var maxItemHeight: CGFloat = 0
+            
+            for button in optionButtons {
+                let buttonSize = button.sizeThatFits(CGSize(width: boundsWidth, height: .greatestFiniteMagnitude))
+                let itemWidth = buttonSize.width
+                let itemHeight = buttonSize.height
+                button.frame = CGRect(x: currentX, y: 0, width: itemWidth, height: itemHeight)
+                currentX += itemWidth + choiceGap
+                maxItemHeight = max(maxItemHeight, itemHeight)
+            }
+            currentY = maxItemHeight
+        } else {
+            // Vertical layout: buttons stacked
+            for button in optionButtons {
+                let buttonSize = button.sizeThatFits(CGSize(width: boundsWidth, height: .greatestFiniteMagnitude))
+                button.frame = CGRect(x: 0, y: currentY, width: boundsWidth, height: buttonSize.height)
+                currentY += buttonSize.height + choiceGap
+            }
+            // Remove last gap
+            if !optionButtons.isEmpty {
+                currentY -= choiceGap
+            }
+        }
+        
+        // Layout errorLabel below options if visible
+        if let label = errorLabel, !label.isHidden {
+            let labelSize = label.sizeThatFits(CGSize(width: boundsWidth, height: .greatestFiniteMagnitude))
+            label.frame = CGRect(x: 0, y: currentY, width: boundsWidth, height: labelSize.height)
+        }
+    }
     
     override func updateProperties(_ properties: [String: Any]) {
         super.updateProperties(properties)
@@ -221,56 +368,42 @@ class ChoicePickerComponent: Component {
         
         // Create options (both single and multi selection use CheckBoxButton)
         createOptions(in: optionsContainer)
-        
-        optionsContainer.flex.layout(mode: .adjustHeight)
     }
     
     /// Create options (single and multi selection both use CheckBoxButton)
     private func createOptions(in container: UIView) {
-        // Set layout direction based on orientation
-        let flexDirection: Flex.Direction = (orientation == "horizontal") ? .row : .column
-        
-        container.flex.direction(flexDirection).define { flex in
-            for (index, option) in options.enumerated() {
-                let label = extractTextValue(option["label"])
-                let value = option["value"] as? String ?? ""
-                
-                let button = CheckBoxButton()
-                button.label = label
-                button.value = value
-                button.tag = index
-                
-                // Apply configuration to CheckBoxButton
-                button.checkboxSize = checkboxSize
-                button.checkboxBorderWidth = checkboxBorderWidth
-                button.checkboxBorderRadius = checkboxBorderRadius
-                button.selectedBackgroundColor = selectedBackgroundColor
-                button.selectedBorderColor = selectedBorderColor
-                button.unselectedBackgroundColor = unselectedBackgroundColor
-                button.unselectedBorderColor = unselectedBorderColor
-                button.textMargin = textMargin
-                button.textColor = textColor
-                button.textSize = textSize
-                
-                if variant == "mutuallyExclusive" {
-                    // Single selection mode
-                    button.addTarget(self, action: #selector(radioButtonTapped(_:)), for: .touchUpInside)
-                } else {
-                    // Multi selection mode
-                    button.addTarget(self, action: #selector(checkBoxButtonTapped(_:)), for: .touchUpInside)
-                }
-                
-                optionButtons.append(button)
-                
-                // Set different gaps based on layout direction (use configured choiceGap)
-                let halfGap = choiceGap / 2
-                if orientation == "horizontal" {
-                    flex.addItem(button).marginHorizontal(halfGap).height(40).width(100)
-                } else {
-                    flex.addItem(button).marginVertical(halfGap).height(40).width(100%)
-                }
+        for (index, option) in options.enumerated() {
+            let label = extractTextValue(option["label"])
+            let value = option["value"] as? String ?? ""
+
+            let button = CheckBoxButton()
+            button.label = label
+            button.value = value
+            button.tag = index
+
+            // Apply configuration to CheckBoxButton
+            button.checkboxSize = checkboxSize
+            button.checkboxBorderWidth = checkboxBorderWidth
+            button.checkboxBorderRadius = checkboxBorderRadius
+            button.selectedBackgroundColor = selectedBackgroundColor
+            button.selectedBorderColor = selectedBorderColor
+            button.unselectedBackgroundColor = unselectedBackgroundColor
+            button.unselectedBorderColor = unselectedBorderColor
+            button.textMargin = textMargin
+            button.textColor = textColor
+            button.textSize = textSize
+
+            if variant == "mutuallyExclusive" {
+                button.addTarget(self, action: #selector(radioButtonTapped(_:)), for: .touchUpInside)
+            } else {
+                button.addTarget(self, action: #selector(checkBoxButtonTapped(_:)), for: .touchUpInside)
             }
+
+            optionButtons.append(button)
+            container.addSubview(button)
         }
+        
+        setNeedsLayout()
     }
     
     /// Create error label
@@ -282,7 +415,7 @@ class ChoicePickerComponent: Component {
         label.isHidden = true
         
         self.errorLabel = label
-        flex.addItem(label).marginHorizontal(8).marginTop(4).marginBottom(8)
+        addSubview(label)
     }
     
     // MARK: - Private Methods - Value Update
@@ -340,14 +473,14 @@ class ChoicePickerComponent: Component {
     private func showError(_ message: String) {
         errorLabel?.text = message
         errorLabel?.isHidden = false
-        optionsContainer?.flex.layout(mode: .adjustHeight)
+        setNeedsLayout()
     }
     
     /// Hide error message
     private func hideError() {
         errorLabel?.text = nil
         errorLabel?.isHidden = true
-        optionsContainer?.flex.layout(mode: .adjustHeight)
+        setNeedsLayout()
     }
     
     // MARK: - Private Methods - Data Binding

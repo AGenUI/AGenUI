@@ -9,7 +9,6 @@ namespace agenui {
 /// - Values may be strings (e.g. "auto", "0px") or numbers (e.g. 0, 1)
 /// - After parsing, all values are stored as JSON strings to match ComponentSnapshot.styles format
 static const char* const kStyleDefaultsConfig =
-#ifdef IOS
 R"JSON({
     "width": "auto",
     "height": "auto",
@@ -30,9 +29,5 @@ R"JSON({
     "visibility": "visible",
     "filter": "none"
 })JSON";
-#else
-R"JSON({
 
-})JSON";
-#endif
 }  // namespace agenui

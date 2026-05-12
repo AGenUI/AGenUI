@@ -188,7 +188,8 @@ public class ParentChildResolver {
             String childId = entry.getKey();
 
             // Increment the child node's in-degree
-            inDegree.put(childId, inDegree.getOrDefault(childId, 0) + 1);
+            Integer currentInDegree = inDegree.get(childId);
+            inDegree.put(childId, currentInDegree == null ? 1 : currentInDegree + 1);
         }
 
         // 2. Kahn's algorithm: find all nodes with in-degree 0 (root or independent nodes)

@@ -202,12 +202,13 @@ public class SurfaceManager {
      * Called by NativeEventBridge.onCreateSurface().
      * The Surface internally creates a root container; callers obtain it via surface.getContainer().
      *
-     * @param surfaceId Unique Surface identifier
+     * @param surfaceId          Unique Surface identifier
+     * @param rawProtocolContent Original raw protocol content
      * @return Created Surface instance
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public Surface createSurface(String surfaceId) {
+    public Surface createSurface(String surfaceId, String rawProtocolContent) {
         Log.d(TAG, "createSurface: surfaceId=" + surfaceId);
 
         Context context = getContext();
@@ -237,10 +238,38 @@ public class SurfaceManager {
                             Log.e(TAG, "Failed to submitUIDataModel", e);
                         }
                     }
-                }
+                },
+                new SurfaceLayoutDispatcher(
+                        surfaceId,
+                        new SurfaceLayoutDispatcher.Callback() {
+                            @Override
+                            public void onRenderFinish(String callbackSurfaceId,
+                                                       String componentId,
+                                                       String type,
+                                                       float width,
+                                                       float height,
+                                                       int selectedIndex) {
+                                notifyRenderFinish(
+                                        callbackSurfaceId,
+                                        componentId,
+                                        type,
+                                        width,
+                                        height,
+                                        selectedIndex);
+                            }
+
+                            @Override
+                            public void onSurfaceSizeChanged(String callbackSurfaceId,
+                                                             float width,
+                                                             float height) {
+                                notifySurfaceSizeChanged(callbackSurfaceId, width, height);
+                            }
+                        })
         );
 
         surfaces.put(surfaceId, surface);
+
+        surface.setRawProtocolContent(rawProtocolContent);
 
         // Notify listeners
         notifyListenersOnCreate(surface);
@@ -351,6 +380,36 @@ public class SurfaceManager {
         }
     }
 
+    /**
+     * Bridges one async component render-finish notification back into native Yoga.
+     */
+    void notifyRenderFinish(String surfaceId, String componentId, String type,
+                            float width, float height, int selectedIndex) {
+        try {
+            nativeNotifyRenderFinish(
+                    instanceId,
+                    surfaceId,
+                    componentId,
+                    type,
+                    width,
+                    height,
+                    selectedIndex);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to notifyRenderFinish", e);
+        }
+    }
+
+    /**
+     * Reports the latest stable surface size to native so Yoga can use it as the canvas width.
+     */
+    void notifySurfaceSizeChanged(String surfaceId, float width, float height) {
+        try {
+            nativeNotifySurfaceSizeChanged(instanceId, surfaceId, width, height);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to notifySurfaceSizeChanged", e);
+        }
+    }
+
 
     private static native void nativeAddEventListener(int instanceId, IAGenUIMessageListener listener);
     private static native void nativeRemoveEventListener(int instanceId, IAGenUIMessageListener listener);
@@ -361,6 +420,14 @@ public class SurfaceManager {
     private static native void nativeBeginTextStream(int instanceId);
     private static native void nativeReceiveTextChunk(int instanceId, String content);
     private static native void nativeEndTextStream(int instanceId);
+    private static native void nativeNotifyRenderFinish(int instanceId,
+                                                        String surfaceId,
+                                                        String componentId,
+                                                        String type,
+                                                        float width,
+                                                        float height,
+                                                        int selectedIndex);
+    private static native void nativeNotifySurfaceSizeChanged(int instanceId, String surfaceId, float width, float height);
 
     public void preloadSurface(String surfaceId, ViewGroup preloadHost) {
         Surface surface = surfaces.get(surfaceId);

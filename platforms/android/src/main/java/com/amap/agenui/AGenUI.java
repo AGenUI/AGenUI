@@ -2,6 +2,7 @@ package com.amap.agenui;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
 
 import androidx.annotation.Keep;
@@ -14,6 +15,7 @@ import com.amap.agenui.render.component.IComponentFactory;
 import com.amap.agenui.render.image.ImageLoader;
 import com.amap.agenui.render.image.ImageLoaderConfig;
 import com.amap.agenui.render.surface.ThemeException;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -81,6 +83,8 @@ public class AGenUI {
             try {
                 appContext = applicationContext.getApplicationContext();
                 nativePtr = nativeInitAGenUIEngine();
+                DisplayMetrics metrics = appContext.getResources().getDisplayMetrics();
+                nativeUpdatePlatformLayoutInfo(metrics.widthPixels, metrics.heightPixels, metrics.density);
                 Log.i(TAG, "AGenUI Engine created: nativePtr=" + nativePtr);
                 nativeSetWorkdir(getInternalFilesDir());
                 copyAssetsToSandbox();
@@ -94,6 +98,36 @@ public class AGenUI {
             }
         }
     }
+    
+    /**
+     * Sets a custom logger delegate to receive log callbacks from the engine.
+     * 
+     * This method should be called BEFORE initialize() to ensure all engine logs
+     * are captured. If called after initialization, only subsequent logs will
+     * use the custom delegate.
+     * 
+     * Example usage:
+     * <pre>
+     * AGenUI.getInstance().setCustomLogger(new IAGenUILogger() {
+     *     {@literal @}Override
+     *     public void onLog(int level, String tag, String func, int line, String message) {
+     *         // Custom logging implementation
+     *         Log.d(tag, "[" + func + "@" + line + "] " + message);
+     *     }
+     * });
+     * AGenUI.getInstance().initialize(context);
+     * </pre>
+     * 
+     * @param customLogger Custom logger implementation. Pass null to use default logging.
+     */
+    public void setCustomLogger(IAGenUILogger customLogger) {
+        if (!isInitialized()) {
+            Log.w(TAG, "setCustomLogger: Engine not initialized");
+            return;
+        }
+
+        AGenUILogger.getInstance().setCustomLogger(customLogger);
+    }
 
     /**
      * Checks whether the Engine has been initialized
@@ -104,6 +138,10 @@ public class AGenUI {
         return isInitialized && nativePtr != 0;
     }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public Context getApplicationContextForSdk() {
+        return appContext;
+    }
 
     /**
      * Creates a SurfaceManager instance
@@ -378,6 +416,7 @@ public class AGenUI {
     public static native void nativeDestroySurfaceManager(int instanceId);
 
     public static native void nativeSetWorkdir(String workdir);
+    private static native void nativeUpdatePlatformLayoutInfo(int widthPx, int heightPx, float density);
 
     private static native boolean nativeLoadThemeConfig(String themeConfig);
     private static native boolean nativeLoadDesignTokenConfig(String designTokenConfig);

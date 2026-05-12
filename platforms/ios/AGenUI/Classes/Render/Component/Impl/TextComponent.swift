@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 // MARK: - Text Decoration Configuration (W3C Standard)
 
@@ -342,14 +338,21 @@ class TextComponent: Component {
         super.init(componentId: componentId, componentType: "Text", properties: properties)
         
         // Create label
-        let label = TextDecorationLabel(frame: CGRectMake(0, 0, 20, 20));
+        let label = TextDecorationLabel()
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
         label.font = UIFont.systemFont(ofSize: 16)
         label.textColor = .black
         
-        // Add subview using FlexLayout
-        flex.addItem(label).grow(1)
+        // Add subview with AutoLayout constraints to fill parent
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: topAnchor),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
         self.label = label
         
         // Apply initial properties after label is created
@@ -383,7 +386,7 @@ class TextComponent: Component {
         if let textValue = properties["text"] {
             let text = textValue as? String ?? ""
             label.text = text.count == 0 ? " " : text
-            label.flex.markDirty()
+            label.invalidateIntrinsicContentSize()
         }
         // Handle textChunk field (content append)
         else if let textChunkValue = properties["textChunk"] {
@@ -391,7 +394,7 @@ class TextComponent: Component {
             if !textChunk.isEmpty {
                 let currentText = label.text ?? ""
                 label.text = currentText + textChunk
-                label.flex.markDirty()                
+                label.invalidateIntrinsicContentSize()
             }
         }
         
@@ -401,8 +404,84 @@ class TextComponent: Component {
         }
     }
     
+    // MARK: - Parsed Text Styles (shared intermediate representation)
+
+    /// Parsed text style properties (intermediate representation)
+    /// Shared by applyStyles and measure to ensure consistent parsing
+    private struct ParsedTextStyles {
+        var fontSize: CGFloat?
+        var fontWeight: UIFont.Weight?
+        var fontFamily: String?
+        var color: UIColor?
+        var textAlign: NSTextAlignment?
+        var lineHeight: LineHeightType?
+        var lineClamp: Int?
+        var textOverflow: String?
+        var decorationConfig: TextDecorationConfig?
+    }
+
+    /// Parse styles dictionary into intermediate representation
+    /// Shared by applyStyles and measure to ensure consistent parsing logic
+    private class func parseStyles(_ styles: [String: Any]) -> ParsedTextStyles {
+        var parsed = ParsedTextStyles()
+
+        // Parse font-size (supports String with px unit and NSNumber)
+        if let fontSizeValue = styles["font-size"] as? String {
+            parsed.fontSize = extractFontSize(from: fontSizeValue)
+        } else if let num = styles["font-size"] as? NSNumber {
+            parsed.fontSize = CGFloat(num.doubleValue)
+        }
+
+        // Parse font-weight
+        if let fontWeightValue = styles["font-weight"] as? String {
+            parsed.fontWeight = parseFontWeight(fontWeightValue)
+        }
+
+        // Parse font-family
+        if let fontFamilyValue = styles["font-family"] as? String {
+            parsed.fontFamily = fontFamilyValue
+        }
+
+        // Parse color
+        if let colorValue = styles["color"] as? String {
+            let parsedColor = CSSPropertyParser.parseColor(colorValue)
+            if case .color(let value) = parsedColor {
+                parsed.color = value
+            }
+        }
+
+        // Parse text-align
+        if let textAlignValue = styles["text-align"] as? String {
+            parsed.textAlign = parseTextAlign(textAlignValue)
+        }
+
+        // Parse line-height (compatible with string and number)
+        if let lineHeightValue = styles["line-height"] {
+            parsed.lineHeight = extractLineHeight(from: lineHeightValue)
+        }
+
+        // Parse line-clamp (compatible with string and number)
+        if let lineClampValue = styles["line-clamp"] {
+            if let intValue = lineClampValue as? Int {
+                parsed.lineClamp = intValue
+            } else if let stringValue = lineClampValue as? String, let parsedValue = Int(stringValue) {
+                parsed.lineClamp = parsedValue
+            }
+        }
+
+        // Parse text-overflow
+        if let textOverflowValue = styles["text-overflow"] as? String {
+            parsed.textOverflow = textOverflowValue
+        }
+
+        // Parse text-decoration
+        parsed.decorationConfig = TextDecorationConfig.from(styles: styles)
+
+        return parsed
+    }
+
     // MARK: - Private Methods
-    
+
     /// Apply style properties
     ///
     /// Uses a 'collect, synthesize, then apply' architecture to avoid property overwriting:
@@ -412,187 +491,67 @@ class TextComponent: Component {
     /// - Phase 4: Apply non-text properties (lineClamp, textOverflow)
     private func applyStyles(_ styles: [String: Any]) {
         guard let label = label else { return }
-        
+
         // ========================
-        // Phase 1: Collect - parse all styles to intermediate variables
+        // Phase 1: Collect - parse all styles to intermediate variables (reuse parseStyles)
         // ========================
-        
-        // Font related
-        var resolvedFontSize: CGFloat?
-        var resolvedFontWeight: UIFont.Weight?
-        var resolvedFontFamily: String?
-        
-        // Text style related
-        var resolvedColor: UIColor?
-        var resolvedTextAlign: NSTextAlignment?
-        var resolvedLineHeight: LineHeightType?
-        var resolvedDecorationConfig: TextDecorationConfig?
-        
-        // Label property related
-        var resolvedLineClamp: Int?
-        var resolvedTextOverflow: String?
-        
-        // Parse font-size
-        if let fontSizeValue = styles["font-size"] as? String {
-            resolvedFontSize = extractFontSize(from: fontSizeValue)
-        }
-        
-        // Parse font-weight
-        if let fontWeightValue = styles["font-weight"] as? String {
-            resolvedFontWeight = parseFontWeight(fontWeightValue)
-        }
-        
-        // Parse font-family
-        if let fontFamilyValue = styles["font-family"] as? String {
-            resolvedFontFamily = fontFamilyValue
-        }
-        
-        // Parse color
-        if let colorValue = styles["color"] as? String {
-            let parsedColor = CSSPropertyParser.parseColor(colorValue)
-            if case .color(let value) = parsedColor {
-                resolvedColor = value
-            }
-        }
-        
-        // Parse text-align
-        if let textAlignValue = styles["text-align"] as? String {
-            resolvedTextAlign = parseTextAlign(textAlignValue)
-        }
-        
-        // Parse line-height (compatible with string and number)
-        if let lineHeightValue = styles["line-height"] {
-            resolvedLineHeight = extractLineHeight(from: lineHeightValue)
-        }
-        
-        // Parse line-clamp (compatible with string and number)
-        if let lineClampValue = styles["line-clamp"] {
-            if let intValue = lineClampValue as? Int {
-                resolvedLineClamp = intValue
-            } else if let stringValue = lineClampValue as? String, let parsed = Int(stringValue) {
-                resolvedLineClamp = parsed
-            }
-        }
-        
-        // Parse text-overflow
-        if let textOverflowValue = styles["text-overflow"] as? String {
-            resolvedTextOverflow = textOverflowValue
-        }
-        
-        // Parse text-decoration
-        resolvedDecorationConfig = TextDecorationConfig.from(styles: styles)
-        
+        let parsed = TextComponent.parseStyles(styles)
+
         // ========================
         // Phase 2: Synthesize UIFont - family + weight + size one-time build
         // ========================
-        
+
         let currentFont = label.font ?? UIFont.systemFont(ofSize: 16)
-        let finalSize = resolvedFontSize ?? currentFont.pointSize
-        let finalWeight = resolvedFontWeight ?? currentFontWeight(from: currentFont)
-        
+        let finalSize = parsed.fontSize ?? currentFont.pointSize
+        let finalWeight = parsed.fontWeight ?? currentFontWeight(from: currentFont)
+
         let finalFont: UIFont
-        if let family = resolvedFontFamily {
-            finalFont = buildFont(family: family, weight: finalWeight, size: finalSize)
-        } else if resolvedFontSize != nil || resolvedFontWeight != nil {
+        if let family = parsed.fontFamily {
+            finalFont = TextComponent.buildFont(family: family, weight: finalWeight, size: finalSize)
+        } else if parsed.fontSize != nil || parsed.fontWeight != nil {
             // size or weight changed, but family not specified, keep current family
             let currentFamily = currentFont.familyName
-            finalFont = buildFont(family: currentFamily, weight: finalWeight, size: finalSize)
+            finalFont = TextComponent.buildFont(family: currentFamily, weight: finalWeight, size: finalSize)
         } else {
             finalFont = currentFont
         }
-        
+
         label.font = finalFont
-        
+
         // ========================
         // Phase 3: Synthesize NSAttributedString - build all text attributes in one pass
         // ========================
-        
-        let finalColor = resolvedColor ?? label.textColor ?? .black
+
+        let finalColor = parsed.color ?? label.textColor ?? .black
         label.textColor = finalColor
-        
+
         // text-align set directly on label (consistent with original behavior, does not trigger attributedText creation)
-        if let textAlign = resolvedTextAlign {
+        if let textAlign = parsed.textAlign {
             label.textAlignment = textAlign
         }
 
-        label.numberOfLines = resolvedLineClamp ?? 0
-        
+        label.numberOfLines = parsed.lineClamp ?? 0
+
         // Only create attributedText when lineHeight or decoration exists
-        let needsAttributedText = resolvedLineHeight != nil
-            || resolvedDecorationConfig != nil
-        
+        let needsAttributedText = parsed.lineHeight != nil
+            || parsed.decorationConfig != nil
+
         if needsAttributedText {
             let currentText = label.text ?? ""
-            guard !currentText.isEmpty else { return }
-            
-            let attributedString = NSMutableAttributedString(string: currentText)
-            // Use NSString length instead of Swift String.count to ensure correct NSRange for Unicode characters like emoji
-            // Swift String.count returns grapheme cluster count, but NSRange requires UTF-16 code unit length
-            let fullRange = NSRange(location: 0, length: (currentText as NSString).length)
-            
-            // Set font
-            attributedString.addAttribute(.font, value: finalFont, range: fullRange)
-            
-            // Set color
-            attributedString.addAttribute(.foregroundColor, value: finalColor, range: fullRange)
-            
-            // Synthesize paragraph style
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.alignment = label.textAlignment
-            
-            if let lineHeight = resolvedLineHeight {
-                let lineClamp = resolvedLineClamp ?? 0
-                let isSingleLine = lineClamp == 1
-                
-                // Get font default line height for baseline offset calculation
-                let defaultLineHeight = finalFont.lineHeight
-                var targetLineHeight: CGFloat?
-                
-                switch lineHeight {
-                case .multiplier(let value):
-                    if isSingleLine {
-                        // Single-line text: calculate target line height = fontSize * multiplier
-                        targetLineHeight = finalFont.pointSize * value
-                    } else {
-                        // Multi-line text: use lineSpacing
-                        paragraphStyle.lineSpacing = (value - 1) * finalFont.pointSize
-                    }
-                case .absolute(let value):
-                    if isSingleLine {
-                        // Single-line text: use user-specified absolute line height
-                        targetLineHeight = value
-                    } else {
-                        // Multi-line text: use lineSpacing
-                        paragraphStyle.lineSpacing = value - finalFont.pointSize
-                    }
-                }
-                
-                // Single-line text: set line height and calculate baseline offset for vertical centering
-                if let targetLineHeight = targetLineHeight {
-                    paragraphStyle.minimumLineHeight = targetLineHeight
-                    paragraphStyle.maximumLineHeight = targetLineHeight
-                    
-                    // Calculate baseline offset to center text vertically within line height area
-                    // baselineOffset = (target line height - default line height) / 2
-                    let baselineOffset = (targetLineHeight - defaultLineHeight) / 2
-                    attributedString.addAttribute(.baselineOffset, value: baselineOffset, range: fullRange)
-                }
+            if let attributedString = TextComponent.buildAttributedText(
+                text: currentText,
+                font: finalFont,
+                color: finalColor,
+                textAlignment: label.textAlignment,
+                lineHeight: parsed.lineHeight,
+                lineClamp: parsed.lineClamp ?? 0,
+                decorationConfig: parsed.decorationConfig
+            ) {
+                label.attributedText = attributedString
             }
-            
-            attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
-            
-            // Set text decoration
-            if let config = resolvedDecorationConfig, config.line != .none {
-                let decorationAttrs = buildDecorationAttributes(config: config)
-                for (key, value) in decorationAttrs {
-                    attributedString.addAttribute(key, value: value, range: fullRange)
-                }
-            }
-            
-            label.attributedText = attributedString
         }
-        
-        if let textOverflow = resolvedTextOverflow {
+
+        if let textOverflow = parsed.textOverflow {
             applyTextOverflow(to: label, overflow: textOverflow)
         }
     }
@@ -600,7 +559,7 @@ class TextComponent: Component {
     // MARK: - Phase 1 Helpers: Pure parsing, no view state modification
     
     /// Parse font-weight string to UIFont.Weight
-    private func parseFontWeight(_ fontWeight: String) -> UIFont.Weight {
+    private class func parseFontWeight(_ fontWeight: String) -> UIFont.Weight {
         switch fontWeight.lowercased() {
         case "bold", "700":
             return .bold
@@ -616,7 +575,7 @@ class TextComponent: Component {
     }
     
     /// Parse text-align string to NSTextAlignment
-    private func parseTextAlign(_ alignment: String) -> NSTextAlignment? {
+    private class func parseTextAlign(_ alignment: String) -> NSTextAlignment? {
         guard let textAlignment = TextAlignment(normalizedString: alignment) else { return nil }
         
         switch textAlignment {
@@ -641,7 +600,7 @@ class TextComponent: Component {
     }
     
     /// Build UIFont with family + weight + size in one pass
-    private func buildFont(family: String, weight: UIFont.Weight, size: CGFloat) -> UIFont {
+    private class func buildFont(family: String, weight: UIFont.Weight, size: CGFloat) -> UIFont {
         // Use systemFont directly for system font families
         let normalizedFamily = family.lowercased()
         
@@ -679,7 +638,7 @@ class TextComponent: Component {
     // MARK: - Phase 3 Helpers: NSAttributedString synthesis
     
     /// Build text decoration attribute dictionary (does not modify label)
-    private func buildDecorationAttributes(config: TextDecorationConfig) -> [NSAttributedString.Key: Any] {
+    private class func buildDecorationAttributes(config: TextDecorationConfig) -> [NSAttributedString.Key: Any] {
         var attributes: [NSAttributedString.Key: Any] = [:]
         
         var underlineStyle: NSUnderlineStyle = []
@@ -716,7 +675,7 @@ class TextComponent: Component {
     }
     
     /// Extract font size from string
-    private func extractFontSize(from fontSizeString: String) -> CGFloat? {
+    private class func extractFontSize(from fontSizeString: String) -> CGFloat? {
         if fontSizeString.hasSuffix("px") {
             // px unit: apply BS_POINT_SCALE scaling
             // Formula: xpx * BS_POINT_SCALE
@@ -738,7 +697,7 @@ class TextComponent: Component {
     /// Supports two formats:
     /// - Numeric multiplier (Double/Int/no-unit string): returns .multiplier, e.g., 0.5, 1.5
     /// - px value (with px unit string): returns .absolute, applies BS_POINT_SCALE scaling, e.g., "10px" = 10 * 0.5 = 5.0
-    private func extractLineHeight(from value: Any?) -> LineHeightType? {
+    private class func extractLineHeight(from value: Any?) -> LineHeightType? {
         guard let value = value else { return nil }
         
         if let doubleValue = value as? Double {
@@ -779,6 +738,181 @@ class TextComponent: Component {
         default:
             break
         }
+    }
+
+    // MARK: - Measurement Override
+
+    /// Measure the intrinsic size of the text component
+    override class func measure(paramJson: String,
+                                maxWidth: Float,
+                                widthMode: MeasureMode,
+                                maxHeight: Float,
+                                heightMode: MeasureMode) -> CGSize {
+        // 1. Parse paramJson
+        guard let jsonData = paramJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return .zero
+        }
+
+        // 2. Extract text content
+        let text = (json["text"] as? String) ?? (json["label"] as? String) ?? ""
+        guard !text.isEmpty else {
+            return .zero
+        }
+
+        // 3. Parse styles (reuse same parsing as applyStyles Phase 1)
+        let styles = json["styles"] as? [String: Any] ?? [:]
+        let parsed = parseStyles(styles)
+
+        // 4. Build UIFont (reuse same logic as applyStyles Phase 2)
+        let fontSize = parsed.fontSize ?? 16.0
+        let fontWeight = parsed.fontWeight ?? .regular
+        let fontFamily = parsed.fontFamily ?? "system"
+        let font = buildFont(family: fontFamily, weight: fontWeight, size: fontSize)
+
+        // 5. Build NSAttributedString (reuse same logic as applyStyles Phase 3)
+        let textAlignment = parsed.textAlign ?? .left
+        let lineClamp = parsed.lineClamp ?? 0
+
+        guard let attributedString = buildAttributedText(
+            text: text,
+            font: font,
+            color: .black,
+            textAlignment: textAlignment,
+            lineHeight: parsed.lineHeight,
+            lineClamp: lineClamp,
+            decorationConfig: parsed.decorationConfig
+        ) else {
+            return .zero
+        }
+
+        // 6. Calculate boundingRect
+        // For Exactly/AtMost, constrain text wrapping to maxWidth; for Undefined, let text expand freely
+        let constraintWidth: CGFloat = (widthMode == .undefined) ? .greatestFiniteMagnitude : CGFloat(maxWidth)
+        let bounds = attributedString.boundingRect(
+            with: CGSize(width: constraintWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            context: nil)
+        
+        var measuredWidth = ceil(bounds.size.width)
+        var measuredHeight = ceil(bounds.size.height)
+        
+        // 7. Apply lineClamp height cap
+        // boundingRect always measures all lines; when lineClamp > 0, cap height to lineClamp lines
+        if lineClamp > 0 {
+            // Calculate per-line height (consistent with buildAttributedText logic)
+            let perLineHeight: CGFloat
+            let lineSpacing: CGFloat
+            if let lineHeight = parsed.lineHeight {
+                switch lineHeight {
+                case .multiplier(let value):
+                    if lineClamp == 1 {
+                        perLineHeight = font.pointSize * value
+                        lineSpacing = 0
+                    } else {
+                        perLineHeight = font.lineHeight
+                        lineSpacing = (value - 1) * font.pointSize
+                    }
+                case .absolute(let value):
+                    if lineClamp == 1 {
+                        perLineHeight = value
+                        lineSpacing = 0
+                    } else {
+                        perLineHeight = font.lineHeight
+                        lineSpacing = value - font.pointSize
+                    }
+                }
+            } else {
+                perLineHeight = font.lineHeight
+                lineSpacing = 0
+            }
+            // Total height = N * lineHeight + (N-1) * lineSpacing
+            let maxClampedHeight = ceil(perLineHeight * CGFloat(lineClamp) + lineSpacing * CGFloat(lineClamp - 1))
+            measuredHeight = min(measuredHeight, maxClampedHeight)
+        }
+
+        // 8. Apply MeasureMode constraints
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+
+    // MARK: - Shared Text Construction (used by both applyStyles and measure)
+
+    /// Build NSAttributedString from parsed style parameters
+    /// Shared by applyStyles (Phase 3) and measure to ensure consistent text rendering
+    private class func buildAttributedText(
+        text: String,
+        font: UIFont,
+        color: UIColor,
+        textAlignment: NSTextAlignment,
+        lineHeight: LineHeightType?,
+        lineClamp: Int,
+        decorationConfig: TextDecorationConfig?
+    ) -> NSAttributedString? {
+        guard !text.isEmpty else { return nil }
+
+        let attributedString = NSMutableAttributedString(string: text)
+        let fullRange = NSRange(location: 0, length: (text as NSString).length)
+
+        // Set font
+        attributedString.addAttribute(.font, value: font, range: fullRange)
+
+        // Set color
+        attributedString.addAttribute(.foregroundColor, value: color, range: fullRange)
+
+        // Synthesize paragraph style
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = textAlignment
+
+        if let lineHeight = lineHeight {
+            let isSingleLine = lineClamp == 1
+            let defaultLineHeight = font.lineHeight
+            var targetLineHeight: CGFloat?
+
+            switch lineHeight {
+            case .multiplier(let value):
+                if isSingleLine {
+                    targetLineHeight = font.pointSize * value
+                } else {
+                    paragraphStyle.lineSpacing = (value - 1) * font.pointSize
+                }
+            case .absolute(let value):
+                if isSingleLine {
+                    targetLineHeight = value
+                } else {
+                    paragraphStyle.lineSpacing = value - font.pointSize
+                }
+            }
+
+            if let targetLineHeight = targetLineHeight {
+                paragraphStyle.minimumLineHeight = targetLineHeight
+                paragraphStyle.maximumLineHeight = targetLineHeight
+                let baselineOffset = (targetLineHeight - defaultLineHeight) / 2
+                attributedString.addAttribute(.baselineOffset, value: baselineOffset, range: fullRange)
+            }
+        }
+
+        attributedString.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
+
+        // Set text decoration
+        if let config = decorationConfig, config.line != .none {
+            let decorationAttrs = buildDecorationAttributes(config: config)
+            for (key, value) in decorationAttrs {
+                attributedString.addAttribute(key, value: value, range: fullRange)
+            }
+        }
+
+        return attributedString
     }
 }
 

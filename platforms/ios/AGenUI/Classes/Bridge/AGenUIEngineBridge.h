@@ -81,6 +81,12 @@ typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(NSString *args);
 /// @param surfaceManager Opaque pointer returned by createCXXSurfaceManager
 - (void)destroySurfaceManager:(void *)surfaceManager;
 
+// MARK: - Logger
+
+/// Set logger for C++ modules
+/// @param enabled Whether to enable logging observer
+- (void)setRuntimeLogEnabled:(BOOL)enabled;
+
 @end
 
 NS_ASSUME_NONNULL_END

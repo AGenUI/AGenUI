@@ -1,51 +1,39 @@
 #include "surface/virtual_dom/agenui_virtual_dom.h"
 #include "agenui_component_render_observable.h"
 #include "agenui_surface_layout_observable.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <functional>
-#if defined(__OHOS__)
 #include <yoga/Yoga.h>
 #include "surface/virtual_dom/agenui_ivirtual_define.h"
-#endif
+#include "surface/yoga_node/agenui_yoga_node_manager.h"
 
 namespace agenui {
 
-VirtualDOM::VirtualDOM(IVirtualDOMObserver* observer) : _root(std::make_shared<VirtualDOMNode>("root", observer, this)), _observer(observer) {
-#if defined(__OHOS__)
-    _defaultRoot = YGNodeNew();
+VirtualDOM::VirtualDOM(IVirtualDOMObserver* observer,
+                       ::agenui::IMeasurementManager* measurementManager)
+    : _root(nullptr)
+    , _observer(observer)
+    , _measurementManager(measurementManager) {
+    _yogaNodeManager = std::make_unique<YogaNodeManager>();
     YGSize screenSize = AGenUIVirtualDefine::getDeviceScreenSize();
     _surfaceWidth  = screenSize.width;
     _surfaceHeight = screenSize.height;
-    YGNodeStyleSetFlexDirection(_defaultRoot, YGFlexDirectionColumn);
-    YGNodeStyleSetWidth(_defaultRoot, YGUndefined);
-    YGNodeStyleSetHeight(_defaultRoot, YGUndefined);
-#endif
+    _root = std::make_shared<VirtualDOMNode>("root", observer, this, measurementManager
+        , _yogaNodeManager.get()
+    );
 }
 
 VirtualDOM::~VirtualDOM() {
-#if defined(__OHOS__)
-    if (_defaultRoot) {
-        YGNodeFree(_defaultRoot);
-        _defaultRoot = nullptr;
-    }
-#endif
+    // _yogaNodeManager is released automatically by unique_ptr
 }
 
 void VirtualDOM::updateNode(const ComponentSnapshot& snapshot) {
     if (snapshot.id == "root") {
         _root->setSnapshot(snapshot, "");
-#if defined(__OHOS__)
-        if (_root && _root->getYogaNode() && _defaultRoot) {
-            YGNodeRef rootYoga = _root->getYogaNode();
-            // Insert root's Yoga node into defaultRoot only once
-            if (YGNodeGetOwner(rootYoga) == nullptr) {
-                YGNodeInsertChild(_defaultRoot, rootYoga, 0);
-            }
-            YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
+        if (_yogaNodeManager) {
+            _yogaNodeManager->calculateLayoutWithAdjust(_root, _surfaceWidth);
             checkAndNotifyLayoutChanges();
         }
-#endif
-        // Non-OHOS: checkAndNotifyLayoutChanges is called directly inside setSnapshot
         return;
     }
 
@@ -64,25 +52,26 @@ void VirtualDOM::updateNode(const ComponentSnapshot& snapshot) {
         tryAttachReadyOrphans();
     }
 
-#if defined(__OHOS__)
-        if (_root && _root->getYogaNode() && _defaultRoot) {
-            YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
-            checkAndNotifyLayoutChanges();
-        }
-#endif
-        // Non-OHOS: checkAndNotifyLayoutChanges is called directly inside setSnapshot
+    if (_yogaNodeManager) {
+        _yogaNodeManager->calculateLayoutWithAdjust(_root, _surfaceWidth);
+        checkAndNotifyLayoutChanges();
+    }
 }
 
 void VirtualDOM::clear() {
-#if defined(__OHOS__)
-    // Remove root's Yoga node from defaultRoot before releasing _root
-    if (_defaultRoot && _root && _root->getYogaNode()) {
-        YGNodeRemoveChild(_defaultRoot, _root->getYogaNode());
-    }
-#endif
-    _root = std::make_shared<VirtualDOMNode>("root", _observer, this);
+    // Correct clear order:
+    // 1. First release old tree: _root.reset() recursively destructs from leaves to root.
+    //    Each VirtualDOMNode destructor only nulls out, and YogaNode::~YogaNode handles _hasOwner detach.
+    // 2. Then clearAll: detaches all YG parent-child relationships in _nodes, then frees in batch.
     _directOrphanSnapshots.clear();
     _dataDependentOrphanSnapshots.clear();
+    _root.reset();
+    if (_yogaNodeManager) {
+        _yogaNodeManager->clearAll();
+    }
+    _root = std::make_shared<VirtualDOMNode>("root", _observer, this, _measurementManager
+        , _yogaNodeManager.get()
+    );
 }
 
 bool VirtualDOM::takeOrphanSnapshot(const std::string& id, ComponentSnapshot& outSnapshot) {
@@ -244,22 +233,14 @@ void VirtualDOM::checkAndNotifyLayoutChanges() {
 }
 
 void VirtualDOM::updateSurfaceSize(const SurfaceLayoutInfo& info) {
-    AGENUI_LOG("updateSurfaceSize: surfaceId:%s, width:%.1f, height:%.1f",
+    AGENUI_LOG("updateSurfaceSize: surfaceId=%s, width=%.1f, height=%.1f",
                info.surfaceId.c_str(), info.width, info.height);
-#if defined(__OHOS__)
     if (info.width > 0.0f)  _surfaceWidth  = info.width;
     if (info.height > 0.0f) _surfaceHeight = info.height;
-    if (_root && _root->getYogaNode()) {
-        if (info.width > 0.0f) {
-            YGNodeStyleSetMinWidth(_root->getYogaNode(), info.width);
-        }
-        if (info.height > 0.0f) {
-            YGNodeStyleSetMinHeight(_root->getYogaNode(), info.height);
-        }
+    if (_yogaNodeManager) {
+        _yogaNodeManager->calculateLayoutWithAdjust(_root, _surfaceWidth);
     }
-    YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
     checkAndNotifyLayoutChanges();
-#endif
 }
 
 
@@ -269,13 +250,19 @@ void VirtualDOM::updateComponentSize(const ComponentRenderInfo& info) {
         return;
     }
 
-#if defined(__OHOS__)
     node->setYogaNodeSize(info.width, info.height);
-    if (_defaultRoot) {
-        YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
+    if (_yogaNodeManager) {
+        _yogaNodeManager->calculateLayoutWithAdjust(_root, _surfaceWidth);
         checkAndNotifyLayoutChanges();
     }
-#endif
+}
+
+void VirtualDOM::updateTabsSelectedIndex(const std::string& tabsId, int selectedIndex) {
+    AGENUI_LOG("[Tabs] updateTabsSelectedIndex id=%s index=%d", tabsId.c_str(), selectedIndex);
+    if (!_yogaNodeManager) return;
+    _yogaNodeManager->updateTabsSelectedIndex(tabsId, selectedIndex);
+    _yogaNodeManager->calculateLayoutWithAdjust(_root, _surfaceWidth);
+    checkAndNotifyLayoutChanges();
 }
 
 std::shared_ptr<VirtualDOMNode> VirtualDOM::findNodeByComponentIdAndTypeRecursive(

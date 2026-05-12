@@ -1,7 +1,7 @@
 #include "agenui_engine_entry.h"
 #include <atomic>
 #include "agenui_engine_impl.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 
 namespace agenui {

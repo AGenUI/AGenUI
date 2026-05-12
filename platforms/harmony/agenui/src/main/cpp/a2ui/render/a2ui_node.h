@@ -54,6 +54,10 @@ public:
         g_nodeAPI->resetAttribute(m_nodeHandle, NODE_WIDTH);
     }
 
+    void resetPosition() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_POSITION);
+    }
+
     void setPercentWidth(float percent) {
         ArkUI_NumberValue value[] = {{.f32 = percent}};
         ArkUI_AttributeItem item = {value, 1};
@@ -95,8 +99,9 @@ public:
      * All inputs use a2ui units and are converted internally.
      */
     void setCustomShadow(float blurA2ui, float offsetXA2ui, float offsetYA2ui, uint32_t color) {
+        // CSS blur is a diameter; ArkUI expects a radius, so halve the converted value.
         ArkUI_NumberValue value[] = {
-            {.f32 = UnitConverter::a2uiToVp(blurA2ui)},
+            {.f32 = UnitConverter::a2uiToVp(blurA2ui) / 2.0f},
             {.f32 = 0.0f},
             {.f32 = UnitConverter::a2uiToPx(offsetXA2ui)},
             {.f32 = UnitConverter::a2uiToPx(offsetYA2ui)},
@@ -563,6 +568,10 @@ public:
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_LINE_HEIGHT, &item);
     }
 
+    void resetLineHeight() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_TEXT_LINE_HEIGHT);
+    }
+
     void setLetterSpacing(float spacing) {
         ArkUI_NumberValue value[] = {{.f32 = spacing}};
         ArkUI_AttributeItem item = {value, 1};
@@ -619,6 +628,22 @@ public:
         ArkUI_NumberValue value[] = {{.i32 = ARKUI_TEXT_DECORATION_TYPE_NONE}};
         ArkUI_AttributeItem item = {value, 1};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_DECORATION, &item);
+    }
+
+    void setTextShadow(float blurA2ui, float offsetXA2ui, float offsetYA2ui, uint32_t color) {
+        ArkUI_NumberValue value[] = {
+            {.f32 = UnitConverter::a2uiToVp(blurA2ui)},
+            {.i32 = ARKUI_SHADOW_TYPE_COLOR},
+            {.u32 = color},
+            {.f32 = UnitConverter::a2uiToVp(offsetXA2ui)},
+            {.f32 = UnitConverter::a2uiToVp(offsetYA2ui)},
+        };
+        ArkUI_AttributeItem item = {value, 5};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_TEXT_SHADOW, &item);
+    }
+
+    void resetTextShadow() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_TEXT_TEXT_SHADOW);
     }
 };
 

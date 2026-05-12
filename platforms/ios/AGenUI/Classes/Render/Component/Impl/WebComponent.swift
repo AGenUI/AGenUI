@@ -7,10 +7,6 @@
 
 import UIKit
 import WebKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// Web component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -67,11 +63,8 @@ class WebComponent: Component {
         
         self.progressView = progressView
         
-        // Use FlexLayout for layout
-        flex.define { flex in
-            flex.addItem(webView).width(100%).height(100%)
-            flex.addItem(progressView).position(.absolute).top(0).left(0).right(0).height(2)
-        }
+        addSubview(webView)
+        addSubview(progressView)
         
         // Add KVO observers
         setupObservers()

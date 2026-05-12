@@ -1,10 +1,10 @@
 #include "agenui_message_thread.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <chrono>
 
 #if defined(__APPLE__)
 #include <pthread.h>
-#elif defined(__linux__) || defined(__ANDROID__) || defined(__OHOS__)
+#elif defined(__linux__) || defined(__ANDROID__) || defined(HARMONY)
 #include <pthread.h>
 #endif
 
@@ -29,7 +29,7 @@ bool MessageThread::start() {
     _workerThread = std::thread(&MessageThread::workerThreadLoop, this);
     _threadId = _workerThread.get_id();
 
-    AGENUI_LOG("MessageThread started, thread_id: %zu", std::hash<std::thread::id>{}(_threadId));
+    AGENUI_LOG("started, thread_id: %zu", std::hash<std::thread::id>{}(_threadId));
     return true;
 }
 
@@ -61,7 +61,7 @@ void MessageThread::stop() {
         _workerThread.join();
     }
 
-    AGENUI_LOG("MessageThread stopped");
+    AGENUI_LOG("stopped");
 }
 
 void MessageThread::post(std::function<void()> task) {
@@ -119,11 +119,11 @@ void MessageThread::workerThreadLoop() {
     // Set thread name for debugger identification
 #if defined(__APPLE__)
     pthread_setname_np(_name.c_str());
-#elif defined(__linux__) || defined(__ANDROID__) || defined(__OHOS__)
+#elif defined(__linux__) || defined(__ANDROID__) || defined(HARMONY)
     pthread_setname_np(pthread_self(), _name.c_str());
 #endif
 
-    AGENUI_LOG("MessageThread[%s] worker loop started", _name.c_str());
+    AGENUI_LOG("[%s] worker loop started", _name.c_str());
 
     while (!_shouldStop) {
         std::function<void()> task;
@@ -172,7 +172,7 @@ void MessageThread::workerThreadLoop() {
         }
     }
 
-    AGENUI_LOG("MessageThread[%s] worker loop stopped", _name.c_str());
+    AGENUI_LOG("[%s] worker loop stopped", _name.c_str());
 }
 
 void MessageThread::processDelayedTasks() {

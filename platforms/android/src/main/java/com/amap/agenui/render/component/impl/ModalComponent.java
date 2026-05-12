@@ -303,7 +303,7 @@ public class ModalComponent extends A2UILayoutComponent {
         super.addChild(child);
         if (child != null) {
             // Reset LayoutParams to FrameLayout.LayoutParams
-            // to avoid ClassCastException when they are later set to FlexboxLayout.LayoutParams
+            // so the modal host always owns child layout params explicitly
             if (child.getView() != null) {
                 ViewGroup.LayoutParams params = child.getView().getLayoutParams();
                 if (params != null && !(params instanceof FrameLayout.LayoutParams)) {

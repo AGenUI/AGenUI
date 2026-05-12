@@ -18,17 +18,26 @@ internal class ComponentRegister {
     
     /// Registered component factories
     private var creators: [String: ComponentCreator] = [:]
-    
+
+    /// Registered component class types (for measurement dispatch)
+    private var componentTypes: [String: Component.Type] = [:]
+
     private init() {
         registerBuiltInComponents()
     }
     
     /// Register a component factory
+    ///
+    /// Generic parameter T is inferred from the creator closure's return type,
+    /// so componentClass does not need to be passed explicitly.
+    ///
     /// - Parameters:
     ///   - type: Component type identifier
-    ///   - creator: Factory closure that creates Component
-    func register(_ type: String, creator: @escaping ComponentCreator) {
-        creators[type] = creator
+    ///   - creator: Factory closure that creates Component subclass T
+    func register<T: Component>(_ type: String, creator: @escaping (String, [String: Any]) -> T) {
+        creators[type] = { id, props in creator(id, props) }
+        componentTypes[type] = T.self
+        AGenUIEngineMeasurementBridge.registerMeasurement(forType: type)
         Logger.shared.debug("Registered component: \(type)")
     }
     
@@ -36,6 +45,8 @@ internal class ComponentRegister {
     /// - Parameter type: Component type identifier
     func unregister(_ type: String) {
         creators.removeValue(forKey: type)
+        componentTypes.removeValue(forKey: type)
+        AGenUIEngineMeasurementBridge.unregisterMeasurement(forType: type)
         Logger.shared.debug("Unregistered component: \(type)")
     }
     
@@ -54,6 +65,13 @@ internal class ComponentRegister {
         let component = factory(id, properties)
         Logger.shared.debug("Created component: \(id) (\(type))")
         return component
+    }
+    
+    /// Get the Component subclass metatype for a given type string
+    /// - Parameter type: Component type identifier
+    /// - Returns: Component subclass metatype, or nil if not found
+    func classForType(_ type: String) -> Component.Type? {
+        return componentTypes[type]
     }
     
     private func registerBuiltInComponents() {

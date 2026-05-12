@@ -90,10 +90,23 @@ import Foundation
     ///   - type: Component type name
     ///   - creator: Factory closure to create the component
     /// - Note: Overwrites if the component type already exists
-    @objc public static func registerComponent(_ type: String, creator: @escaping (String, [String: Any]) -> Component) {
+    public static func registerComponent<T: Component>(_ type: String, creator: @escaping (String, [String: Any]) -> T) {
         Logger.shared.debug("registerComponent: \(type)")
         ComponentRegister.shared.register(type, creator: creator)
         Logger.shared.info("Custom component registered: \(type)")
+    }
+    
+    /// Register a custom component factory (Objective-C compatible)
+    ///
+    /// - Parameters:
+    ///   - type: Component type name
+    ///   - creator: Factory closure to create the component, returns a Component instance
+    /// - Note: Overwrites if the component type already exists
+    @objc(registerComponent:creator:)
+    public static func registerComponentObjC(_ type: String, creator: @escaping (String, [String: Any]) -> Component) {
+        Logger.shared.debug("registerComponent (ObjC): \(type)")
+        ComponentRegister.shared.register(type, creator: creator)
+        Logger.shared.info("Custom component registered (ObjC): \(type)")
     }
     
     @objc public static func unRegisterComponent(_ type: String) {
@@ -169,6 +182,23 @@ import Foundation
         
         engineBridge.unregisterFunction(name)
         Logger.shared.info("FunctionCall unregistered: \(name)")
+    }
+    
+    // MARK: - Logging
+    
+    /// Custom Logger
+    ///
+    /// - Parameter customLogger: Custom Logger
+    /// - Note: By setting the delegate, other modules like can receive log output
+    @objc public static func setCustomLogger(_ customLogger: LoggerDelegate?) {
+        Logger.shared.delegate = customLogger
+        if (customLogger != nil) {
+            engineBridge.setRuntimeLogEnabled(true)
+            Logger.shared.isEnabled = true
+        } else {
+            engineBridge.setRuntimeLogEnabled(false)
+            Logger.shared.isEnabled = false
+        }
     }
 
     // MARK: - Version Info

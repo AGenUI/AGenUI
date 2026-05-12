@@ -69,46 +69,9 @@ void ColumnComponent::applyStyles(const nlohmann::json& properties) {
         return;
     }
 
-    const auto& styles = properties["styles"];
-    A2UIColumnNode node(m_nodeHandle);
-
-    // Support both kebab-case and camelCase background color keys.
-    {
-        std::string bgColorStr;
-        if (styles.find("background-color") != styles.end() && styles["background-color"].is_string()) {
-            bgColorStr = styles["background-color"].get<std::string>();
-        } else if (styles.find("backgroundColor") != styles.end() && styles["backgroundColor"].is_string()) {
-            bgColorStr = styles["backgroundColor"].get<std::string>();
-        }
-        if (!bgColorStr.empty()) {
-            node.setBackgroundColor(parseColor(bgColorStr));
-            HM_LOGI("background-color=%s, id=%s", bgColorStr.c_str(), m_id.c_str());
-        }
-    }
-
-    // Support numeric and string border radius values.
-    {
-        std::string radiusKey;
-        if (styles.find("border-radius") != styles.end()) {
-            radiusKey = "border-radius";
-        } else if (styles.find("borderRadius") != styles.end()) {
-            radiusKey = "borderRadius";
-        }
-        if (!radiusKey.empty()) {
-            float radius = 0.0f;
-            const auto& radiusVal = styles[radiusKey];
-            if (radiusVal.is_number()) {
-                radius = radiusVal.get<float>();
-            } else if (radiusVal.is_string()) {
-                radius = static_cast<float>(std::atof(radiusVal.get<std::string>().c_str()));
-            }
-            if (radius > 0.0f) {
-                node.setBorderRadius(radius);
-            } else {
-                node.resetBorderRadius();
-            }
-        }
-    }
+    // Delegate background and border handling to the base class
+    applyBackgroundColor(properties);
+    applyBorderStyles(properties);
 }
 
 // ---- Enum Mappings ----

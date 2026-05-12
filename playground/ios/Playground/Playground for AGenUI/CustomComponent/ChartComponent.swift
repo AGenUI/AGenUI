@@ -7,7 +7,6 @@
 
 import UIKit
 import DGCharts
-import FlexLayout
 import AGenUI
 
 /// Chart component implementation (complies with A2UI v0.9 protocol)
@@ -58,6 +57,13 @@ class ChartComponent: Component {
     }
     
     // MARK: - BaseA2UIComponent Override
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Sync chartView frame with component bounds
+        chartView?.frame = bounds
+    }
     
     override func updateProperties(_ properties: [String: Any]) {
         // Call parent method to apply CSS properties to self
@@ -118,7 +124,8 @@ class ChartComponent: Component {
         }
         
         // Notify layout change
-        notifyLayoutChanged()
+        // TODO: NofityRenderFinish
+//        notifyLayoutChanged()
     }
     
     // MARK: - Line Chart
@@ -406,7 +413,7 @@ class ChartComponent: Component {
         barChartView.data = chartData
         
         // Group display
-        if let data = barChartView.data, dataSets.count > 0, let firstDataSet = dataSets.first, !firstDataSet.entries.isEmpty {
+        if let _ = barChartView.data, dataSets.count > 0, let firstDataSet = dataSets.first, !firstDataSet.entries.isEmpty {
             let groupCount = firstDataSet.entries.count
             
             chartData.groupBars(fromX: 0, groupSpace: groupSpace, barSpace: barSpace)
@@ -436,8 +443,15 @@ class ChartComponent: Component {
     // MARK: - Chart Configuration
     
     private func setupChartView(_ chartView: ChartViewBase, in container: UIView) {
-        // Add chart view using FlexLayout
-        container.flex.addItem(chartView).grow(1)
+        // Add chart view using Auto Layout
+        container.addSubview(chartView)
+        chartView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            chartView.topAnchor.constraint(equalTo: container.topAnchor),
+            chartView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            chartView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            chartView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
         
         // Basic configuration
         chartView.noDataText = "NO DATA"

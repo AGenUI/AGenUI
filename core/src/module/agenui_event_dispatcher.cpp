@@ -1,10 +1,10 @@
 #include "agenui_event_dispatcher.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 
 void EventDispatcher::addEventListener(IAGenUIMessageListener* listener) {
-    AGENUI_LOG("listener:%p", listener);
+    AGENUI_LOG("listener:%p, %zu", listener, _listeners.size());
     if (listener == nullptr) {
         return;
     }
@@ -13,7 +13,7 @@ void EventDispatcher::addEventListener(IAGenUIMessageListener* listener) {
 }
 
 void EventDispatcher::removeEventListener(IAGenUIMessageListener* listener) {
-    AGENUI_LOG("listener:%p", listener);
+    AGENUI_LOG("listener:%p, %zu", listener, _listeners.size());
     if (listener == nullptr) {
         return;
     }

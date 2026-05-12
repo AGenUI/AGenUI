@@ -7,7 +7,7 @@
 #include "function_call/agenui_functioncall_manager.h"
 #include "function_call/agenui_functioncall_resolution.h"
 #include "agenui_engine_context.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "nlohmann/json.hpp"
 
 namespace agenui {
@@ -57,7 +57,7 @@ SerializableData ExpressionParser::handleFunctionCall(const SerializableData& fu
 
     if (result.getStatus() == FunctionCallStatus::Success) {
         SerializableData resultValue(SerializableData::Impl::create(result.getValue()));
-        AGENUI_LOG("success: result:%s", resultValue.dump().c_str());
+        AGENUI_LOG("success: result=%s", resultValue.dump().c_str());
         return resultValue;
     } else {
         AGENUI_LOG("error: %s", result.getError().c_str());

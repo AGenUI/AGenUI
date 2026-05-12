@@ -1,6 +1,6 @@
 #include "agenui_functioncall_validator.h"
 #include "nlohmann/json-schema.hpp"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <vector>
 
 namespace agenui {

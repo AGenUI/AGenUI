@@ -12,12 +12,20 @@ NS_ASSUME_NONNULL_BEGIN
 // MARK: - Notification Names
 
 /// Notification sent when a new Surface is created
-/// userInfo contains: surfaceId, catalogId, theme, sendDataModel, animated
+/// userInfo contains: surfaceId, catalogId, theme, sendDataModel, animated, rawProtocolContent
 extern NSString * const AGenUICreateSurfaceNotification;
 
-/// Notification sent when components are updated
-/// userInfo contains: surfaceId, components
-extern NSString * const AGenUIUpdateComponentsNotification;
+/// Notification sent when components are incrementally updated
+/// userInfo contains: surfaceId, componentsUpdate
+extern NSString * const AGenUIComponentsUpdateNotification;
+
+/// Notification sent when components are added
+/// userInfo contains: surfaceId, componentsAdd
+extern NSString * const AGenUIComponentsAddNotification;
+
+/// Notification sent when components are removed
+/// userInfo contains: surfaceId, componentsRemove
+extern NSString * const AGenUIComponentsRemoveNotification;
 
 /// Notification sent when a Surface is deleted
 /// userInfo contains: surfaceId
@@ -33,8 +41,11 @@ extern NSString * const AGenUISurfaceIdKey;
 extern NSString * const AGenUICatalogIdKey;
 extern NSString * const AGenUIThemeKey;
 extern NSString * const AGenUISendDataModelKey;
-extern NSString * const AGenUIComponentsKey;
+extern NSString * const AGenUIComponentsUpdateKey;
+extern NSString * const AGenUIComponentsAddKey;
+extern NSString * const AGenUIComponentsRemoveKey;
 extern NSString * const AGenUIContextKey;
+extern NSString * const AGenUIRawProtocolContentKey;
 
 /// AGenUI Engine SurfaceManager Bridge (Multi-instance)
 ///
@@ -78,6 +89,26 @@ extern NSString * const AGenUIContextKey;
 - (void)syncState:(NSString *)surfaceId
       componentId:(NSString *)componentId
           context:(nullable NSString *)contextJson;
+
+/// Notify C++ engine that surface size changed
+/// @param surfaceId Surface ID
+/// @param widthA2ui New width in a2ui units (pt * 2)
+/// @param heightA2ui New height in a2ui units (pt * 2)
+- (void)notifySurfaceSizeChanged:(NSString *)surfaceId
+                           width:(float)widthA2ui
+                          height:(float)heightA2ui;
+
+/// Notify C++ engine that a component has finished rendering with its actual size
+/// @param surfaceId Surface ID
+/// @param componentId Component ID
+/// @param type Component type
+/// @param widthA2ui Rendered width in a2ui units (pt * 2)
+/// @param heightA2ui Rendered height in a2ui units (pt * 2)
+- (void)notifyComponentRenderFinish:(NSString *)surfaceId
+                         componentId:(NSString *)componentId
+                                type:(NSString *)type
+                               width:(float)widthA2ui
+                              height:(float)heightA2ui;
 
 @end
 

@@ -1,9 +1,12 @@
 #include "agenui_checks_data_value.h"
+#include "agenui_check_rule_data_value.h"
 #include "surface/agenui_serializable_data_impl.h"
 
 namespace agenui {
 
-ChecksDataValue::ChecksDataValue(IDataModel* dataModel, const std::vector<std::shared_ptr<DataValue>>& checks) : DataValue(dataModel), _checks(checks) {
+ChecksDataValue::ChecksDataValue(IDataModel* dataModel,
+                                 const std::vector<std::shared_ptr<CheckRuleDataValue>>& rules)
+    : DataValue(dataModel), _checks(rules) {
 }
 
 DataType ChecksDataValue::getDataType() const {
@@ -21,33 +24,22 @@ DataBindingStatus ChecksDataValue::getDataBindingStatus() const {
 }
 
 SerializableData ChecksDataValue::getValueData() const {
-    // Evaluate all checks with implicit AND
-    bool allPassed = true;
-    std::string message;
-
     for (const auto& check : _checks) {
         if (!check) {
-            allPassed = false;
-            message = getExtension("message");
-            break;
+            continue;
         }
 
         auto result = check->getValueData();
         if (!(result.isBool() && result.asBool())) {
-            allPassed = false;
-            message = check->getExtension("message");
-            if (message.empty()) {
-                message = getExtension("message");
-            }
-            break;
+            auto impl = SerializableData::Impl::createObject();
+            impl->set("result", false);
+            impl->set("message", check->getMessage());
+            return SerializableData(impl);
         }
     }
 
     auto impl = SerializableData::Impl::createObject();
-    impl->set("result", allPassed);
-    if (!allPassed) {
-        impl->set("message", message);
-    }
+    impl->set("result", true);
     return SerializableData(impl);
 }
 
@@ -68,17 +60,20 @@ void ChecksDataValue::unbind() {
 }
 
 std::shared_ptr<DataValue> ChecksDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
-    std::vector<std::shared_ptr<DataValue>> clonedChecks;
+    std::vector<std::shared_ptr<CheckRuleDataValue>> clonedChecks;
     clonedChecks.reserve(_checks.size());
 
     for (const auto& check : _checks) {
         if (check) {
-            clonedChecks.emplace_back(check->cloneAsTemplate(rootDataPath));
+            auto clonedCheck = std::static_pointer_cast<CheckRuleDataValue>(check->cloneAsTemplate(rootDataPath));
+            if (clonedCheck) {
+                clonedChecks.emplace_back(clonedCheck);
+            }
         }
     }
 
     auto cloned = std::make_shared<ChecksDataValue>(_dataModel, clonedChecks);
-    cloned->_extensions = _extensions;  // Copy extension fields (e.g. message)
+    cloned->_extensions = _extensions;
     return cloned;
 }
 

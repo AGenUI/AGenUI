@@ -1,5 +1,5 @@
 #include "agenui_format_string_functioncall.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <sstream>
 
 namespace agenui {

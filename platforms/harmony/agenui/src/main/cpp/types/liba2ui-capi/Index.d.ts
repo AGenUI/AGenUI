@@ -5,7 +5,7 @@ export interface ISurfaceListener {
   /**
    * Called when a surface is created.
    */
-  onCreateSurface(surfaceId: string, messageId: string): void;
+  onCreateSurface(surfaceId: string, messageId: string, rawProtocolContent: string): void;
 
   /**
    * Called when a surface is destroyed.
@@ -29,7 +29,7 @@ export interface ImageLoaderCallback {
 }
 
 /** Starts the AGenUI engine. */
-export const start: () => void;
+export const start: (logger?: object) => void;
 
 /** Stops the AGenUI engine and all SurfaceManager instances. */
 export const stop: () => void;
@@ -102,6 +102,19 @@ export const hybridFactoryGetPropertiesJson: (ptr: bigint) => string;
 
 /** Reports the rendered size of a component to the engine. Supports Markdown, Web, and other custom components. */
 export const reportComponentRenderSize: (surfaceId: string, nodeId: string, type: string, height: number, width: number, ptr: bigint) => void;
+
+/** Measurement result returned by a component measurement callback. */
+export interface MeasureResult {
+  width: number;
+  height: number;
+  calcType?: number;  // 0=Sync (default), 1=Async
+}
+
+/** Registers an ETS measurement callback for a given component type. */
+export const registerMeasurement: (instanceId: number, type: string, callback: (paramJson: string, widthMode: number, maxWidth: number, heightMode: number, maxHeight: number) => MeasureResult) => void;
+
+/** Unregisters an ETS measurement callback for a given component type. */
+export const unregisterMeasurement: (instanceId: number, type: string) => void;
 
 /** Notifies the native layer that the surface size changed. */
 export const onSurfaceSizeChanged: (surfaceId: string, width: number, height: number) => void;

@@ -1,0 +1,9 @@
+# iOS Playground - 复用 platforms/ios 的通用规则
+# 此处仅列出 playground 特有的忽略项
+
+# CocoaPods
+Pods/
+
+# Xcode 用户数据
+xcuserdata/
+*.xcuserdatad/

@@ -42,5 +42,8 @@
 # PlatformFunction is passed to native as Object; callSync/callAsync invoked via JNI
 -keep class com.amap.agenui.function.PlatformFunction { *; }
 
+# ── Logger (JNI callback from C++) ────────────────────────────────────────────
+-keep class com.amap.agenui.render.utils.AGenUILogger { *; }
+
 # ── Native methods ────────────────────────────────────────────────────────────
 -keepclasseswithmembernames class * { native <methods>; }

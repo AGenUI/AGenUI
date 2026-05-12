@@ -21,6 +21,9 @@ ListComponent::ListComponent(const std::string& id, const nlohmann::json& proper
         if (properties.contains("scrollable") && properties["scrollable"].is_boolean()) {
             m_scrollable = properties["scrollable"].get<bool>();
         }
+        if (properties.contains("align") && properties["align"].is_string()) {
+            m_align = properties["align"].get<std::string>();
+        }
     }
 
     A2UIListNode node(m_nodeHandle);
@@ -36,11 +39,18 @@ ListComponent::ListComponent(const std::string& id, const nlohmann::json& proper
         node.setEdgeEffectNone();
     }
 
-    // Use a fixed item gap.
-    node.setItemSpace(15.0f);
+    // Item space always 0 (gap not supported on Harmony).
+    node.setItemSpace(0.0f);
 
     // Only horizontal lists allow gesture scrolling.
     node.setScrollInteraction(m_horizontal);
+
+    // Set width/height early so Yoga layout uses the correct constraint
+    // from the very first calculation. updateLayoutProperties will override
+    // with any user-explicit width/height later.
+    if (!m_horizontal) {
+        node.setPercentWidth(1.0f);
+    }
 
     HM_LOGI("ListComponent - Created: id=%s, handle=%s, scrollable=%d, horizontal=%d",
              id.c_str(), m_nodeHandle ? "valid" : "null", m_scrollable, m_horizontal);
@@ -104,6 +114,46 @@ void ListComponent::onUpdateProperties(const nlohmann::json& properties) {
     applyDirection(properties);
     applyScrollable(properties);
     applyAlign(properties);
+    applyStyles(properties);
+
+    // Match Android ListComponent behavior:
+    // - vertical list: width = MATCH_PARENT (100%), height = WRAP_CONTENT (Yoga)
+    // - horizontal list: width = WRAP_CONTENT (Yoga), height = MATCH_PARENT (100%)
+    bool userSetWidth = false;
+    bool userSetHeight = false;
+    const std::string& styleInfo = getStyleInfo();
+    if (!styleInfo.empty()) {
+        try {
+            auto styleInfoJson = nlohmann::json::parse(styleInfo);
+            userSetWidth = styleInfoJson.contains("width");
+            userSetHeight = styleInfoJson.contains("height");
+        } catch (const nlohmann::json::exception& e) {
+            HM_LOGW("Failed to parse styleInfo for %s: %s", m_id.c_str(), e.what());
+        }
+    }
+
+    A2UIListNode node(m_nodeHandle);
+    // Vertical list width is already set to 100% in the constructor.
+    // Horizontal list height needs to be set here.
+    if (!userSetHeight && m_horizontal) {
+        node.setPercentHeight(1.0f);
+    }
+    // Sync ListItem cross-axis size.
+    if (!userSetWidth && !m_horizontal) {
+        for (auto& pair : m_listItemWrappers) {
+            A2UINode(pair.second).setPercentWidth(1.0f);
+        }
+    }
+    if (!userSetHeight && m_horizontal) {
+        for (auto& pair : m_listItemWrappers) {
+            A2UINode(pair.second).setPercentHeight(1.0f);
+        }
+    }
+
+    // Apply Yoga-computed spacing between items as ListItem margins.
+    if (!m_horizontal) {
+        updateListItemMargins();
+    }
 
     HM_LOGI("id=%s, properties=%s", m_id.c_str(), properties.dump().c_str());
 }
@@ -130,12 +180,15 @@ void ListComponent::applyDirection(const nlohmann::json& properties) {
     }
 
     for (auto& pair : m_listItemWrappers) {
-        applyListItemConstraints(pair.second, pair.first);
+        if (m_horizontal) {
+            A2UINode(pair.second).setPercentHeight(1.0f);
+        } else {
+            A2UINode(pair.second).setPercentWidth(1.0f);
+        }
     }
 
     // Only horizontal lists allow gesture scrolling.
     node.setScrollInteraction(m_horizontal);
-
 }
 
 // ---- scrollable ----
@@ -165,21 +218,136 @@ void ListComponent::applyAlign(const nlohmann::json& properties) {
     if (!properties.contains("align") || !properties["align"].is_string()) {
         return;
     }
-    int32_t alignValue = mapAlignItems(properties["align"].get<std::string>());
-    ArkUI_NumberValue value[] = {{.i32 = alignValue}};
-    ArkUI_AttributeItem item = {value, 1};
-    g_nodeAPI->setAttribute(m_nodeHandle, NODE_LIST_ALIGN_LIST_ITEM, &item);
+    m_align = properties["align"].get<std::string>();
+    // Yoga re-layout will push updated x/y via onApplyChildPosition on the next frame.
 }
 
-// ---- Enum Mappings ----
+// ---- onApplyChildPosition ----
 
-int32_t ListComponent::mapAlignItems(const std::string& align) {
-    if (align == "center") {
-        return ARKUI_LIST_ITEM_ALIGNMENT_CENTER;
-    } else if (align == "end") {
-        return ARKUI_LIST_ITEM_ALIGNMENT_END;
+void ListComponent::onApplyChildPosition(A2UIComponent* child, float x, float y) {
+    if (!child) return;
+
+    if (m_horizontal) {
+        child->getNode().setPosition(0.0f, y);
+    } else {
+        child->getNode().setPosition(x, 0.0f);
     }
-    return ARKUI_LIST_ITEM_ALIGNMENT_START;
+}
+
+// ---- CSS Length Parser ----
+
+float ListComponent::parseCssLength(const nlohmann::json& val, float fallback) {
+    if (val.is_number()) {
+        return val.get<float>();
+    }
+    if (val.is_string()) {
+        std::string s = val.get<std::string>();
+        if (s.size() > 2 && s.substr(s.size() - 2) == "px") {
+            s = s.substr(0, s.size() - 2);
+        }
+        float f = static_cast<float>(std::atof(s.c_str()));
+        return f >= 0.0f ? f : fallback;
+    }
+    return fallback;
+}
+
+// ---- Styles (border, background) ----
+
+void ListComponent::applyStyles(const nlohmann::json& properties) {
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+
+    const auto& styles = properties["styles"];
+    A2UINode node(m_nodeHandle);
+
+    // border-width
+    {
+        float bw = -1.0f;
+        if (styles.contains("border-width")) {
+            bw = parseCssLength(styles["border-width"], -1.0f);
+        } else if (styles.contains("borderWidth")) {
+            bw = parseCssLength(styles["borderWidth"], -1.0f);
+        }
+        if (bw >= 0.0f) {
+            node.setBorderWidth(bw, bw, bw, bw);
+            node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+        }
+    }
+
+    // border-color
+    {
+        std::string bc;
+        if (styles.contains("border-color") && styles["border-color"].is_string()) {
+            bc = styles["border-color"].get<std::string>();
+        } else if (styles.contains("borderColor") && styles["borderColor"].is_string()) {
+            bc = styles["borderColor"].get<std::string>();
+        }
+        if (!bc.empty()) {
+            node.setBorderColor(parseColor(bc));
+        }
+    }
+
+    // border-radius
+    {
+        float br = -1.0f;
+        if (styles.contains("border-radius")) {
+            br = parseCssLength(styles["border-radius"], -1.0f);
+        } else if (styles.contains("borderRadius")) {
+            br = parseCssLength(styles["borderRadius"], -1.0f);
+        }
+        if (br >= 0.0f) {
+            node.setBorderRadius(br);
+        }
+    }
+
+    // background-color
+    {
+        std::string bgStr;
+        if (styles.contains("background-color") && styles["background-color"].is_string()) {
+            bgStr = styles["background-color"].get<std::string>();
+        } else if (styles.contains("backgroundColor") && styles["backgroundColor"].is_string()) {
+            bgStr = styles["backgroundColor"].get<std::string>();
+        }
+        if (!bgStr.empty()) {
+            node.setBackgroundColor(parseColor(bgStr));
+        }
+    }
+
+    HM_LOGI("ListComponent::applyStyles applied, id=%s", m_id.c_str());
+}
+
+// ---- ListItem Margin Compensation ----
+//
+// ArkUI ListItem stacks children automatically, ignoring Yoga's main-axis
+// margin/padding. We convert the Yoga-computed spacing into ListItem margins
+// so the visual gap between items matches Android.
+
+void ListComponent::updateListItemMargins() {
+    if (m_children.empty()) return;
+
+    for (size_t i = 0; i < m_children.size(); ++i) {
+        auto* child = m_children[i];
+        if (!child) continue;
+
+        ArkUI_NodeHandle listItemHandle = findListItemWrapper(child->getNodeHandle());
+        if (!listItemHandle) continue;
+
+        float marginTop = 0.0f;
+        if (i == 0) {
+            // First item: margin = Yoga y (includes list padding-top).
+            marginTop = child->getY();
+        } else {
+            auto* prev = m_children[i - 1];
+            if (prev) {
+                // Gap = current y - (prev y + prev height)
+                marginTop = child->getY() - (prev->getY() + prev->getHeight());
+            }
+        }
+        if (marginTop < 0.0f) marginTop = 0.0f;
+
+        A2UINode(listItemHandle).setMargin(marginTop, 0.0f, 0.0f, 0.0f);
+    }
 }
 
 // ---- Helper Methods ----
@@ -188,48 +356,14 @@ bool ListComponent::isHorizontal() const {
     return m_horizontal;
 }
 
-/**
- * Apply unified size constraints (percentages) to ListItem and its child content:
- *
- * Vertical mode (default):
- *   - ListItem: width=100%, height follows its child
- *   - Child node: width=100%, matching the ListItem
- *
- * Horizontal mode:
- *   - ListItem: height=100%, width follows its child
- *   - Child node: height=100%, matching the ListItem
- */
-void ListComponent::applyListItemConstraints(ArkUI_NodeHandle listItemHandle,
-                                              ArkUI_NodeHandle childHandle) {
-    if (!listItemHandle || !childHandle) {
-        return;
-    }
-
-    A2UINode listItemNode(listItemHandle);
-    A2UINode childNode(childHandle);
-
-    if (m_horizontal) {
-        listItemNode.setPercentHeight(1.0f);
-        childNode.setPercentHeight(1.0f);
-        // Clear vertical-only constraints in horizontal mode.
-        listItemNode.resetPadding();
-        listItemNode.resetLayoutWeight();
-    } else {
-        listItemNode.setPercentWidth(1.0f);
-        childNode.setPercentWidth(1.0f);
-        // Add horizontal padding and distribute vertical items evenly.
-        listItemNode.setPadding(10.0f, 15.0f, 10.0f, 15.0f);
-        listItemNode.setLayoutWeight(1.0f);
-    }
-}
-
 ArkUI_NodeHandle ListComponent::createListItemWrapper(ArkUI_NodeHandle childHandle) {
     ArkUI_NodeHandle listItemHandle = g_nodeAPI->createNode(ARKUI_NODE_LIST_ITEM);
-
     g_nodeAPI->addChild(listItemHandle, childHandle);
-
-    applyListItemConstraints(listItemHandle, childHandle);
-
+    if (m_horizontal) {
+        A2UINode(listItemHandle).setPercentHeight(1.0f);
+    } else {
+        A2UINode(listItemHandle).setPercentWidth(1.0f);
+    }
     m_listItemWrappers.push_back({childHandle, listItemHandle});
     return listItemHandle;
 }

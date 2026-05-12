@@ -6,7 +6,7 @@
  *
  * Provides a unified logging interface that automatically records the file name, line number, and function name
  * All logs use the "a2ui-capi" tag
- * Follows the design pattern used by agenui_log.h
+ * Follows the design pattern used by agenui_logger_interface.h
  */
 
 #include <stdarg.h>

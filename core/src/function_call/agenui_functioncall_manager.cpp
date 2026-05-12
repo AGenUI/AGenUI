@@ -1,7 +1,7 @@
 #include "agenui_functioncall_manager.h"
 #include "agenui_functioncall_validator.h"
 #include "agenui_platform_function.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 #include <fstream>
 #include <sstream>
@@ -26,11 +26,11 @@ FunctionCallManager::~FunctionCallManager() {
 
 bool FunctionCallManager::registerFunctionCall(const FunctionCallConfig& config, IPlatformFunction* function) {
     if (!config.isValid()) {
-        AGENUI_LOG("failed: invalid config");
+        AGENUI_LOG("invalid config");
         return false;
     }
     if (!function) {
-        AGENUI_LOG("failed: function is null");
+        AGENUI_LOG("function is null");
         return false;
     }
 
@@ -54,7 +54,7 @@ bool FunctionCallManager::unregisterFunctionCall(const std::string& name) {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _functionCalls.find(name);
     if (it == _functionCalls.end()) {
-        AGENUI_LOG("failed: name:%s not found", name.c_str());
+        AGENUI_LOG("name:%s not found", name.c_str());
         return false;
     }
     _functionCalls.erase(it);
@@ -64,7 +64,7 @@ bool FunctionCallManager::unregisterFunctionCall(const std::string& name) {
 
 bool FunctionCallManager::registerFunctionCall(FunctionCallPtr functionCall) {
     if (!functionCall) {
-        AGENUI_LOG("failed: functionCall is null");
+        AGENUI_LOG("functionCall is null");
         return false;
     }
 

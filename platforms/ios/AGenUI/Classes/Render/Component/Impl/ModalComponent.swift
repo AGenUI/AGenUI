@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// ModalComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -128,8 +124,8 @@ class ModalComponent: Component {
             child.removeFromSuperview()
         }
         
-        // Add trigger button using FlexLayout
-        flex.addItem(child)
+        // Add trigger button
+        addSubview(child)
         
         Logger.shared.debug("  ✓ Trigger view added")
         
@@ -307,30 +303,42 @@ class ModalDialogViewController: UIViewController {
         containerView = UIView()
         view.addSubview(containerView)
         
-        // Configure container using FlexLayout
-        containerView.flex.direction(.column).alignItems(.center).define { flex in
-           // Create content container view (white background)
-            contentContainerView = UIView()
-            contentContainerView.backgroundColor = .white
-            contentContainerView.layer.cornerRadius = 8
-            contentContainerView.layer.masksToBounds = true
-            
-            flex.addItem(contentContainerView).define { contentFlex in
-                // Add content view
-                if let contentComponent = contentComponent {
-                    if contentComponent.superview != nil {
-                        contentComponent.removeFromSuperview()
-                    }
-                    
-                    // Add content view using FlexLayout
-                    contentFlex.addItem(contentComponent).margin(16)
-                    
-                    #if DEBUG
-                    Logger.shared.debug("Content view added with FlexLayout")
-                    #endif
-                }
+        // Configure container
+        containerView = UIView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(containerView)
+        NSLayoutConstraint.activate([
+            containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+
+        // Create content container view (white background)
+        contentContainerView = UIView()
+        contentContainerView.backgroundColor = .white
+        contentContainerView.layer.cornerRadius = 8
+        contentContainerView.layer.masksToBounds = true
+        contentContainerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(contentContainerView)
+        NSLayoutConstraint.activate([
+            contentContainerView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            contentContainerView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            contentContainerView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            contentContainerView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+
+        // Add content view
+        if let contentComponent = contentComponent {
+            if contentComponent.superview != nil {
+                contentComponent.removeFromSuperview()
             }
-           
+            contentComponent.translatesAutoresizingMaskIntoConstraints = false
+            contentContainerView.addSubview(contentComponent)
+            NSLayoutConstraint.activate([
+                contentComponent.topAnchor.constraint(equalTo: contentContainerView.topAnchor, constant: 16),
+                contentComponent.leadingAnchor.constraint(equalTo: contentContainerView.leadingAnchor, constant: 16),
+                contentComponent.trailingAnchor.constraint(equalTo: contentContainerView.trailingAnchor, constant: -16),
+                contentComponent.bottomAnchor.constraint(equalTo: contentContainerView.bottomAnchor, constant: -16)
+            ])
         }
         
         // Calculate layout
@@ -339,34 +347,22 @@ class ModalDialogViewController: UIViewController {
     
     /// Calculate and apply Modal layout
     private func layoutModal() {
-        // Get view dimensions (use view.bounds instead of UIScreen.main)
+        // Get view dimensions
         let viewWidth = view.bounds.width
         let viewHeight = view.bounds.height
-        
-        // Set container initial frame
-        containerView.frame = CGRect(x: 0, y: 0, width: viewWidth, height: viewHeight)
-        
-        // Calculate content size first (no width limit, let content auto-size)
-        contentContainerView.flex.layout(mode: .adjustHeight)
-        
-        // Get calculated content size
-        let contentSize = contentContainerView.frame.size
-        
-        // Recalculate total height after adding close button
-        containerView.flex.layout(mode: .adjustHeight)
-        
-        // Get total size
-        let totalSize = containerView.frame.size
-        
-        // Calculate centered position
-        let x = (viewWidth - totalSize.width) / 2
-        let y = (viewHeight - totalSize.height) / 2
-        
-        // Set container position
-        containerView.frame = CGRect(x: x, y: y, width: totalSize.width, height: totalSize.height)
-        
+
+        // Calculate content size using sizeThatFits
+        let contentSize = contentComponent?.sizeThatFits(CGSize(width: viewWidth - 32, height: .greatestFiniteMagnitude)) ?? CGSize(width: 200, height: 100)
+        let containerWidth = contentSize.width + 32
+        let containerHeight = contentSize.height + 32
+
+        // Set container frame centered
+        let x = (viewWidth - containerWidth) / 2
+        let y = (viewHeight - containerHeight) / 2
+        containerView.frame = CGRect(x: x, y: y, width: containerWidth, height: containerHeight)
+
         #if DEBUG
-        Logger.shared.debug("Layout completed: contentSize=\(contentSize), totalSize=\(totalSize), position=(\(x), \(y))")
+        Logger.shared.debug("Layout completed: contentSize=\(contentSize), containerSize=\(containerWidth)x\(containerHeight), position=(\(x), \(y))")
         #endif
     }
     

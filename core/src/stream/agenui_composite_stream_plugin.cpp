@@ -1,5 +1,5 @@
 #include "agenui_composite_stream_plugin.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 

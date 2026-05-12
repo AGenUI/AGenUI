@@ -28,6 +28,7 @@ struct CreateSurfaceMessage {
     std::map<std::string, std::string> theme;  // Theme parameters (extensible map)
     bool sendDataModel = false;                // Whether to send back the data model
     bool animated = true;                      // Whether to enable animation
+    std::string rawProtocolContent;            // Original raw protocol content (the full JSON string that was parsed to create this message)
 };
 
 /**

@@ -42,6 +42,7 @@ import {
   onInvokeHybridView,
   HybridViewManager,
 } from '../hybrid/HybridViewManager';
+import { AGenUILogger } from '../logger/AGenUILogger';
 
 // ==================== Internal Image Loader State ====================
 
@@ -123,8 +124,9 @@ export class AGenUIEngineBridge {
     const display_ = display.getDefaultDisplaySync();
     setDeviceInfo(display_.width, display_.height, display_.densityPixels);
 
-    // Start the engine.
-    start();
+    // Start the engine with logger
+    const logger = AGenUILogger.getInstance();
+    start(logger);
 
     // set working dir to filesDir by default, which allows the engine to write temp files if needed.
     nativeSetWorkingDir(context.filesDir);

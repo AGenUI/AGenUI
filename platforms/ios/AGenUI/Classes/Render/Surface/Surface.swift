@@ -7,10 +7,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// Surface state
 public enum SurfaceState {
@@ -57,6 +53,9 @@ public enum SurfaceState {
     
     /// Whether component appear animations are enabled for this surface
     @objc public var animationEnabled: Bool = true
+
+    /// Original raw protocol content (the full JSON string that was parsed to create this surface)
+    @objc public var rawProtocolContent: String = ""
     
     /// Associated SurfaceManager (weak reference to avoid retain cycle)
     weak var surfaceManager: SurfaceManager?
@@ -101,78 +100,30 @@ public enum SurfaceState {
     
     // MARK: - Notification
     @objc internal func notifyLayoutChangedInternal() {
-        // Cancel previously scheduled but not yet executed layout updates
         notifyLayoutChangedInternalReal()
-//        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(Surface.notifyLayoutChangedInternalReal), object: nil)
-//
-//        // Perform layout update on next runloop (delay: 0 means next runloop)
-//        perform(#selector(Surface.notifyLayoutChangedInternalReal), with: nil, afterDelay: 0)
     }
     
     /// Notify layout change
     @objc internal func notifyLayoutChangedInternalReal() {
-        guard rootComponent != nil else {
+        guard let rootComponent = rootComponent else {
             return
         }
         
-        // Determine layout mode based on width/height constraints
-        let layoutMode = determineLayoutMode()
-        Logger.shared.debug("notifyLayoutChangedInternal: width=\(self.width), height=\(self.height), mode=\(layoutMode)")
-        
-        switch layoutMode {
-        case .fitContainer:
-            // Both width and height are finite: use fitContainer mode
-            guard width > 0, height > 0 else {
-                Logger.shared.debug("⚠ Invalid size for fitContainer mode")
-                return
-            }
-            view.flex.width(width).height(height)
-            view.flex.layout(mode: .fitContainer)
-            view.tag = 0
-            Logger.shared.debug("Layout completed (fitContainer): \(width) x \(height)")
-            
-        case .adjustHeight:
-            // Width is finite, height is infinite: use adjustHeight mode
-            let layoutWidth = width.isFinite ? width : UIScreen.main.bounds.width
-            guard layoutWidth > 0 else {
-                return
-            }
-            // Set view frame width to ensure correct percentage width calculation for child components
-            view.flex.width(layoutWidth)
-            view.flex.layout(mode: .adjustHeight)
-            view.tag = 1
-            Logger.shared.debug("Layout completed (adjustHeight): \(layoutWidth) x \(view.frame.height)")
-            
-        case .adjustWidth:
-            // Width is infinite, height is finite: use adjustWidth mode
-            guard height > 0 else {
-                Logger.shared.debug("⚠ Invalid height for adjustWidth mode")
-                return
-            }
-            // Set view frame height to ensure correct percentage height calculation for child components
-            view.flex.height(height)
-            view.flex.layout(mode: .adjustWidth)
-            view.tag = 2
-            Logger.shared.debug("Layout completed (adjustWidth): \(view.frame.width) x \(height)")
+        // Sync surface.view size with the root component's frame computed by C++ Yoga engine.
+        // Each Component's frame is set by applyLayoutFromStyles() when updateProperties() is called.
+        // Without this step, surface.view always has zero height and callers cannot read the
+        // rendered content height from surface.view.frame in the onLayoutChanged callback.
+        let contentWidth  = rootComponent.frame.width
+        let contentHeight = rootComponent.frame.maxY  // use maxY to include absolute-positioned children that extend below root
+        if contentWidth > 0 || contentHeight > 0 {
+            view.frame = CGRect(x: view.frame.origin.x,
+                                y: view.frame.origin.y,
+                                width: contentWidth,
+                                height: contentHeight)
         }
         
-        // Trigger layout change callback
+        // Layout computed by C++ Engine; iOS only triggers callback
         onLayoutChanged?()
-    }
-    
-    /// Determine layout mode based on width/height constraints
-    private func determineLayoutMode() -> Flex.LayoutMode {
-        if width.isFinite && height.isFinite {
-            return .fitContainer
-        }
-        if width.isFinite && height.isInfinite {
-            return .adjustHeight
-        }
-        if width.isInfinite && height.isFinite {
-            return .adjustWidth
-        }
-        // Default: both infinite, use adjustHeight
-        return .adjustHeight
     }
     
     // MARK: - Size Management
@@ -191,6 +142,12 @@ public enum SurfaceState {
         self.height = normalizedHeight
         
         Logger.shared.debug("Size updated: width=\(width)(normalized: \(normalizedWidth)), height=\(height)(normalized: \(normalizedHeight))")
+        
+        // Notify C++ Yoga engine that surface size changed
+        // a2ui units = pt * 2 (consistent with BS_POINT_SCALE = 0.5)
+        let widthCXX = normalizedWidth.isFinite ? Float(normalizedWidth) : 0.0
+        let heightCXX = normalizedHeight.isFinite ? Float(normalizedHeight) : 0.0
+        surfaceManager?.notifySurfaceSizeChanged(surfaceId: surfaceId, width: widthCXX, height: heightCXX)
         
         // Trigger layout change
         notifyLayoutChangedInternal()
@@ -243,7 +200,7 @@ public enum SurfaceState {
             Logger.shared.debug("Set as root component (id == 'root')")
             
             // Add root component to view
-            view.flex.addItem(component)
+            view.addSubview(component)
         }
         
         // Process pending children: check if children IDs are in pendingChildren
@@ -539,6 +496,60 @@ public enum SurfaceState {
         for (index, componentJson) in components.enumerated() {
             Logger.shared.debug("[\(index)]: Processing component JSON")
             processComponentJson(componentJson)
+        }
+    }
+    
+    /// Process components update messages
+    ///
+    /// - Parameter messages: Array of update messages, each containing componentId and component JSON
+    func processComponentsUpdate(_ messages: [[String: String]]) {
+        for message in messages {
+            guard let componentId = message["componentId"],
+                  let componentJson = message["component"] else {
+                Logger.shared.error("Invalid components update message")
+                continue
+            }
+            
+            // If component exists, update it; otherwise process as new component
+            if getComponent(componentId: componentId) != nil {
+                guard var componentData = parseJSON(componentJson) else {
+                    Logger.shared.error("Failed to parse component JSON for update: \(componentId)")
+                    continue
+                }
+                componentData.removeValue(forKey: "id")
+                componentData.removeValue(forKey: "type")
+                componentData.removeValue(forKey: "component")
+                componentData.removeValue(forKey: "parent")
+                updateComponent(componentId: componentId, properties: componentData)
+            } else {
+                processComponentJson(componentJson)
+            }
+        }
+    }
+    
+    /// Process components add messages
+    ///
+    /// - Parameter messages: Array of add messages, each containing parentId, componentId and component JSON
+    func processComponentsAdd(_ messages: [[String: String]]) {
+        for message in messages {
+            guard let componentJson = message["component"] else {
+                Logger.shared.error("Invalid components add message")
+                continue
+            }
+            processComponentJson(componentJson)
+        }
+    }
+    
+    /// Process components remove messages
+    ///
+    /// - Parameter messages: Array of remove messages, each containing parentId and componentId
+    func processComponentsRemove(_ messages: [[String: String]]) {
+        for message in messages {
+            guard let componentId = message["componentId"] else {
+                Logger.shared.error("Invalid components remove message")
+                continue
+            }
+            removeComponent(componentId: componentId)
         }
     }
     

@@ -63,7 +63,7 @@ if [[ ! -f "${ANDROID_PROJECT_ROOT}/local.properties" ]]; then
     warn "${ANDROID_PROJECT_ROOT}/local.properties not found. Make sure the Android SDK path is set via ANDROID_HOME / ANDROID_SDK_ROOT."
 fi
 
-ensure_engine_dir
+ensure_core_dir
 
 # -------------------- Run Gradle --------------------
 cd "$ANDROID_PROJECT_ROOT"

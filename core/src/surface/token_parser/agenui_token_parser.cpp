@@ -1,7 +1,7 @@
 #include "agenui_token_parser.h"
 #include "agenui_design_token_config.h"
 #include "nlohmann/json.hpp"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 

@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// TextFieldComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -86,6 +82,88 @@ class TextFieldComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Measurement Override
+
+    override class func measure(paramJson: String,
+                                maxWidth: Float,
+                                widthMode: MeasureMode,
+                                maxHeight: Float,
+                                heightMode: MeasureMode) -> CGSize {
+        // 1. Parse paramJson
+        guard let jsonData = paramJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return CGSize(width: CGFloat(maxWidth), height: 44)
+        }
+
+        // 2. Resolve font size from localConfig or default
+        var fontSize: CGFloat = 16
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "TextField") {
+            if let sizeStr = config["font-size"] as? String {
+                let parsed = CSSPropertyParser.parseOffset(sizeStr)
+                if case .number(let v) = parsed { fontSize = v }
+            }
+        }
+
+        // 3. Build font
+        var fontFamily = "PingFang SC"
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "TextField"),
+           let family = config["font-family"] as? String {
+            fontFamily = family
+        }
+        let font: UIFont = UIFont(name: fontFamily, size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
+
+        // 4. Determine if multi-line (longText variant)
+        let variant = (json["variant"] as? String ?? "shortText").lowercased()
+        let isMultiLine = variant == "longtext"
+
+        // 5. Calculate constraint width
+        let constraintWidth: CGFloat = (widthMode == .undefined)
+            ? .greatestFiniteMagnitude
+            : CGFloat(maxWidth)
+
+        // 6. Calculate height
+        let singleLineHeight = font.lineHeight + 16  // 16pt vertical padding
+        let multiLineMinHeight: CGFloat = singleLineHeight * 3
+
+        var measuredWidth: CGFloat
+        var measuredHeight: CGFloat
+
+        if widthMode == .exactly {
+            measuredWidth = CGFloat(maxWidth)
+        } else {
+            measuredWidth = constraintWidth
+        }
+
+        if heightMode == .exactly {
+            measuredHeight = CGFloat(maxHeight)
+        } else if isMultiLine {
+            measuredHeight = multiLineMinHeight
+        } else {
+            measuredHeight = singleLineHeight
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+
+    // MARK: - Layout
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        if let errorLabel = errorLabel, !errorLabel.isHidden {
+            // errorLabel displayed below the input field, estimated height 20pt
+            let errorLabelHeight: CGFloat = 20
+            let inputHeight = bounds.height - errorLabelHeight
+            textField?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: inputHeight)
+            textView?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: inputHeight)
+            errorLabel.frame = CGRect(x: 0, y: inputHeight, width: bounds.width, height: errorLabelHeight)
+        } else {
+            textField?.frame = bounds
+            textView?.frame = bounds
+            errorLabel?.frame = CGRect(x: 0, y: bounds.height, width: bounds.width, height: 20)
+        }
+    }
+
     override func updateProperties(_ properties: [String: Any]) {
         super.updateProperties(properties)
         
@@ -166,7 +244,7 @@ class TextFieldComponent: Component {
         self.textField = field
         
         // Add to Component
-        flex.addItem(field)
+        addSubview(field)
     }
     
     /// Create multi-line text input
@@ -204,7 +282,7 @@ class TextFieldComponent: Component {
         self.textView = view
         
         // Add to Component
-        flex.addItem(view)
+        addSubview(view)
     }
     
     /// Create error label
@@ -218,7 +296,7 @@ class TextFieldComponent: Component {
         self.errorLabel = label
         
         // Add to Component
-        flex.addItem(label)
+        addSubview(label)
     }
     
     // MARK: - Private Methods - Input Control Switching
@@ -258,9 +336,6 @@ class TextFieldComponent: Component {
             applyTextStyle(to: view)
         }
         applyVariant(variant)
-        
-        // Notify layout changed
-        notifyLayoutChanged()
     }
     
     // MARK: - Configuration Methods
