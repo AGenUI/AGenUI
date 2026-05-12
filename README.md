@@ -262,6 +262,21 @@ For larger changes — new platform support, significant engine refactors, new c
 - **GitHub Issues**: [bug reports and feature requests](https://github.com/AGenUI/AGenUI/issues)
 - **GitHub Discussions**: [Q&A and general discussions](https://github.com/AGenUI/AGenUI/discussions)
 - **Email**: [tengjixiang.ttjx@alibaba-inc.com](mailto:tengjixiang.ttjx@alibaba-inc.com)
+- **DingTalk Group**: Chinese community
+- **WeChat Group**: Chinese community
+
+<div align="center">
+<table>
+  <tr>
+    <th>DingTalk Group</th>
+    <th>WeChat Group</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/dingtalk_qrcode.jpg" alt="AGenUI DingTalk group QR code" width="220"></td>
+    <td align="center"><img src="docs/images/wechat_qrcode.jpg" alt="AGenUI WeChat group QR code" width="220"></td>
+  </tr>
+</table>
+</div>
 
 ---
 
