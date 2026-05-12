@@ -163,7 +163,7 @@ Copy the resulting `agenui.har` into your project and reference it with the `fil
 
 ### Building from Source
 
-All build scripts live in the `scripts/` directory. The C++ engine in `engine/` is compiled automatically — no separate preparation step is needed.
+All build scripts live in the `scripts/` directory. The C++ engine in `core/` is compiled automatically — no separate preparation step is needed.
 
 ```bash
 # HAR package (Release, default)
