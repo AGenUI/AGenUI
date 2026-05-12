@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// Button component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -33,16 +29,14 @@ class ButtonComponent: Component {
     private var disabledBackgroundColor: UIColor?
     private var normalBackgroundColor: UIColor?
     private var disabledOpacity: CGFloat = 0.4  // Default disabled opacity
+    /// Alpha value recorded just before entering the disabled state, used to restore
+    /// the correct opacity (which may come from a CSS "opacity" style) when re-enabled.
+    private var normalAlpha: CGFloat = 1.0
     
     // MARK: - Initialization
     
     init(componentId: String, properties: [String: Any]) {
         super.init(componentId: componentId, componentType: "Button", properties: properties)
-        
-        // Configure FlexLayout - default horizontal direction, children vertically centered
-        flex.direction(.row)
-            .justifyContent(.center)
-            .alignItems(.center)
         
         // Apply initial properties
         updateProperties(properties)
@@ -58,6 +52,12 @@ class ButtonComponent: Component {
         
         // Call parent method to apply CSS properties to self
         super.updateProperties(properties)
+        
+        // Record the alpha set by CSS (e.g. "opacity" style) before any disabled-state
+        // override, so it can be correctly restored when the button is re-enabled.
+        if !isDisabled {
+            normalAlpha = alpha
+        }
         
         // Read background-color-disabled and disabled-opacity properties from styles field
         if let styles = properties["styles"] as? [String: Any] {
@@ -126,8 +126,9 @@ class ButtonComponent: Component {
                 backgroundColor = normalColor
             }
             
-            // Restore normal transparency
-            alpha = 1.0
+            // Restore the alpha that was recorded before the disabled state was applied.
+            // This correctly handles CSS "opacity" styles as well as the default alpha of 1.0.
+            alpha = normalAlpha
         }
     }
     

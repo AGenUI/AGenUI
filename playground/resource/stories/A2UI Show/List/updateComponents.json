@@ -10,7 +10,8 @@
         "children": [
           "item1",
           "item2",
-          "item3"
+          "item3",
+          "welcome-text"
         ]
       },
       {
@@ -30,6 +31,17 @@
         "component": "Text",
         "text": "List Item 3",
         "variant": "body"
+      }, {
+        "id": "welcome-text",
+        "component": "Text",
+        "text": {
+          "call": "formatString",
+          "args": {
+            "value": "Hello! Today is ."
+          },
+          "returnType": "string"
+        },
+        "variant": "h3"
       }
     ]
   }

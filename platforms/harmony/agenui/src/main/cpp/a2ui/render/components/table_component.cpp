@@ -236,8 +236,11 @@ void TableComponent::buildTable(const nlohmann::json& properties) {
     cleanCellNodes();
 
     std::vector<std::string> columns;
-    if (properties.find("columns") != properties.end() && properties["columns"].is_array()) {
-        for (const auto& col : properties["columns"]) {
+    // Support both "columns" and "headers" field names
+    const char* colKey = properties.contains("columns") ? "columns"
+                       : (properties.contains("headers") ? "headers" : nullptr);
+    if (colKey && properties[colKey].is_array()) {
+        for (const auto& col : properties[colKey]) {
             if (col.is_string()) {
                 columns.push_back(col.get<std::string>());
             }

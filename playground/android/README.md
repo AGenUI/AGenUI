@@ -20,7 +20,7 @@ This project lives inside a monorepo. The dependency hierarchy is:
 ```
 playground/android/app
     └── platforms/android/        # Android SDK (Java + JNI)
-            └── core/           # C++ core (compiled via CMake + NDK)
+            └── core/             # C++ core (compiled via CMake + NDK)
 ```
 
 ---

@@ -13,28 +13,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
-        // Create window
         let window = UIWindow(windowScene: windowScene)
         
-        // Create Playground view controller
+
+        // Normal mode: Playground
         let playgroundVC = A2UIPlaygroundViewController()
+        let rootVC = UINavigationController(rootViewController: playgroundVC)
         
-        // Embed in navigation controller
-        let navigationController = UINavigationController(rootViewController: playgroundVC)
-        
-        // Set as root view controller
-        window.rootViewController = navigationController
-        
-        // Show window
+        window.rootViewController = rootVC
         window.makeKeyAndVisible()
         self.window = window
-        
-        // Example code: ViewController
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -80,17 +70,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let queryItems = components.queryItems,
               let fileUrl = queryItems.first(where: { $0.name == "url" })?.value else {
-            print("⚠️ [DeepLink] Missing 'url' parameter in: \(url)")
+            print("[DeepLink] Missing 'url' parameter in: \(url)")
             return
         }
 
-        print("✅ [DeepLink] Received a2ui_test URL: \(fileUrl)")
+        print("[DeepLink] Received a2ui_test URL: \(fileUrl)")
 
-        // Get A2UIPlaygroundViewController and invoke download processing
+        // Get A2UIPlaygroundViewController and call download handler
         DispatchQueue.main.async {
             guard let navController = self.window?.rootViewController as? UINavigationController,
                   let playgroundVC = navController.viewControllers.first as? A2UIPlaygroundViewController else {
-                print("❌ [DeepLink] Failed to get A2UIPlaygroundViewController")
+                print("[DeepLink] Failed to get A2UIPlaygroundViewController")
                 return
             }
             playgroundVC.downloadAndProcessQRCodeFile(fileUrl)

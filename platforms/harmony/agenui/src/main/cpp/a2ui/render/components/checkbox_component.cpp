@@ -63,6 +63,7 @@ void a2ui::CheckBoxComponent::setupDefaultStyles() {
     applyCheckBoxStyles(resolveStyle(m_properties), checked, disabled);
     applyLabel(m_properties);
     applyValue(m_properties);
+    applyContainerBorderStyles(m_properties);
 }
 
 CheckBoxComponent::CheckBoxStyle CheckBoxComponent::resolveStyle(const nlohmann::json& properties) {
@@ -187,11 +188,46 @@ void CheckBoxComponent::onUpdateProperties(const nlohmann::json& properties) {
     applyCheckBoxStyles(resolveStyle(properties), checked, disabled);
     applyLabel(properties);
     applyValue(properties);
+    applyContainerBorderStyles(properties);
 
     if (getHeight() > 0) {
         A2UINode(m_labelHandle).setHeight(getHeight());
     }
     HM_LOGI( "Applied properties, id=%s", m_id.c_str());
+}
+
+void CheckBoxComponent::applyContainerBorderStyles(const nlohmann::json& properties) {
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+    const auto& styles = properties["styles"];
+    A2UINode containerNode(m_nodeHandle);
+
+    auto parseFloatVal = [](const nlohmann::json& val) -> float {
+        if (val.is_number()) return val.get<float>();
+        if (val.is_string()) return static_cast<float>(std::atof(val.get<std::string>().c_str()));
+        return 0.0f;
+    };
+
+    if (styles.contains("background-color") && styles["background-color"].is_string()) {
+        containerNode.setBackgroundColor(parseColor(styles["background-color"].get<std::string>()));
+    }
+    if (styles.contains("opacity") && (styles["opacity"].is_number() || styles["opacity"].is_string())) {
+        float opacity = parseFloatVal(styles["opacity"]);
+        if (opacity < 0.0f) opacity = 0.0f;
+        if (opacity > 1.0f) opacity = 1.0f;
+        containerNode.setOpacity(opacity);
+    }
+    if (styles.contains("border-width") && (styles["border-width"].is_number() || styles["border-width"].is_string())) {
+        float bw = parseFloatVal(styles["border-width"]);
+        containerNode.setBorderWidth(bw, bw, bw, bw);
+    }
+    if (styles.contains("border-color") && styles["border-color"].is_string()) {
+        containerNode.setBorderColor(parseColor(styles["border-color"].get<std::string>()));
+    }
+    if (styles.contains("border-radius") && (styles["border-radius"].is_number() || styles["border-radius"].is_string())) {
+        containerNode.setBorderRadius(parseFloatVal(styles["border-radius"]));
+    }
 }
 
 // ---- Label ----

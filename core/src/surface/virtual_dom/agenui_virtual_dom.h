@@ -2,9 +2,13 @@
 
 #include "surface/virtual_dom/agenui_virtual_dom_node.h"
 #include "surface/virtual_dom/agenui_ivirtual_dom.h"
+
 #include <memory>
 #include <string>
 #include <map>
+
+#include "surface/yoga_node/agenui_yoga_node_manager.h"
+#include "surface/yoga_node/agenui_tabs_yoga_helper.h"
 
 namespace agenui {
 
@@ -22,7 +26,8 @@ public:
      * @brief Constructor
      * @param observer Virtual DOM observer
      */
-    explicit VirtualDOM(IVirtualDOMObserver* observer);
+    explicit VirtualDOM(IVirtualDOMObserver* observer,
+                        ::agenui::IMeasurementManager* measurementManager = nullptr);
 
     /**
      * @brief Destructor
@@ -69,6 +74,14 @@ public:
      * @remark Updates the root container size of the surface
      */
     void updateSurfaceSize(const SurfaceLayoutInfo& info);
+    
+    /**
+     * @brief Update Tabs selected tab index and trigger re-layout
+     * @param tabsId Tabs node ID
+     * @param selectedIndex New selected tab index
+     * @remark Called by the rendering layer on tab switch; updates Tabs Yoga minHeight and triggers re-layout
+     */
+    void updateTabsSelectedIndex(const std::string& tabsId, int selectedIndex);
 
 private:
     /**
@@ -113,11 +126,10 @@ private:
     IVirtualDOMObserver* _observer;                              // Virtual DOM observer
     std::map<std::string, ComponentSnapshot> _directOrphanSnapshots;          // Orphan snapshots that display unconditionally
     std::map<std::string, ComponentSnapshot> _dataDependentOrphanSnapshots;   // Orphan snapshots that depend on data binding state
-#if defined(__OHOS__)
-    YGNodeRef _defaultRoot = nullptr;                            // Default top-level Yoga container node
+    ::agenui::IMeasurementManager* _measurementManager = nullptr;  // Component measurement manager (non-owning)
+    std::unique_ptr<YogaNodeManager> _yogaNodeManager;           // Yoga node manager (owned)
     float _surfaceWidth  = 0.0f;                                 // Current surface width (vp); initialized from getDeviceScreenSize
     float _surfaceHeight = 0.0f;                                 // Current surface height (vp); initialized from getDeviceScreenSize
-#endif
 };
 
 }  // namespace agenui

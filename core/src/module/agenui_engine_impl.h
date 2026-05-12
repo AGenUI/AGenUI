@@ -2,6 +2,7 @@
 
 #include "agenui_engine.h"
 #include "agenui_engine_context.h"
+#include "agenui_logger_internal.h"
 #include <map>
 #include <memory>
 #include <atomic>
@@ -11,6 +12,8 @@ namespace agenui {
 class SurfaceManager;
 class FunctionCallManager;
 class IComponentPropertySpecManager;
+class MeasurementManagerImpl;
+class IRuntimeLogger;
 
 /**
  * @brief AGenUI engine implementation
@@ -50,10 +53,14 @@ public:
     bool loadThemeConfig(const std::string &themeConfig, std::string &result) override;
     bool loadDesignTokenConfig(const std::string &designTokenConfig, std::string &result) override;
     void setDayNightMode(const std::string &mode) override;
+    IMeasurementManager* getMeasurementManager() override;
 
     FunctionCallManager* getFunctionCallManager() override { return _functionCallManager; }
     IComponentPropertySpecManager* getComponentPropertySpecManager() override { return _componentPropertySpecManager; }
     const std::string& getWorkingDir() const override { return _workingDir; }
+    
+    void setRuntimeLogger(IRuntimeLogger* logger) override { agenui::setRuntimeLoggerInternal(logger); }
+    IRuntimeLogger* getRuntimeLogger() override { return agenui::getRuntimeLoggerInternal(); }
 
 private:
     std::atomic_bool _isRunning{false};
@@ -70,6 +77,9 @@ private:
     // Multi-instance SurfaceManager map
     std::map<int32_t, std::shared_ptr<SurfaceManager>> _surfaceManagers;
     std::atomic<int32_t> _nextInstanceId{1};
+
+    // Shared MeasurementManager (engine-level singleton)
+    std::unique_ptr<MeasurementManagerImpl> _measurementManager;
 };
 
 } // namespace agenui

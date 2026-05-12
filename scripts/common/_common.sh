@@ -9,7 +9,7 @@
 #
 # Path constants:
 #   AGENUI_ROOT     = agenui repo root directory
-#   ENGINE_DIR      = agenui/core (C++ core source code)
+#   CORE_DIR        = agenui/core (C++ core source code)
 #   PLATFORMS_DIR   = agenui/platforms (platform projects)
 # =============================================================================
 
@@ -32,14 +32,14 @@ if [[ -z "${_AGENUI_COMMON_LOADED:-}" ]]; then
     # This file is at agenui/scripts/common/_common.sh, go up 2 levels for repo root
     _COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     AGENUI_ROOT="$(cd "${_COMMON_DIR}/../.." && pwd)"
-    ENGINE_DIR="${AGENUI_ROOT}/core"
+    CORE_DIR="${AGENUI_ROOT}/core"
     PLATFORMS_DIR="${AGENUI_ROOT}/platforms"
 fi
 
-# Verify C++ engine source integrity
-ensure_engine_dir() {
-    if [[ ! -d "${ENGINE_DIR}/src" ]] || [[ ! -d "${ENGINE_DIR}/include" ]]; then
-        error "C++ engine source directory not found: ${ENGINE_DIR} (missing src/ or include/)"
+# Verify C++ core source integrity
+ensure_core_dir() {
+    if [[ ! -d "${CORE_DIR}/src" ]] || [[ ! -d "${CORE_DIR}/include" ]]; then
+        error "C++ core source directory not found: ${CORE_DIR} (missing src/ or include/)"
     fi
 }
 
@@ -52,6 +52,58 @@ human_size() {
     else
         echo "-"
     fi
+}
+
+# -------------------- Run Key & Git Metadata --------------------
+# Generate unique run identifier: {sanitized_branch}_{commit_short}_{YYYYMMDD_HHMMSS}
+generate_run_key() {
+    local branch commit ts branch_safe
+
+    if git -C "$AGENUI_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        branch=$(git -C "$AGENUI_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+        [[ "$branch" == "HEAD" ]] && branch="detached"
+        commit=$(git -C "$AGENUI_ROOT" rev-parse --short=7 HEAD 2>/dev/null || echo "0000000")
+    else
+        branch="nogit"
+        commit="0000000"
+    fi
+
+    ts=$(date +%Y%m%d_%H%M%S)
+
+    # Sanitize branch name: keep only alphanumeric, underscores and hyphens, truncate to 40 chars, remove trailing hyphens
+    branch_safe=$(printf '%s' "$branch" | tr -c 'a-zA-Z0-9_-' '-' | cut -c1-40 | sed 's/-*$//')
+    [[ -z "$branch_safe" ]] && branch_safe="unknown"
+
+    echo "${branch_safe}_${commit}_${ts}"
+}
+
+# Collect git metadata and output JSON (no jq dependency)
+# Usage: collect_git_metadata <run_key>
+collect_git_metadata() {
+    local run_key="${1:-}"
+    local branch commit_short commit_full dirty ts
+
+    if git -C "$AGENUI_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        branch=$(git -C "$AGENUI_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+        [[ "$branch" == "HEAD" ]] && branch="detached"
+        commit_short=$(git -C "$AGENUI_ROOT" rev-parse --short=7 HEAD 2>/dev/null || echo "0000000")
+        commit_full=$(git -C "$AGENUI_ROOT" rev-parse HEAD 2>/dev/null || echo "0000000000000000000000000000000000000000")
+        if [[ -n "$(git -C "$AGENUI_ROOT" status --porcelain 2>/dev/null)" ]]; then
+            dirty="true"
+        else
+            dirty="false"
+        fi
+    else
+        branch="nogit"
+        commit_short="0000000"
+        commit_full="0000000000000000000000000000000000000000"
+        dirty="false"
+    fi
+
+    ts=$(date +%Y-%m-%dT%H:%M:%S%z)
+
+    printf '{"run_key":"%s","git":{"branch":"%s","commit_short":"%s","commit_full":"%s","dirty":%s},"timestamp":"%s"}' \
+        "$run_key" "$branch" "$commit_short" "$commit_full" "$dirty" "$ts"
 }
 
 # Safe delete: must be an absolute path within AGENUI_ROOT (or explicit HOME subpath),

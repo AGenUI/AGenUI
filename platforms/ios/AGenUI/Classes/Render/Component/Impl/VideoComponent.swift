@@ -8,10 +8,6 @@
 import UIKit
 import AVFoundation
 import AVKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// VideoComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -49,11 +45,14 @@ class VideoComponent: Component {
         self.playerViewController = playerVC
         
         // Add playerViewController.view to container
+        playerVC.view.translatesAutoresizingMaskIntoConstraints = false
         addSubview(playerVC.view)
-        
-        // Use FlexLayout for layout: full width with 16:9 aspect ratio
-        flex.width(100%).aspectRatio(16.0 / 9.0)
-        playerVC.view.flex.width(100%).height(100%)
+        NSLayoutConstraint.activate([
+            playerVC.view.topAnchor.constraint(equalTo: topAnchor),
+            playerVC.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            playerVC.view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            playerVC.view.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
         
         // Apply initial properties
         updateProperties(properties)

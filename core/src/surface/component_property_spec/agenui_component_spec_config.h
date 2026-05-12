@@ -74,8 +74,7 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
     "Image": {
       "url": {"default": ""},
       "fit": {
-        "default": "cover",
-        "enum": ["contain", "cover", "fill", "none", "scale-down"]
+        "default": "fill"
       },
       "variant": {
         "enum": {
@@ -198,9 +197,9 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
     "Button": {
       "child": {"default": ""},
       "variant": {
-        "default": "primary",
+        "default": "default",
         "enum": {
-          "primary": {"styles": {}},
+          "default": {"styles": {}},
           "borderless": {"styles": {
             "border-width": "0px"
           }}

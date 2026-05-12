@@ -1,6 +1,6 @@
 #include <algorithm>
 #include "agenui_surface_manager.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 #include "agenui_thread_manager.h"
 #include "stream/agenui_streaming_content_parser.h"
@@ -18,6 +18,7 @@ SurfaceManager::~SurfaceManager() {
 }
 
 bool SurfaceManager::enterRunning() {
+    AGENUI_LOG("enter running, %d", _instanceId);
     if (_isRunning.load()) {
         return false;
     }
@@ -26,6 +27,7 @@ bool SurfaceManager::enterRunning() {
 }
 
 bool SurfaceManager::exitRunning() {
+    AGENUI_LOG("exit running, %d", _instanceId);
     if (!_isRunning.load()) {
         return false;
     }
@@ -34,12 +36,17 @@ bool SurfaceManager::exitRunning() {
 }
 
 bool SurfaceManager::init() {
+    AGENUI_LOG("init, %d", _instanceId);
     // Create EventDispatcher
     _dispatcher = new EventDispatcher();
-    for (const auto &listener : _cachedListeners) {
-        _dispatcher->addEventListener(listener);
+    {
+        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
+        for (const auto &listener : _cachedListeners) {
+            AGENUI_LOG("add cached listener %p", listener);
+            _dispatcher->addEventListener(listener);
+        }
+        _cachedListeners.clear();
     }
-    _cachedListeners.clear();
 
     // Create modules in dependency order
     createSurfaceCoordinator();
@@ -56,8 +63,12 @@ bool SurfaceManager::init() {
 }
 
 void SurfaceManager::uninit() {
+    AGENUI_LOG("uninit, %d", _instanceId);
     // Remove all listeners first to prevent callbacks during teardown
-    _cachedListeners.clear();
+    {
+        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
+        _cachedListeners.clear();
+    }
     if (_dispatcher) {
         _dispatcher->removeAllEventListeners();
     }
@@ -82,29 +93,34 @@ void SurfaceManager::uninit() {
 }
 
 void SurfaceManager::addSurfaceEventListener(IAGenUIMessageListener* listener) {
+    AGENUI_LOG("add SurfaceManager %d, listener:%p, %d, %p", _instanceId, listener, _isRunning.load(), _dispatcher);
     if (!_isRunning.load()) {
         return;
     }
     if (_dispatcher) {
         _dispatcher->addEventListener(listener);
     } else {
+        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
         _cachedListeners.push_back(listener);
     }
 }
 
 void SurfaceManager::removeSurfaceEventListener(IAGenUIMessageListener* listener) {
+    AGENUI_LOG("remove SurfaceManager %d, listener:%p, %d, %p", _instanceId, listener, _isRunning.load(), _dispatcher);
     if (!_isRunning.load()) {
         return;
     }
+    // Remove from cached listeners
+    {
+        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
+        size_t originalSize = _cachedListeners.size();
+        _cachedListeners.erase(std::remove(_cachedListeners.begin(), _cachedListeners.end(), listener), _cachedListeners.end());
+        if (_cachedListeners.size() != originalSize) {
+            AGENUI_LOG("cached listener removed: %p", listener);
+        }
+    }
     if (_dispatcher) {
         _dispatcher->removeEventListener(listener);
-    }
-    // Remove from cached listeners
-    if (!_cachedListeners.empty()) {
-        _cachedListeners.erase(std::remove_if(_cachedListeners.begin(), _cachedListeners.end(),
-            [listener](IAGenUIMessageListener* element) {
-                return listener == element;
-            }), _cachedListeners.end());
     }
 }
 
@@ -143,6 +159,7 @@ void SurfaceManager::submitUIDataModel(const SyncUIToDataMessage& msg) {
 }
 
 void SurfaceManager::beginTextStream() {
+    AGENUI_LOG("begin text stream");
     if (!_isRunning.load()) {
         return;
     }
@@ -160,6 +177,7 @@ void SurfaceManager::beginTextStream() {
 }
 
 void SurfaceManager::endTextStream() {
+    AGENUI_LOG("end text stream");
     if (!_isRunning.load()) {
         return;
     }

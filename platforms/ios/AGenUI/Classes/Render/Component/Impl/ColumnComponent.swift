@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// ColumnComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -28,9 +24,6 @@ class ColumnComponent: Component {
     
     init(componentId: String, properties: [String: Any]) {
         super.init(componentId: componentId, componentType: "Column", properties: properties)
-        
-        // Configure FlexLayout - vertical layout
-        flex.direction(.column)
         
         // Apply initial properties
         updateProperties(properties)
@@ -54,36 +47,5 @@ class ColumnComponent: Component {
     // MARK: - Private Methods
     
     private func applyColumnSpecificProperties(_ properties: [String: Any]) {
-        // Update main axis alignment (justify)
-        if let justify = properties["justify"] as? String {
-            switch justify.lowercased() {
-            case "center":
-                flex.justifyContent(.center)
-            case "end":
-                flex.justifyContent(.end)
-            case "spacebetween":
-                flex.justifyContent(.spaceBetween)
-            case "spacearound":
-                flex.justifyContent(.spaceAround)
-            case "spaceevenly":
-                flex.justifyContent(.spaceEvenly)
-            default: // start
-                flex.justifyContent(.start)
-            }
-        }
-        
-        // Update cross axis alignment (align)
-        if let align = properties["align"] as? String {
-            switch align.lowercased() {
-            case "center":
-                flex.alignItems(.center)
-            case "end":
-                flex.alignItems(.end)
-            case "stretch":
-                flex.alignItems(.stretch)
-            default: // start
-                flex.alignItems(.start)
-            }
-        }
     }
 }

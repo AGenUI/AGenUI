@@ -133,7 +133,8 @@ void A2UIMessageListener::onCreateSurface(const CreateSurfaceMessage& msg) {
     // listeners_ and surfaceManager_ are only touched on the main thread.
     std::string surfaceId = msg.surfaceId;
     bool animated = msg.animated;
-    postToMainThread([this, surfaceId, animated](napi_env env) {
+    std::string rawProtocolContent = msg.rawProtocolContent;
+    postToMainThread([this, surfaceId, animated, rawProtocolContent](napi_env env) {
         // Register the surfaceId -> instanceId mapping.
         registerSurfaceMapping(surfaceId);
         a2ui::A2UISurface* surface = surfaceManager_->createSurface(surfaceId, animated);
@@ -156,9 +157,11 @@ void A2UIMessageListener::onCreateSurface(const CreateSurfaceMessage& msg) {
             if (funcType == napi_function) {
                 napi_value surfaceIdValue = nullptr;
                 napi_create_string_utf8(env, surfaceId.c_str(), NAPI_AUTO_LENGTH, &surfaceIdValue);
-                napi_value args[] = { surfaceIdValue };
+                napi_value rawProtocolContentValue = nullptr;
+                napi_create_string_utf8(env, rawProtocolContent.c_str(), NAPI_AUTO_LENGTH, &rawProtocolContentValue);
+                napi_value args[] = { surfaceIdValue, rawProtocolContentValue };
                 napi_value result = nullptr;
-                napi_call_function(env, listener, onCreatedFunc, 1, args, &result);  // 1 arg: surfaceId
+                napi_call_function(env, listener, onCreatedFunc, 2, args, &result);  // 2 args: surfaceId, rawProtocolContent
             }
         }
     });

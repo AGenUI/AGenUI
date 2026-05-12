@@ -1,5 +1,5 @@
 #include "agenui_surface_coordinator.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_message_parser.h"
 #include "agenui_component_render_observable.h"
 #include "agenui_surface_layout_observable.h"
@@ -19,6 +19,9 @@
 #include "function_call/builtins/agenui_format_date_functioncall.h"
 #include "function_call/builtins/agenui_pluralize_functioncall.h"
 #include "function_call/builtins/agenui_parse_token_functioncall.h"
+#include "function_call/builtins/agenui_and_functioncall.h"
+#include "function_call/builtins/agenui_or_functioncall.h"
+#include "function_call/builtins/agenui_not_functioncall.h"
 #include "surface/token_parser/agenui_token_parser.h"
 #include "surface/agenui_expression_parser.h"
 #include "module/agenui_surface_manager.h"
@@ -37,6 +40,7 @@ SurfaceCoordinator::~SurfaceCoordinator() {
 }
 
 void SurfaceCoordinator::setDayNightMode() {
+    AGENUI_LOG("mode changed");
     refreshStyleTokens();
 }
 
@@ -54,6 +58,8 @@ AGenUIExeCode SurfaceCoordinator::createSurface(const std::string &jsonData) {
     if (exeCode != ExeCode_Parse_success) {
         return exeCode;
     }
+
+    message.rawProtocolContent = jsonData;
 
     if (message.surfaceId.empty()) {
         AGENUI_LOG("surfaceId is empty");
@@ -181,7 +187,7 @@ void SurfaceCoordinator::handleAction(const ActionMessage &msg) {
 
     auto it = _surfaces.find(msg.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("surface not found, surfaceId:%s", msg.surfaceId.c_str());
+        AGENUI_LOG("surface not found, surfaceId=%s", msg.surfaceId.c_str());
         return;
     }
 
@@ -196,7 +202,7 @@ void SurfaceCoordinator::handleSyncUIToData(const SyncUIToDataMessage &msg) {
 
     auto it = _surfaces.find(msg.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("surface not found, surfaceId:%s", msg.surfaceId.c_str());
+        AGENUI_LOG("surface not found, surfaceId=%s", msg.surfaceId.c_str());
         return;
     }
 
@@ -222,41 +228,50 @@ void SurfaceCoordinator::initFunctionCalls() {
     functionCallManager->registerFunctionCall(std::make_shared<FormatDateFunctionCall>());
     functionCallManager->registerFunctionCall(std::make_shared<PluralizeFunctionCall>());
     functionCallManager->registerFunctionCall(std::make_shared<ParseTokenFunctionCall>());
+    functionCallManager->registerFunctionCall(std::make_shared<AndFunctionCall>());
+    functionCallManager->registerFunctionCall(std::make_shared<OrFunctionCall>());
+    functionCallManager->registerFunctionCall(std::make_shared<NotFunctionCall>());
 }
 
 void SurfaceCoordinator::handleRenderFinish(const ComponentRenderInfo &info) {
-    AGENUI_LOG("surfaceId:%s, componentId:%s, type:%s, width:%.1f, height:%.1f", info.surfaceId.c_str(),
+    AGENUI_LOG("handleRenderFinish: surfaceId=%s, componentId=%s, type=%s, width=%.1f, height=%.1f", info.surfaceId.c_str(),
                info.componentId.c_str(), info.type.c_str(), info.width, info.height);
 
     if (info.surfaceId.empty()) {
-        AGENUI_LOG("failed: surfaceId is empty");
+        AGENUI_LOG("handleRenderFinish failed: surfaceId is empty");
         return;
     }
     auto it = _surfaces.find(info.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("failed: surface not found, surfaceId:%s", info.surfaceId.c_str());
+        AGENUI_LOG("handleRenderFinish failed: surface not found, surfaceId=%s", info.surfaceId.c_str());
         return;
     }
     Surface *surface = it->second.get();
     if (surface) {
-        surface->updateComponentSize(info);
-        AGENUI_LOG("success: surfaceId:%s, componentId:%s, type:%s", info.surfaceId.c_str(),
-                   info.componentId.c_str(), info.type.c_str());
+        if (info.type == "TabsIndexChange") {
+            surface->updateTabsSelectedIndex(info);
+            AGENUI_LOG("handleRenderFinish [TabsIndexChange]: surfaceId=%s, tabsId=%s, selectedIndex=%d",
+                       info.surfaceId.c_str(), info.componentId.c_str(), info.selectedIndex);
+        } else {
+            surface->updateComponentSize(info);
+            AGENUI_LOG("handleRenderFinish success: surfaceId=%s, componentId=%s, type=%s", info.surfaceId.c_str(),
+                       info.componentId.c_str(), info.type.c_str());
+        }
     } else {
-        AGENUI_LOG("failed: surface is null");
+        AGENUI_LOG("handleRenderFinish failed: surface is null");
     }
 }
 
 void SurfaceCoordinator::handleSurfaceSizeChanged(const SurfaceLayoutInfo &info) {
-    AGENUI_LOG("surfaceId:%s, width:%.1f, height:%.1f", info.surfaceId.c_str(), info.width, info.height);
+    AGENUI_LOG("handleSurfaceSizeChanged: surfaceId:%s, width:%.1f, height:%.1f", info.surfaceId.c_str(), info.width, info.height);
 
     if (info.surfaceId.empty()) {
-        AGENUI_LOG("failed: surfaceId is empty");
+        AGENUI_LOG("handleSurfaceSizeChanged failed: surfaceId is empty");
         return;
     }
     auto it = _surfaces.find(info.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("failed: surface not found, surfaceId:%s", info.surfaceId.c_str());
+        AGENUI_LOG("handleSurfaceSizeChanged failed: surface not found, surfaceId=%s", info.surfaceId.c_str());
         return;
     }
     Surface *surface = it->second.get();

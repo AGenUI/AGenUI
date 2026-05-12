@@ -56,7 +56,6 @@ void IconComponent::onUpdateProperties(const nlohmann::json& properties) {
         return;
     }
 
-    applyIconSize(properties);
     applyIconName(properties);  // Apply size first to keep dimensions in sync.
     applyIconColor(properties);
 
@@ -99,36 +98,6 @@ void IconComponent::applyIconName(const nlohmann::json& properties) {
         }
         A2UIImageNode(m_nodeHandle).setSrc(src);
         HM_LOGI("name=%s, src=%s", iconName.c_str(), src.c_str());
-    }
-}
-
-// ---- Icon Size ----
-
-void IconComponent::applyIconSize(const nlohmann::json& properties) {
-    if (properties.find("size") == properties.end()) {
-        return;
-    }
-
-    float sizeFp = 48.0f;
-    const auto& sizeValue = properties["size"];
-
-    if (sizeValue.is_number()) {
-        sizeFp = sizeValue.get<float>();
-    } else if (sizeValue.is_string()) {
-        sizeFp = static_cast<float>(std::atof(sizeValue.get<std::string>().c_str()));
-    }
-
-    if (sizeFp <= 0) {
-        sizeFp = 48.0f;
-    }
-
-    m_currentSize = sizeFp;
-
-    // Update the IMAGE node size.
-    {
-        A2UIImageNode node(m_nodeHandle);
-        node.setWidth(sizeFp);
-        node.setHeight(sizeFp);
     }
 }
 

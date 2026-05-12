@@ -17,12 +17,14 @@ public interface IAGenUIMessageListener {
     /**
      * Callback when a Surface is created
      *
-     * @param surfaceId     Unique identifier of the surface
-     * @param catalogId     Component catalog identifier
-     * @param theme         Theme parameters
-     * @param sendDataModel Whether to send back the data model
+     * @param surfaceId            Unique identifier of the surface
+     * @param catalogId            Component catalog identifier
+     * @param theme                Theme parameters
+     * @param sendDataModel        Whether to send back the data model
+     * @param animated             Whether to enable animation
+     * @param rawProtocolContent   Original raw protocol content (the full JSON string that was parsed to create this surface)
      */
-    void onCreateSurface(String surfaceId, String catalogId, Map<String, String> theme, boolean sendDataModel, boolean animated);
+    void onCreateSurface(String surfaceId, String catalogId, Map<String, String> theme, boolean sendDataModel, boolean animated, String rawProtocolContent);
 
     /**
      * Callback when components are updated
@@ -31,6 +33,32 @@ public interface IAGenUIMessageListener {
      * @param components String array of the component list
      */
     void onUpdateComponents(String surfaceId, String[] components);
+
+    /**
+     * Callback when existing components are updated incrementally.
+     *
+     * @param surfaceId  Surface identifier
+     * @param components String array of component JSON payloads
+     */
+    void onComponentsUpdate(String surfaceId, String[] components);
+
+    /**
+     * Callback when components are added incrementally.
+     *
+     * @param surfaceId  Surface identifier
+     * @param parentIds  Parent component IDs aligned with {@code components}
+     * @param components String array of component JSON payloads
+     */
+    void onComponentsAdd(String surfaceId, String[] parentIds, String[] components);
+
+    /**
+     * Callback when components are removed incrementally.
+     *
+     * @param surfaceId    Surface identifier
+     * @param parentIds    Parent component IDs aligned with {@code componentIds}
+     * @param componentIds Component IDs to remove
+     */
+    void onComponentsRemove(String surfaceId, String[] parentIds, String[] componentIds);
 
     /**
      * Callback when a Surface is deleted

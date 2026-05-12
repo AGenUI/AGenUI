@@ -1,5 +1,5 @@
 #include "agenui_message_parser.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "nlohmann/json.hpp"
 
 namespace agenui {
@@ -98,29 +98,26 @@ AGenUIExeCode AGenUIMessageParser::parseUpdateDataModelData(const std::string& j
 }
 
 AGenUIExeCode AGenUIMessageParser::parseAppendDataModelData(const std::string& jsonData, std::string& outSurfaceId, nlohmann::json& outDataModelJson) {
-    try {
-        auto json = nlohmann::json::parse(jsonData);
+    // TODO: handle json exception
+    auto json = nlohmann::json::parse(jsonData);
 
-        if (!json.contains("appendDataModel")) {
-            AGENUI_LOG("missing appendDataModel field");
-            return ExeCode_ParseError_appendDataModel_no_keywords;
-        }
-
-        auto appendDataModelJson = json["appendDataModel"];
-
-        if (!appendDataModelJson.contains("surfaceId")) {
-            AGENUI_LOG("missing surfaceId");
-            return ExeCode_ParseError_appendDataModel_no_surfaceId;
-        }
-        outSurfaceId = appendDataModelJson["surfaceId"].get<std::string>();
-        if (outSurfaceId.empty()) {
-            return ExeCode_ParseError_appendDataModel_empty_surfaceId;
-        }
-
-        outDataModelJson = appendDataModelJson;
-    } catch (const nlohmann::json::exception& e) {
-        return ExeCode_ParseError_appendDataModel_jsonexception;
+    if (!json.contains("appendDataModel")) {
+        AGENUI_LOG("missing appendDataModel field");
+        return ExeCode_ParseError_appendDataModel_no_keywords;
     }
+
+    auto appendDataModelJson = json["appendDataModel"];
+
+    if (!appendDataModelJson.contains("surfaceId")) {
+        AGENUI_LOG("missing surfaceId");
+        return ExeCode_ParseError_appendDataModel_no_surfaceId;
+    }
+    outSurfaceId = appendDataModelJson["surfaceId"].get<std::string>();
+    if (outSurfaceId.empty()) {
+        return ExeCode_ParseError_appendDataModel_empty_surfaceId;
+    }
+
+    outDataModelJson = appendDataModelJson;
     
     return ExeCode_Parse_success;
 }

@@ -1,6 +1,6 @@
 #include "agenui_data_model.h"
 #include "agenui_data_observer.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "surface/agenui_serializable_data_impl.h"
 #include "nlohmann/json.hpp"
 #include <algorithm>
@@ -102,7 +102,7 @@ SerializableData DataModel::getValue(const std::string& path) {
     }
 
     if (path[0] != '/') {
-        AGENUI_LOG("getValue failed: path must start with '/', path:%s", path.c_str());
+        AGENUI_LOG("getValue failed: path must start with '/', path=%s", path.c_str());
         return SerializableData();
     }
 
@@ -139,7 +139,7 @@ void DataModel::bind(const std::string& path, IDataChangedObserver* observer) {
         std::vector<IDataChangedObserver*> observers;
         observers.emplace_back(observer);
         _bindingTable[path] = std::move(observers);
-        AGENUI_LOG("created new entry in binding table, path:%s", path.c_str());
+        AGENUI_LOG("created new entry in binding table, path=%s", path.c_str());
     }
 }
 
@@ -157,7 +157,7 @@ void DataModel::unbind(const std::string& path, IDataChangedObserver* observer) 
         auto observerIt = std::find(observers.begin(), observers.end(), observer);
         if (observerIt != observers.end()) {
             observers.erase(observerIt);
-            AGENUI_LOG("removed observer from binding table, path:%s, remaining observers:%zu", path.c_str(), observers.size());
+            AGENUI_LOG("removed observer from binding table, path=%s, remaining observers=%zu", path.c_str(), observers.size());
             if (observers.empty()) {
                 _bindingTable.erase(it);
             }

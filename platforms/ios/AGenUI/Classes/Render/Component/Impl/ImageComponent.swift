@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// ImageComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -35,11 +31,6 @@ class ImageComponent: Component {
     
     private var imageView: ObservedImageView?
     
-    /// Placeholder image (using global configuration)
-    private var placeholderImage: UIImage {
-        return ImageLoaderConfiguration.shared.defaultPlaceholder ?? ImageLoaderConfiguration.defaultPlaceholderImage
-    }
-    
     // MARK: - Initialization
     
     init(componentId: String, properties: [String: Any]) {
@@ -50,10 +41,10 @@ class ImageComponent: Component {
         imageView.backgroundColor = .clear
         imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
-        imageView.image = placeholderImage
+        imageView.image = nil
         
-        // Add to self using FlexLayout
-        flex.addItem(imageView).grow(1).shrink(1)
+        // Add image view
+        addSubview(imageView)
         self.imageView = imageView
         
         // Apply initial properties
@@ -64,7 +55,35 @@ class ImageComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Measurement Override
+    
+    override class func measure(paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        let defaultSize: CGFloat = 0
+        var measuredWidth = defaultSize
+        var measuredHeight = defaultSize
+
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
     // MARK: - Component Override
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Sync imageView frame with component bounds
+        imageView?.frame = bounds
+    }
     
     override func updateProperties(_ properties: [String: Any]) {
         // Call parent method to apply CSS properties to self
@@ -82,21 +101,43 @@ class ImageComponent: Component {
         }
     }
     
+    override func setBorderRadius(_ radius: CGFloat) {
+        super.setBorderRadius(radius)
+        // Mirror corner radius to imageView so the image content is clipped to rounded corners.
+        // imageView.clipsToBounds is already true (set in init).
+        imageView?.layer.cornerRadius = radius
+    }
+    
     /// Parse scale mode
-    /// A2UI v0.9 protocol values: 100%, contain, cover, adapt
+    /// A2UI v0.9 protocol values: fill, contain, cover, none, scale-down, 100%, adapt
+    ///
+    /// CSS object-fit standard:
+    ///   none       → no scaling, original size, overflow clipped
+    ///   scale-down → shrink to fit if larger than container, keep original if smaller
+    ///
+    /// Mapped to match Android ImageView.ScaleType:
+    ///   contain    → FIT_CENTER    → .scaleAspectFit
+    ///   cover      → CENTER_CROP   → .scaleAspectFill
+    ///   fill       → FIT_XY        → .scaleToFill
+    ///   none       → CENTER        → .center
+    ///   scale-down → CENTER_INSIDE → .scaleAspectFit (shrink if larger, also enlarge
+    ///                if smaller — iOS has no exact CENTER_INSIDE; .scaleAspectFit is
+    ///                closest: always shows complete image)
     private func parseFit(_ fit: String) -> UIView.ContentMode {
         switch fit.lowercased() {
-        case "100%":
-            // 100% fill mode: image completely fills container, may stretch
+        case "fill", "100%":
             return .scaleToFill
         case "contain":
-            // contain mode: maintain aspect ratio, show full image
             return .scaleAspectFit
         case "cover":
-            // cover mode: maintain aspect ratio, fill container, may crop
             return .scaleAspectFill
+        case "none":
+            // none maps to fill: stretch to fill container, may distort
+            return .scaleToFill
+        case "scale-down":
+            // CSS object-fit: scale-down — shrink to fit if larger, keep original if smaller
+            return .scaleAspectFit
         case "adapt":
-            // adapt mode: auto-adjust based on image size
             return .scaleAspectFit
         default:
             return .scaleAspectFit
@@ -113,18 +154,10 @@ class ImageComponent: Component {
         cancelCurrentLoadTask()
         
         if src.isEmpty {
-            showPlaceholder()
             return
         }
         
-        showPlaceholder()
         loadNetworkImage(from: src)
-    }
-    
-    /// Show placeholder and start Shimmer
-    private func showPlaceholder() {
-        imageView?.image = placeholderImage
-        imageView?.contentMode = .scaleToFill
     }
     
     /// Current loading task identifier (for cancellation)
@@ -141,7 +174,6 @@ class ImageComponent: Component {
     private func loadNetworkImage(from urlString: String) {
         guard let imageView = imageView, let url = URL(string: urlString) else {
             Logger.shared.debug("⚠️ [ImageComponent] Invalid URL or imageView is nil: \(urlString)")
-            showPlaceholder()
             return
         }
         
@@ -169,8 +201,14 @@ class ImageComponent: Component {
                     guard let imageView = self.imageView else { return }
                     
                     imageView.image = image
-                    imageView.flex.markDirty()
-                    self.notifyLayoutChanged()
+                    
+                    // If current component size is (0, 0), notify Yoga with the image's intrinsic size
+                    if self.bounds.width == 0 && self.bounds.height == 0 {
+                        let imageSize = image.size
+                        if imageSize.width > 0 && imageSize.height > 0 {
+                            self.notifyLayoutChanged(width: imageSize.width, height: imageSize.height)
+                        }
+                    }
                     
                     // Execute transition animation (only when surface animation is enabled)
                     if self.surface?.animationEnabled == true {
@@ -181,11 +219,9 @@ class ImageComponent: Component {
                     if error as? ImageLoaderError != .cancelled {
                         Logger.shared.warning("[ImageComponent] Failed to load image: \(urlString), componentId: \(self.componentId), error: \(error.localizedDescription)")
                     }
-                    self.showPlaceholder()
                 } else {
                     // No image and no error - unexpected state
                     Logger.shared.warning("[ImageComponent] Image load returned nil without error: \(urlString), componentId: \(self.componentId)")
-                    self.showPlaceholder()
                 }
             }
         }

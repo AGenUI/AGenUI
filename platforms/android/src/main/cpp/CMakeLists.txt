@@ -3,6 +3,39 @@ cmake_minimum_required(VERSION 3.18.1)
 
 project("amap_AGenUI")
 
+# ---------------------------------------------------------------------------
+# yoga: build from source via FetchContent (MIT license, shared library)
+# ---------------------------------------------------------------------------
+include(FetchContent)
+FetchContent_Declare(yoga
+    GIT_REPOSITORY https://github.com/facebook/yoga.git
+    GIT_TAG        v2.0.0
+    GIT_SHALLOW    TRUE
+)
+FetchContent_Populate(yoga)
+
+file(GLOB_RECURSE YOGA_SOURCES "${yoga_SOURCE_DIR}/yoga/*.cpp")
+add_library(yoga SHARED ${YOGA_SOURCES})
+target_include_directories(yoga
+    PUBLIC "${yoga_SOURCE_DIR}"
+)
+target_compile_options(yoga PRIVATE
+    -fno-omit-frame-pointer
+    -fexceptions
+    -fno-rtti
+    -Wno-error
+)
+target_include_directories(yoga PRIVATE
+    "${yoga_SOURCE_DIR}/include"
+    "${yoga_SOURCE_DIR}/include/yoga"
+)
+set_target_properties(yoga PROPERTIES
+    CXX_VISIBILITY_PRESET default
+    POSITION_INDEPENDENT_CODE ON
+)
+
+target_link_libraries(yoga PRIVATE log)
+
 add_definitions(-DPLATFORM_ANDROID)
 add_definitions(-D_GNU_SOURCE)
 add_definitions(-DMT_MAIN=15)
@@ -66,6 +99,7 @@ include_directories(
     ${AGENUI_CPP_ROOT}/src/third_party
     ${AGENUI_CPP_ROOT}/src/third_party/nlohmann
     ${AGENUI_CPP_ROOT}/src/third_party/jschema_validator
+    ${yoga_SOURCE_DIR}
 )
 
 # src/ root level cpp files (agenui_log.cpp, agenui_errorcode_define.cpp, etc.)
@@ -121,8 +155,6 @@ list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*agenui_platform_invoker_android\\.cp
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/Html.cpp")
 # Exclude sax/ (Harmony only, not for Android/iOS)
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/sax/.*")
-# Exclude yoga/ (Harmony only, not in Android all_srcs_path)
-list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/yoga/.*")
 # Exclude ik/ (not in Android all_srcs_path)
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/ik/.*")
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/key_define.cpp")
@@ -136,6 +168,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     z
     android
     log
+    yoga
 )
 
 # Note: -Wl,--no-wchar-size-warning is not supported by lld (Android NDK linker), omitted

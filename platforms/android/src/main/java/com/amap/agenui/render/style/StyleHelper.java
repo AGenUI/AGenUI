@@ -1,5 +1,6 @@
 package com.amap.agenui.render.style;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -7,6 +8,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
+import android.text.Layout;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -25,12 +27,6 @@ import com.amap.agenui.render.image.ImageLoadOptionsKey;
 import com.amap.agenui.render.image.ImageLoadResult;
 import com.amap.agenui.render.image.ImageLoaderConfig;
 import com.amap.agenui.render.image.ImageLoaderError;
-import com.amap.agenui.render.layout.FlexContainerLayout;
-import com.google.android.flexbox.AlignItems;
-import com.google.android.flexbox.AlignSelf;
-import com.google.android.flexbox.FlexWrap;
-import com.google.android.flexbox.FlexboxLayout;
-import com.google.android.flexbox.JustifyContent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,177 +44,6 @@ public class StyleHelper {
 
     private static final String TAG = "StyleHelper";
 
-
-    /**
-     * Applies dimension styles (with parent container parameter).
-     * Supports: width, height, max-width, max-height, min-width, min-height.
-     *
-     * @param view       View to apply styles to
-     * @param properties Style properties
-     * @param parent     Parent container (optional, used to determine whether FlexboxLayout.LayoutParams is needed)
-     */
-    public static void applyDimensions(View view, Map<String, Object> properties, ViewGroup parent) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applyDimensions: view or properties is null");
-            return;
-        }
-
-        Log.d(TAG, "applyDimensions: view=" + view.getClass().getSimpleName() + ", properties=" + properties);
-        Context context = view.getContext();
-
-        // If parent is not provided, try to get it from the view
-        if (parent == null && view.getParent() instanceof ViewGroup) {
-            parent = (ViewGroup) view.getParent();
-        }
-
-        // Only create and set LayoutParams when width or height has a value
-        boolean hasWidth = properties.containsKey("width");
-        boolean hasHeight = properties.containsKey("height");
-
-        if (hasWidth || hasHeight) {
-            ViewGroup.LayoutParams params = view.getLayoutParams();
-            boolean isFlexboxParent = parent instanceof FlexContainerLayout;
-
-            // Create or convert to the correct LayoutParams type based on the parent container type
-            if (params == null) {
-                params = isFlexboxParent
-                        ? new FlexboxLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                        : new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                Log.d(TAG, "applyDimensions: created " + (isFlexboxParent ? "FlexboxLayout" : "ViewGroup") + ".LayoutParams");
-            } else if (isFlexboxParent) {
-                params = ensureFlexLayoutParams(params);
-            }
-
-            // width
-            if (hasWidth) {
-                int width = parseDimension(properties.get("width"), context);
-                Log.d(TAG, "applyDimensions: width=" + properties.get("width") + " -> " + width + "px");
-
-                // If the parent is a FlexboxLayout and a fixed width is set, special handling is required
-                if (isFlexboxParent && width > 0) {
-                    // Ensure LayoutParams is of type FlexboxLayout.LayoutParams
-                    if (!(params instanceof FlexboxLayout.LayoutParams)) {
-                        FlexboxLayout.LayoutParams flexParams = new FlexboxLayout.LayoutParams(
-                            width,
-                            params.height
-                        );
-                        params = flexParams;
-                        Log.d(TAG, "applyDimensions: converted to FlexboxLayout.LayoutParams for fixed width");
-                    } else {
-                        params.width = width;
-                        ((FlexboxLayout.LayoutParams) params).setMaxWidth(width);
-                    }
-
-                    // Fix: a fixed size semantically means "non-stretchable", so enforce flexShrink=0 and flexGrow=0.
-                    // Even if the user sets flex-grow/flex-shrink, a fixed size should take priority
-                    // because fixed size and stretchability are semantically contradictory.
-                    FlexboxLayout.LayoutParams flexParams = (FlexboxLayout.LayoutParams) params;
-                    flexParams.setFlexShrink(0.0f);
-                    flexParams.setFlexGrow(0.0f);
-                    Log.d(TAG, "applyDimensions: fixed width set, enforcing flexShrink=0, flexGrow=0");
-                } else {
-                    params.width = width;
-                }
-            }
-
-            // height
-            if (hasHeight) {
-                int height = parseDimension(properties.get("height"), context);
-                Log.d(TAG, "applyDimensions: height=" + properties.get("height") + " -> " + height + "px");
-
-                // If the parent is a FlexboxLayout and a fixed height is set, special handling is required
-                if (isFlexboxParent && height > 0) {
-                    // Ensure LayoutParams is of type FlexboxLayout.LayoutParams
-                    if (!(params instanceof FlexboxLayout.LayoutParams)) {
-                        FlexboxLayout.LayoutParams flexParams = new FlexboxLayout.LayoutParams(
-                            params.width,
-                            height
-                        );
-                        params = flexParams;
-                        Log.d(TAG, "applyDimensions: converted to FlexboxLayout.LayoutParams for fixed height");
-                    } else {
-                        params.height = height;
-                    }
-
-                    // Fix: a fixed size semantically means "non-stretchable", so enforce flexShrink=0 and flexGrow=0.
-                    // Even if the user sets flex-grow/flex-shrink, a fixed size should take priority
-                    // because fixed size and stretchability are semantically contradictory.
-                    FlexboxLayout.LayoutParams flexParams = (FlexboxLayout.LayoutParams) params;
-                    flexParams.setFlexShrink(0.0f);
-                    flexParams.setFlexGrow(0.0f);
-                    Log.d(TAG, "applyDimensions: fixed height set, enforcing flexShrink=0, flexGrow=0");
-                } else {
-                    params.height = height;
-                }
-            }
-
-            view.setLayoutParams(params);
-        }
-
-        // min/max dimensions (requires API 16+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            boolean isFlexboxParent = parent instanceof FlexContainerLayout;
-
-            // When the parent is a FlexboxParent, min/max dimensions are set via FlexboxLayout.LayoutParams methods
-            if (isFlexboxParent) {
-                FlexboxLayout.LayoutParams flexParams = ensureFlexLayoutParams(view.getLayoutParams());
-
-                // min-width mapped to FlexboxLayout.LayoutParams.setMinWidth
-                if (properties.containsKey("min-width")) {
-                    int minWidth = parseDimension(properties.get("min-width"), context);
-                    if (minWidth > 0) {
-                        flexParams.setMinWidth(minWidth);
-                        Log.d(TAG, "applyDimensions: min-width=" + properties.get("min-width") + " -> " + minWidth + "px (FlexboxLayout.LayoutParams)");
-                    }
-                }
-
-                // min-height mapped to FlexboxLayout.LayoutParams.setMinHeight
-                if (properties.containsKey("min-height")) {
-                    int minHeight = parseDimension(properties.get("min-height"), context);
-                    if (minHeight > 0) {
-                        flexParams.setMinHeight(minHeight);
-                        Log.d(TAG, "applyDimensions: min-height=" + properties.get("min-height") + " -> " + minHeight + "px (FlexboxLayout.LayoutParams)");
-                    }
-                }
-
-                // max-width and max-height handling
-                if (properties.containsKey("max-width")) {
-                    int maxWidth = parseDimension(properties.get("max-width"), context);
-                    if (maxWidth > 0) {
-                        flexParams.setMaxWidth(maxWidth);
-                        Log.d(TAG, "applyDimensions: max-width=" + properties.get("max-width") + " -> " + maxWidth + "px");
-                    }
-                }
-
-                if (properties.containsKey("max-height")) {
-                    int maxHeight = parseDimension(properties.get("max-height"), context);
-                    if (maxHeight > 0) {
-                        flexParams.setMaxHeight(maxHeight);
-                        Log.d(TAG, "applyDimensions: max-height=" + properties.get("max-height") + " -> " + maxHeight + "px");
-                    }
-                }
-
-                view.setLayoutParams(flexParams);
-            } else {
-                // When the parent is not a FlexboxParent, use View.setMinimumWidth/Height
-                if (properties.containsKey("min-width")) {
-                    int minWidth = parseDimension(properties.get("min-width"), context);
-                    if (minWidth > 0) {
-                        view.setMinimumWidth(minWidth);
-                        Log.d(TAG, "applyDimensions: min-width=" + properties.get("min-width") + " -> " + minWidth + "px");
-                    }
-                }
-
-                if (properties.containsKey("min-height")) {
-                    int minHeight = parseDimension(properties.get("min-height"), context);
-                    if (minHeight > 0) {
-                        view.setMinimumHeight(minHeight);
-                        Log.d(TAG, "applyDimensions: min-height=" + properties.get("min-height") + " -> " + minHeight + "px");
-                    }
-                }
-            }
-        }
-    }
 
     /**
      * Parses a dimension value.
@@ -263,204 +88,6 @@ public class StyleHelper {
             Log.w(TAG, "Failed to parse dimension: " + value, e);
             return ViewGroup.LayoutParams.WRAP_CONTENT;
         }
-    }
-
-
-    /**
-     * Applies spacing styles.
-     * Supports: margin, padding (and their inline/block variants).
-     * Supports CSS multi-value format:
-     * - 1 value:  applies to all sides (top right bottom left)
-     * - 2 values: first applies to top/bottom, second applies to left/right
-     * - 3 values: first applies to top, second applies to left/right, third applies to bottom
-     * - 4 values: applied in order to top right bottom left
-     */
-    public static void applySpacing(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applySpacing: view or properties is null");
-            return;
-        }
-
-        Log.d(TAG, "applySpacing: view=" + view.getClass().getSimpleName() + ", properties=" + properties);
-        Context context = view.getContext();
-
-        // Padding
-        int paddingLeft = view.getPaddingLeft();
-        int paddingTop = view.getPaddingTop();
-        int paddingRight = view.getPaddingRight();
-        int paddingBottom = view.getPaddingBottom();
-
-        if (properties.containsKey("padding")) {
-            int[] paddings = parseSpacingValues(properties.get("padding"), context);
-            paddingTop = paddings[0];
-            paddingRight = paddings[1];
-            paddingBottom = paddings[2];
-            paddingLeft = paddings[3];
-            Log.d(TAG, "applySpacing: padding=" + properties.get("padding") +
-                    " -> top=" + paddingTop + ", right=" + paddingRight +
-                ", bottom=" + paddingBottom + ", left=" + paddingLeft);
-        }
-
-        // Prefer CSS logical properties, fall back to traditional directional properties
-        if (properties.containsKey("padding-inline-start")) {
-            paddingLeft = parseDimension(properties.get("padding-inline-start"), context);
-        } else if (properties.containsKey("padding-left")) {
-            paddingLeft = parseDimension(properties.get("padding-left"), context);
-        }
-
-        if (properties.containsKey("padding-inline-end")) {
-            paddingRight = parseDimension(properties.get("padding-inline-end"), context);
-        } else if (properties.containsKey("padding-right")) {
-            paddingRight = parseDimension(properties.get("padding-right"), context);
-        }
-
-        if (properties.containsKey("padding-block-start")) {
-            paddingTop = parseDimension(properties.get("padding-block-start"), context);
-        } else if (properties.containsKey("padding-top")) {
-            paddingTop = parseDimension(properties.get("padding-top"), context);
-        }
-
-        if (properties.containsKey("padding-block-end")) {
-            paddingBottom = parseDimension(properties.get("padding-block-end"), context);
-        } else if (properties.containsKey("padding-bottom")) {
-            paddingBottom = parseDimension(properties.get("padding-bottom"), context);
-        }
-
-        view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
-
-        // Margin - check whether any margin-related properties are present
-        boolean hasMargin = properties.containsKey("margin")
-            || properties.containsKey("margin-inline-start")
-            || properties.containsKey("margin-inline-end")
-            || properties.containsKey("margin-block-start")
-                || properties.containsKey("margin-block-end")
-                || properties.containsKey("margin-left")
-                || properties.containsKey("margin-right")
-                || properties.containsKey("margin-top")
-                || properties.containsKey("margin-bottom");
-
-        if (hasMargin) {
-            ViewGroup.LayoutParams params = view.getLayoutParams();
-            ViewGroup.MarginLayoutParams marginParams;
-
-            // If the current LayoutParams is already a MarginLayoutParams, use it directly
-            if (params instanceof ViewGroup.MarginLayoutParams) {
-                marginParams = (ViewGroup.MarginLayoutParams) params;
-            } else {
-                // If it is not a MarginLayoutParams, create a new one
-                if (params != null) {
-                    marginParams = new ViewGroup.MarginLayoutParams(params);
-                } else {
-                    marginParams = new ViewGroup.MarginLayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    );
-                }
-            }
-
-            if (properties.containsKey("margin")) {
-                int[] margins = parseSpacingValues(properties.get("margin"), context);
-                marginParams.topMargin = margins[0];
-                marginParams.rightMargin = margins[1];
-                marginParams.bottomMargin = margins[2];
-                marginParams.leftMargin = margins[3];
-                Log.d(TAG, "applySpacing: margin=" + properties.get("margin") +
-                        " -> top=" + margins[0] + ", right=" + margins[1] +
-                    ", bottom=" + margins[2] + ", left=" + margins[3]);
-            }
-
-            // Prefer CSS logical properties, fall back to traditional directional properties
-            if (properties.containsKey("margin-inline-start")) {
-                marginParams.leftMargin = parseDimension(properties.get("margin-inline-start"), context);
-            } else if (properties.containsKey("margin-left")) {
-                marginParams.leftMargin = parseDimension(properties.get("margin-left"), context);
-            }
-
-            if (properties.containsKey("margin-inline-end")) {
-                marginParams.rightMargin = parseDimension(properties.get("margin-inline-end"), context);
-            } else if (properties.containsKey("margin-right")) {
-                marginParams.rightMargin = parseDimension(properties.get("margin-right"), context);
-            }
-
-            if (properties.containsKey("margin-block-start")) {
-                marginParams.topMargin = parseDimension(properties.get("margin-block-start"), context);
-            } else if (properties.containsKey("margin-top")) {
-                marginParams.topMargin = parseDimension(properties.get("margin-top"), context);
-            }
-
-            if (properties.containsKey("margin-block-end")) {
-                marginParams.bottomMargin = parseDimension(properties.get("margin-block-end"), context);
-            } else if (properties.containsKey("margin-bottom")) {
-                marginParams.bottomMargin = parseDimension(properties.get("margin-bottom"), context);
-            }
-
-            view.setLayoutParams(marginParams);
-        }
-    }
-
-    /**
-     * Parses CSS multi-value spacing.
-     * Supported formats:
-     * - "10px"              -> [10, 10, 10, 10] (all sides)
-     * - "10px 20px"         -> [10, 20, 10, 20] (vertical horizontal)
-     * - "10px 20px 30px"    -> [10, 20, 30, 20] (top horizontal bottom)
-     * - "10px 20px 30px 40px" -> [10, 20, 30, 40] (top right bottom left)
-     *
-     * @param value   Spacing value (single value or space-separated multiple values)
-     * @param context Android Context
-     * @return int array [top, right, bottom, left]
-     */
-    private static int[] parseSpacingValues(Object value, Context context) {
-        if (value == null) {
-            return new int[]{0, 0, 0, 0};
-        }
-
-        String strValue = String.valueOf(value).trim();
-        Log.d(TAG, "parseSpacingValues: parsing '" + strValue + "'");
-
-        // Split by whitespace
-        String[] parts = strValue.split("\\s+");
-        int[] result = new int[4]; // [top, right, bottom, left]
-
-        switch (parts.length) {
-            case 1:
-                // 1 value: applies to all sides
-                int all = parseDimension(parts[0], context);
-                result[0] = result[1] = result[2] = result[3] = all;
-                Log.d(TAG, "parseSpacingValues: 1 value -> all=" + all);
-                break;
-
-            case 2:
-                // 2 values: first applies to top/bottom, second applies to left/right
-                int vertical = parseDimension(parts[0], context);
-                int horizontal = parseDimension(parts[1], context);
-                result[0] = result[2] = vertical;   // top, bottom
-                result[1] = result[3] = horizontal; // right, left
-                Log.d(TAG, "parseSpacingValues: 2 values -> vertical=" + vertical + ", horizontal=" + horizontal);
-                break;
-
-            case 3:
-                // 3 values: top, horizontal, bottom
-                result[0] = parseDimension(parts[0], context); // top
-                result[1] = result[3] = parseDimension(parts[1], context); // right, left
-                result[2] = parseDimension(parts[2], context); // bottom
-                Log.d(TAG, "parseSpacingValues: 3 values -> top=" + result[0] +
-                    ", horizontal=" + result[1] + ", bottom=" + result[2]);
-                break;
-
-            case 4:
-            default:
-                // 4 values: top, right, bottom, left
-                result[0] = parseDimension(parts[0], context); // top
-                result[1] = parseDimension(parts[1], context); // right
-                result[2] = parseDimension(parts[2], context); // bottom
-                result[3] = parseDimension(parts[3], context); // left
-                Log.d(TAG, "parseSpacingValues: 4 values -> top=" + result[0] +
-                    ", right=" + result[1] + ", bottom=" + result[2] + ", left=" + result[3]);
-                break;
-        }
-
-        return result;
     }
 
 
@@ -698,7 +325,7 @@ public class StyleHelper {
      * Parses a dimension value as a float (used for shadow offsets, etc.).
      * Note: the px unit is converted following dp conversion rules.
      */
-    private static float parseDimensionFloat(String value, Context context) {
+    public static float parseDimensionFloat(String value, Context context) {
         if (value == null || value.isEmpty()) return 0f;
 
         value = value.trim().toLowerCase();
@@ -715,270 +342,6 @@ public class StyleHelper {
             Log.w(TAG, "Failed to parse dimension float: " + value, e);
             return 0f;
         }
-    }
-
-
-    /**
-     * Applies aspect-ratio styles.
-     * Supports: aspect-ratio.
-     * Note: requires a custom View or ConstraintLayout.
-     */
-    public static void applyAspectRatio(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) return;
-
-        // Implementing aspect-ratio requires a custom View or ConstraintLayout;
-        // left unimplemented here for future extension.
-    }
-
-    /**
-     * Parses an aspect ratio value.
-     * Supported formats: "16:9", "16/9", "1.78", 1.78.
-     *
-     * @param value Aspect ratio value
-     * @return Ratio (width/height); returns 0 if parsing fails
-     */
-    public static float parseAspectRatio(Object value) {
-        if (value == null) {
-            Log.d(TAG, "parseAspectRatio: value is null, returning 0");
-            return 0f;
-        }
-
-        String strValue = String.valueOf(value).trim();
-        Log.d(TAG, "parseAspectRatio: parsing '" + strValue + "'");
-
-        try {
-            // Supports "16:9" format
-            if (strValue.contains(":")) {
-                String[] parts = strValue.split(":");
-                float width = Float.parseFloat(parts[0].trim());
-                float height = Float.parseFloat(parts[1].trim());
-                float ratio = width / height;
-                Log.d(TAG, "parseAspectRatio: '" + strValue + "' -> " + ratio);
-                return ratio;
-            }
-
-            // Supports "16/9" format
-            if (strValue.contains("/")) {
-                String[] parts = strValue.split("/");
-                float width = Float.parseFloat(parts[0].trim());
-                float height = Float.parseFloat(parts[1].trim());
-                float ratio = width / height;
-                Log.d(TAG, "parseAspectRatio: '" + strValue + "' -> " + ratio);
-                return ratio;
-            }
-
-            // Supports a direct numeric value such as "1.78" or 1.78
-            float ratio = Float.parseFloat(strValue);
-            Log.d(TAG, "parseAspectRatio: '" + strValue + "' (direct number) -> " + ratio);
-            return ratio;
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to parse aspect-ratio: " + value, e);
-            return 0f;
-        }
-    }
-
-
-    /**
-     * Applies Flexbox container styles.
-     * Supports: flex-direction, justify-content, align-items, flex-wrap, align-content.
-     */
-    public static void applyFlexContainer(ViewGroup viewGroup, Map<String, Object> properties) {
-        if (!(viewGroup instanceof FlexContainerLayout)) return;
-
-        Log.d(TAG, "applyFlexContainer: viewGroup=" + viewGroup.getClass().getSimpleName() + ", properties=" + properties);
-
-        FlexboxLayout flexbox = ((FlexContainerLayout) viewGroup).getFlexboxLayout();
-
-        // flex-wrap
-        if (properties.containsKey("flex-wrap")) {
-            String wrap = String.valueOf(properties.get("flex-wrap")).toLowerCase();
-            switch (wrap) {
-                case "nowrap":
-                    flexbox.setFlexWrap(FlexWrap.NOWRAP);
-                    break;
-                case "wrap":
-                    flexbox.setFlexWrap(FlexWrap.WRAP);
-                    break;
-                case "wrap-reverse":
-                    flexbox.setFlexWrap(FlexWrap.WRAP_REVERSE);
-                    break;
-            }
-        }
-
-        // align-content (multi-line alignment)
-        // todo: setting alignContent in FlexboxLayout is complex; not yet implemented
-    }
-
-    /**
-     * Applies Flexbox child element styles.
-     * Supports: align-self, flex-grow, flex-shrink, flex-basis.
-     */
-    public static void applyFlexChild(FlexboxLayout.LayoutParams params, Map<String, Object> properties) {
-        if (params == null || properties == null) {
-            Log.d(TAG, "applyFlexChild: params or properties is null");
-            return;
-        }
-
-        Log.d(TAG, "applyFlexChild: properties=" + properties);
-
-        // flex-grow
-        if (properties.containsKey("flex-grow")) {
-            float grow = parseFloat(properties.get("flex-grow"));
-            params.setFlexGrow(grow);
-            Log.d(TAG, "applyFlexChild: flex-grow=" + properties.get("flex-grow") + " -> " + grow);
-        }
-
-        // flex-shrink
-        if (properties.containsKey("flex-shrink")) {
-            float shrink = parseFloat(properties.get("flex-shrink"));
-            params.setFlexShrink(shrink);
-            Log.d(TAG, "applyFlexChild: flex-shrink=" + properties.get("flex-shrink") + " -> " + shrink);
-        }
-
-        // flex-basis
-        if (properties.containsKey("flex-basis")) {
-            // flex-basis can be a length value or a percentage.
-            // Simplified handling: use flexBasisPercent.
-            String basis = String.valueOf(properties.get("flex-basis"));
-            if (basis.endsWith("%")) {
-                float percent = Float.parseFloat(basis.replace("%", "")) / 100f;
-                params.setFlexBasisPercent(percent);
-                Log.d(TAG, "applyFlexChild: flex-basis=" + basis + " -> " + percent + " (percent)");
-            } else {
-                Log.d(TAG, "applyFlexChild: flex-basis=" + basis + " (not percentage, skipped)");
-            }
-        }
-
-        // align-self
-        if (properties.containsKey("align-self")) {
-            String alignSelf = String.valueOf(properties.get("align-self")).toLowerCase();
-            int alignSelfValue = parseAlignSelf(alignSelf);
-            params.setAlignSelf(alignSelfValue);
-            Log.d(TAG, "applyFlexChild: align-self=" + alignSelf + " -> " + alignSelfValue);
-        }
-
-        Log.d(TAG, "applyFlexChild: completed - flexGrow=" + params.getFlexGrow() +
-                ", flexShrink=" + params.getFlexShrink() +
-                ", flexBasisPercent=" + params.getFlexBasisPercent() +
-                          ", alignSelf=" + params.getAlignSelf());
-    }
-
-
-    /**
-     * Applies positioning styles.
-     * Supports: position: absolute, inset-inline-start/end, inset-block-start/end.
-     *
-     * Note:
-     * - Internally checks whether position is "absolute".
-     * - If absolute, automatically creates and sets ConstraintLayout.LayoutParams (overriding any previous LayoutParams).
-     * - Supports stretching when all four directions are set simultaneously.
-     * - If not absolute, no action is taken.
-     *
-     * @param view       View to apply positioning to
-     * @param properties Style properties
-     */
-    public static void applyPosition(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applyPosition: view or properties is null");
-            return;
-        }
-
-        // Internal check: only handle position: absolute
-        if (!properties.containsKey("position")) {
-            return;
-        }
-
-        String position = String.valueOf(properties.get("position")).toLowerCase();
-        if (!position.equals("absolute")) {
-            Log.d(TAG, "applyPosition: position=" + position + " (not absolute, skipped)");
-            return;
-        }
-
-        Log.d(TAG, "applyPosition: applying absolute positioning with ConstraintLayout");
-        Context context = view.getContext();
-
-        // Create ConstraintLayout.LayoutParams (overrides any previous LayoutParams)
-        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams params =
-                new androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
-                        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT,
-                        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT
-                );
-
-        // Parse offset values (prefer new properties, fall back to legacy ones)
-        Integer top = null;
-        if (properties.containsKey("inset-block-start")) {
-            top = parseDimension(properties.get("inset-block-start"), context);
-        } else if (properties.containsKey("top")) {
-            top = parseDimension(properties.get("top"), context);
-        }
-
-        Integer bottom = null;
-        if (properties.containsKey("inset-block-end")) {
-            bottom = parseDimension(properties.get("inset-block-end"), context);
-        } else if (properties.containsKey("bottom")) {
-            bottom = parseDimension(properties.get("bottom"), context);
-        }
-
-        Integer left = null;
-        if (properties.containsKey("inset-inline-start")) {
-            left = parseDimension(properties.get("inset-inline-start"), context);
-        } else if (properties.containsKey("left")) {
-            left = parseDimension(properties.get("left"), context);
-        }
-
-        Integer right = null;
-        if (properties.containsKey("inset-inline-end")) {
-            right = parseDimension(properties.get("inset-inline-end"), context);
-        } else if (properties.containsKey("right")) {
-            right = parseDimension(properties.get("right"), context);
-        }
-
-        // Default value: if no direction is set, default to top-left corner (0, 0)
-        boolean hasAnyPosition = (left != null || top != null || right != null || bottom != null);
-        if (!hasAnyPosition) {
-            left = 0;
-            top = 0;
-            Log.d(TAG, "applyPosition: no position set, using default left=0, top=0");
-        }
-
-        // Set constraints relative to the parent
-        if (left != null) {
-            params.leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.leftMargin = left;
-            Log.d(TAG, "applyPosition: leftToLeft=PARENT, leftMargin=" + left);
-        }
-        if (top != null) {
-            params.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.topMargin = top;
-            Log.d(TAG, "applyPosition: topToTop=PARENT, topMargin=" + top);
-        }
-        if (right != null) {
-            params.rightToRight = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.rightMargin = right;
-            Log.d(TAG, "applyPosition: rightToRight=PARENT, rightMargin=" + right);
-        }
-        if (bottom != null) {
-            params.bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.bottomMargin = bottom;
-            Log.d(TAG, "applyPosition: bottomToBottom=PARENT, bottomMargin=" + bottom);
-        }
-
-        // If both horizontal directions are set, use MATCH_CONSTRAINT to stretch
-        if (left != null && right != null) {
-            params.width = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.MATCH_CONSTRAINT;
-            Log.d(TAG, "applyPosition: both left and right set, width=MATCH_CONSTRAINT");
-        }
-
-        // If both vertical directions are set, use MATCH_CONSTRAINT to stretch
-        if (top != null && bottom != null) {
-            params.height = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.MATCH_CONSTRAINT;
-            Log.d(TAG, "applyPosition: both top and bottom set, height=MATCH_CONSTRAINT");
-        }
-
-        // Set LayoutParams (overrides any previous LayoutParams)
-        view.setLayoutParams(params);
-
-        Log.d(TAG, "applyPosition: absolute positioning applied with ConstraintLayout.LayoutParams");
     }
 
 
@@ -1013,18 +376,6 @@ public class StyleHelper {
 
 
     /**
-     * todo: Applies gap styles — not yet supported.
-     * Supports: gap (spacing between Flexbox children).
-     * Note: FlexboxLayout does not directly support gap; it must be simulated via margin.
-     */
-    public static void applyGap(ViewGroup viewGroup, Map<String, Object> properties) {
-        // FlexboxLayout does not directly support the gap property.
-        // It needs to be simulated by setting margin on child Views when they are added.
-        // Left unimplemented here for future extension.
-    }
-
-
-    /**
      * Applies text styles to a TextView.
      * Supports all style properties of TextComponent.
      *
@@ -1032,6 +383,7 @@ public class StyleHelper {
      * @param styles   Style property map
      * @param context  Android Context
      */
+    @SuppressLint("WrongConstant")
     public static void applyTextStyles(TextView textView, Map<String, Object> styles, Context context) {
         if (textView == null || styles == null || styles.isEmpty()) {
             return;
@@ -1126,6 +478,13 @@ public class StyleHelper {
             }
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Keep Android wrapping closer to iOS/Harmony by using greedy line breaking
+            // instead of the platform's balanced/high-quality strategy.
+            textView.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
+            textView.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE);
+        }
+
         // 6. text-overflow: text overflow handling
         if (styles.containsKey("text-overflow")) {
             Object textOverflowValue = styles.get("text-overflow");
@@ -1174,6 +533,43 @@ public class StyleHelper {
 
         // 8. Text decoration properties (text-decoration series)
         applyTextDecoration(textView, styles, context);
+
+        // 9. filter: drop-shadow -> TextView.setShadowLayer
+        // setShadowLayer is the correct API for text shadow on Android;
+        // it requires a software layer to render properly.
+        if (styles.containsKey("filter")) {
+            String filter = String.valueOf(styles.get("filter")).trim();
+            if (filter.startsWith("drop-shadow(")) {
+                try {
+                    String params = filter.substring(12, filter.length() - 1).trim();
+                    // Split on whitespace but keep rgba(...) intact by using a smarter split.
+                    // Strategy: tokenise by spaces, then re-join rgba tokens.
+                    String[] rawParts = params.split("\\s+");
+                    // Collect numeric length tokens (offsetX, offsetY, blur) then color.
+                    java.util.List<String> lengthTokens = new java.util.ArrayList<>();
+                    StringBuilder colorBuilder = new StringBuilder();
+                    for (String part : rawParts) {
+                        if (part.endsWith("px") || part.matches("-?\\d+(\\.\\d+)?")) {
+                            lengthTokens.add(part);
+                        } else {
+                            if (colorBuilder.length() > 0) colorBuilder.append(' ');
+                            colorBuilder.append(part);
+                        }
+                    }
+                    if (lengthTokens.size() >= 3) {
+                        float dx = parseDimensionFloat(lengthTokens.get(0), context);
+                        float dy = parseDimensionFloat(lengthTokens.get(1), context);
+                        float radius = parseDimensionFloat(lengthTokens.get(2), context);
+                        String colorStr = colorBuilder.toString().trim();
+                        int shadowColor = colorStr.isEmpty() ? Color.BLACK : parseColor(colorStr);
+                        textView.setShadowLayer(radius, dx, dy, shadowColor);
+                        textView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "Failed to parse drop-shadow for TextView: " + filter, e);
+                }
+            }
+        }
     }
 
     /**
@@ -1228,7 +624,9 @@ public class StyleHelper {
         }
 
         // 4. Parse decoration line parameters
-        int color = parseColor(decorationColor);
+        // When text-decoration-color is not specified, fall back to the text color so
+        // the decoration line is always visible (Color.TRANSPARENT would be invisible).
+        int color = (decorationColor != null) ? parseColor(decorationColor) : textView.getCurrentTextColor();
         int thickness = parseDimension(decorationThickness, context);
         if (thickness <= 0) {
             thickness = 1; // Default: 1px
@@ -1321,7 +719,7 @@ public class StyleHelper {
      * @param context Android Context
      * @return Typeface
      */
-    private static Typeface parseFontFamily(Object value, Context context) {
+    public static Typeface parseFontFamily(Object value, Context context) {
         if (value == null) {
             return Typeface.DEFAULT;
         }
@@ -1420,6 +818,24 @@ public class StyleHelper {
         return (int) dipValue;
     }
 
+    public static float a2uiToPx(Context context, float value) {
+        if (context == null) {
+            return value;
+        }
+        return value / 2f * context.getResources().getDisplayMetrics().density;
+    }
+
+    public static float pxToA2ui(Context context, float value) {
+        if (context == null) {
+            return value;
+        }
+        float density = context.getResources().getDisplayMetrics().density;
+        if (density <= 0f) {
+            return value;
+        }
+        return value / density * 2f;
+    }
+
     /**
      * Parses a color value.
      * Supports: #RRGGBB, #RRGGBBAA, rgba(r,g,b,a).
@@ -1496,27 +912,6 @@ public class StyleHelper {
         } catch (NumberFormatException e) {
             Log.w(TAG, "Failed to parse float: " + value, e);
             return 0f;
-        }
-    }
-
-    /**
-     * Parses an align-self value.
-     */
-    private static int parseAlignSelf(String value) {
-        switch (value) {
-            case "center":
-                return AlignSelf.CENTER;
-            case "flex-end":
-            case "end":
-                return AlignSelf.FLEX_END;
-            case "stretch":
-                return AlignSelf.STRETCH;
-            case "baseline":
-                return AlignSelf.BASELINE;
-            case "flex-start":
-            case "start":
-            default:
-                return AlignSelf.FLEX_START;
         }
     }
 
@@ -1806,20 +1201,4 @@ public class StyleHelper {
         return new ColorDrawable(Color.parseColor("#D9E9F6"));
     }
 
-    /**
-     * Ensures a FlexboxLayout.LayoutParams is returned:
-     * - If params is already a FlexboxLayout.LayoutParams, it is returned as-is.
-     * - Otherwise, a new one is created copying width/height (WRAP_CONTENT is used when params is null).
-     * <p>Note: when params is not a FlexboxLayout.LayoutParams, only width and height are copied.
-     * Other Flexbox-specific properties (e.g. flexGrow, flexShrink, flexBasis, alignSelf) will be lost.
-     * </p>
-     */
-    private static FlexboxLayout.LayoutParams ensureFlexLayoutParams(ViewGroup.LayoutParams params) {
-        if (params instanceof FlexboxLayout.LayoutParams) {
-            return (FlexboxLayout.LayoutParams) params;
-        }
-        int w = params != null ? params.width : ViewGroup.LayoutParams.WRAP_CONTENT;
-        int h = params != null ? params.height : ViewGroup.LayoutParams.WRAP_CONTENT;
-        return new FlexboxLayout.LayoutParams(w, h);
-    }
 }

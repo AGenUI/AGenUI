@@ -35,8 +35,11 @@ public:
     const std::string& getSurfaceId() const;
     IDataModel* getDataModel() const;
     
-    // Markdown size update
+    // Component size update
     void updateComponentSize(const ComponentRenderInfo& info);
+
+    // Tabs selected index update
+    void updateTabsSelectedIndex(const ComponentRenderInfo& info);
     
     // Surface size update
     void updateSurfaceSize(const SurfaceLayoutInfo& info);

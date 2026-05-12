@@ -130,6 +130,9 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
     private TextView tvMemory;
     private TextView tvAvgFps;
     private boolean performanceMonitorEnabled = false;
+    
+    // Custom Logger
+    private PlaygroundRuntimeLogger runtimeLogger;
 
     // Day/Night Mode
     private boolean isDarkMode = false;
@@ -653,11 +656,16 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
             aGenUI.initialize(getApplicationContext());
             addLog("AGenUI initialized");
 
-            // 2. Create SurfaceManager
+            // 2. Create custom logger
+            runtimeLogger = new PlaygroundRuntimeLogger();
+            aGenUI.setCustomLogger(runtimeLogger);
+            addLog("Custom RuntimeLogger initialized");
+
+            // 3. Create SurfaceManager
             surfaceManager = new SurfaceManager(this);
             addLog("SurfaceManager created: " + surfaceManager);
 
-            // 3. Register Surface listener
+            // 4. Register Surface listener
             surfaceManager.addListener(new ISurfaceManagerListener() {
                 @Override
                 public void onCreateSurface(Surface surface) {
@@ -683,7 +691,7 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
                 }
             });
 
-            // 4. Copy UI Templates and set the working directory
+            // 5. Copy UI Templates and set the working directory
             String sandboxDir = UITemplatesCopier.copyUITemplatesToSandbox(this);
             if (!TextUtils.isEmpty(sandboxDir)) {
                 //todo
@@ -692,7 +700,7 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
                 addLog("AGenUI init: failed to copy UI Templates");
             }
 
-            // 5. Register Components and Functions
+            // 6. Register Components and Functions
             AGenUI.getInstance().registerFunction(new ToastFunction(this));
 
             AGenUI.getInstance().registerComponent("Markdown", new MarkdownComponentFactory());

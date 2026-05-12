@@ -1,6 +1,6 @@
 #include "agenui_parse_token_functioncall.h"
 #include "surface/token_parser/agenui_token_parser.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 

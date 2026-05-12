@@ -5,7 +5,7 @@
 #include "surface/agenui_serializable_data.h"
 #include "agenui_engine_context.h"
 #include "surface/component_property_spec/agenui_icomponent_property_spec_manager.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "nlohmann/json.hpp"
 
 namespace agenui {
@@ -76,13 +76,13 @@ void ComponentManager::setComponentsDisplayRule(const std::map<std::string, Disp
 void ComponentManager::executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher) {
     auto it = _components.find(componentId);
     if (it == _components.end()) {
-        AGENUI_LOG("component not found, id:%s", componentId.c_str());
+        AGENUI_LOG("ComponentManager::executeComponentAction: component not found, id=%s", componentId.c_str());
         return;
     }
     
     auto component = it->second;
     if (component == nullptr) {
-        AGENUI_LOG("component is null, id:%s", componentId.c_str());
+        AGENUI_LOG("ComponentManager::executeComponentAction: component is null, id=%s", componentId.c_str());
         return;
     }
     

@@ -7,13 +7,6 @@
 
 import UIKit
 
-#if !SWIFT_PACKAGE
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
-#endif
-
 /// RowComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
 /// Supported properties:
@@ -32,9 +25,6 @@ class RowComponent: Component {
     
     init(componentId: String, properties: [String: Any]) {
         super.init(componentId: componentId, componentType: "Row", properties: properties)
-        
-        // Configure FlexLayout - horizontal layout
-        flex.direction(.row)
         
         // Apply initial properties
         updateProperties(properties)
@@ -58,39 +48,5 @@ class RowComponent: Component {
     // MARK: - Private Methods
     
     private func applyRowSpecificProperties(_ properties: [String: Any]) {
-        // Update main axis alignment (justify)
-        if let justify = properties["justify"] as? String {
-            switch justify.lowercased() {
-            case "center":
-                flex.justifyContent(.center)
-            case "end":
-                flex.justifyContent(.end)
-            case "spacebetween":
-                flex.justifyContent(.spaceBetween)
-            case "spacearound":
-                flex.justifyContent(.spaceAround)
-            case "spaceevenly":
-                flex.justifyContent(.spaceEvenly)
-            default: // start
-                flex.justifyContent(.start)
-            }
-        }
-        
-        // Update cross axis alignment (align)
-        if let align = properties["align"] as? String {
-            switch align.lowercased() {
-            case "center":
-                flex.alignItems(.center)
-            case "end":
-                flex.alignItems(.end)
-            case "stretch":
-                flex.alignItems(.stretch)
-            default: // start
-                flex.alignItems(.start)
-            }
-        }
-        
-        // spacing handling: FlexLayout does not directly support gap
-        // If needed, set margin on child components to achieve this
     }
 }

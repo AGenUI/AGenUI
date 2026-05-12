@@ -3,6 +3,8 @@
 #include <arkui/native_node_napi.h>
 #include <atomic>
 #include <cstdlib>
+#include <sstream>
+#include <vector>
 
 #include "a2ui_component.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
@@ -150,9 +152,22 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
             
             if (!m_parent || m_parent->shouldApplyChildLayoutPosition(this)) {
                 getNode().setPosition(m_x, m_y);
+            } else {
+                // Parent opted out of full position, but may still apply partial position
+                // (e.g. ListComponent applies only the x axis for cross-axis alignment).
+                m_parent->onApplyChildPosition(this, m_x, m_y);
             }
-            getNode().setWidth(m_width);
-            getNode().setHeight(m_height);
+            if (!m_parent || m_parent->shouldApplyChildLayoutSize(this)) {
+                getNode().setWidth(m_width);
+                getNode().setHeight(m_height);
+            }
+#if 0
+            const float kDebugBorderWidth = 1.0f;
+            const uint32_t kDebugBorderColorRed = 0xFFFF0000;
+            getNode().setBorderWidth(kDebugBorderWidth, kDebugBorderWidth, kDebugBorderWidth, kDebugBorderWidth);
+            getNode().setBorderColor(kDebugBorderColorRed);
+            getNode().setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+#endif
             HM_LOGI("Updated layout for component %s: x=%.1f, y=%.1f, width=%.1f, height=%.1f", m_id.c_str(), posX, posY, width, height);
             
             // Apply the background-image style
@@ -259,6 +274,11 @@ bool A2UIComponent::shouldAutoAddChildView() const {
 }
 
 bool A2UIComponent::shouldApplyChildLayoutPosition(const A2UIComponent* child) const {
+    (void)child;
+    return true;
+}
+
+bool A2UIComponent::shouldApplyChildLayoutSize(const A2UIComponent* child) const {
     (void)child;
     return true;
 }
@@ -645,5 +665,188 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
 
     HM_LOGI("Set background image %s for component %s", bgImageUrl.c_str(), m_id.c_str());
 }
+
+/**
+ * Parse and apply border styles from properties.styles
+ * Supported properties:
+ *   - border-radius / borderRadius: corner radius (number or string)
+ *   - border-width / borderWidth: border width (number or string, applied to all four sides)
+ *   - border-color / borderColor: border color (color string)
+ *   - background-color / backgroundColor: background color (color string)
+ */
+void A2UIComponent::applyBackgroundColor(const nlohmann::json& properties) {
+    if (!m_nodeHandle) {
+        return;
+    }
+    
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+    
+    const auto& styles = properties["styles"];
+    A2UINode node(m_nodeHandle);
+    
+    // background-color
+    std::string bgColorKey;
+    if (styles.contains("background-color")) {
+        bgColorKey = "background-color";
+    } else if (styles.contains("backgroundColor")) {
+        bgColorKey = "backgroundColor";
+    }
+    if (!bgColorKey.empty() && styles[bgColorKey].is_string()) {
+        uint32_t color = parseColor(styles[bgColorKey].get<std::string>());
+        node.setBackgroundColor(color);
+    }
+}
+
+void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
+    if (!m_nodeHandle) {
+        return;
+    }
+    
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+    
+    const auto& styles = properties["styles"];
+    A2UINode node(m_nodeHandle);
+    
+    // border-radius
+    {
+        std::string radiusKey;
+        if (styles.contains("border-radius")) {
+            radiusKey = "border-radius";
+        } else if (styles.contains("borderRadius")) {
+            radiusKey = "borderRadius";
+        }
+        if (!radiusKey.empty()) {
+            float radius = 0.0f;
+            const auto& radiusVal = styles[radiusKey];
+            if (radiusVal.is_number()) {
+                radius = radiusVal.get<float>();
+            } else if (radiusVal.is_string()) {
+                radius = static_cast<float>(std::atof(radiusVal.get<std::string>().c_str()));
+            }
+            if (radius > 0.0f) {
+                node.setBorderRadius(radius);
+                node.setClip(true);
+            } else {
+                node.resetBorderRadius();
+                node.resetClip();
+            }
+        }
+    }
+    
+    // border-width
+    {
+        std::string bwKey;
+        if (styles.contains("border-width")) {
+            bwKey = "border-width";
+        } else if (styles.contains("borderWidth")) {
+            bwKey = "borderWidth";
+        }
+        if (!bwKey.empty()) {
+            float bw = 0.0f;
+            const auto& bwVal = styles[bwKey];
+            if (bwVal.is_number()) {
+                bw = bwVal.get<float>();
+            } else if (bwVal.is_string()) {
+                bw = static_cast<float>(std::atof(bwVal.get<std::string>().c_str()));
+            }
+            if (bw > 0.0f) {
+                node.setBorderWidth(bw, bw, bw, bw);
+                node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+            } else {
+                node.resetBorderWidth();
+                node.resetBorderStyle();
+            }
+        }
+    }
+    
+    // border-color
+    {
+        std::string bcKey;
+        if (styles.contains("border-color")) {
+            bcKey = "border-color";
+        } else if (styles.contains("borderColor")) {
+            bcKey = "borderColor";
+        }
+        if (!bcKey.empty() && styles[bcKey].is_string()) {
+            uint32_t color = parseColor(styles[bcKey].get<std::string>());
+            node.setBorderColor(color);
+        }
+    }
+}
+
+/**
+ * DEPRECATED: CSS padding is handled by Yoga layout engine; applying it
+ * on native ArkUI nodes causes double-counting (Yoga layout dimensions
+ * already include padding).  All former callers (RichTextComponent,
+ * ButtonComponent, ListComponent) have been updated to NOT call this.
+ * Kept for reference only.
+ */
+#if 0
+void A2UIComponent::applyPaddingStyles(const nlohmann::json& properties) {
+    if (!m_nodeHandle) {
+        return;
+    }
+    
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+    
+    const auto& styles = properties["styles"];
+    if (!styles.contains("padding")) {
+        return;
+    }
+    
+    A2UINode node(m_nodeHandle);
+    const auto& paddingVal = styles["padding"];
+    
+    float paddingTop = 0.0f;
+    float paddingRight = 0.0f;
+    float paddingBottom = 0.0f;
+    float paddingLeft = 0.0f;
+    
+    if (paddingVal.is_string()) {
+        // Parse CSS shorthand format like "10 20 30 40"
+        std::string paddingStr = paddingVal.get<std::string>();
+        // Remove "px" suffix if present
+        size_t pxPos = paddingStr.find("px");
+        if (pxPos != std::string::npos) {
+            paddingStr = paddingStr.substr(0, pxPos);
+        }
+        
+        std::vector<float> values;
+        std::istringstream stream(paddingStr);
+        std::string token;
+        while (stream >> token) {
+            values.push_back(static_cast<float>(std::atof(token.c_str())));
+        }
+        
+        if (values.size() == 1) {
+            paddingTop = paddingRight = paddingBottom = paddingLeft = values[0];
+        } else if (values.size() == 2) {
+            paddingTop = paddingBottom = values[0];
+            paddingRight = paddingLeft = values[1];
+        } else if (values.size() == 3) {
+            paddingTop = values[0];
+            paddingRight = paddingLeft = values[1];
+            paddingBottom = values[2];
+        } else if (values.size() >= 4) {
+            paddingTop = values[0];
+            paddingRight = values[1];
+            paddingBottom = values[2];
+            paddingLeft = values[3];
+        }
+    } else if (paddingVal.is_number()) {
+        // Single numeric value
+        const float pad = paddingVal.get<float>();
+        paddingTop = paddingRight = paddingBottom = paddingLeft = pad;
+    }
+    
+    node.setPadding(paddingTop, paddingRight, paddingBottom, paddingLeft);
+}
+#endif
 
 } // namespace a2ui

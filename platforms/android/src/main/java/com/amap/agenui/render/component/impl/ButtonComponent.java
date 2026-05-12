@@ -5,11 +5,9 @@ import android.graphics.drawable.Drawable;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
@@ -37,7 +35,7 @@ public class ButtonComponent extends A2UIComponent {
     private static final String TAG = "ButtonComponent";
 
     private Context context;
-    private LinearLayout buttonContainer;
+    private FrameLayout buttonContainer;
     private String childComponentId;
 
     public ButtonComponent(Context context, String id, Map<String, Object> properties) {
@@ -51,14 +49,11 @@ public class ButtonComponent extends A2UIComponent {
     @Override
     protected View onCreateView(Context context) {
         // Use FrameLayout as the button container to support child components
-        buttonContainer = new LinearLayout(context);
-        buttonContainer.setOrientation(LinearLayout.VERTICAL);
-        buttonContainer.setGravity(Gravity.CENTER);
+        buttonContainer = new FrameLayout(context);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        lp.gravity = Gravity.CENTER;
         buttonContainer.setLayoutParams(lp);
 
         // Note: click listener is automatically set by the base class A2UIComponent

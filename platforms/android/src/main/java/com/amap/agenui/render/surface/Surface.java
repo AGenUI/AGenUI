@@ -43,9 +43,15 @@ public class Surface {
      */
 
     private final String surfaceId;
+
+    /**
+     * Original raw protocol content (the full JSON string that was parsed to create this surface)
+     */
+    private String rawProtocolContent;
     private ViewGroup container;  // Internally created root container; always non-null
     private final Context context;
     private final ComponentEventDispatcher componentEventDispatcher;
+    private final SurfaceLayoutDispatcher surfaceLayoutDispatcher;
 
     private boolean destroyed = false;
     private A2UIComponent rootComponent;
@@ -63,16 +69,31 @@ public class Surface {
     public Surface(
             String surfaceId,
             Context context,
-            ComponentEventDispatcher componentEventDispatcher) {
+            ComponentEventDispatcher componentEventDispatcher,
+            SurfaceLayoutDispatcher surfaceLayoutDispatcher) {
         this.surfaceId = surfaceId;
         this.context = context;
         this.componentEventDispatcher = componentEventDispatcher;
+        this.surfaceLayoutDispatcher = surfaceLayoutDispatcher;
 
         // If a container is provided at construction time, enter the BOUND state immediately
         this.container = new FrameLayout(context);
         this.container.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT));
+        this.container.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (destroyed || this.surfaceLayoutDispatcher == null) {
+                return;
+            }
+            // Report the host container's available size back to native Yoga instead of the
+            // current root view size. The root view can be an auto-sized component such as a
+            // Button/Card/Text; feeding that intrinsic width back as the next root constraint
+            // causes the surface to collapse on itself (for example Button padding leaves
+            // maxWidth=0 for the inner Text on the next layout pass).
+            int width = right - left;
+            int height = bottom - top;
+            this.surfaceLayoutDispatcher.reportSurfaceSize(context, width, height);
+        });
 
         Log.d(TAG, "Surface created: id=" + surfaceId);
     }
@@ -97,6 +118,24 @@ public class Surface {
     }
 
     /**
+     * Sets the raw protocol content
+     *
+     * @param rawProtocolContent Original raw protocol content
+     */
+    public void setRawProtocolContent(String rawProtocolContent) {
+        this.rawProtocolContent = rawProtocolContent;
+    }
+
+    /**
+     * Returns the raw protocol content
+     *
+     * @return Original raw protocol content
+     */
+    public String getRawProtocolContent() {
+        return rawProtocolContent;
+    }
+
+    /**
      * Adds a component
      *
      * @param parentId  Parent component ID (null for root component)
@@ -109,6 +148,7 @@ public class Surface {
 
         component.setSurfaceId(this.surfaceId);
         component.setComponentBridge(this.componentEventDispatcher);
+        component.setSurfaceLayoutDispatcher(this.surfaceLayoutDispatcher);
 
         if (component instanceof com.amap.agenui.render.component.impl.ImageComponent) {
             ((com.amap.agenui.render.component.impl.ImageComponent) component).setAnimationEnabled(animationEnabled);
@@ -270,23 +310,39 @@ public class Surface {
     public void removeComponent(String componentId) {
         Log.d(TAG, "removeComponent: componentId=" + componentId);
 
-        A2UIComponent component = componentTree.remove(componentId);
-        if (component != null) {
-            A2UIComponent parent = component.getParent();
-            if (parent != null) {
-                parent.removeChildById(componentId);
-                // Remove from parent View
-                if (parent.getView() instanceof ViewGroup && component.getView() != null) {
-                    ((ViewGroup) parent.getView()).removeView(component.getView());
-                }
-            } else if (component == rootComponent) {
-                // Remove root component
-                if (component.getView() != null) {
-                    container.removeView(component.getView());
-                }
-                rootComponent = null;
-            }
-            component.destroy();
+        A2UIComponent component = componentTree.get(componentId);
+        if (component == null) {
+            Log.w(TAG, "Component not found: " + componentId);
+            return;
+        }
+
+        if (component == rootComponent) {
+            Log.e(TAG, "removeComponent: attempted to remove root component incrementally, ignored");
+            return;
+        }
+
+        A2UIComponent parent = component.getParent();
+        if (parent != null) {
+            parent.removeChild(component);
+        }
+
+        List<String> subtreeIds = new ArrayList<>();
+        collectSubtreeIds(component, subtreeIds);
+        for (String subtreeId : subtreeIds) {
+            componentTree.remove(subtreeId);
+        }
+
+        component.destroy();
+    }
+
+    private void collectSubtreeIds(A2UIComponent component, List<String> subtreeIds) {
+        if (component == null) {
+            return;
+        }
+
+        subtreeIds.add(component.getId());
+        for (A2UIComponent child : component.getChildren()) {
+            collectSubtreeIds(child, subtreeIds);
         }
     }
 
@@ -827,6 +883,25 @@ public class Surface {
         }
 
         Log.d(TAG, "========== preloadViews END ==========");
+    }
+
+    /**
+     * Starts a surface-level layout transaction so a batch of native component updates can share
+     * one final layout flush.
+     */
+    public void beginLayoutTransaction() {
+        if (surfaceLayoutDispatcher != null) {
+            surfaceLayoutDispatcher.beginTransaction();
+        }
+    }
+
+    /**
+     * Ends the current surface-level layout transaction and flushes batched Yoga frames once.
+     */
+    public void endLayoutTransaction() {
+        if (surfaceLayoutDispatcher != null) {
+            surfaceLayoutDispatcher.endTransaction();
+        }
     }
 
     private ViewGroup getComponentChildContainer(A2UIComponent component) {

@@ -10,7 +10,6 @@ import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.widget.ImageView;
 
@@ -43,11 +42,15 @@ public class ImageComponent extends A2UIComponent {
 
     private static final String TAG = "ImageComponent";
 
+    enum DimensionConstraint {
+        NONE,
+        FIXED,
+        FLEXIBLE
+    }
+
     private Context context;
 
     private BorderImageView imageView;
-
-    private float aspectRatio = 0f; // 0 means aspect ratio is not used
 
     // Animation toggle - controlled by Surface
     private boolean animationEnabled = true;
@@ -56,8 +59,8 @@ public class ImageComponent extends A2UIComponent {
     private ShimmerTransition shimmerTransition;
     private ShimmerTransition.ShimmerView currentShimmerView;
 
-    // Currently loading URL, used for cancellation
-    private String currentLoadUrl;
+    // Currently loading requestId, used for cancellation and stale callback filtering.
+    private String currentRequestId;
 
     public ImageComponent(Context context, String id, Map<String, Object> properties) {
         super(id, "Image");
@@ -159,20 +162,6 @@ public class ImageComponent extends A2UIComponent {
                     Log.d(TAG, "[ImageComponent] Applied border and corners - radius: " +
                             radiusPx + "px, borderWidth: " + borderWidth + "px");
                 }
-
-                // Handle aspect-ratio
-                if (styles.containsKey("aspect-ratio")) {
-                    String aspectRatioStr = String.valueOf(styles.get("aspect-ratio"));
-                    float aspectRatio = parseAspectRatio(aspectRatioStr);
-                    Log.d(TAG, "[ImageComponent] aspect-ratio string: " + aspectRatioStr +
-                            ", parsed value: " + aspectRatio);
-
-                    if (aspectRatio > 0) {
-                        imageView.setAspectRatio(aspectRatio);
-                        Log.d(TAG, "[ImageComponent] Applied aspect ratio from styles: " +
-                                aspectRatio);
-                    }
-                }
             }
         }
     }
@@ -191,11 +180,11 @@ public class ImageComponent extends A2UIComponent {
             return;
         }
 
-        // Cancel the previous loading task
-        if (currentLoadUrl != null) {
-            ImageLoaderConfig.getInstance().getLoader().cancel(currentLoadUrl);
+        // Cancel the previous loading task so a recycled component does not receive stale callbacks.
+        if (currentRequestId != null) {
+            ImageLoaderConfig.getInstance().getLoader().cancel(currentRequestId);
+            currentRequestId = null;
         }
-        currentLoadUrl = src;
 
         // Start Shimmer animation based on animation toggle
         if (animationEnabled) {
@@ -207,17 +196,29 @@ public class ImageComponent extends A2UIComponent {
 
         // Delegate to the pluggable Loader, build options
         Map<String, Object> options = buildLoadOptions();
-        ImageLoaderConfig.getInstance().getLoader().loadImage(src, options, new ImageCallback() {
+        final String[] requestIdHolder = new String[1];
+        String requestId = ImageLoaderConfig.getInstance()
+                .getLoader()
+                .loadImage(src, options, new ImageCallback() {
             @Override
             public void onSuccess(@NonNull ImageLoadResult result) {
-                currentLoadUrl = null;
+                String activeRequestId = requestIdHolder[0];
+                if (activeRequestId == null || !activeRequestId.equals(currentRequestId)) {
+                    return;
+                }
+                currentRequestId = null;
                 imageView.setImageDrawable(result.drawable);
+                reportImageRenderSizeIfNeeded(result.drawable);
                 onImageLoadComplete(result.isFromCache);
             }
 
             @Override
             public void onFailure(@NonNull ImageLoaderError error) {
-                currentLoadUrl = null;
+                String activeRequestId = requestIdHolder[0];
+                if (activeRequestId == null || !activeRequestId.equals(currentRequestId)) {
+                    return;
+                }
+                currentRequestId = null;
                 Log.e(TAG, "[ImageComponent] Image load failed: " + error.getMessage());
                 if (shimmerTransition != null) {
                     shimmerTransition.stopShimmer();
@@ -227,8 +228,13 @@ public class ImageComponent extends A2UIComponent {
                 if (placeholder != null) {
                     imageView.setImageDrawable(placeholder);
                 }
+                if (shouldReportAsyncImageSize()) {
+                    notifyRenderFinish("Image", 0f, 0f);
+                }
             }
         });
+        requestIdHolder[0] = requestId;
+        currentRequestId = requestId;
     }
 
     /**
@@ -241,16 +247,10 @@ public class ImageComponent extends A2UIComponent {
      */
     private Map<String, Object> buildLoadOptions() {
         Map<String, Object> options = new HashMap<>();
+        Map<String, Object> styles = extractStyles(properties);
 
-        // Extract width and height from properties
-        Object widthObj = properties.get("width");
-        if (widthObj instanceof Number) {
-            options.put(ImageLoadOptionsKey.WIDTH, ((Number) widthObj).floatValue());
-        }
-        Object heightObj = properties.get("height");
-        if (heightObj instanceof Number) {
-            options.put(ImageLoadOptionsKey.HEIGHT, ((Number) heightObj).floatValue());
-        }
+        putNumericOption(options, ImageLoadOptionsKey.WIDTH, styles.get("width"));
+        putNumericOption(options, ImageLoadOptionsKey.HEIGHT, styles.get("height"));
 
         // Component ID
         options.put(ImageLoadOptionsKey.COMPONENT_ID, getId());
@@ -279,9 +279,9 @@ public class ImageComponent extends A2UIComponent {
      * Cancel the loading task when the component is destroyed.
      */
     public void onDestroy() {
-        if (currentLoadUrl != null) {
-            ImageLoaderConfig.getInstance().getLoader().cancel(currentLoadUrl);
-            currentLoadUrl = null;
+        if (currentRequestId != null) {
+            ImageLoaderConfig.getInstance().getLoader().cancel(currentRequestId);
+            currentRequestId = null;
         }
     }
 
@@ -323,6 +323,129 @@ public class ImageComponent extends A2UIComponent {
         return String.valueOf(value);
     }
 
+    private void reportImageRenderSizeIfNeeded(Drawable drawable) {
+        if (!shouldReportAsyncImageSize() || drawable == null) {
+            return;
+        }
+        Map<String, Object> styles = extractStyles(properties);
+        int[] reportedSizePx = resolveReportedImageSizePx(drawable, styles);
+        if (reportedSizePx[0] > 0 && reportedSizePx[1] > 0) {
+            notifyRenderFinishFromPx("Image", reportedSizePx[0], reportedSizePx[1]);
+        }
+    }
+
+    // TODO: 2026/5/9 Temporarily comment out size notification 
+    private boolean shouldReportAsyncImageSize() {
+//        Map<String, Object> styles = extractStyles(properties);
+//        return shouldReportAsyncImageSizeForStyles(styles);
+        return false;
+    }
+
+    static boolean shouldReportAsyncImageSizeForStyles(Map<String, Object> styles) {
+        if (styles == null || styles.isEmpty()) {
+            return true;
+        }
+
+        DimensionConstraint widthConstraint = classifyDimensionConstraint(styles.get("width"));
+        DimensionConstraint heightConstraint = classifyDimensionConstraint(styles.get("height"));
+
+        if (widthConstraint != DimensionConstraint.NONE
+                && heightConstraint != DimensionConstraint.NONE) {
+            return false;
+        }
+        return widthConstraint != DimensionConstraint.FLEXIBLE
+                && heightConstraint != DimensionConstraint.FLEXIBLE;
+    }
+
+    static DimensionConstraint classifyDimensionConstraint(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).floatValue() > 0f
+                    ? DimensionConstraint.FIXED
+                    : DimensionConstraint.NONE;
+        }
+        if (value == null) {
+            return DimensionConstraint.NONE;
+        }
+        String raw = String.valueOf(value).trim().toLowerCase();
+        if (raw.isEmpty() || "auto".equals(raw)) {
+            return DimensionConstraint.NONE;
+        }
+        if (raw.endsWith("%")) {
+            return DimensionConstraint.FLEXIBLE;
+        }
+        if (raw.endsWith("px")) {
+            raw = raw.substring(0, raw.length() - 2);
+        }
+        try {
+            return Float.parseFloat(raw) > 0f
+                    ? DimensionConstraint.FIXED
+                    : DimensionConstraint.NONE;
+        } catch (NumberFormatException ignored) {
+            return DimensionConstraint.NONE;
+        }
+    }
+
+    private int[] resolveReportedImageSizePx(Drawable drawable, Map<String, Object> styles) {
+        int intrinsicWidthPx = drawable.getIntrinsicWidth();
+        int intrinsicHeightPx = drawable.getIntrinsicHeight();
+        if (intrinsicWidthPx <= 0 || intrinsicHeightPx <= 0) {
+            intrinsicWidthPx = imageView != null ? imageView.getMeasuredWidth() : 0;
+            intrinsicHeightPx = imageView != null ? imageView.getMeasuredHeight() : 0;
+        }
+
+        if (intrinsicWidthPx <= 0 || intrinsicHeightPx <= 0) {
+            return new int[]{0, 0};
+        }
+
+        DimensionConstraint widthConstraint = classifyDimensionConstraint(styles.get("width"));
+        DimensionConstraint heightConstraint = classifyDimensionConstraint(styles.get("height"));
+        float intrinsicAspectRatio = intrinsicHeightPx > 0
+                ? (float) intrinsicWidthPx / intrinsicHeightPx
+                : 0f;
+
+        if (widthConstraint == DimensionConstraint.FIXED
+                && heightConstraint == DimensionConstraint.NONE
+                && intrinsicAspectRatio > 0f) {
+            int widthPx = resolveFixedDimensionPx(styles.get("width"));
+            if (widthPx > 0) {
+                return new int[]{widthPx, Math.max(1, Math.round(widthPx / intrinsicAspectRatio))};
+            }
+        }
+
+        if (widthConstraint == DimensionConstraint.NONE
+                && heightConstraint == DimensionConstraint.FIXED
+                && intrinsicAspectRatio > 0f) {
+            int heightPx = resolveFixedDimensionPx(styles.get("height"));
+            if (heightPx > 0) {
+                return new int[]{Math.max(1, Math.round(heightPx * intrinsicAspectRatio)), heightPx};
+            }
+        }
+
+        return new int[]{intrinsicWidthPx, intrinsicHeightPx};
+    }
+
+    private int resolveFixedDimensionPx(Object value) {
+        return context == null ? 0 : StyleHelper.parseDimension(value, context);
+    }
+
+    private void putNumericOption(Map<String, Object> options, String key, Object value) {
+        if (value instanceof Number) {
+            options.put(key, ((Number) value).floatValue());
+            return;
+        }
+        if (value == null) {
+            return;
+        }
+        String raw = String.valueOf(value).trim().toLowerCase();
+        if (raw.endsWith("px")) {
+            raw = raw.substring(0, raw.length() - 2);
+        }
+        try {
+            options.put(key, Float.parseFloat(raw));
+        } catch (NumberFormatException ignored) {
+        }
+    }
+
     /**
      * Parse scale mode.
      * A2UI v0.9 protocol values: contain, cover, fill, none, scale-down
@@ -336,52 +459,14 @@ public class ImageComponent extends A2UIComponent {
             case "fill":
                 return ImageView.ScaleType.FIT_XY;
             case "none":
-                return ImageView.ScaleType.CENTER;
+                // none maps to fill: stretch to fill container
+                return ImageView.ScaleType.FIT_XY;
             case "scale-down":
                 // scale-down is similar to contain but does not enlarge the image
                 return ImageView.ScaleType.CENTER_INSIDE;
             default:
                 return ImageView.ScaleType.FIT_CENTER;
         }
-    }
-
-    /**
-     * Parse an aspect-ratio string.
-     * Supported formats:
-     * - "4 / 3" - ratio format
-     * - "16 / 9" - ratio format
-     * - "1.333" - decimal format
-     *
-     * @param aspectRatioStr aspect-ratio string
-     * @return aspect ratio value (width/height), 0 if parsing fails
-     */
-    private float parseAspectRatio(String aspectRatioStr) {
-        if (aspectRatioStr == null || aspectRatioStr.trim().isEmpty()) {
-            return 0f;
-        }
-
-        try {
-            aspectRatioStr = aspectRatioStr.trim();
-
-            // Check if it contains "/" (ratio format)
-            if (aspectRatioStr.contains("/")) {
-                String[] parts = aspectRatioStr.split("/");
-                if (parts.length == 2) {
-                    float width = Float.parseFloat(parts[0].trim());
-                    float height = Float.parseFloat(parts[1].trim());
-                    if (height > 0) {
-                        return width / height;
-                    }
-                }
-            } else {
-                // Parse directly as a decimal
-                return Float.parseFloat(aspectRatioStr);
-            }
-        } catch (NumberFormatException e) {
-            Log.e(TAG, "[ImageComponent] Failed to parse aspect-ratio: " + aspectRatioStr, e);
-        }
-
-        return 0f;
     }
 
     /**
@@ -417,10 +502,9 @@ public class ImageComponent extends A2UIComponent {
     }
 
     /**
-     * Custom BorderImageView - supports border, rounded corners, and aspect ratio
+     * Custom BorderImageView - supports border and rounded corners
      */
     private static class BorderImageView extends ImageView {
-        private float aspectRatio = 0f;
 
         // Border-related properties
         private Paint borderPaint;
@@ -444,16 +528,6 @@ public class ImageComponent extends A2UIComponent {
 
             borderPath = new Path();
             borderRect = new RectF();
-        }
-
-        /**
-         * Set aspect ratio.
-         *
-         * @param ratio aspect ratio value (width/height), 0 means no aspect ratio constraint
-         */
-        public void setAspectRatio(float ratio) {
-            this.aspectRatio = ratio;
-            requestLayout();
         }
 
         /**
@@ -482,31 +556,6 @@ public class ImageComponent extends A2UIComponent {
         public void setCornerRadius(float radius) {
             this.cornerRadius = radius;
             invalidate(); // redraw
-        }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-
-            int widthMode = MeasureSpec.getMode(widthMeasureSpec);
-            int widthSize = MeasureSpec.getSize(widthMeasureSpec);
-            int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-            int heightSize = MeasureSpec.getSize(heightMeasureSpec);
-            boolean isWidthExactly = widthMode == MeasureSpec.EXACTLY || getLayoutParams().width != ViewGroup.LayoutParams.WRAP_CONTENT;
-            boolean isHeightExactly = heightMode == MeasureSpec.EXACTLY || getLayoutParams().height != ViewGroup.LayoutParams.WRAP_CONTENT;
-
-            if (aspectRatio > 0 && (isWidthExactly || isHeightExactly)) {
-                if (isWidthExactly && !isHeightExactly) {
-                    int height = (int) (widthSize / aspectRatio);
-                    setMeasuredDimension(widthSize, height);
-                } else if (!isWidthExactly && isHeightExactly) {
-                    int width = (int) (heightSize * aspectRatio);
-                    setMeasuredDimension(width, heightSize);
-                } else {
-                    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-                }
-            } else {
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-            }
         }
 
         @Override

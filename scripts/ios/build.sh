@@ -90,7 +90,7 @@ esac
 
 [[ -f "$RUNNER" ]] || error "Underlying build script not found: ${RUNNER}"
 [[ -d "$IOS_PROJECT_ROOT" ]] || error "iOS project directory not found: ${IOS_PROJECT_ROOT}"
-ensure_engine_dir
+ensure_core_dir
 
 # -------------------- Default workspace auto-detection --------------------
 if [[ -z "$WORKSPACE" && -z "$PROJECT" ]]; then

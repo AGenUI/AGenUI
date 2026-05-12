@@ -46,6 +46,9 @@ import UIKit
     /// Per-instance SurfaceManager bridge (owns an independent C++ ISurfaceManager)
     private let surfaceBridge = AGenUIEngineSurfaceManagerBridge()
 
+    /// Measurement bridge (registers C++ IMeasurement, forwards to Swift callbacks)
+    /// Now uses static methods on AGenUIEngineMeasurementBridge
+
     /// Listener container (weak references)
     private let listeners = NSHashTable<SurfaceManagerListener>.weakObjects()
 
@@ -54,8 +57,15 @@ import UIKit
     public override init() {
         super.init()
         
+        _ = ComponentRegister.shared
+        
         // Register for notifications from this instance's surfaceBridge
         setupNotificationObservers()
+
+        // Initialize measurement bridge and register Swift measurement callbacks
+        AGenUIEngineMeasurementBridge.measureCallback = { [weak self] (componentType: String, paramJson: String, maxWidth: Float, widthMode: Int32, maxHeight: Float, heightMode: Int32) -> CGSize in
+            return self?.measureComponent(type: componentType, paramJson: paramJson, maxWidth: maxWidth, widthMode: Int(widthMode), maxHeight: maxHeight, heightMode: Int(heightMode)) ?? .zero
+        }
     }
     
     deinit {
@@ -78,8 +88,22 @@ import UIKit
         
         notificationCenter.addObserver(
             self,
-            selector: #selector(handleUpdateComponentsNotification(_:)),
-            name: NSNotification.Name(rawValue: "AGenUIUpdateComponentsNotification_\(instanceId)"),
+            selector: #selector(handleComponentsUpdateNotification(_:)),
+            name: NSNotification.Name(rawValue: "AGenUIComponentsUpdateNotification_\(instanceId)"),
+            object: surfaceBridge
+        )
+        
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(handleComponentsAddNotification(_:)),
+            name: NSNotification.Name(rawValue: "AGenUIComponentsAddNotification_\(instanceId)"),
+            object: surfaceBridge
+        )
+        
+        notificationCenter.addObserver(
+            self,
+            selector: #selector(handleComponentsRemoveNotification(_:)),
+            name: NSNotification.Name(rawValue: "AGenUIComponentsRemoveNotification_\(instanceId)"),
             object: surfaceBridge
         )
         
@@ -110,23 +134,48 @@ import UIKit
             Logger.shared.error("Invalid create surface notification userInfo")
             return
         }
+        
+        let rawProtocolContent = userInfo["rawProtocolContent"] as? String ?? ""
                 
         onCreateSurface(withSurfaceId: surfaceId,
                        catalogId: catalogId,
                        theme: theme,
                        sendDataModel: sendDataModelValue.boolValue,
-                    animated: animatedValue.boolValue)
+                       animated: animatedValue.boolValue,
+                       rawProtocolContent: rawProtocolContent)
     }
     
-    @objc private func handleUpdateComponentsNotification(_ notification: Notification) {
+    @objc private func handleComponentsUpdateNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let surfaceId = userInfo["surfaceId"] as? String,
-              let components = userInfo["components"] as? [String] else {
-            Logger.shared.error("Invalid update components notification userInfo")
+              let messages = userInfo["componentsUpdate"] as? [[String: String]] else {
+            Logger.shared.error("Invalid components update notification userInfo")
             return
         }
         
-        onUpdateComponents(withSurfaceId: surfaceId, components: components)
+        onComponentsUpdate(withSurfaceId: surfaceId, messages: messages)
+    }
+    
+    @objc private func handleComponentsAddNotification(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let surfaceId = userInfo["surfaceId"] as? String,
+              let messages = userInfo["componentsAdd"] as? [[String: String]] else {
+            Logger.shared.error("Invalid components add notification userInfo")
+            return
+        }
+        
+        onComponentsAdd(withSurfaceId: surfaceId, messages: messages)
+    }
+    
+    @objc private func handleComponentsRemoveNotification(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let surfaceId = userInfo["surfaceId"] as? String,
+              let messages = userInfo["componentsRemove"] as? [[String: String]] else {
+            Logger.shared.error("Invalid components remove notification userInfo")
+            return
+        }
+        
+        onComponentsRemove(withSurfaceId: surfaceId, messages: messages)
     }
     
     @objc private func handleDeleteSurfaceNotification(_ notification: Notification) {
@@ -248,6 +297,28 @@ import UIKit
         surfaceBridge.syncState(surfaceId, componentId: componentId, context: contextJson)
     }
     
+    /// Notify C++ engine that surface size changed
+    ///
+    /// - Parameters:
+    ///   - surfaceId: Surface ID
+    ///   - widthA2ui: New width in a2ui units (pt * 2)
+    ///   - heightA2ui: New height in a2ui units (pt * 2)
+    func notifySurfaceSizeChanged(surfaceId: String, width: Float, height: Float) {
+        surfaceBridge.notifySurfaceSizeChanged(surfaceId, width: width, height: height)
+    }
+    
+    /// Notify C++ engine that a component has finished rendering with its actual size
+    ///
+    /// - Parameters:
+    ///   - surfaceId: Surface ID
+    ///   - componentId: Component ID
+    ///   - type: Component type
+    ///   - widthA2ui: Rendered width in a2ui units (pt * 2)
+    ///   - heightA2ui: Rendered height in a2ui units (pt * 2)
+    func notifyComponentRenderFinish(surfaceId: String, componentId: String, type: String, width: Float, height: Float) {
+        surfaceBridge.notifyComponentRenderFinish(surfaceId, componentId: componentId, type: type, width: width * 2.0, height: height * 2.0)
+    }
+    
     // MARK: - Helper Methods
     
     /// Convert dictionary to JSON string
@@ -269,7 +340,8 @@ import UIKit
                                       catalogId: String,
                                       theme: [String: String],
                                       sendDataModel: Bool,
-                                      animated: Bool = true) {
+                                      animated: Bool = true,
+                                      rawProtocolContent: String = "") {
         Logger.shared.info("Surface will create: \(surfaceId), catalogId: \(catalogId)")
 
         // If already exists, return
@@ -281,6 +353,7 @@ import UIKit
         // Create new Surface with provided size
         let surface = Surface(surfaceId: surfaceId)
         surface.animationEnabled = animated
+        surface.rawProtocolContent = rawProtocolContent
         surface.surfaceManager = self
         surfaces[surfaceId] = surface
         
@@ -292,18 +365,40 @@ import UIKit
         }
     }
     
-    /// Update components handler (internal)
-    func onUpdateComponents(withSurfaceId surfaceId: String, components: [String]) {
-        Logger.shared.info("Surface update components: \(surfaceId), components count: \(components.count)")
+    /// Components update handler (internal)
+    func onComponentsUpdate(withSurfaceId surfaceId: String, messages: [[String: String]]) {
+        Logger.shared.info("Surface components update: \(surfaceId), messages count: \(messages.count)")
         
-        // Get Surface
         guard let surface = surfaces[surfaceId] else {
             Logger.shared.warning("Surface not found: \(surfaceId)")
             return
         }
         
-        // Process components
-        surface.processComponents(components)
+        surface.processComponentsUpdate(messages)
+    }
+    
+    /// Components add handler (internal)
+    func onComponentsAdd(withSurfaceId surfaceId: String, messages: [[String: String]]) {
+        Logger.shared.info("Surface components add: \(surfaceId), messages count: \(messages.count)")
+        
+        guard let surface = surfaces[surfaceId] else {
+            Logger.shared.warning("Surface not found: \(surfaceId)")
+            return
+        }
+        
+        surface.processComponentsAdd(messages)
+    }
+    
+    /// Components remove handler (internal)
+    func onComponentsRemove(withSurfaceId surfaceId: String, messages: [[String: String]]) {
+        Logger.shared.info("Surface components remove: \(surfaceId), messages count: \(messages.count)")
+        
+        guard let surface = surfaces[surfaceId] else {
+            Logger.shared.warning("Surface not found: \(surfaceId)")
+            return
+        }
+        
+        surface.processComponentsRemove(messages)
     }
     
     /// Delete Surface handler (internal)
@@ -324,5 +419,30 @@ import UIKit
         Logger.shared.info("Surface destroyed: \(surfaceId)")
     }
     
+    // MARK: - Component Measurement
+
+    /// Measure the intrinsic size of a component
+    ///
+    /// Called back by the C++ Yoga layout engine, forwarding to the
+    /// corresponding component class's class measure method.
+    /// This method is called on the engine's background thread.
+    private func measureComponent(type: String,
+                                   paramJson: String,
+                                   maxWidth: Float,
+                                   widthMode: Int,
+                                   maxHeight: Float,
+                                   heightMode: Int) -> CGSize {
+        guard let componentClass = ComponentRegister.shared.classForType(type) else {
+            return .zero
+        }
+        let wMode = MeasureMode(rawValue: widthMode) ?? .undefined
+        let hMode = MeasureMode(rawValue: heightMode) ?? .undefined
+        return componentClass.measure(paramJson: paramJson,
+                                      maxWidth: maxWidth,
+                                      widthMode: wMode,
+                                      maxHeight: maxHeight,
+                                      heightMode: hMode)
+    }
+
 }
 

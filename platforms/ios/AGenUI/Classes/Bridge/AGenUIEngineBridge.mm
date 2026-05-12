@@ -7,6 +7,7 @@
 
 #import "AGenUIEngineBridge.h"
 #import "AGenUIEngineFunction.h"
+#import "AGenUILoggerBridge.h"
 #include "agenui_engine_entry.h"
 #include "agenui_surface_manager_interface.h"
 #include <memory>
@@ -18,6 +19,7 @@
 
 @property (nonatomic, unsafe_unretained) agenui::IAGenUIEngine* engine;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AGenUIFunctionCallCallback>* functionCallCallbacks;
+@property (nonatomic, strong) AGenUILoggerBridge* perfLoggerBridge;
 
 @end
 
@@ -233,6 +235,21 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
     }
     std::string dir = [workingDir UTF8String];
     _engine->setWorkingDir(dir);
+}
+
+- (void)setRuntimeLogEnabled:(BOOL)enabled {
+    if (_engine == nullptr) {
+        return;
+    }
+    
+    if (enabled) {
+        if (_perfLoggerBridge == nil) {
+            _perfLoggerBridge = [[AGenUILoggerBridge alloc] init];
+        }
+        _engine->setRuntimeLogger(static_cast<agenui::IRuntimeLogger*>([_perfLoggerBridge cppRumtimeLoggerPointer]));
+    } else {
+        _engine->setRuntimeLogger(nullptr);
+    }
 }
 
 @end

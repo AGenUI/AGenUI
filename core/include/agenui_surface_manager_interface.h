@@ -9,6 +9,8 @@ class IComponentRenderObservable;
 class ISurfaceLayoutObservable;
 struct ActionMessage;
 struct SyncUIToDataMessage;
+struct ComponentRenderInfo;
+struct SurfaceLayoutInfo;
 
 /**
  * @brief SurfaceManager external interface
@@ -113,6 +115,16 @@ public:
      * @param surfaceLayoutObservable Surface service interface pointer
      */
     virtual void setSurfaceLayoutObservable(ISurfaceLayoutObservable* surfaceLayoutObservable) = 0;
+
+    /**
+     * @brief Receives a component render-finish callback from platform code.
+     */
+    virtual void onRenderFinish(const ComponentRenderInfo& info) = 0;
+
+    /**
+     * @brief Receives a surface size change callback from platform code.
+     */
+    virtual void onSurfaceSizeChanged(const SurfaceLayoutInfo& info) = 0;
 };
 
 } // namespace agenui

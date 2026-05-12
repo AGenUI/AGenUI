@@ -11,6 +11,7 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -44,11 +45,13 @@ import java.util.Map;
 public class TabsComponent extends A2UILayoutComponent {
 
     private static final String TAG = "TabsComponent";
+    private static final String RENDER_FINISH_TYPE_TABS_INDEX_CHANGE = "TabsIndexChange";
 
     private LinearLayout containerLayout;
     private TabLayout tabLayout;
     private FrameLayout contentContainer;
     private List<A2UIComponent> tabContents;
+    private int selectedIndex = 0;
 
     public TabsComponent(String id, Map<String, Object> properties) {
         super(id, "Tabs");
@@ -149,7 +152,9 @@ public class TabsComponent extends A2UILayoutComponent {
     /**
      * Create and configure TabLayout
      */
-    private TabLayout createTabLayout(Context themedContext, Context context, Map<String, String> styleConfig) {
+    private TabLayout createTabLayout(Context themedContext,
+                                      Context context,
+                                      ComponentStyleConfig.StyleHashMap<String, String> styleConfig) {
         TabLayout layout = (TabLayout) LayoutInflater.from(themedContext).inflate(R.layout.tab_layout, containerLayout, false);
 
         // Apply tab-mode configuration
@@ -208,7 +213,9 @@ public class TabsComponent extends A2UILayoutComponent {
     /**
      * Apply indicator style
      */
-    private void applyIndicatorStyle(TabLayout tabLayout, Context context, Map<String, String> styleConfig) {
+    private void applyIndicatorStyle(TabLayout tabLayout,
+                                     Context context,
+                                     ComponentStyleConfig.StyleHashMap<String, String> styleConfig) {
         // Get configuration
         String indicatorColor = styleConfig.getOrDefault("indicator-color", "#2273F7");
         String indicatorWidth = styleConfig.getOrDefault("indicator-width", "48px");
@@ -271,7 +278,8 @@ public class TabsComponent extends A2UILayoutComponent {
     /**
      * Apply text color style (new protocol)
      */
-    private void applyTextStyle(TabLayout tabLayout, Map<String, String> styleConfig) {
+    private void applyTextStyle(TabLayout tabLayout,
+                                ComponentStyleConfig.StyleHashMap<String, String> styleConfig) {
         String tabFontColor = styleConfig.getOrDefault("tab-font-color", "#2273F7");
         String tabFontColorSelected = styleConfig.getOrDefault("tab-font-color-selected", "#000000");
         tabLayout.setTabTextColors(
@@ -289,7 +297,6 @@ public class TabsComponent extends A2UILayoutComponent {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        params.topMargin = (int) (8 * context.getResources().getDisplayMetrics().density);
         container.setLayoutParams(params);
         return container;
     }
@@ -304,6 +311,7 @@ public class TabsComponent extends A2UILayoutComponent {
                 int position = tab.getPosition();
                 showTabContent(position);
                 updateTabStyle(tab, true);
+                onTabClicked(position);
             }
             
             @Override
@@ -317,7 +325,10 @@ public class TabsComponent extends A2UILayoutComponent {
             }
         });
     }
-    
+
+    protected void onTabClicked(int index) {
+    }
+
     /**
      * Parse tab configuration
      * Uses the protocol-defined tabs property
@@ -366,6 +377,75 @@ public class TabsComponent extends A2UILayoutComponent {
             Log.w(TAG, "[TabsComponent] parseTabs - tabs property is not a List or is null");
         }
         Log.d(TAG, "[TabsComponent] ========== parseTabs END ==========");
+    }
+
+    private int resolveSelectedIndex() {
+        int resolvedIndex = 0;
+        Object selectedIndexObj = properties.get("selectedIndex");
+        if (selectedIndexObj instanceof Number) {
+            resolvedIndex = ((Number) selectedIndexObj).intValue();
+        } else if (selectedIndexObj != null) {
+            try {
+                resolvedIndex = Integer.parseInt(String.valueOf(selectedIndexObj));
+            } catch (NumberFormatException e) {
+                Log.w(TAG, "[TabsComponent] Invalid selectedIndex: " + selectedIndexObj, e);
+            }
+        }
+
+        int configuredTabCount = 0;
+        Object tabsObj = properties.get("tabs");
+        if (tabsObj instanceof List) {
+            configuredTabCount = ((List<?>) tabsObj).size();
+        }
+        if (configuredTabCount > 0) {
+            resolvedIndex = Math.max(0, Math.min(resolvedIndex, configuredTabCount - 1));
+        } else {
+            resolvedIndex = Math.max(0, resolvedIndex);
+        }
+        return resolvedIndex;
+    }
+
+    private void normalizeTabContentLayout(View view) {
+        if (view == null) {
+            return;
+        }
+
+        ViewGroup.LayoutParams rawParams = view.getLayoutParams();
+        int width = rawParams != null ? rawParams.width : ViewGroup.LayoutParams.MATCH_PARENT;
+        int height = rawParams != null ? rawParams.height : ViewGroup.LayoutParams.WRAP_CONTENT;
+        if (width <= 0) {
+            width = ViewGroup.LayoutParams.MATCH_PARENT;
+        }
+        if (height <= 0) {
+            height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        }
+
+        FrameLayout.LayoutParams normalizedParams;
+        if (rawParams instanceof FrameLayout.LayoutParams) {
+            normalizedParams = new FrameLayout.LayoutParams((FrameLayout.LayoutParams) rawParams);
+        } else if (rawParams instanceof ViewGroup.MarginLayoutParams) {
+            normalizedParams = new FrameLayout.LayoutParams((ViewGroup.MarginLayoutParams) rawParams);
+        } else if (rawParams != null) {
+            normalizedParams = new FrameLayout.LayoutParams(rawParams);
+        } else {
+            normalizedParams = new FrameLayout.LayoutParams(width, height);
+        }
+
+        normalizedParams.width = width;
+        normalizedParams.height = height;
+        normalizedParams.leftMargin = 0;
+        normalizedParams.topMargin = 0;
+        normalizedParams.rightMargin = 0;
+        normalizedParams.bottomMargin = 0;
+        normalizedParams.gravity = Gravity.TOP | Gravity.START;
+        view.setTranslationX(0f);
+        view.setTranslationY(0f);
+        view.setLayoutParams(normalizedParams);
+
+        Log.d(TAG, "[TabsComponent] normalized child layout: id=" + getId()
+                + ", childClass=" + view.getClass().getSimpleName()
+                + ", width=" + width
+                + ", height=" + height);
     }
     
     /**
@@ -429,7 +509,8 @@ public class TabsComponent extends A2UILayoutComponent {
             
             if (textView != null) {
                 Context context = tab.view.getContext();
-                Map<String, String> styleConfig = ComponentStyleConfig.getInstance(context).getTabsStyle();
+                ComponentStyleConfig.StyleHashMap<String, String> styleConfig =
+                        ComponentStyleConfig.getInstance(context).getTabsStyle();
                 if (isSelected) {
                     // Selected state: read from configuration
                     String fontWeightSelected = styleConfig.getOrDefault("tab-font-weight-selected", "bold");
@@ -468,6 +549,21 @@ public class TabsComponent extends A2UILayoutComponent {
      * Show the content for the specified tab
      */
     private void showTabContent(int index) {
+        Log.d(TAG, "[TabsComponent] showTabContent index=" + index + ", tabContents=" + tabContents.size());
+
+        if (index < 0) {
+            Log.w(TAG, "[TabsComponent] showTabContent ignored for invalid index=" + index);
+            return;
+        }
+
+        if (index < tabLayout.getTabCount()) {
+            TabLayout.Tab tab = tabLayout.getTabAt(index);
+            if (tab != null && !tab.isSelected()) {
+                tab.select();
+                return;
+            }
+        }
+
         contentContainer.removeAllViews();
         
         if (index >= 0 && index < tabContents.size()) {
@@ -479,18 +575,16 @@ public class TabsComponent extends A2UILayoutComponent {
                 if (view.getParent() != null) {
                     ((ViewGroup) view.getParent()).removeView(view);
                 }
-                
+
+                normalizeTabContentLayout(view);
                 contentContainer.addView(view);
+                selectedIndex = index;
             }
         }
         
-        // Select the corresponding tab
-        if (index >= 0 && index < tabLayout.getTabCount()) {
-            TabLayout.Tab tab = tabLayout.getTabAt(index);
-            if (tab != null && !tab.isSelected()) {
-                tab.select();
-            }
-        }
+        notifyRenderFinish(RENDER_FINISH_TYPE_TABS_INDEX_CHANGE, 0f, 0f, index);
+        Log.d(TAG, "[TabsComponent] notifyRenderFinish type=" + RENDER_FINISH_TYPE_TABS_INDEX_CHANGE
+                + ", componentId=" + getId() + ", selectedIndex=" + index);
     }
     
     /**
@@ -618,9 +712,10 @@ public class TabsComponent extends A2UILayoutComponent {
             
             // Key fix: always show the first tab content regardless of whether tabs need to be recreated
             // because even if tabs were already created in onCreateView, the content container is still empty
-            Log.d(TAG, "→ Showing first tab content");
-            showTabContent(0);
-            Log.d(TAG, "✓ First tab content displayed");
+            selectedIndex = resolveSelectedIndex();
+            Log.d(TAG, "→ Showing selected tab content: index=" + selectedIndex);
+            showTabContent(selectedIndex);
+            Log.d(TAG, "✓ Selected tab content displayed");
             Log.d(TAG, "  contentContainer child count after show: " + contentContainer.getChildCount());
         } else {
             Log.d(TAG, "⏳ Not all child views created yet, waiting...");
@@ -674,11 +769,18 @@ public class TabsComponent extends A2UILayoutComponent {
             // Re-parse and create tabs
             parseTabs();
 
-            // Show the first tab
+            selectedIndex = resolveSelectedIndex();
+            Log.d(TAG, "→ Resolved selectedIndex=" + selectedIndex);
+
+            // Show the selected tab
             if (tabLayout.getTabCount() > 0) {
-                Log.d(TAG, "→ Showing first tab content");
-                showTabContent(0);
+                Log.d(TAG, "→ Showing selected tab content");
+                showTabContent(selectedIndex);
             }
+        } else if (tabLayout != null && properties.containsKey("selectedIndex")) {
+            selectedIndex = resolveSelectedIndex();
+            Log.d(TAG, "→ Updating selected tab only, index=" + selectedIndex);
+            showTabContent(selectedIndex);
         } else {
             if (tabLayout == null) {
                 Log.w(TAG, "⚠ tabLayout is null, cannot parse tabs yet");

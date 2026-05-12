@@ -9,15 +9,17 @@ namespace agenui {
 
 class IDataModel;
 class IDataChangedObserver;
+class CheckRuleDataValue;
 
 /**
  * @brief Checks data value
- * @remark Represents a set of validation check items with implicit AND logic
+ * @remark Represents a set of validation check rules with implicit AND logic
  */
 class ChecksDataValue : public DataValue {
 public:
-    ChecksDataValue(IDataModel* dataModel, const std::vector<std::shared_ptr<DataValue>>& checks);
-    
+    ChecksDataValue(IDataModel* dataModel,
+                    const std::vector<std::shared_ptr<CheckRuleDataValue>>& rules);
+
     DataType getDataType() const override;
     DataBindingStatus getDataBindingStatus() const override;
     SerializableData getValueData() const override;
@@ -26,7 +28,7 @@ public:
     std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const override;
 
 private:
-    std::vector<std::shared_ptr<DataValue>> _checks;
+    std::vector<std::shared_ptr<CheckRuleDataValue>> _checks;
 };
 
 }  // namespace agenui

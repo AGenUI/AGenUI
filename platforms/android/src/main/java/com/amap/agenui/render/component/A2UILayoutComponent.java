@@ -13,8 +13,8 @@ import java.util.Map;
  *
  * Responsibilities:
  * 1. Inherits all common functionality from A2UIComponent
- * 2. Provides layout-container-specific style handling (Flexbox, positioning, overflow, etc.)
- * 3. Automatically applies Flex child element styles to child components
+ * 2. Provides layout-container-specific style handling (overflow and container semantics)
+ * 3. Uses YogaAbsoluteLayout-managed child positioning supplied by the native layout pipeline
  * 4. Provides "child container" semantics: the root View and the container that holds child
  *    components can be different objects
  *
@@ -55,11 +55,9 @@ public abstract class A2UILayoutComponent extends A2UIComponent {
 
     @Override
     public void onUpdateProperties(Map<String, Object> properties) {
-        this.properties.putAll(properties);
-
         if (view != null) {
             if (view instanceof ViewGroup) {
-                applyLayoutStyles((ViewGroup) view, properties);
+                applyLayoutStyles((ViewGroup) view, this.properties);
             }
         }
     }
@@ -70,19 +68,11 @@ public abstract class A2UILayoutComponent extends A2UIComponent {
             return;
         }
 
-        StyleHelper.applyFlexContainer(viewGroup, styles);
-        StyleHelper.applyPosition(viewGroup, styles);
         StyleHelper.applyOverflow(viewGroup, styles);
-        StyleHelper.applyGap(viewGroup, styles);
     }
 
     @Override
     public void addChild(A2UIComponent child) {
         super.addChild(child);
-
-        if (child != null && child.getView() != null) {
-            applyFlexChildStyles(child.getView(), child);
-            applyPositionStyles(child.getView(), child);
-        }
     }
 }

@@ -10,6 +10,17 @@
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
 #include "agenui_engine_entry.h"
 #include "agenui_surface_manager_interface.h"
+#include "agenui_measurement.h"
+#include "a2ui/measure/image_component_measurement.h"
+#include "a2ui/measure/slider_component_measurement.h"
+#include "a2ui/measure/text_component_measurement.h"
+#include "a2ui/measure/checkbox_component_measurement.h"
+#include "a2ui/measure/choice_picker_component_measurement.h"
+#include "a2ui/measure/table_component_measurement.h"
+#include "a2ui/measure/tabs_component_measurement.h"
+#include "a2ui/measure/datetimeinput_component_measurement.h"
+#include "a2ui/measure/divider_component_measurement.h"
+#include "a2ui/measure/audioplayer_component_measurement.h"
 #include "a2ui/render/a2ui_component_state.h"
 #include "a2ui/a2ui_component_render_observable.h"
 #include "a2ui/a2ui_surface_layout_observable.h"
@@ -17,6 +28,8 @@
 #include "a2ui/utils/a2ui_unit_utils.h"
 #include "log/a2ui_capi_log.h"
 #include "a2ui_api.h"
+#include "agenui_logger_interface.h"
+#include "agenui_logger_internal.h"
 
 #undef LOG_DOMAIN
 #undef LOG_TAG
@@ -26,6 +39,13 @@
 #include <pthread.h>
 #include <map>
 #include <mutex>
+#include <condition_variable>
+#include <cstdarg>
+#include <string>
+
+// Thread-safe function for dispatching worker-thread callbacks onto the main thread.
+// Declared here (before namespace a2ui) so RuntimeLoggerImpl::log() can access it.
+static napi_threadsafe_function g_mainTsfn = nullptr;
 
 namespace a2ui {
 
@@ -49,6 +69,131 @@ static HarmonyNAPI g_harmony_napi;
 IHarmonyNAPI* implHarmonyNAPI() {
     return &g_harmony_napi;
 }
+
+// MARK: - C++ Wrapper Class for HarmonyOS
+class RuntimeLoggerImpl : public agenui::IRuntimeLogger {
+public:
+    RuntimeLoggerImpl(napi_env env, napi_ref arktsLoggerRef) 
+        : mEnv(env), mArktsLoggerRef(arktsLoggerRef), mMainThreadId(pthread_self()) {}
+    
+    ~RuntimeLoggerImpl() {
+        if (mEnv && mArktsLoggerRef) {
+            napi_delete_reference(mEnv, mArktsLoggerRef);
+            mArktsLoggerRef = nullptr;
+        }
+    }
+    
+    void log(agenui::LogLevel level, const char* tag, const char* func, int line, const char* format, ...) override {
+        // Format the message using variadic arguments
+        va_list args;
+        va_start(args, format);
+        char buffer[4096];
+        vsnprintf(buffer, sizeof(buffer), format, args);
+        va_end(args);
+
+        // NAPI calls can only be made from the main thread
+        if (pthread_self() != mMainThreadId) {
+            // Always output to hilog for immediate visibility
+            LogLevel hilogLevel;
+            switch (level) {
+                case agenui::LOG_LEVEL_DEBUG:   hilogLevel = LOG_DEBUG; break;
+                case agenui::LOG_LEVEL_INFO:    hilogLevel = LOG_INFO; break;
+                case agenui::LOG_LEVEL_WARN:    hilogLevel = LOG_WARN; break;
+                case agenui::LOG_LEVEL_ERROR:   hilogLevel = LOG_ERROR; break;
+                case agenui::LOG_LEVEL_FATAL:   hilogLevel = LOG_FATAL; break;
+                default:                        hilogLevel = LOG_INFO; break;
+            }
+            OH_LOG_Print(LOG_APP, hilogLevel, LOG_DOMAIN, tag ? tag : "AGenUI", "[%{public}s:%{public}d] %{public}s", func ? func : "", line, buffer);
+
+            // Also dispatch to the ArkTS custom logger via TSFN
+            if (g_mainTsfn && mArktsLoggerRef) {
+                // Capture all data needed for the main-thread callback
+                int32_t capturedLevel = static_cast<int32_t>(level);
+                std::string capturedTag = tag ? tag : "";
+                std::string capturedFunc = func ? func : "";
+                int capturedLine = line;
+                std::string capturedMessage = buffer;
+                napi_ref loggerRef = mArktsLoggerRef;
+
+                auto* task = new agenui::MainThreadTask(
+                    [loggerRef, capturedLevel, capturedTag = std::move(capturedTag),
+                     capturedFunc = std::move(capturedFunc), capturedLine,
+                     capturedMessage = std::move(capturedMessage)](napi_env env) {
+                        napi_value loggerValue;
+                        napi_status st = napi_get_reference_value(env, loggerRef, &loggerValue);
+                        if (st != napi_ok || loggerValue == nullptr) return;
+
+                        napi_value method;
+                        st = napi_get_named_property(env, loggerValue, "onLogFromNative", &method);
+                        if (st != napi_ok) return;
+
+                        napi_value argv[5];
+                        napi_create_int32(env, capturedLevel, &argv[0]);
+                        napi_create_string_utf8(env, capturedTag.c_str(), NAPI_AUTO_LENGTH, &argv[1]);
+                        napi_create_string_utf8(env, capturedFunc.c_str(), NAPI_AUTO_LENGTH, &argv[2]);
+                        napi_create_int32(env, capturedLine, &argv[3]);
+                        napi_create_string_utf8(env, capturedMessage.c_str(), NAPI_AUTO_LENGTH, &argv[4]);
+
+                        napi_value result;
+                        napi_call_function(env, loggerValue, method, 5, argv, &result);
+                    });
+                napi_status tsfnStatus = napi_call_threadsafe_function(g_mainTsfn, task, napi_tsfn_nonblocking);
+                if (tsfnStatus != napi_ok) {
+                    delete task;
+                }
+            }
+            return;
+        }
+
+        if (!mEnv || !mArktsLoggerRef) {
+            return;
+        }
+        
+        // Get the ArkTS logger object from reference
+        napi_value loggerValue;
+        napi_status status = napi_get_reference_value(mEnv, mArktsLoggerRef, &loggerValue);
+        if (status != napi_ok || loggerValue == nullptr) {
+            return;
+        }
+        
+        // Get the onLogFromNative method
+        napi_value onLogFromNativeMethod;
+        status = napi_get_named_property(mEnv, loggerValue, "onLogFromNative", &onLogFromNativeMethod);
+        if (status != napi_ok) {
+            return;
+        }
+        
+        // Prepare arguments
+        napi_value args_array[5];
+        
+        // level (number)
+        napi_create_int32(mEnv, static_cast<int32_t>(level), &args_array[0]);
+        
+        // tag (string)
+        napi_create_string_utf8(mEnv, tag ? tag : "", NAPI_AUTO_LENGTH, &args_array[1]);
+        
+        // func (string)
+        napi_create_string_utf8(mEnv, func ? func : "", NAPI_AUTO_LENGTH, &args_array[2]);
+        
+        // line (number)
+        napi_create_int32(mEnv, line, &args_array[3]);
+        
+        // message (string)
+        napi_create_string_utf8(mEnv, buffer, NAPI_AUTO_LENGTH, &args_array[4]);
+        
+        // Call the method
+        napi_value result;
+        napi_call_function(mEnv, loggerValue, onLogFromNativeMethod, 5, args_array, &result);
+    }
+    
+private:
+    napi_env mEnv;
+    napi_ref mArktsLoggerRef;
+    pthread_t mMainThreadId;
+};
+
+// Global logger instance
+static RuntimeLoggerImpl* gRuntimeLoggerImpl = nullptr;
 
 inline void registerEtsFunction(const std::string& name, napi_env env, napi_value value) {
     std::lock_guard<std::mutex> lock(g_ets_functions_mutex);
@@ -76,7 +221,7 @@ static pthread_t g_mainThreadId = 0;
 napi_env a2ui_get_napi_env() { return g_napiEnv; }
 
 // Thread-safe function created in Init and used to dispatch worker-thread callbacks onto the main thread
-static napi_threadsafe_function g_mainTsfn = nullptr;
+// (declared at file top, before namespace a2ui)
 napi_threadsafe_function a2ui_get_main_tsfn() { return g_mainTsfn; }
 
 // App sandbox root directory (filesDir), set in SetWorkingDir and used by components such as IconComponent to build absolute resource paths
@@ -214,6 +359,43 @@ static napi_value Start(napi_env env, napi_callback_info info) {
 
     // Configure the device service (global singleton)
     engine->setPlatformLayoutBridge(new a2ui::A2UIPlatformLayoutBridge());
+    
+    // Initialize runtime logger
+    if (a2ui::gRuntimeLoggerImpl == nullptr) {
+        // Get the ArkTS logger object from the first argument
+        size_t argc = 1;
+        napi_value argv[1];
+        napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+        
+        if (argc > 0 && argv[0] != nullptr) {
+            // Create a reference to the ArkTS logger object
+            napi_ref loggerRef;
+            napi_create_reference(env, argv[0], 1, &loggerRef);
+            
+            a2ui::gRuntimeLoggerImpl = new a2ui::RuntimeLoggerImpl(env, loggerRef);
+            engine->setRuntimeLogger(a2ui::gRuntimeLoggerImpl);
+            HM_LOGI("AGenUI RuntimeLogger initialized successfully");
+        } else {
+            HM_LOGW("AGenUI Start: No logger provided, using default logger");
+        }
+    }
+
+    // Register all Sync component measurement classes (engine-level singleton, register once)
+    auto* mm = engine->getMeasurementManager();
+    if (mm) {
+        mm->registerMeasurement("Image",        std::make_shared<a2ui::ImageComponentMeasurement>());
+        mm->registerMeasurement("Icon",         std::make_shared<a2ui::ImageComponentMeasurement>());
+        mm->registerMeasurement("Slider",       std::make_shared<a2ui::SliderComponentMeasurement>());
+        mm->registerMeasurement("Text",         std::make_shared<a2ui::TextComponentMeasurement>());
+        mm->registerMeasurement("RichText",     std::make_shared<a2ui::TextComponentMeasurement>());
+        mm->registerMeasurement("CheckBox",     std::make_shared<a2ui::CheckBoxComponentMeasurement>());
+        mm->registerMeasurement("ChoicePicker", std::make_shared<a2ui::ChoicePickerComponentMeasurement>());
+        mm->registerMeasurement("Table",        std::make_shared<a2ui::TableComponentMeasurement>());
+        mm->registerMeasurement("Tabs",          std::make_shared<a2ui::TabsComponentMeasurement>());
+        mm->registerMeasurement("DateTimeInput", std::make_shared<a2ui::DateTimeInputComponentMeasurement>());
+        mm->registerMeasurement("Divider",       std::make_shared<a2ui::DividerComponentMeasurement>());
+        mm->registerMeasurement("AudioPlayer",   std::make_shared<a2ui::AudioPlayerComponentMeasurement>());
+    }
 
     HM_LOGI("AGenUI Engine initialized successfully");
     NAPI_RETURN_UNDEFINED(env);
@@ -228,6 +410,13 @@ static napi_value Stop(napi_env env, napi_callback_info info) {
 
     auto* engine = agenui::getAGenUIEngine();
     if (engine) {
+        // Clean up runtime logger
+        if (a2ui::gRuntimeLoggerImpl) {
+            delete a2ui::gRuntimeLoggerImpl;
+            a2ui::gRuntimeLoggerImpl = nullptr;
+            HM_LOGI("Cleaned up RuntimeLogger");
+        }
+        
         {
             std::lock_guard<std::mutex> lock(g_platformFunctionsMutex);
             for (auto it = g_platformFunctions.begin(); it != g_platformFunctions.end(); ) {
@@ -861,6 +1050,201 @@ static napi_value ReportComponentRenderSize(napi_env env, napi_callback_info inf
     markdownInfo.width       = a2ui::UnitConverter::vpToA2ui(width);;
     observable->notifyRenderFinish(markdownInfo);
     
+    NAPI_RETURN_UNDEFINED(env);
+}
+
+/**
+ * @brief Register ETS measurement layer implementation
+ * @param args[0] instanceId (number)  - SurfaceManager instanceId
+ * @param args[1] type     (string)  - Component type (e.g. "Text", "Image")
+ * @param args[2] callback (Function) - (paramJson: string, widthMode: number, maxWidth: number,
+ *                                       heightMode: number, maxHeight: number) => { width: number, height: number, calcType?: number }
+ */
+static napi_value RegisterMeasurement(napi_env env, napi_callback_info info) {
+    size_t argc = 3;
+    napi_value args[3];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+    if (argc < 3) {
+        HM_LOGE("RegisterMeasurement: Expected 3 arguments, got %zu", argc);
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    int32_t instanceId = 0;
+    napi_get_value_int32(env, args[0], &instanceId);
+
+    size_t typeSize = 0;
+    napi_get_value_string_utf8(env, args[1], nullptr, 0, &typeSize);
+    char* typeBuf = new char[typeSize + 1];
+    napi_get_value_string_utf8(env, args[1], typeBuf, typeSize + 1, &typeSize);
+    std::string type(typeBuf);
+    delete[] typeBuf;
+
+    napi_valuetype callbackType = napi_undefined;
+    napi_typeof(env, args[2], &callbackType);
+    if (callbackType != napi_function) {
+        HM_LOGE("RegisterMeasurement: Third argument is not a function");
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    auto* engine = agenui::getAGenUIEngine();
+    if (!engine) {
+        HM_LOGE("RegisterMeasurement: Engine not initialized");
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    auto* mm = engine->getMeasurementManager();
+    if (!mm) {
+        HM_LOGE("RegisterMeasurement: No MeasurementManager for instanceId=%d", instanceId);
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    struct MeasureCallData {
+        std::string paramJson;
+        float widthMaxValue  = 0.0f;
+        int   widthMode      = 0;
+        float heightMaxValue = 0.0f;
+        int   heightMode     = 0;
+        float resultWidth    = 0.0f;
+        float resultHeight   = 0.0f;
+        int   resultCalcType = 0;  ///< 0=Sync 1=Async
+        bool  done = false;
+        std::mutex mtx;
+        std::condition_variable cv;
+    };
+    auto measureCallJs = [](napi_env env, napi_value js_func, void* /*context*/, void* data) {
+        if (!data) return;
+        auto* cd = static_cast<MeasureCallData*>(data);
+
+        napi_value jsParamJson = nullptr;
+        napi_create_string_utf8(env, cd->paramJson.c_str(), cd->paramJson.size(), &jsParamJson);
+        napi_value jsWidthMode = nullptr;
+        napi_create_int32(env, cd->widthMode, &jsWidthMode);
+        napi_value jsMaxWidth = nullptr;
+        napi_create_double(env, cd->widthMaxValue, &jsMaxWidth);
+        napi_value jsHeightMode = nullptr;
+        napi_create_int32(env, cd->heightMode, &jsHeightMode);
+        napi_value jsMaxHeight = nullptr;
+        napi_create_double(env, cd->heightMaxValue, &jsMaxHeight);
+
+        napi_value argv[5] = { jsParamJson, jsWidthMode, jsMaxWidth, jsHeightMode, jsMaxHeight };
+        napi_value result = nullptr;
+        napi_call_function(env, nullptr, js_func, 5, argv, &result);
+
+        if (result) {
+            napi_value widthVal = nullptr, heightVal = nullptr, calcTypeVal = nullptr;
+            napi_get_named_property(env, result, "width",    &widthVal);
+            napi_get_named_property(env, result, "height",   &heightVal);
+            napi_get_named_property(env, result, "calcType", &calcTypeVal);
+
+            double w = 0.0, h = 0.0;
+            napi_get_value_double(env, widthVal,  &w);
+            napi_get_value_double(env, heightVal, &h);
+            cd->resultWidth  = static_cast<float>(w);
+            cd->resultHeight = static_cast<float>(h);
+
+            napi_valuetype ct = napi_undefined;
+            if (calcTypeVal) napi_typeof(env, calcTypeVal, &ct);
+            if (ct == napi_number) {
+                int32_t calcType = 0;
+                napi_get_value_int32(env, calcTypeVal, &calcType);
+                cd->resultCalcType = calcType;
+            }
+        }
+
+        {
+            std::lock_guard<std::mutex> lk(cd->mtx);
+            cd->done = true;
+        }
+        cd->cv.notify_one();
+    };
+
+    napi_value resourceName = nullptr;
+    napi_create_string_utf8(env, "MeasurementCallback", NAPI_AUTO_LENGTH, &resourceName);
+    napi_threadsafe_function tsfn = nullptr;
+    napi_create_threadsafe_function(env, args[2], nullptr, resourceName,
+                                    0, 1, nullptr, nullptr, nullptr,
+                                    measureCallJs, &tsfn);
+    if (!tsfn) {
+        HM_LOGE("RegisterMeasurement: Failed to create threadsafe function");
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    class ETSMeasurement : public agenui::IMeasurement {
+    public:
+        ETSMeasurement(napi_threadsafe_function tsfn) : _tsfn(tsfn) {}
+        ~ETSMeasurement() override {
+            if (_tsfn) napi_release_threadsafe_function(_tsfn, napi_tsfn_release);
+        }
+
+        agenui::MeasureResult measure(
+                const std::string& paramJson,
+                const agenui::MeasureModes& modes) override {
+            MeasureCallData data;
+            data.paramJson       = paramJson;
+            data.widthMaxValue   = modes.width.maxValue;
+            data.widthMode       = modes.width.mode;
+            data.heightMaxValue  = modes.height.maxValue;
+            data.heightMode      = modes.height.mode;
+
+            napi_call_threadsafe_function(
+                _tsfn, &data, napi_tsfn_blocking);
+
+            {
+                std::unique_lock<std::mutex> lk(data.mtx);
+                data.cv.wait(lk, [&]{ return data.done; });
+            }
+            const auto ct = (data.resultCalcType == 1)
+                ? agenui::CalcType::Async
+                : agenui::CalcType::Sync;
+            return {ct, data.resultWidth, data.resultHeight, 0};
+        }
+
+    private:
+        napi_threadsafe_function _tsfn = nullptr;
+    };
+
+    auto impl = std::make_shared<ETSMeasurement>(tsfn);
+    mm->registerMeasurement(type, impl);
+    HM_LOGI("RegisterMeasurement: instanceId=%d type=%s registered", instanceId, type.c_str());
+    NAPI_RETURN_UNDEFINED(env);
+}
+
+/**
+ * @brief Unregister ETS measurement layer implementation
+ * @param args[0] instanceId (number) - SurfaceManager instanceId
+ * @param args[1] type     (string) - Component type
+ */
+static napi_value UnregisterMeasurement(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+    if (argc < 2) {
+        HM_LOGE("UnregisterMeasurement: Expected 2 arguments");
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    int32_t instanceId = 0;
+    napi_get_value_int32(env, args[0], &instanceId);
+
+    size_t typeSize = 0;
+    napi_get_value_string_utf8(env, args[1], nullptr, 0, &typeSize);
+    char* typeBuf = new char[typeSize + 1];
+    napi_get_value_string_utf8(env, args[1], typeBuf, typeSize + 1, &typeSize);
+    std::string type(typeBuf);
+    delete[] typeBuf;
+
+    auto* engine = agenui::getAGenUIEngine();
+    if (!engine) {
+        HM_LOGE("UnregisterMeasurement: Engine not initialized");
+        NAPI_RETURN_UNDEFINED(env);
+    }
+    auto* mm = engine->getMeasurementManager();
+    if (mm) {
+        mm->unregisterMeasurement(type);
+        HM_LOGI("UnregisterMeasurement: instanceId=%d type=%s removed", instanceId, type.c_str());
+    }
     NAPI_RETURN_UNDEFINED(env);
 }
 
@@ -1642,6 +2026,8 @@ static napi_value Init(napi_env env, napi_value exports)
         { "hybridFactoryGetAttribute", nullptr, HybridFactory_getAttribute, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "hybridFactoryGetPropertiesJson", nullptr, HybridFactory_getPropertiesJson, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "reportComponentRenderSize", nullptr, ReportComponentRenderSize, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "registerMeasurement", nullptr, RegisterMeasurement, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "unregisterMeasurement", nullptr, UnregisterMeasurement, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "onSurfaceSizeChanged", nullptr, Surface_onSizeChanged, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "setThemeConfig", nullptr, SetThemeConfig, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "setDesignTokenConfig", nullptr, SetDesignTokenConfig, nullptr, nullptr, nullptr, napi_default, nullptr },

@@ -1,6 +1,6 @@
 #include "agenui_thread_manager.h"
 #include "agenui_message_thread.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 
 namespace agenui {
@@ -31,7 +31,7 @@ bool ThreadManager::createThread(int threadId) {
     IThread *newThread = new MessageThread(name);
     newThread->start();
     _threads[threadId] = newThread;
-    AGENUI_LOG("created thread %d", threadId);
+    AGENUI_LOG("created thread '%s'", name.c_str());
     return true;
 }
 

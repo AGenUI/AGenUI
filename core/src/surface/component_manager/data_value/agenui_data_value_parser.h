@@ -7,8 +7,7 @@
 #include "agenui_callable_data_value.h"
 #include "agenui_interpolation_bindable_data_value.h"
 #include "agenui_checks_data_value.h"
-#include "agenui_checks_and_data_value.h"
-#include "agenui_checks_or_data_value.h"
+#include "agenui_check_rule_data_value.h"
 #include "agenui_styles_data_value.h"
 #include "agenui_tabs_data_value.h"
 #include "agenui_event_action_data_value.h"
@@ -105,13 +104,12 @@ private:
     static std::shared_ptr<StaticDataValue> parseStaticDataValue(const std::string& valueJson);
 
     /**
-     * @brief Parse a logic checks data value (AND or OR)
+     * @brief Parse a single CheckRule item
      * @param dataModel Data model pointer
-     * @param valueJson JSON string
-     * @param logicKey Logic key ("and" or "or")
-     * @return DataValue smart pointer (ChecksAndDataValue or ChecksOrDataValue)
+     * @param itemJson CheckRule JSON string
+     * @return CheckRuleDataValue smart pointer, nullptr if parsing fails
      */
-    static std::shared_ptr<DataValue> parseChecksLogicDataValue(IDataModel* dataModel, const std::string& valueJson, const std::string& logicKey);
+    static std::shared_ptr<CheckRuleDataValue> parseCheckRule(IDataModel* dataModel, const std::string& itemJson);
 
     /**
      * @brief Extract interpolation expressions from a string
