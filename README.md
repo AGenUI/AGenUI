@@ -272,8 +272,8 @@ For larger changes — new platform support, significant engine refactors, new c
     <th>WeChat Group</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/dingtalk_qrcode.jpg" alt="AGenUI DingTalk group QR code" width="220"></td>
-    <td align="center"><img src="docs/images/wechat_qrcode.jpg" alt="AGenUI WeChat group QR code" width="220"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/dingtalk_qrcode.jpg" alt="AGenUI DingTalk group QR code" width="220"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/wechat_qrcode.jpg" alt="AGenUI WeChat group QR code" width="220"></td>
   </tr>
 </table>
 </div>

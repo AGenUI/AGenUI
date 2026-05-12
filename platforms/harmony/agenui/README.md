@@ -16,26 +16,6 @@
 
 ---
 
-## Table of Contents
-
-- [What is AGenUI?](#what-is-agenui)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Components](#components)
-  - [A2UI Protocol Components](#a2ui-protocol-components)
-  - [SDK Built-in Extension Components](#sdk-built-in-extension-components)
-  - [Playground Example Components](#playground-example-components)
-- [Quick Start](#quick-start)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Building from Source](#building-from-source)
-  - [Debugging with the Playground](#debugging-with-the-playground)
-  - [Integrating the AGenUI SDK](#integrating-the-agenui-sdk)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
 ## What is AGenUI?
 
 **AGenUI** is an A2UI SDK that simultaneously supports iOS, Android, and HarmonyOS. Built on and fully implementing the A2UI v0.9 protocol open-sourced by Google, it renders the streaming data of LLM-generated interactive UI in real time on mobile devices. Under the hood, it is powered by a cross-platform **shared C++ core engine**, while the HarmonyOS rendering engine consumes the component protocol dispatched by the core engine and performs drawing using native system capabilities.
@@ -263,6 +243,29 @@ Before submitting a pull request, please review the project's contributing guide
 5. At least one maintainer approval is required before merging
 
 For larger changes — new components, significant engine refactors, new component categories — please open an issue first to align on the approach before writing code.
+
+---
+
+## Community & Contact
+
+- **GitHub Issues**: [bug reports and feature requests](https://github.com/AGenUI/AGenUI/issues)
+- **GitHub Discussions**: [Q&A and general discussions](https://github.com/AGenUI/AGenUI/discussions)
+- **Email**: [tengjixiang.ttjx@alibaba-inc.com](mailto:tengjixiang.ttjx@alibaba-inc.com)
+- **DingTalk Group**: Chinese community
+- **WeChat Group**: Chinese community
+
+<div align="center">
+<table>
+  <tr>
+    <th>DingTalk Group</th>
+    <th>WeChat Group</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/dingtalk_qrcode.jpg" alt="AGenUI DingTalk group QR code" width="220"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/wechat_qrcode.jpg" alt="AGenUI WeChat group QR code" width="220"></td>
+  </tr>
+</table>
+</div>
 
 ---
 

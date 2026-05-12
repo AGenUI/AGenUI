@@ -16,26 +16,6 @@
 
 ---
 
-## 目录
-
-- [什么是 AGenUI？](#什么是-agenui)
-- [核心特性](#核心特性)
-- [架构设计](#架构设计)
-- [组件](#组件)
-  - [A2UI 协议组件](#a2ui-协议组件)
-  - [SDK 内置扩展组件](#sdk-内置扩展组件)
-  - [Playground 示例组件](#playground-示例组件)
-- [快速上手](#快速上手)
-  - [前提条件](#前提条件)
-  - [安装](#安装)
-  - [从源码构建](#从源码构建)
-  - [使用 Playground 调试](#使用-playground-调试)
-  - [接入 AGenUI SDK](#接入-agenui-sdk)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
-
----
-
 ## 什么是 AGenUI？
 
 **AGenUI** 是同步支持 iOS、Android 和 HarmonyOS 三端的 A2UI SDK，它基于并完整实现了 Google 开源的 A2UI v0.9 协议，能够在移动设备上实时渲染 LLM 生成的可交互界面 UI 的流式数据。它底层由一个跨平台的**共享 C++ 核心引擎**驱动，HarmonyOS 渲染引擎则基于核心引擎下发的组件协议，使用系统原生能力完成绘制。
@@ -263,6 +243,29 @@ aboutToDisappear(): void {
 5. 至少需要一位维护者审批才能合并
 
 对于较大范围的变更——新组件、重大引擎重构、新组件品类——请先提 Issue 对齐方案，再开始编写代码。
+
+---
+
+## 社区与联系
+
+- **GitHub Issues**：[Bug 反馈和功能建议](https://github.com/AGenUI/AGenUI/issues)
+- **GitHub Discussions**：[问答与通用讨论](https://github.com/AGenUI/AGenUI/discussions)
+- **邮箱**：[tengjixiang.ttjx@alibaba-inc.com](mailto:tengjixiang.ttjx@alibaba-inc.com)
+- **钉钉群**：技术交流群
+- **微信群**：技术交流群
+
+<div align="center">
+<table>
+  <tr>
+    <th>钉钉群</th>
+    <th>微信群</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/dingtalk_qrcode.jpg" alt="AGenUI 钉钉群二维码" width="220"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/wechat_qrcode.jpg" alt="AGenUI 微信群二维码" width="220"></td>
+  </tr>
+</table>
+</div>
 
 ---
 

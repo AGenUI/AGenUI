@@ -271,8 +271,8 @@ agenui.sdk.source=false
     <th>微信群</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/dingtalk_qrcode.jpg" alt="AGenUI 钉钉群二维码" width="220"></td>
-    <td align="center"><img src="docs/images/wechat_qrcode.jpg" alt="AGenUI 微信群二维码" width="220"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/dingtalk_qrcode.jpg" alt="AGenUI 钉钉群二维码" width="220"></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/AGenUI/AGenUI/main/docs/images/wechat_qrcode.jpg" alt="AGenUI 微信群二维码" width="220"></td>
   </tr>
 </table>
 </div>
