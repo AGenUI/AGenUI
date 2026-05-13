@@ -411,6 +411,43 @@ void A2UIComponent::dispatchAction(const nlohmann::json& actionDef) {
     }
 }
 
+void A2UIComponent::syncState(const nlohmann::json& changeJson) {
+    if (m_surfaceId.empty()) {
+        HM_LOGE("surfaceId is empty, id=%s", m_id.c_str());
+        return;
+    }
+
+    if (!changeJson.is_object()) {
+        HM_LOGE("changeJson is not an object, id=%s", m_id.c_str());
+        return;
+    }
+
+    agenui::SyncUIToDataMessage syncMessage;
+    syncMessage.surfaceId = m_surfaceId;
+    syncMessage.componentId = m_id;
+    syncMessage.change = changeJson.dump();
+
+    HM_LOGI("surfaceId=%s, componentId=%s, change=%s",
+            m_surfaceId.c_str(), m_id.c_str(), syncMessage.change.c_str());
+
+    int engineId = agenui::A2UIMessageListener::findInstanceIdBySurfaceId(m_surfaceId);
+    if (engineId != 0) {
+        auto* engine = agenui::getAGenUIEngine();
+        if (engine) {
+            auto* sm = engine->findSurfaceManager(engineId);
+            if (sm) {
+                sm->submitUIDataModel(syncMessage);
+            } else {
+                HM_LOGE("ISurfaceManager not found for engineId=%d", engineId);
+            }
+        } else {
+            HM_LOGE("AGenUI Engine is null");
+        }
+    } else {
+        HM_LOGE("engineId not found for surfaceId=%s", m_surfaceId.c_str());
+    }
+}
+
 
 uint32_t A2UIComponent::parseColor(const std::string& colorStr) {
     if (colorStr.empty()) {

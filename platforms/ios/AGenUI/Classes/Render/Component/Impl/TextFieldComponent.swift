@@ -44,6 +44,11 @@ class TextFieldComponent: Component {
     private var isUpdatingFromNative = false
     private var currentVariant: String = "shortText"
     
+    // Validation regexp support
+    private var validationRegexp: String?
+    private var validationError: String?
+    private var isValid: Bool = true
+    
     // Style configuration properties
     private var fontFamily: String = "PingFang SC"
     private var fontSize: CGFloat = 16
@@ -125,6 +130,13 @@ class TextFieldComponent: Component {
         // Update input type
         if let variant = properties["variant"] as? String {
             applyVariant(variant)
+        }
+        
+        // Update validation regexp
+        if let regexp = properties["validationRegexp"] as? String {
+            validationRegexp = regexp
+            // Validate current value when regexp changes
+            validateCurrentInput()
         }
         
         // checks adaptation - display validation errors
@@ -508,6 +520,71 @@ class TextFieldComponent: Component {
         textView?.layer.borderWidth = 1.0
     }
     
+    // MARK: - Private Methods - Validation
+    
+    /// Validate current input against validationRegexp
+    private func validateCurrentInput() {
+        guard let regexp = validationRegexp else { return }
+        
+        let currentValue = textField?.text ?? textView?.text ?? ""
+        
+        // Skip validation if empty (unless regexp requires non-empty)
+        if currentValue.isEmpty {
+            isValid = true
+            validationError = nil
+            syncValidationResult()
+            return
+        }
+        
+        // Perform regex validation
+        do {
+            let regex = try NSRegularExpression(pattern: regexp, options: [])
+            let range = NSRange(location: 0, length: currentValue.utf16.count)
+            
+            // Check if the entire string matches the pattern
+            let matches = regex.matches(in: currentValue, options: [], range: range)
+            
+            // Full match required: the match should cover the entire string
+            if let firstMatch = matches.first,
+               firstMatch.range.location == 0 && firstMatch.range.length == currentValue.utf16.count {
+                isValid = true
+                validationError = nil
+            } else {
+                isValid = false
+                validationError = "输入格式不正确"
+            }
+        } catch {
+            Logger.shared.error("Invalid regex pattern: \(regexp), error: \(error.localizedDescription)")
+            isValid = true // Don't block input on invalid regex
+            validationError = nil
+        }
+        
+        syncValidationResult()
+    }
+    
+    /// Sync validation result to checks property
+    private func syncValidationResult() {
+        var checks: [String: Any] = [:]
+        
+        if isValid {
+            checks["result"] = true
+            checks["message"] = ""
+        } else {
+            checks["result"] = false
+            checks["message"] = validationError ?? "输入格式不正确"
+        }
+        
+        // Send validation result to native
+        syncState(["checks": checks])
+        
+        // Update UI based on validation result
+        if !isValid {
+            showError(checks["message"] as? String ?? "")
+        } else {
+            hideError()
+        }
+    }
+    
     // MARK: - Private Methods - Data Binding
     
     // MARK: - Event Handlers
@@ -518,6 +595,14 @@ class TextFieldComponent: Component {
         
         let newValue = textField.text ?? ""
         syncState(["value": newValue])
+        
+        // Trigger validation if validationRegexp is set
+        if validationRegexp != nil {
+            // Debounce validation with 300ms delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.validateCurrentInput()
+            }
+        }
     }
     
     /// TextView begin editing handler
@@ -554,6 +639,14 @@ class TextFieldComponent: Component {
         
         let newValue = textView.text ?? ""
         syncState(["value" : newValue])
+        
+        // Trigger validation if validationRegexp is set
+        if validationRegexp != nil {
+            // Debounce validation with 300ms delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.validateCurrentInput()
+            }
+        }
     }
     
     deinit {

@@ -7,16 +7,6 @@
 namespace agenui {
 
 std::shared_ptr<DataValue> DataValueParser::parseDataValue(IDataModel* dataModel, const std::string& valueJson) {
-    auto checksAndValue = parseChecksLogicDataValue(dataModel, valueJson, "and");
-    if (checksAndValue) {
-        return checksAndValue;
-    }
-
-    auto checksOrValue = parseChecksLogicDataValue(dataModel, valueJson, "or");
-    if (checksOrValue) {
-        return checksOrValue;
-    }
-
     auto callableValue = parseCallableDataValue(dataModel, valueJson);
     if (callableValue) {
         return callableValue;
@@ -81,14 +71,9 @@ std::shared_ptr<InterpolationBindableDataValue> DataValueParser::parseInterpolat
 }
 
 std::shared_ptr<CallableDataValue> DataValueParser::parseCallableDataValue(IDataModel* dataModel, const std::string& valueJson) {
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(valueJson);
-    } catch (const nlohmann::json::exception& e) {
-        return nullptr;
-    }
+    auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
-    if (!json.is_object()) {
+    if (json.is_discarded() || !json.is_object()) {
         return nullptr;
     }
 
@@ -162,94 +147,54 @@ std::shared_ptr<StaticDataValue> DataValueParser::parseStaticDataValue(const std
     return std::make_shared<StaticDataValue>(jsonObj.dump());
 }
 
-std::shared_ptr<ChecksDataValue> DataValueParser::parseChecksDataValue(IDataModel* dataModel, const std::string& valueJson) {
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(valueJson);
-    } catch (const nlohmann::json::exception& e) {
+std::shared_ptr<CheckRuleDataValue> DataValueParser::parseCheckRule(IDataModel* dataModel, const std::string& itemJson) {
+    auto item = nlohmann::json::parse(itemJson, nullptr, false);
+
+    if (item.is_discarded() || !item.is_object()) {
         return nullptr;
     }
 
-    if (!json.is_array()) {
+    // 严格按照 common_types.json 中 CheckRule 定义: {condition: DynamicBoolean, message: string}
+    if (!item.contains("condition") || !item.contains("message")) {
         return nullptr;
     }
 
-    std::vector<std::shared_ptr<DataValue>> checkItems;
-    for (const auto& checkJson : json) {
-        std::string checkJsonStr = checkJson.dump();
-        auto checkValue = parseDataValue(dataModel, checkJsonStr);
+    std::string message = item["message"].is_string() ? item["message"].get<std::string>() : "";
+    auto condition = parseDataValue(dataModel, item["condition"].dump());
 
-        if (!checkValue) {
-            continue;
-        }
-
-        checkItems.emplace_back(checkValue);
-    }
-
-    if (checkItems.empty()) {
+    if (!condition) {
         return nullptr;
     }
 
-    return std::make_shared<ChecksDataValue>(dataModel, checkItems);
+    return std::make_shared<CheckRuleDataValue>(dataModel, condition, message);
 }
 
-std::shared_ptr<DataValue> DataValueParser::parseChecksLogicDataValue(IDataModel* dataModel, const std::string& valueJson, const std::string& logicKey) {
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(valueJson);
-    } catch (const nlohmann::json::exception& e) {
+std::shared_ptr<ChecksDataValue> DataValueParser::parseChecksDataValue(IDataModel* dataModel, const std::string& valueJson) {
+    auto json = nlohmann::json::parse(valueJson, nullptr, false);
+
+    if (json.is_discarded() || !json.is_array()) {
         return nullptr;
     }
 
-    if (!json.is_object() || !json.contains(logicKey)) {
-        return nullptr;
-    }
-
-    const auto& logicArray = json[logicKey];
-    if (!logicArray.is_array()) {
-        return nullptr;
-    }
-
-    std::vector<std::shared_ptr<DataValue>> items;
-    for (const auto& itemJson : logicArray) {
-        std::string itemJsonStr = itemJson.dump();
-        auto itemValue = parseDataValue(dataModel, itemJsonStr);
-
-        if (!itemValue) {
-            continue;
+    std::vector<std::shared_ptr<CheckRuleDataValue>> rules;
+    for (const auto& item : json) {
+        auto rule = parseCheckRule(dataModel, item.dump());
+        if (rule) {
+            rules.push_back(rule);
         }
-
-        items.emplace_back(itemValue);
     }
 
-    if (items.empty()) {
+    if (rules.empty()) {
         return nullptr;
     }
 
-    std::shared_ptr<DataValue> result = nullptr;
-
-    if (logicKey == "and") {
-        result = std::make_shared<ChecksAndDataValue>(dataModel, items);
-    } else if (logicKey == "or") {
-        result = std::make_shared<ChecksOrDataValue>(dataModel, items);
-    }
-
-    if (result && json.contains("message") && json["message"].is_string()) {
-        result->setExtension("message", json["message"].get<std::string>());
-    }
-
-    return result;
+    return std::make_shared<ChecksDataValue>(dataModel, rules);
 }
 
 std::shared_ptr<StylesDataValue> DataValueParser::parseStylesDataValue(IDataModel* dataModel, const std::string& valueJson) {
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(valueJson);
-    } catch (const nlohmann::json::exception& e) {
-        return nullptr;
-    }
+    auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
-    if (!json.is_object()) {
+    if (json.is_discarded() || !json.is_object()) {
         return nullptr;
     }
 
@@ -274,14 +219,9 @@ std::shared_ptr<StylesDataValue> DataValueParser::parseStylesDataValue(IDataMode
 }
 
 std::shared_ptr<TabsDataValue> DataValueParser::parseTabsDataValue(IDataModel* dataModel, const std::string& valueJson) {
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(valueJson);
-    } catch (const nlohmann::json::exception& e) {
-        return nullptr;
-    }
+    auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
-    if (!json.is_array()) {
+    if (json.is_discarded() || !json.is_array()) {
         return nullptr;
     }
 
@@ -321,14 +261,9 @@ std::shared_ptr<TabsDataValue> DataValueParser::parseTabsDataValue(IDataModel* d
 }
 
 std::shared_ptr<EventActionDataValue> DataValueParser::parseEventActionDataValue(IDataModel* dataModel, const std::string& valueJson) {
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(valueJson);
-    } catch (const nlohmann::json::exception& e) {
-        return nullptr;
-    }
+    auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
-    if (!json.is_object() || !json.contains("event")) {
+    if (json.is_discarded() || !json.is_object() || !json.contains("event")) {
         return nullptr;
     }
 
@@ -370,14 +305,9 @@ std::shared_ptr<EventActionDataValue> DataValueParser::parseEventActionDataValue
 }
 
 std::shared_ptr<FunctionCallActionDataValue> DataValueParser::parseFunctionCallActionDataValue(IDataModel* dataModel, const std::string& valueJson) {
-    nlohmann::json json;
-    try {
-        json = nlohmann::json::parse(valueJson);
-    } catch (const nlohmann::json::exception& e) {
-        return nullptr;
-    }
+    auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
-    if (!json.is_object() || !json.contains("functionCall")) {
+    if (json.is_discarded() || !json.is_object() || !json.contains("functionCall")) {
         return nullptr;
     }
 

@@ -2,9 +2,15 @@ package com.amap.agenui.render.component.impl;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -13,9 +19,18 @@ import com.amap.agenui.render.component.view.CustomCheckBoxView;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
 
+import com.google.android.flexbox.AlignItems;
+import com.google.android.flexbox.FlexDirection;
+import com.google.android.flexbox.FlexWrap;
+import com.google.android.flexbox.FlexboxLayout;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * ChoicePicker component implementation
@@ -25,31 +40,39 @@ import java.util.Map;
  *
  * Supported properties:
  * - variant: variant type (String)
- *   - "mutuallyExclusive": single-selection mode (uses CustomCheckBoxView)
- *   - "multipleSelection": multiple-selection mode (uses CustomCheckBoxView)
+ *   - "mutuallyExclusive": single-selection mode
+ *   - "multipleSelection": multiple-selection mode
  * - options: list of options (List<Map>)
  *   - label: option label (String)
  *   - value: option value (String)
  * - value: currently selected value (String or List<String>)
+ * - displayStyle: display style (String)
+ *   - "checkbox": checkbox list (default)
+ *   - "chips": horizontal wrapping chip/pill tags
+ * - filterable: show search input to filter options (boolean, default false)
  * - styles: style configuration (Map)
- *   - orientation: layout orientation (String)
+ *   - orientation: layout orientation for checkbox mode (String)
  *     - "vertical": vertical arrangement (default)
  *     - "horizontal": horizontal arrangement
- * - dataBinding: data binding path (String)
- *
  */
 public class ChoicePickerComponent extends A2UIComponent {
 
+    private static final String TAG = "ChoicePickerComponent";
     private LinearLayout containerLayout;
-    private LinearLayout choiceContainer;
+    private ViewGroup choiceContainer;
+    private EditText filterEditText;
     private TextView errorTextView;
-    private String variant = "mutuallyExclusive"; // default single-selection
-    private String orientation = "vertical"; // default vertical arrangement
+    private String variant = "mutuallyExclusive";
+    private String orientation = "vertical";
+    private String displayStyle = "checkbox";
+    private boolean filterable = false;
+    private String filterQuery = "";
     private List<Map<String, Object>> options;
     private List<View> radioButtons;
     private List<View> checkBoxes;
-    private String selectedRadioValue; // track the currently selected single-selection value
-    private Map<String, String> styleConfig; // style configuration
+    private String selectedRadioValue;
+    private List<String> selectedChipValues;
+    private Map<String, String> styleConfig;
 
     public ChoicePickerComponent(String id, Map<String, Object> properties) {
         super(id, "ChoicePicker");
@@ -61,29 +84,24 @@ public class ChoicePickerComponent extends A2UIComponent {
     public View onCreateView(Context context) {
         containerLayout = new LinearLayout(context);
         containerLayout.setOrientation(LinearLayout.VERTICAL);
-        // Remove container padding
 
-        // Load style configuration
         styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("ChoicePicker");
-
-        // Parse properties
         parseProperties();
+        filterQuery = "";
 
-        // Create selection container
-        choiceContainer = new LinearLayout(context);
-        int layoutOrientation = "horizontal".equals(orientation) ?
-                LinearLayout.HORIZONTAL : LinearLayout.VERTICAL;
-        choiceContainer.setOrientation(layoutOrientation);
-        containerLayout.addView(choiceContainer);
-
-        // Create different selection UIs based on variant
-        if ("multipleSelection".equals(variant)) {
-            createMultipleSelection(context);
-        } else {
-            createMutuallyExclusive(context);
+        if (filterable) {
+            filterEditText = createFilterEditText(context);
+            containerLayout.addView(filterEditText);
         }
 
-        // Create error message TextView
+        choiceContainer = buildChoiceContainer(context);
+        LinearLayout.LayoutParams choiceParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        choiceContainer.setLayoutParams(choiceParams);
+        containerLayout.addView(choiceContainer);
+
+        rebuildChoices(context);
+
         errorTextView = new TextView(context);
         errorTextView.setTextColor(Color.RED);
         errorTextView.setTextSize(12);
@@ -93,22 +111,54 @@ public class ChoicePickerComponent extends A2UIComponent {
         errorTextView.setPadding(errorPaddingH, errorPaddingV, errorPaddingH, 0);
         containerLayout.addView(errorTextView);
 
-        // Apply checks property
         applyChecksProperty();
-
         return containerLayout;
     }
 
-    /**
-     * Parse component properties
-     */
-    private void parseProperties() {
-        // Get variant
-        if (properties.containsKey("variant")) {
-            variant = (String) properties.get("variant");
+    @Override
+    public void onUpdateProperties(Map<String, Object> properties) {
+        if (containerLayout == null) return;
+        Context context = containerLayout.getContext();
+        containerLayout.removeAllViews();
+        errorTextView = null;
+
+        styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("ChoicePicker");
+        parseProperties();
+        filterQuery = "";
+
+        if (filterable) {
+            filterEditText = createFilterEditText(context);
+            containerLayout.addView(filterEditText);
+        } else {
+            filterEditText = null;
         }
 
-        // Get options
+        choiceContainer = buildChoiceContainer(context);
+        LinearLayout.LayoutParams choiceParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        choiceContainer.setLayoutParams(choiceParams);
+        containerLayout.addView(choiceContainer);
+
+        rebuildChoices(context);
+
+        errorTextView = new TextView(context);
+        errorTextView.setTextColor(Color.RED);
+        errorTextView.setTextSize(12);
+        errorTextView.setVisibility(View.GONE);
+        int errorPaddingH = StyleHelper.standardUnitToPx(context, 16);
+        int errorPaddingV = StyleHelper.standardUnitToPx(context, 8);
+        errorTextView.setPadding(errorPaddingH, errorPaddingV, errorPaddingH, 0);
+        containerLayout.addView(errorTextView);
+
+        applyChecksProperty();
+    }
+
+    private void parseProperties() {
+        if (properties.containsKey("variant")) {
+            Object v = properties.get("variant");
+            if (v instanceof String) variant = (String) v;
+        }
+
         if (properties.containsKey("options")) {
             Object optionsObj = properties.get("options");
             if (optionsObj instanceof List) {
@@ -116,7 +166,6 @@ public class ChoicePickerComponent extends A2UIComponent {
             }
         }
 
-        // Get orientation from styles
         if (properties.containsKey("styles")) {
             Object stylesObj = properties.get("styles");
             if (stylesObj instanceof Map) {
@@ -126,13 +175,381 @@ public class ChoicePickerComponent extends A2UIComponent {
                 }
             }
         }
+
+        if (properties.containsKey("displayStyle")) {
+            Object ds = properties.get("displayStyle");
+            if (ds instanceof String) displayStyle = (String) ds;
+        }
+
+        if (properties.containsKey("filterable")) {
+            Object f = properties.get("filterable");
+            if (f instanceof Boolean) filterable = (Boolean) f;
+        }
+
+        if ("multipleSelection".equals(variant)) {
+            Object valueObj = properties.get("value");
+            if (valueObj instanceof List) {
+                List<?> rawList = (List<?>) valueObj;
+                selectedChipValues = new ArrayList<>(rawList.size());
+                for (Object item : rawList) {
+                    selectedChipValues.add(item != null ? item.toString() : "");
+                }
+            } else if (selectedChipValues == null) {
+                selectedChipValues = new ArrayList<>();
+            }
+        } else {
+            selectedRadioValue = getCurrentValue();
+        }
     }
 
-    /**
-     * Apply the checks property
-     */
+    private ViewGroup buildChoiceContainer(Context context) {
+        if ("chips".equals(displayStyle)) {
+            FlexboxLayout fl = new FlexboxLayout(context);
+            fl.setFlexDirection(FlexDirection.ROW);
+            fl.setFlexWrap(FlexWrap.WRAP);
+            fl.setAlignItems(AlignItems.CENTER);
+            return fl;
+        } else {
+            LinearLayout ll = new LinearLayout(context);
+            ll.setOrientation("horizontal".equals(orientation)
+                    ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+            return ll;
+        }
+    }
+
+    private EditText createFilterEditText(Context context) {
+        EditText et = new EditText(context);
+
+        String hintText = styleConfig.get("filter-hint-text");
+        et.setHint(hintText != null ? hintText : "Search...");
+
+        String hintColorStr = styleConfig.get("filter-hint-color");
+        et.setHintTextColor(hintColorStr != null ? StyleHelper.parseColor(hintColorStr) : 0x80000000);
+
+        String textColorStr = styleConfig.get("filter-text-color");
+        et.setTextColor(textColorStr != null ? StyleHelper.parseColor(textColorStr) : Color.BLACK);
+
+        String textSizeStr = styleConfig.get("filter-text-size");
+        int textSizePx = textSizeStr != null
+                ? StyleHelper.parseDimension(textSizeStr, context)
+                : StyleHelper.standardUnitToPx(context, 28);
+        et.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizePx);
+
+        et.setSingleLine(true);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        String bgColorStr = styleConfig.get("filter-background-color");
+        bg.setColor(bgColorStr != null ? StyleHelper.parseColor(bgColorStr) : Color.parseColor("#F5F5F5"));
+        String borderColorStr = styleConfig.get("filter-border-color");
+        String borderWidthStr = styleConfig.get("filter-border-width");
+        int borderWidthPx = borderWidthStr != null
+                ? StyleHelper.parseDimension(borderWidthStr, context)
+                : StyleHelper.standardUnitToPx(context, 2);
+        bg.setStroke(borderWidthPx, borderColorStr != null ? StyleHelper.parseColor(borderColorStr) : 0x1A000000);
+        String radiusStr = styleConfig.get("filter-border-radius");
+        float radiusPx = radiusStr != null
+                ? StyleHelper.parseDimension(radiusStr, context)
+                : StyleHelper.standardUnitToPx(context, 40);
+        bg.setCornerRadius(radiusPx);
+        et.setBackground(bg);
+
+        String paddingHStr = styleConfig.get("filter-padding-h");
+        String paddingVStr = styleConfig.get("filter-padding-v");
+        int pH = paddingHStr != null
+                ? StyleHelper.parseDimension(paddingHStr, context)
+                : StyleHelper.standardUnitToPx(context, 32);
+        int pV = paddingVStr != null
+                ? StyleHelper.parseDimension(paddingVStr, context)
+                : StyleHelper.standardUnitToPx(context, 16);
+        et.setPadding(pH, pV, pH, pV);
+
+        String marginBotStr = styleConfig.get("filter-margin-bottom");
+        int marginBot = marginBotStr != null
+                ? StyleHelper.parseDimension(marginBotStr, context)
+                : StyleHelper.standardUnitToPx(context, 24);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.bottomMargin = marginBot;
+        et.setLayoutParams(params);
+
+        et.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                filterQuery = s.toString().trim();
+                rebuildChoices(context);
+            }
+        });
+
+        return et;
+    }
+
+    private void rebuildChoices(Context context) {
+        radioButtons.clear();
+        checkBoxes.clear();
+        choiceContainer.removeAllViews();
+
+        List<Map<String, Object>> visible;
+        if (filterable && !filterQuery.isEmpty() && options != null) {
+            visible = new ArrayList<>();
+            String lower = filterQuery.toLowerCase();
+            for (Map<String, Object> opt : options) {
+                Object lbl = opt.get("label");
+                String lblStr = lbl instanceof String ? (String) lbl : "";
+                if (lblStr.toLowerCase().contains(lower)) {
+                    visible.add(opt);
+                }
+            }
+        } else {
+            visible = options != null ? options : new ArrayList<Map<String, Object>>();
+        }
+
+        if ("chips".equals(displayStyle)) {
+            rebuildChips(context, visible);
+        } else {
+            rebuildCheckboxes(context, visible);
+        }
+    }
+
+    private void rebuildChips(Context context, List<Map<String, Object>> visibleOptions) {
+        List<String> currentValues = ("multipleSelection".equals(variant) && selectedChipValues != null)
+                ? selectedChipValues : new ArrayList<String>();
+
+        for (Map<String, Object> option : visibleOptions) {
+            Object lblRaw = option.get("label");
+            String label = lblRaw instanceof String ? (String) lblRaw : String.valueOf(lblRaw);
+            Object valRaw = option.get("value");
+            String value = valRaw instanceof String ? (String) valRaw : null;
+            boolean isSelected = "multipleSelection".equals(variant)
+                    ? currentValues.contains(value)
+                    : value != null && value.equals(selectedRadioValue);
+
+            TextView chip = createChipView(context, label, value, isSelected);
+            chip.setOnClickListener(v -> {
+                String clickedValue = (String) v.getTag();
+                if ("multipleSelection".equals(variant)) {
+                    if (selectedChipValues == null) selectedChipValues = new ArrayList<>();
+                    if (selectedChipValues.contains(clickedValue)) {
+                        selectedChipValues.remove(clickedValue);
+                    } else {
+                        selectedChipValues.add(clickedValue);
+                    }
+                    updateMultipleValues();
+                } else {
+                    selectedRadioValue = clickedValue;
+                    updateValue(clickedValue);
+                }
+                rebuildChoices(context);
+            });
+            choiceContainer.addView(chip);
+        }
+    }
+
+    private TextView createChipView(Context context, String label, String value, boolean isSelected) {
+        String selBgStr   = styleConfig.get("chip-background-color-selected");
+        String unselBgStr = styleConfig.get("chip-background-color");
+        String selTxtStr  = styleConfig.get("chip-text-color-selected");
+        String txtStr     = styleConfig.get("chip-text-color");
+        String borderStr  = styleConfig.get("chip-border-color");
+        String borderWStr = styleConfig.get("chip-border-width");
+        String radiusStr  = styleConfig.get("chip-border-radius");
+        String txtSizeStr = styleConfig.get("chip-text-size");
+        String padHStr    = styleConfig.get("chip-padding-h");
+        String padVStr    = styleConfig.get("chip-padding-v");
+        String gapHStr    = styleConfig.get("chip-gap-h");
+        String gapVStr    = styleConfig.get("chip-gap-v");
+
+        int selBgColor    = selBgStr   != null ? StyleHelper.parseColor(selBgStr)   : Color.parseColor("#2E82FF");
+        int unselBgColor  = unselBgStr != null ? StyleHelper.parseColor(unselBgStr) : Color.parseColor("#F5F5F5");
+        int selTxtColor   = selTxtStr  != null ? StyleHelper.parseColor(selTxtStr)  : Color.WHITE;
+        int txtColor      = txtStr     != null ? StyleHelper.parseColor(txtStr)     : Color.BLACK;
+        int borderColor   = borderStr  != null ? StyleHelper.parseColor(borderStr)  : 0x1A000000;
+        int borderWidthPx = borderWStr != null
+                ? StyleHelper.parseDimension(borderWStr, context)
+                : StyleHelper.standardUnitToPx(context, 2);
+        float radiusPx    = radiusStr  != null
+                ? StyleHelper.parseDimension(radiusStr, context)
+                : StyleHelper.standardUnitToPx(context, 40);
+        int txtSizePx     = txtSizeStr != null
+                ? StyleHelper.parseDimension(txtSizeStr, context)
+                : StyleHelper.standardUnitToPx(context, 28);
+        int padH = padHStr != null
+                ? StyleHelper.parseDimension(padHStr, context)
+                : StyleHelper.standardUnitToPx(context, 24);
+        int padV = padVStr != null
+                ? StyleHelper.parseDimension(padVStr, context)
+                : StyleHelper.standardUnitToPx(context, 12);
+        int gapH = gapHStr != null
+                ? StyleHelper.parseDimension(gapHStr, context)
+                : StyleHelper.standardUnitToPx(context, 16);
+        int gapV = gapVStr != null
+                ? StyleHelper.parseDimension(gapVStr, context)
+                : StyleHelper.standardUnitToPx(context, 16);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(radiusPx);
+        if (isSelected) {
+            bg.setColor(selBgColor);
+        } else {
+            bg.setColor(unselBgColor);
+            bg.setStroke(borderWidthPx, borderColor);
+        }
+
+        TextView chip = new TextView(context);
+        chip.setTag(value);
+        chip.setText(isSelected ? label + " ×" : label);
+        chip.setTextColor(isSelected ? selTxtColor : txtColor);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_PX, txtSizePx);
+        chip.setPadding(padH, padV, padH, padV);
+        chip.setBackground(bg);
+
+        FlexboxLayout.LayoutParams lp = new FlexboxLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMarginEnd(gapH);
+        lp.bottomMargin = gapV;
+        chip.setLayoutParams(lp);
+
+        return chip;
+    }
+
+    private void rebuildCheckboxes(Context context, List<Map<String, Object>> visibleOptions) {
+        if ("multipleSelection".equals(variant)) {
+            List<String> currentValues = getCurrentValues();
+            int index = 0;
+            for (Map<String, Object> option : visibleOptions) {
+                String label = (String) option.get("label");
+                String value = (String) option.get("value");
+
+                LinearLayout itemLayout = new LinearLayout(context);
+                itemLayout.setOrientation(LinearLayout.HORIZONTAL);
+                itemLayout.setGravity(Gravity.CENTER_VERTICAL);
+                int paddingH = StyleHelper.standardUnitToPx(context, 24);
+                int paddingV = StyleHelper.standardUnitToPx(context, 22);
+                itemLayout.setPadding(paddingH, paddingV, paddingH, paddingV);
+                itemLayout.setTag(value);
+
+                CustomCheckBoxView checkBoxView = new CustomCheckBoxView(context);
+                applyCheckBoxStyle(context, checkBoxView);
+                checkBoxView.setChecked(currentValues != null && currentValues.contains(value));
+
+                TextView textView = new TextView(context);
+                textView.setText(label);
+                applyOptionTextStyle(context, textView);
+
+                itemLayout.addView(checkBoxView);
+                itemLayout.addView(textView);
+
+                itemLayout.setOnClickListener(v -> {
+                    checkBoxView.toggle();
+                    updateMultipleValues();
+                });
+
+                checkBoxes.add(itemLayout);
+
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                if (index > 0) {
+                    applyChoiceGap(context, params);
+                }
+                itemLayout.setLayoutParams(params);
+
+                choiceContainer.addView(itemLayout);
+                index++;
+            }
+        } else {
+            String currentValue = getCurrentValue();
+            selectedRadioValue = currentValue;
+
+            for (int i = 0; i < visibleOptions.size(); i++) {
+                Map<String, Object> option = visibleOptions.get(i);
+                String label = (String) option.get("label");
+                String value = (String) option.get("value");
+
+                LinearLayout itemLayout = new LinearLayout(context);
+                itemLayout.setOrientation(LinearLayout.HORIZONTAL);
+                itemLayout.setGravity(Gravity.CENTER_VERTICAL);
+                int paddingH = StyleHelper.standardUnitToPx(context, 24);
+                int paddingV = StyleHelper.standardUnitToPx(context, 22);
+                itemLayout.setPadding(paddingH, paddingV, paddingH, paddingV);
+                itemLayout.setTag(value);
+
+                CustomCheckBoxView radioView = new CustomCheckBoxView(context);
+                applyCheckBoxStyle(context, radioView);
+                radioView.setChecked(value != null && value.equals(currentValue));
+
+                TextView textView = new TextView(context);
+                textView.setText(label);
+                applyOptionTextStyle(context, textView);
+
+                itemLayout.addView(radioView);
+                itemLayout.addView(textView);
+
+                itemLayout.setOnClickListener(v -> {
+                    String clickedValue = (String) v.getTag();
+                    for (View item : radioButtons) {
+                        LinearLayout layout = (LinearLayout) item;
+                        CustomCheckBoxView radio = (CustomCheckBoxView) layout.getChildAt(0);
+                        String itemValue = (String) layout.getTag();
+                        radio.setChecked(itemValue != null && itemValue.equals(clickedValue));
+                    }
+                    selectedRadioValue = clickedValue;
+                    updateValue(clickedValue);
+                });
+
+                radioButtons.add(itemLayout);
+
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                if (i > 0) {
+                    applyChoiceGap(context, params);
+                }
+                itemLayout.setLayoutParams(params);
+
+                choiceContainer.addView(itemLayout);
+            }
+        }
+    }
+
+    private void applyOptionTextStyle(Context context, TextView textView) {
+        String textSizeStr = styleConfig.get("text-size");
+        int textSizePx = textSizeStr != null
+                ? StyleHelper.parseDimension(textSizeStr, context)
+                : StyleHelper.standardUnitToPx(context, 32);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizePx);
+
+        String textColorStr = styleConfig.get("text-color");
+        int textColor = textColorStr != null ? StyleHelper.parseColor(textColorStr) : Color.BLACK;
+        textView.setTextColor(textColor);
+
+        String textMarginStr = styleConfig.get("text-margin");
+        int textLeftMargin = textMarginStr != null
+                ? StyleHelper.parseDimension(textMarginStr, context)
+                : StyleHelper.standardUnitToPx(context, 16);
+        textView.setPadding(textLeftMargin, 0, 0, 0);
+
+        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        textView.setLayoutParams(textParams);
+    }
+
+    private void applyChoiceGap(Context context, LinearLayout.LayoutParams params) {
+        String choiceGapStr = styleConfig.get("choice-gap");
+        if (choiceGapStr != null && !choiceGapStr.isEmpty()) {
+            int choiceGap = StyleHelper.parseDimension(choiceGapStr, context);
+            if ("horizontal".equals(orientation)) {
+                params.leftMargin = choiceGap;
+            } else {
+                params.topMargin = choiceGap;
+            }
+        }
+    }
+
     private void applyChecksProperty() {
-        // checks adaptation - display red error text below the option group
         if (properties.containsKey("checks")) {
             Object checksValue = properties.get("checks");
             if (checksValue instanceof Map) {
@@ -155,260 +572,44 @@ public class ChoicePickerComponent extends A2UIComponent {
         }
     }
 
-    /**
-     * Create single-selection mode (uses CustomRadioButtonView)
-     */
-    private void createMutuallyExclusive(Context context) {
-        radioButtons.clear();
-
-        if (options != null) {
-            String currentValue = getCurrentValue();
-            selectedRadioValue = currentValue;
-
-            for (int i = 0; i < options.size(); i++) {
-                Map<String, Object> option = options.get(i);
-                String label = (String) option.get("label");
-                String value = (String) option.get("value");
-
-                // Create horizontal layout container
-                LinearLayout itemLayout = new LinearLayout(context);
-                itemLayout.setOrientation(LinearLayout.HORIZONTAL);
-                itemLayout.setGravity(Gravity.CENTER_VERTICAL);
-                // Set option padding: 22px top/bottom, 24px left/right
-                int paddingH = StyleHelper.standardUnitToPx(context, 24);
-                int paddingV = StyleHelper.standardUnitToPx(context, 22);
-                itemLayout.setPadding(paddingH, paddingV, paddingH, paddingV);
-                itemLayout.setTag(value);
-
-                // Create custom selection view
-                CustomCheckBoxView radioView = new CustomCheckBoxView(context);
-                applyCheckBoxStyle(context, radioView);
-                radioView.setChecked(value != null && value.equals(currentValue));
-
-                // Create text label
-                TextView textView = new TextView(context);
-                textView.setText(label);
-                // Text size: read from style configuration
-                String textSizeStr = styleConfig.get("text-size");
-                int textSizePx = textSizeStr != null ?
-                        StyleHelper.parseDimension(textSizeStr, context) :
-                        StyleHelper.standardUnitToPx(context, 32);
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizePx);
-                // Text color: read from style configuration
-                String textColorStr = styleConfig.get("text-color");
-                int textColor = textColorStr != null ?
-                        StyleHelper.parseColor(textColorStr) :
-                        Color.BLACK;
-                textView.setTextColor(textColor);
-                // Text-to-checkbox spacing: read from style configuration
-                String textMarginStr = styleConfig.get("text-margin");
-                int textLeftMargin = textMarginStr != null ?
-                        StyleHelper.parseDimension(textMarginStr, context) :
-                        StyleHelper.standardUnitToPx(context, 16);
-                textView.setPadding(textLeftMargin, 0, 0, 0);
-                LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
-                textView.setLayoutParams(textParams);
-
-                // Add to container
-                itemLayout.addView(radioView);
-                itemLayout.addView(textView);
-
-                // Click the entire area to toggle selection state
-                itemLayout.setOnClickListener(v -> {
-                    String clickedValue = (String) v.getTag();
-                    // Deselect all other options
-                    for (View item : radioButtons) {
-                        LinearLayout layout = (LinearLayout) item;
-                        CustomCheckBoxView radio = (CustomCheckBoxView) layout.getChildAt(0);
-                        String itemValue = (String) layout.getTag();
-                        radio.setChecked(itemValue != null && itemValue.equals(clickedValue));
-                    }
-                    selectedRadioValue = clickedValue;
-                    updateValue(clickedValue);
-                });
-
-                radioButtons.add(itemLayout);
-
-                // Set layout params, apply choice-gap
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
-
-                // Apply choice-gap (no gap needed for the first option)
-                if (i > 0) {
-                    String choiceGapStr = styleConfig.get("choice-gap");
-                    if (choiceGapStr != null && !choiceGapStr.isEmpty()) {
-                        int choiceGap = StyleHelper.parseDimension(choiceGapStr, context);
-                        if ("horizontal".equals(orientation)) {
-                            params.leftMargin = choiceGap;
-                        } else {
-                            params.topMargin = choiceGap;
-                        }
-                    }
-                }
-
-                itemLayout.setLayoutParams(params);
-
-                choiceContainer.addView(itemLayout);
-            }
-        }
-    }
-
-    /**
-     * Create multiple-selection mode (uses CustomCheckBoxView)
-     */
-    private void createMultipleSelection(Context context) {
-        checkBoxes.clear();
-
-        if (options != null) {
-            List<String> currentValues = getCurrentValues();
-
-            for (Map<String, Object> option : options) {
-                String label = (String) option.get("label");
-                String value = (String) option.get("value");
-
-                // Create horizontal layout container
-                LinearLayout itemLayout = new LinearLayout(context);
-                itemLayout.setOrientation(LinearLayout.HORIZONTAL);
-                itemLayout.setGravity(Gravity.CENTER_VERTICAL);
-                // Set option padding: 22px top/bottom, 24px left/right
-                int paddingH = StyleHelper.standardUnitToPx(context, 24);
-                int paddingV = StyleHelper.standardUnitToPx(context, 22);
-                itemLayout.setPadding(paddingH, paddingV, paddingH, paddingV);
-                itemLayout.setTag(value);
-
-                // Create custom CheckBox
-                CustomCheckBoxView checkBoxView = new CustomCheckBoxView(context);
-                applyCheckBoxStyle(context, checkBoxView);
-                checkBoxView.setChecked(currentValues != null && currentValues.contains(value));
-
-                // Create text label
-                TextView textView = new TextView(context);
-                textView.setText(label);
-                // Text size: read from style configuration
-                String textSizeStr = styleConfig.get("text-size");
-                int textSizePx = textSizeStr != null ?
-                        StyleHelper.parseDimension(textSizeStr, context) :
-                        StyleHelper.standardUnitToPx(context, 32);
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizePx);
-                // Text color: read from style configuration
-                String textColorStr = styleConfig.get("text-color");
-                int textColor = textColorStr != null ?
-                        StyleHelper.parseColor(textColorStr) :
-                        Color.BLACK;
-                textView.setTextColor(textColor);
-                // Text-to-checkbox spacing: read from style configuration
-                String textMarginStr = styleConfig.get("text-margin");
-                int textLeftMargin = textMarginStr != null ?
-                        StyleHelper.parseDimension(textMarginStr, context) :
-                        StyleHelper.standardUnitToPx(context, 16);
-                textView.setPadding(textLeftMargin, 0, 0, 0);
-                LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
-                textView.setLayoutParams(textParams);
-
-                // Add to container
-                itemLayout.addView(checkBoxView);
-                itemLayout.addView(textView);
-
-                // Click the entire area to toggle selection state
-                itemLayout.setOnClickListener(v -> {
-                    checkBoxView.toggle();
-                    updateMultipleValues();
-                });
-
-                checkBoxes.add(itemLayout);
-
-                // Set layout params, apply choice-gap
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
-
-                // Apply choice-gap (no gap needed for the first option)
-                int index = checkBoxes.size() - 1;
-                if (index > 0) {
-                    String choiceGapStr = styleConfig.get("choice-gap");
-                    if (choiceGapStr != null && !choiceGapStr.isEmpty()) {
-                        int choiceGap = StyleHelper.parseDimension(choiceGapStr, context);
-                        if ("horizontal".equals(orientation)) {
-                            params.leftMargin = choiceGap;
-                        } else {
-                            params.topMargin = choiceGap;
-                        }
-                    }
-                }
-
-                itemLayout.setLayoutParams(params);
-
-                choiceContainer.addView(itemLayout);
-            }
-        }
-    }
-
-    /**
-     * Apply CheckBox style configuration
-     */
     private void applyCheckBoxStyle(Context context, CustomCheckBoxView checkBoxView) {
-        // 1. checkbox-size
         String sizeStr = styleConfig.get("checkbox-size");
         if (sizeStr != null) {
             int size = StyleHelper.parseDimension(sizeStr, context);
             checkBoxView.setSize(size);
         }
 
-        // 2. checkbox-background-color-selected
         String bgColorSelectedStr = styleConfig.get("checkbox-background-color-selected");
         if (bgColorSelectedStr != null) {
-            int color = StyleHelper.parseColor(bgColorSelectedStr);
-            checkBoxView.setCheckedBackgroundColor(color);
+            checkBoxView.setCheckedBackgroundColor(StyleHelper.parseColor(bgColorSelectedStr));
         }
 
-        // 3. checkbox-border-color-selected
         String borderColorSelectedStr = styleConfig.get("checkbox-border-color-selected");
         if (borderColorSelectedStr != null) {
-            int color = StyleHelper.parseColor(borderColorSelectedStr);
-            checkBoxView.setCheckedBorderColor(color);
+            checkBoxView.setCheckedBorderColor(StyleHelper.parseColor(borderColorSelectedStr));
         }
 
-        // 4. checkbox-background-color
         String bgColorStr = styleConfig.get("checkbox-background-color");
         if (bgColorStr != null) {
-            int color = StyleHelper.parseColor(bgColorStr);
-            checkBoxView.setUncheckedBackgroundColor(color);
+            checkBoxView.setUncheckedBackgroundColor(StyleHelper.parseColor(bgColorStr));
         }
 
-        // 5. checkbox-border-color
         String borderColorStr = styleConfig.get("checkbox-border-color");
         if (borderColorStr != null) {
-            int color = StyleHelper.parseColor(borderColorStr);
-            checkBoxView.setUncheckedBorderColor(color);
+            checkBoxView.setUncheckedBorderColor(StyleHelper.parseColor(borderColorStr));
         }
 
-        // 6. checkbox-border-width
         String borderWidthStr = styleConfig.get("checkbox-border-width");
         if (borderWidthStr != null) {
-            float borderWidth = StyleHelper.parseDimension(borderWidthStr, context);
-            checkBoxView.setBorderWidth(borderWidth);
+            checkBoxView.setBorderWidth(StyleHelper.parseDimension(borderWidthStr, context));
         }
 
-        // 7. checkbox-border-radius
         String borderRadiusStr = styleConfig.get("checkbox-border-radius");
         if (borderRadiusStr != null) {
-            float borderRadius = StyleHelper.parseDimension(borderRadiusStr, context);
-            checkBoxView.setCornerRadius(borderRadius);
+            checkBoxView.setCornerRadius(StyleHelper.parseDimension(borderRadiusStr, context));
         }
     }
 
-    /**
-     * Get the current single-selection value
-     */
     private String getCurrentValue() {
         if (properties.containsKey("value")) {
             Object value = properties.get("value");
@@ -419,9 +620,6 @@ public class ChoicePickerComponent extends A2UIComponent {
         return null;
     }
 
-    /**
-     * Get the current multiple-selection value list
-     */
     private List<String> getCurrentValues() {
         if (properties.containsKey("value")) {
             Object value = properties.get("value");
@@ -432,101 +630,54 @@ public class ChoicePickerComponent extends A2UIComponent {
         return new ArrayList<>();
     }
 
-    /**
-     * Update single-selection value
-     */
     private void updateValue(String newValue) {
         properties.put("value", newValue);
-
-        // Send data change to Native
         sendDataChangeToNative(newValue);
     }
 
-    /**
-     * Update multiple-selection values
-     */
     private void updateMultipleValues() {
-        List<String> selectedValues = new ArrayList<>();
-
-        for (View item : checkBoxes) {
-            LinearLayout layout = (LinearLayout) item;
-            CustomCheckBoxView checkBoxView = (CustomCheckBoxView) layout.getChildAt(0);
-            if (checkBoxView.isChecked()) {
-                String value = (String) layout.getTag();
-                if (value != null) {
-                    selectedValues.add(value);
+        List<String> selectedValues;
+        if ("chips".equals(displayStyle)) {
+            selectedValues = selectedChipValues != null
+                    ? new ArrayList<>(selectedChipValues) : new ArrayList<String>();
+        } else {
+            selectedValues = new ArrayList<>();
+            for (View item : checkBoxes) {
+                LinearLayout layout = (LinearLayout) item;
+                CustomCheckBoxView checkBoxView = (CustomCheckBoxView) layout.getChildAt(0);
+                if (checkBoxView.isChecked()) {
+                    String value = (String) layout.getTag();
+                    if (value != null) {
+                        selectedValues.add(value);
+                    }
                 }
             }
         }
-
         properties.put("value", selectedValues);
-
-        // Send data change to Native
         sendDataChangeToNative(selectedValues);
     }
 
-
-    @Override
-    public void onUpdateProperties(Map<String, Object> properties) {
-        // Recreate the view
-        if (containerLayout != null && choiceContainer != null) {
-            Context context = containerLayout.getContext();
-            containerLayout.removeAllViews();
-
-            // Reload style configuration
-            styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("ChoicePicker");
-
-            // Parse properties
-            parseProperties();
-
-            // Recreate selection container
-            choiceContainer = new LinearLayout(context);
-            int layoutOrientation = "horizontal".equals(orientation) ?
-                    LinearLayout.HORIZONTAL : LinearLayout.VERTICAL;
-            choiceContainer.setOrientation(layoutOrientation);
-            containerLayout.addView(choiceContainer);
-
-            // Create different selection UIs based on variant
-            if ("multipleSelection".equals(variant)) {
-                createMultipleSelection(context);
-            } else {
-                createMutuallyExclusive(context);
-            }
-
-            // Recreate error message TextView
-            errorTextView = new TextView(context);
-            errorTextView.setTextColor(Color.RED);
-            errorTextView.setTextSize(12);
-            errorTextView.setVisibility(View.GONE);
-            int errorPaddingH = StyleHelper.standardUnitToPx(context, 16);
-            int errorPaddingV = StyleHelper.standardUnitToPx(context, 8);
-            errorTextView.setPadding(errorPaddingH, errorPaddingV, errorPaddingH, 0);
-            containerLayout.addView(errorTextView);
-
-            // Apply checks property
-            applyChecksProperty();
-        }
-    }
-
-    /**
-     * Send data change to Native (single-selection)
-     */
     private void sendDataChangeToNative(String value) {
-        syncState("{\"value\": \"" + value + "\"}");
-    }
-
-    /**
-     * Send data change to Native (multiple-selection)
-     */
-    private void sendDataChangeToNative(List<String> values) {
-        // Build JSON array string
-        StringBuilder jsonArray = new StringBuilder("[");
-        for (int i = 0; i < values.size(); i++) {
-            if (i > 0) jsonArray.append(",");
-            jsonArray.append("\"").append(values.get(i)).append("\"");
+        try {
+            JSONObject json = new JSONObject();
+            json.put("value", value);
+            syncState(json.toString());
+        } catch (JSONException e) {
+            Log.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
         }
-        jsonArray.append("]");
-        syncState("{\"value\": " + jsonArray.toString() + "}");
     }
 
+    private void sendDataChangeToNative(List<String> values) {
+        try {
+            JSONArray array = new JSONArray();
+            for (String v : values) {
+                array.put(v);
+            }
+            JSONObject json = new JSONObject();
+            json.put("value", array);
+            syncState(json.toString());
+        } catch (JSONException e) {
+            Log.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
+        }
+    }
 }

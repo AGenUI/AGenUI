@@ -19,6 +19,9 @@
 #include "function_call/builtins/agenui_format_date_functioncall.h"
 #include "function_call/builtins/agenui_pluralize_functioncall.h"
 #include "function_call/builtins/agenui_parse_token_functioncall.h"
+#include "function_call/builtins/agenui_and_functioncall.h"
+#include "function_call/builtins/agenui_or_functioncall.h"
+#include "function_call/builtins/agenui_not_functioncall.h"
 #include "surface/token_parser/agenui_token_parser.h"
 #include "surface/agenui_expression_parser.h"
 #include "module/agenui_surface_manager.h"
@@ -222,6 +225,9 @@ void SurfaceCoordinator::initFunctionCalls() {
     functionCallManager->registerFunctionCall(std::make_shared<FormatDateFunctionCall>());
     functionCallManager->registerFunctionCall(std::make_shared<PluralizeFunctionCall>());
     functionCallManager->registerFunctionCall(std::make_shared<ParseTokenFunctionCall>());
+    functionCallManager->registerFunctionCall(std::make_shared<AndFunctionCall>());
+    functionCallManager->registerFunctionCall(std::make_shared<OrFunctionCall>());
+    functionCallManager->registerFunctionCall(std::make_shared<NotFunctionCall>());
 }
 
 void SurfaceCoordinator::handleRenderFinish(const ComponentRenderInfo &info) {

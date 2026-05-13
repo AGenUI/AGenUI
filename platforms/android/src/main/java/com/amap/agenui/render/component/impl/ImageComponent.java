@@ -35,7 +35,7 @@ import java.util.Map;
  *
  * Supported properties:
  * - url: image URL (DynamicString)
- * - fit: scale mode (contain, cover, fill, none, scale-down)
+ * - fit: scale mode (contain, cover, fill, none, scaleDown)
  * - variant: size hint (icon, avatar, smallFeature, mediumFeature, largeFeature, header)
  *
  */
@@ -325,7 +325,7 @@ public class ImageComponent extends A2UIComponent {
 
     /**
      * Parse scale mode.
-     * A2UI v0.9 protocol values: contain, cover, fill, none, scale-down
+     * A2UI v0.9 protocol values: contain, cover, fill, none, scaleDown
      */
     private ImageView.ScaleType parseFit(String fit) {
         switch (fit.toLowerCase()) {
@@ -337,8 +337,8 @@ public class ImageComponent extends A2UIComponent {
                 return ImageView.ScaleType.FIT_XY;
             case "none":
                 return ImageView.ScaleType.CENTER;
-            case "scale-down":
-                // scale-down is similar to contain but does not enlarge the image
+            case "scaledown":
+                // scaleDown is similar to contain but does not enlarge the image
                 return ImageView.ScaleType.CENTER_INSIDE;
             default:
                 return ImageView.ScaleType.FIT_CENTER;

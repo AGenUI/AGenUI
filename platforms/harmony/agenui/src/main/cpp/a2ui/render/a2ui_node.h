@@ -510,6 +510,30 @@ public:
     }
 };
 
+/**
+ * Flex container node for wrap-capable layouts
+ */
+class A2UIFlexNode : public A2UIContainerNode {
+public:
+    explicit A2UIFlexNode(ArkUI_NodeHandle nodeHandle) : A2UIContainerNode(nodeHandle) {}
+
+    void setOptions(ArkUI_FlexDirection direction,
+                    ArkUI_FlexWrap wrap,
+                    ArkUI_FlexAlignment justifyContent,
+                    ArkUI_ItemAlignment alignItems,
+                    ArkUI_FlexAlignment alignContent) {
+        ArkUI_NumberValue value[] = {
+            {.i32 = direction},
+            {.i32 = wrap},
+            {.i32 = justifyContent},
+            {.i32 = alignItems},
+            {.i32 = alignContent}
+        };
+        ArkUI_AttributeItem item = {value, 5};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_FLEX_OPTION, &item);
+    }
+};
+
 // ========== Text Nodes ==========
 
 /**

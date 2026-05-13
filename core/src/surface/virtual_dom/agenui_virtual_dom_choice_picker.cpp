@@ -3,13 +3,53 @@
 
 #if defined(__OHOS__)
 
-#include "agenui_css_style_converter.h"
 #include "agenui_a2ui_attribute_converter.h"
 #include "agenui_component_snapshot.h"
+#include "a2ui/render/components/choicepicker_component_utils.h"
 #include "nlohmann/json.hpp"
 #include "surface/agenui_serializable_data_impl.h"
 
 namespace agenui {
+
+namespace {
+
+constexpr float kDefaultCheckboxSize = 32.0f;
+constexpr float kDefaultCheckboxMargin = 8.0f;
+constexpr float kDefaultCheckboxItemPadding = 16.0f;
+constexpr float kDefaultTextMargin = 16.0f;
+constexpr float kDefaultTextSize = 32.0f;
+constexpr float kDefaultChoiceGap = 40.0f;
+constexpr float kDefaultChipPaddingHorizontal = 28.0f;
+constexpr float kDefaultChipPaddingVertical = 12.0f;
+constexpr float kDefaultChipGap = 24.0f;
+constexpr float kDefaultChipBorderWidth = 2.0f;
+constexpr float kDefaultSearchHeight = 72.0f;
+constexpr float kDefaultSearchMarginBottom = 20.0f;
+constexpr float kDefaultSearchBorderWidth = 2.0f;
+
+nlohmann::json serializableDataToJson(const SerializableData& value) {
+    if (!value.isValid()) {
+        return nlohmann::json();
+    }
+
+    try {
+        return nlohmann::json::parse(value.dump());
+    } catch (...) {
+        if (value.isString()) {
+            return value.asString();
+        }
+        if (value.isNumber()) {
+            return value.asDouble();
+        }
+        if (value.isBool()) {
+            return value.asBool();
+        }
+    }
+
+    return nlohmann::json();
+}
+
+}  // namespace
 
 IvirtualDomChoicePicker::IvirtualDomChoicePicker(
     const ComponentSnapshot& snap,
@@ -17,12 +57,12 @@ IvirtualDomChoicePicker::IvirtualDomChoicePicker(
     VirtualDOMNode* parentNode) {
     _measureTextFunc = measureTextFunc;
     _parentNode = parentNode;
-    parseSnapshot(snap);
 
     _yogaNode = YGNodeNew();
-    YGNodeStyleSetFlexDirection(_yogaNode, YGFlexDirectionRow);
-    YGNodeStyleSetAlignItems(_yogaNode, YGAlignFlexStart);
+    YGNodeStyleSetFlexDirection(_yogaNode, YGFlexDirectionColumn);
+    YGNodeStyleSetAlignItems(_yogaNode, YGAlignStretch);
 
+    parseSnapshot(snap);
 }
 
 IvirtualDomChoicePicker::~IvirtualDomChoicePicker() {
@@ -33,167 +73,185 @@ IvirtualDomChoicePicker::~IvirtualDomChoicePicker() {
 }
 
 void IvirtualDomChoicePicker::freeYogaTree(YGNodeRef node) {
-    if (!node) return;
+    if (!node) {
+        return;
+    }
+
     uint32_t count = YGNodeGetChildCount(node);
-    for (uint32_t i = 0; i < count; i++) {
+    for (uint32_t i = 0; i < count; ++i) {
         freeYogaTree(YGNodeGetChild(node, i));
     }
     YGNodeFree(node);
 }
 
 void IvirtualDomChoicePicker::parseSnapshot(const ComponentSnapshot& snap) {
-    // Clear all parse results first to avoid stale data on re-parse
+    snapshot = snap;
     options.clear();
     orientationHorizontal = false;
+    displayStyle = "checkbox";
+    filterable = false;
 
-    snapshot = snap;
-    parseOptions(snap);
-    parseOrientation(snap);
-}
+    nlohmann::json properties = nlohmann::json::object();
 
-void IvirtualDomChoicePicker::parseOptions(const ComponentSnapshot& snap) {
-    // options attribute: JSON array; each element is an object { "label": "..." } or a plain string
-    auto it = snap.attributes.find(A2UIPropertyNames::kOptions);
-    if (it == snap.attributes.end()) return;
-    if (!it->second.isArray()) return;
-    for (const auto& item : it->second) {
-        if (item.isObject() && item.contains("label")) {
-            const auto& labelVal = item["label"];
-            options.push_back(labelVal.isString() ? labelVal.asString() : labelVal.dump());
-        } else if (item.isString()) {
-            options.push_back(item.asString());
-        } else {
-            options.push_back(item.dump());
+    auto copyAttribute = [&](const char* key) {
+        auto it = snap.attributes.find(key);
+        if (it != snap.attributes.end() && it->second.isValid()) {
+            properties[key] = serializableDataToJson(it->second);
         }
+    };
+
+    copyAttribute("variant");
+    copyAttribute("displayStyle");
+    copyAttribute("filterable");
+    copyAttribute(A2UIPropertyNames::kOptions);
+
+    auto orientationIt = snap.styles.find(CSSPropertyNames::kOrientation);
+    if (orientationIt != snap.styles.end() && orientationIt->second.isValid()) {
+        properties["styles"] = {
+            {CSSPropertyNames::kOrientation, serializableDataToJson(orientationIt->second)}
+        };
+    }
+
+    const a2ui::ChoicePickerConfig config = a2ui::parseChoicePickerConfig(properties);
+    orientationHorizontal = config.orientation == "horizontal";
+    displayStyle = config.displayStyle;
+    filterable = config.filterable;
+
+    for (const auto& option : a2ui::parseChoicePickerOptions(properties)) {
+        options.push_back(option.label);
     }
 }
 
-void IvirtualDomChoicePicker::parseOrientation(const ComponentSnapshot& snap) {
-    auto it = snap.styles.find(CSSPropertyNames::kOrientation);
-    if (it == snap.styles.end()) return;
-    std::string val;
-    if (it->second.isString()) {
-        val = it->second.asString();
-    } else {
-        val = it->second.dump();
-    }
-    orientationHorizontal = (val == "horizontal");
+YGNodeRef IvirtualDomChoicePicker::createSearchNode() const {
+    YGNodeRef searchNode = YGNodeNew();
+    YGNodeStyleSetWidthPercent(searchNode, 100.0f);
+    YGNodeStyleSetHeight(searchNode, getStyleDimension("search-height", kDefaultSearchHeight));
+    YGNodeStyleSetMargin(searchNode, YGEdgeBottom,
+                         getStyleDimension("search-margin-bottom", kDefaultSearchMarginBottom));
+    YGNodeStyleSetBorder(searchNode, YGEdgeAll,
+                         getStyleDimension("search-border-width", kDefaultSearchBorderWidth));
+    YGNodeStyleSetFlexShrink(searchNode, 0.0f);
+    return searchNode;
 }
 
-YGNodeRef IvirtualDomChoicePicker::createItemNode(const std::shared_ptr<ChoicePickerUnitCell>& cell) {
-    // Create itemNode (Row layout, aligned with ARKUI_NODE_ROW on HarmonyOS)
+YGNodeRef IvirtualDomChoicePicker::createOptionsContainerNode() const {
+    YGNodeRef optionsNode = YGNodeNew();
+    YGNodeStyleSetWidthPercent(optionsNode, 100.0f);
+
+    if (displayStyle == "chips") {
+        YGNodeStyleSetFlexDirection(optionsNode, YGFlexDirectionRow);
+        YGNodeStyleSetFlexWrap(optionsNode, YGWrapWrap);
+        YGNodeStyleSetAlignItems(optionsNode, YGAlignCenter);
+        YGNodeStyleSetGap(optionsNode, YGGutterAll, getStyleDimension("chip-gap", kDefaultChipGap));
+        return optionsNode;
+    }
+
+    YGNodeStyleSetFlexDirection(optionsNode,
+                                orientationHorizontal ? YGFlexDirectionRow : YGFlexDirectionColumn);
+    YGNodeStyleSetAlignItems(optionsNode,
+                             orientationHorizontal ? YGAlignCenter : YGAlignStretch);
+    YGNodeStyleSetGap(optionsNode, YGGutterAll, getStyleDimension("choice-gap", kDefaultChoiceGap));
+    return optionsNode;
+}
+
+YGNodeRef IvirtualDomChoicePicker::createTextMeasureNode(
+    const std::shared_ptr<ChoicePickerUnitCell>& cell) const {
+    YGNodeRef textNode = YGNodeNew();
+    YGNodeSetContext(textNode, cell.get());
+    YGNodeSetMeasureFunc(textNode, measureChoicePickerFunction);
+    if (YGNodeHasMeasureFunc(textNode)) {
+        YGNodeMarkDirty(textNode);
+    }
+    return textNode;
+}
+
+YGNodeRef IvirtualDomChoicePicker::createCheckboxItemNode(
+    const std::shared_ptr<ChoicePickerUnitCell>& cell) const {
     YGNodeRef itemNode = YGNodeNew();
     YGNodeStyleSetFlexDirection(itemNode, YGFlexDirectionRow);
-
-    const nlohmann::json& componentStyles = CSSStyleConverter::getDeviceComponentStylesJson();
-
-    // Helper: safely get a string value
-    auto getStringValue = [&](const std::string& key) -> std::string {
-        if (!componentStyles.contains("ChoicePicker") || !componentStyles["ChoicePicker"].is_object()) {
-            return "";
-        }
-        const nlohmann::json& pickerStyles = componentStyles["ChoicePicker"];
-        if (!pickerStyles.contains(key)) {
-            return "";
-        }
-        const auto& value = pickerStyles[key];
-        if (value.is_string()) {
-            return value.get<std::string>();
-        } else if (value.is_number()) {
-            return std::to_string(value.get<double>());
-        } else if (value.is_boolean()) {
-            return value.get<bool>() ? "true" : "false";
-        }
-        return "";
-    };
-    
-    // Create checkbox node
-    YGNodeRef checkbox = YGNodeNew();
-
-    // checkbox-size -> width and height
-    std::string checkboxSize = getStringValue("checkbox-size");
-    if (!checkboxSize.empty()) {
-        SerializableData styleValue(SerializableData::Impl::create(checkboxSize));
-        CSSStyleConverter::applyWidth(checkbox, styleValue, false);
-        CSSStyleConverter::applyHeight(checkbox, styleValue, false);
+    YGNodeStyleSetAlignItems(itemNode, YGAlignCenter);
+    YGNodeStyleSetPadding(itemNode, YGEdgeAll,
+                          getStyleDimension("checkbox-item-padding", kDefaultCheckboxItemPadding));
+    YGNodeStyleSetFlexShrink(itemNode, 0.0f);
+    if (!orientationHorizontal) {
+        YGNodeStyleSetWidthPercent(itemNode, 100.0f);
     }
 
-    // checkbox-border-width -> border-width
-    std::string checkboxBorderWidth = getStringValue("checkbox-border-width");
-    if (!checkboxBorderWidth.empty()) {
-        CSSStyleConverter::applyBorderWidth(checkbox, SerializableData(SerializableData::Impl::create(checkboxBorderWidth)));
+    YGNodeRef checkboxNode = YGNodeNew();
+    YGNodeStyleSetWidth(checkboxNode, getStyleDimension("checkbox-size", kDefaultCheckboxSize));
+    YGNodeStyleSetHeight(checkboxNode, getStyleDimension("checkbox-size", kDefaultCheckboxSize));
+    YGNodeStyleSetMargin(checkboxNode, YGEdgeAll,
+                         getStyleDimension("checkbox-margin", kDefaultCheckboxMargin));
+    YGNodeStyleSetBorder(checkboxNode, YGEdgeAll,
+                         getStyleDimension("checkbox-border-width", 0.0f));
+    YGNodeInsertChild(itemNode, checkboxNode, 0);
+
+    cell->snapshot = snapshot;
+    cell->snapshot.component = "ChoicePicker";
+    cell->snapshot.attributes["label"] = SerializableData(SerializableData::Impl::create(cell->text));
+    cell->snapshot.styles["font-size"] = SerializableData(
+        SerializableData::Impl::create(static_cast<double>(
+            getStyleDimension("text-size", kDefaultTextSize))));
+
+    YGNodeRef textNode = createTextMeasureNode(cell);
+    YGNodeStyleSetMargin(textNode, YGEdgeLeft, getStyleDimension("text-margin", kDefaultTextMargin));
+    if (!orientationHorizontal) {
+        YGNodeStyleSetFlexGrow(textNode, 1.0f);
+        YGNodeStyleSetFlexShrink(textNode, 1.0f);
     }
-    YGNodeInsertChild(itemNode, checkbox, 0);
-
-    // Create text node
-    YGNodeRef text = YGNodeNew();
-
-    cell->snapshot.component = "Text";
-    cell->snapshot.attributes["text"] = SerializableData(SerializableData::Impl::create(cell->text));
-
-    // text-size -> font-size
-    std::string textSize = getStringValue("text-size");
-    if (!textSize.empty()) {
-        cell->snapshot.styles["font-size"] = SerializableData(SerializableData::Impl::create(textSize));
-    }
-
-    // text-margin -> margin
-    std::string textMargin = getStringValue("text-margin");
-    if (!textMargin.empty()) {
-        CSSStyleConverter::applyMargin(text, SerializableData(SerializableData::Impl::create(textMargin)));
-    }
-
-    YGNodeSetContext(text, cell.get());
-    YGNodeSetMeasureFunc(text, measureChoicePickerFunction);
-    if (YGNodeHasMeasureFunc(text)) {
-        YGNodeMarkDirty(text);
-    }
-
-    YGNodeInsertChild(itemNode, text, 1);
+    YGNodeInsertChild(itemNode, textNode, 1);
 
     return itemNode;
 }
 
-void IvirtualDomChoicePicker::setRowNodeStyle(YGNodeRef rowNode) {
+YGNodeRef IvirtualDomChoicePicker::createChipItemNode(
+    const std::shared_ptr<ChoicePickerUnitCell>& labelCell) const {
+    YGNodeRef itemNode = YGNodeNew();
+    YGNodeStyleSetFlexDirection(itemNode, YGFlexDirectionRow);
+    YGNodeStyleSetAlignItems(itemNode, YGAlignCenter);
+    YGNodeStyleSetPadding(itemNode, YGEdgeLeft,
+                          getStyleDimension("chip-padding-horizontal", kDefaultChipPaddingHorizontal));
+    YGNodeStyleSetPadding(itemNode, YGEdgeRight,
+                          getStyleDimension("chip-padding-horizontal", kDefaultChipPaddingHorizontal));
+    YGNodeStyleSetPadding(itemNode, YGEdgeTop,
+                          getStyleDimension("chip-padding-vertical", kDefaultChipPaddingVertical));
+    YGNodeStyleSetPadding(itemNode, YGEdgeBottom,
+                          getStyleDimension("chip-padding-vertical", kDefaultChipPaddingVertical));
+    YGNodeStyleSetBorder(itemNode, YGEdgeAll,
+                         getStyleDimension("chip-border-width", kDefaultChipBorderWidth));
+    YGNodeStyleSetFlexShrink(itemNode, 0.0f);
+
+    labelCell->snapshot = snapshot;
+    labelCell->snapshot.component = "ChoicePicker";
+    labelCell->snapshot.attributes["label"] =
+        SerializableData(SerializableData::Impl::create(labelCell->text));
+    labelCell->snapshot.styles["font-size"] = SerializableData(
+        SerializableData::Impl::create(static_cast<double>(
+            getStyleDimension("text-size", kDefaultTextSize))));
+
+    YGNodeRef labelNode = createTextMeasureNode(labelCell);
+    YGNodeInsertChild(itemNode, labelNode, 0);
+
+    return itemNode;
+}
+
+float IvirtualDomChoicePicker::getStyleDimension(const char* key, float fallbackValue) const {
     const nlohmann::json& componentStyles = CSSStyleConverter::getDeviceComponentStylesJson();
-    if (!componentStyles.contains("ChoicePicker") || !componentStyles["ChoicePicker"].is_object()) {
-        return;
-    }
-
-    const nlohmann::json& pickerStyles = componentStyles["ChoicePicker"];
-
-    // Helper: safely get a string value
-    auto getStringValue = [&](const std::string& key) -> std::string {
-        if (!pickerStyles.contains(key)) {
-            return "";
-        }
-        const auto& value = pickerStyles[key];
-        if (value.is_string()) {
-            return value.get<std::string>();
-        } else if (value.is_number()) {
-            return std::to_string(value.get<double>());
-        } else if (value.is_boolean()) {
-            return value.get<bool>() ? "true" : "false";
-        }
-        return "";
-    };
-    
-    // choice-gap -> gap
-    std::string choiceGap = getStringValue("choice-gap");
-    if (!choiceGap.empty()) {
-        CSSStyleConverter::applyGap(rowNode, SerializableData(SerializableData::Impl::create(choiceGap)));
-    }
+    const nlohmann::json pickerStyles = componentStyles.contains("ChoicePicker") &&
+                                                componentStyles["ChoicePicker"].is_object()
+        ? componentStyles["ChoicePicker"]
+        : nlohmann::json::object();
+    return CSSStyleConverter::parseStyleDimension(pickerStyles, key, fallbackValue);
 }
 
 void IvirtualDomChoicePicker::creatCellYogaNode(float maxWidth) {
     _maxWidth = maxWidth;
-    if (!_parentNode || !_parentNode->getSnapshot()) {
+    if (!_yogaNode || !_parentNode || !_parentNode->getSnapshot()) {
         return;
     }
-    snapshot = *_parentNode->getSnapshot();
-    parseSnapshot(snapshot);
 
-    // Remove old child nodes
+    parseSnapshot(*_parentNode->getSnapshot());
+
     while (YGNodeGetChildCount(_yogaNode) > 0) {
         YGNodeRef child = YGNodeGetChild(_yogaNode, 0);
         YGNodeRemoveChild(_yogaNode, child);
@@ -201,40 +259,49 @@ void IvirtualDomChoicePicker::creatCellYogaNode(float maxWidth) {
     }
     cells.clear();
 
-    if (orientationHorizontal) {
-        // Horizontal: place all options in a single Row container (no fixed width, wrap_content)
-        YGNodeRef rowNode = YGNodeNew();
-        YGNodeStyleSetFlexDirection(rowNode, YGFlexDirectionRow);
-        YGNodeStyleSetAlignItems(rowNode, YGAlignFlexStart);
-        setRowNodeStyle(rowNode);
-
-        for (int i = 0; i < (int)options.size(); i++) {
-            auto cell = std::make_shared<ChoicePickerUnitCell>();
-            cell->text = options[i];
-            cell->index = i;
-            cell->_choicePicker = this;
-            cells.push_back(cell);
-            YGNodeInsertChild(rowNode, createItemNode(cell), static_cast<uint32_t>(i));
-        }
-        YGNodeInsertChild(_yogaNode, rowNode, 0);
-    } else {
-        // Vertical: each option occupies its own row in a Column container (no fixed width, wrap_content)
-        YGNodeRef rowNode = YGNodeNew();
-        YGNodeStyleSetFlexDirection(rowNode, YGFlexDirectionColumn);
-        YGNodeStyleSetAlignItems(rowNode, YGAlignFlexStart);
-        setRowNodeStyle(rowNode);
-        for (int i = 0; i < (int)options.size(); i++) {
-            auto cell = std::make_shared<ChoicePickerUnitCell>();
-            cell->text = options[i];
-            cell->index = i;
-            cell->_choicePicker = this;
-            cells.push_back(cell);
-            YGNodeInsertChild(rowNode, createItemNode(cell), static_cast<uint32_t>(i));
-        }
-        YGNodeInsertChild(_yogaNode, rowNode, 0);
-
+    YGNodeStyleSetFlexDirection(_yogaNode, YGFlexDirectionColumn);
+    YGNodeStyleSetAlignItems(_yogaNode, YGAlignStretch);
+    if (_maxWidth > 0.0f) {
+        YGNodeStyleSetMaxWidth(_yogaNode, _maxWidth);
     }
-    YGNodeCalculateLayout(_yogaNode, YGUndefined, YGUndefined, YGDirectionLTR);
+
+    uint32_t childIndex = 0;
+    if (filterable) {
+        YGNodeInsertChild(_yogaNode, createSearchNode(), childIndex++);
+    }
+
+    YGNodeRef optionsNode = createOptionsContainerNode();
+    YGNodeInsertChild(_yogaNode, optionsNode, childIndex);
+
+    for (size_t i = 0; i < options.size(); ++i) {
+        if (displayStyle == "chips") {
+            auto labelCell = std::make_shared<ChoicePickerUnitCell>();
+            labelCell->text = options[i];
+            labelCell->index = static_cast<int>(i);
+            labelCell->_choicePicker = this;
+            cells.push_back(labelCell);
+
+            YGNodeInsertChild(optionsNode,
+                              createChipItemNode(labelCell),
+                              static_cast<uint32_t>(YGNodeGetChildCount(optionsNode)));
+            continue;
+        }
+
+        auto cell = std::make_shared<ChoicePickerUnitCell>();
+        cell->text = options[i];
+        cell->index = static_cast<int>(i);
+        cell->_choicePicker = this;
+        cells.push_back(cell);
+
+        YGNodeInsertChild(optionsNode,
+                          createCheckboxItemNode(cell),
+                          static_cast<uint32_t>(YGNodeGetChildCount(optionsNode)));
+    }
+
+    YGNodeCalculateLayout(_yogaNode,
+                          _maxWidth > 0.0f ? _maxWidth : YGUndefined,
+                          YGUndefined,
+                          YGDirectionLTR);
 }
 
 YGSize IvirtualDomChoicePicker::measureChoicePickerFunction(
@@ -243,23 +310,28 @@ YGSize IvirtualDomChoicePicker::measureChoicePickerFunction(
     YGMeasureMode widthMode,
     float height,
     YGMeasureMode heightMode) {
+    (void)height;
+    (void)heightMode;
 
     ChoicePickerUnitCell* cell = static_cast<ChoicePickerUnitCell*>(YGNodeGetContext(node));
     if (!cell || !cell->_choicePicker) {
         return {0.0f, 0.0f};
     }
-    IvirtualDomChoicePicker* picker = cell->_choicePicker;
 
-    if (picker->_measureTextFunc) {
-        ComponentSnapshot itemSnap = cell->snapshot;
-        itemSnap.component = "ChoicePicker";
-        itemSnap.attributes["label"] = SerializableData(SerializableData::Impl::create(cell->text));
-        int dummyLines = 0;
-        return picker->_measureTextFunc(itemSnap, width, dummyLines);
+    IvirtualDomChoicePicker* picker = cell->_choicePicker;
+    if (!picker->_measureTextFunc) {
+        return {width, 0.0f};
     }
-    return {width, 0.0f};
+
+    ComponentSnapshot itemSnap = cell->snapshot;
+    itemSnap.component = "ChoicePicker";
+    int dummyLines = 0;
+    return picker->_measureTextFunc(
+        itemSnap,
+        widthMode == YGMeasureModeUndefined ? YGUndefined : width,
+        dummyLines);
 }
 
 }  // namespace agenui
 
-#endif // __OHOS__
+#endif

@@ -2,7 +2,6 @@
 
 #include "agenui_data_value_base.h"
 #include <string>
-#include <vector>
 #include <memory>
 
 namespace agenui {
@@ -11,13 +10,15 @@ class IDataModel;
 class IDataChangedObserver;
 
 /**
- * @brief AND checks data value
- * @remark Represents a set of validation check items with explicit AND logic
+ * @brief Single check rule data value
+ * @remark Represents a single validation rule: {condition: DynamicBoolean, message: string}
  */
-class ChecksAndDataValue : public DataValue {
+class CheckRuleDataValue : public DataValue {
 public:
-    ChecksAndDataValue(IDataModel* dataModel, const std::vector<std::shared_ptr<DataValue>>& checks);
-    
+    CheckRuleDataValue(IDataModel* dataModel,
+                       std::shared_ptr<DataValue> condition,
+                       const std::string& message);
+
     DataType getDataType() const override;
     DataBindingStatus getDataBindingStatus() const override;
     SerializableData getValueData() const override;
@@ -25,8 +26,11 @@ public:
     void unbind() override;
     std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const override;
 
+    const std::string& getMessage() const;
+
 private:
-    std::vector<std::shared_ptr<DataValue>> _checks;
+    std::shared_ptr<DataValue> _condition;
+    std::string _message;
 };
 
 }  // namespace agenui

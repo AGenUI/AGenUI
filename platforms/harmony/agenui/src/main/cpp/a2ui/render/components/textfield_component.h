@@ -2,16 +2,20 @@
 
 #include "../a2ui_component.h"
 
+#include <regex>
+
 namespace a2ui {
 
 /**
- * Text input component backed by ARKUI_NODE_TEXT_INPUT.
+ * Text input component backed by a composite ARKUI_NODE_COLUMN layout.
  *
  * Supported properties:
  *   - label: fallback text for the placeholder
  *   - placeholder: placeholder text
  *   - value: text value, including DynamicString input
  *   - variant: shortText by default, longText, number, or obscured
+ *   - validationRegexp: optional regular expression used for runtime validation
+ *   - validationMessage: optional error message shown when validationRegexp fails
  *   - styles:
  *     - width: "100%" or a numeric value
  *     - height: "100%" or a numeric value
@@ -24,10 +28,15 @@ class TextFieldComponent : public A2UIComponent {
 public:
     TextFieldComponent(const std::string& id, const nlohmann::json& properties);
     ~TextFieldComponent() override;
+    void destroy() override;
     
 public:
     A2UITextInputNode getTextFiledNode() {
-        return A2UITextInputNode(m_nodeHandle);
+        return A2UITextInputNode(m_textInputHandle);
+    }
+
+    A2UITextNode getErrorTextNode() {
+        return A2UITextNode(m_errorTextHandle);
     }
 
 protected:
@@ -51,6 +60,18 @@ private:
      * @param properties Property JSON object
      */
     void applyVariant(const nlohmann::json& properties);
+
+    /**
+     * @brief Apply the runtime validation configuration.
+     * @param properties Property JSON object
+     */
+    void applyValidationConfig(const nlohmann::json& properties);
+
+    /**
+     * @brief Apply external checks-based error state.
+     * @param properties Property JSON object
+     */
+    void applyChecks(const nlohmann::json& properties);
 
     /**
      * @brief Apply style attributes.
@@ -82,7 +103,58 @@ private:
      */
     void applyBorderColor(const nlohmann::json& styles);
 
+    /**
+     * @brief Handle runtime text changes from the native input node.
+     * @param text Current text content
+     */
+    void handleTextChanged(const std::string& text);
+
+    /**
+     * @brief Recalculate the local validation state.
+     * @param userInitiated Whether this refresh came from user input
+     */
+    void refreshLocalValidationState(bool userInitiated);
+
+    /**
+     * @brief Validate the current text against validationRegexp.
+     * @param text Text to validate
+     * @return Whether the text is currently valid
+     */
+    bool validateText(const std::string& text) const;
+
+    /**
+     * @brief Resolve the runtime validation error message.
+     * @return Error message shown under the field
+     */
+    std::string resolveValidationMessage() const;
+
+    /**
+     * @brief Update the visible error text and border state.
+     */
+    void updateValidationPresentation();
+
+    /**
+     * @brief Shared native text change callback.
+     * @param event ArkUI text input change event
+     */
+    static void onTextChangeCallback(ArkUI_NodeEvent* event);
+
 private:
+    ArkUI_NodeHandle m_textInputHandle = nullptr;
+    ArkUI_NodeHandle m_errorTextHandle = nullptr;
+    std::string m_currentText;
+    std::string m_validationRegexp;
+    std::string m_validationMessage;
+    std::regex m_compiledValidationRegex;
+    bool m_isUpdatingFromNative = false;
+    bool m_hasUserEdited = false;
+    bool m_hasValidationRegexp = false;
+    bool m_isValidationPatternValid = false;
+    bool m_localValidationFailed = false;
+    bool m_externalCheckFailed = false;
+    bool m_hasCustomBorderColor = false;
+    uint32_t m_borderColor = 0;
+    std::string m_externalCheckMessage;
     float m_borderWidth = 0.0f;   // Border width
     float m_borderRadius = 0.0f;  // Border radius
 };

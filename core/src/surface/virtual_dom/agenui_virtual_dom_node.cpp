@@ -515,13 +515,14 @@ void VirtualDOMNode::setupTableLayout() {
 }
 
 void VirtualDOMNode::setupChoicePickerLayout() {
-    // Create _choicePicker only once (may be called again on snapshot updates)
     if (!_choicePicker) {
         auto measureTextFunc = [this](const ComponentSnapshot& snap, float mw, int& lines) -> YGSize {
             const YGMeasureMode mode = mw > 0.0f ? YGMeasureModeAtMost : YGMeasureModeUndefined;
             return this->measureTextComponent(snap, mw, mode, lines);
         };
         _choicePicker = std::make_shared<IvirtualDomChoicePicker>(*_snapshot, measureTextFunc, this);
+    }
+    if (_choicePicker) {
         YGSize screenSize = AGenUIVirtualDefine::getDeviceScreenSize();
         _choicePicker->creatCellYogaNode(screenSize.width);
     }

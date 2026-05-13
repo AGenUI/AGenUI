@@ -118,6 +118,14 @@ public:
      * @param actionDef Value of the action property (JSON object)
      */
     void dispatchAction(const nlohmann::json& actionDef);
+
+    /**
+     * Synchronize UI state changes back to the data model.
+     * Mirrors the cross-platform syncState helper used by interactive components.
+     *
+     * @param changeJson Changed content, e.g. {"value": "kotlin"}
+     */
+    void syncState(const nlohmann::json& changeJson);
     
     /**
      * Set the click listener (aligned with the cross-platform setupClickListener)

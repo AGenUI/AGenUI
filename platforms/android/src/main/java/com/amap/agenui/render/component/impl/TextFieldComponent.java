@@ -18,10 +18,14 @@ import com.amap.agenui.render.style.StyleHelper;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
+import com.amap.agenui.render.style.ComponentStyleConfig;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * TextField component implementation (compliant with A2UI v0.9 protocol, supports two-way data binding)
@@ -42,6 +46,10 @@ public class TextFieldComponent extends A2UIComponent {
     private EditText editText;
     private String dataBindingPath;
     private boolean isUpdatingFromNative = false;
+    private String validationRegexp = null;
+    private boolean isRegexpValidationFailing = false;
+    private Pattern compiledValidationPattern = null;
+    private String regexpErrorMessage = null;
     private TextWatcher textWatcher = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -54,8 +62,9 @@ public class TextFieldComponent extends A2UIComponent {
         @Override
         public void afterTextChanged(Editable s) {
             // Only send data changes to C++ when the user is typing
-            if (!isUpdatingFromNative /*&& dataBindingPath != null && !dataBindingPath.isEmpty()*/) {
+            if (!isUpdatingFromNative) {
                 String newValue = s.toString();
+                validateWithRegexp(newValue);
                 sendDataChangeToNative(newValue);
             }
         }
@@ -75,7 +84,7 @@ public class TextFieldComponent extends A2UIComponent {
         Context themeWrapper = new ContextThemeWrapper(context, androidx.appcompat.R.style.Theme_AppCompat_Light);
         // Create TextInputLayout container
         textInputLayout = new TextInputLayout(themeWrapper, null, com.google.android.material.R.attr.textInputOutlinedDenseStyle);
-        textInputLayout.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_NONE);
+        textInputLayout.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
         textInputLayout.setHintEnabled(false);
         textInputLayout.post(() -> textInputLayout.setShapeAppearanceModel(
                 textInputLayout.getShapeAppearanceModel().toBuilder()
@@ -157,7 +166,23 @@ public class TextFieldComponent extends A2UIComponent {
             editText.setInputType(parseVariant(variant));
         }
 
-        // checks adaptation - use Android native setError() to display errors
+        // Parse validationRegexp
+        if (properties.containsKey("validationRegexp")) {
+            Object regexpObj = properties.get("validationRegexp");
+            validationRegexp = (regexpObj instanceof String) ? (String) regexpObj : null;
+            if (validationRegexp != null && !validationRegexp.isEmpty()) {
+                try {
+                    compiledValidationPattern = Pattern.compile(validationRegexp);
+                } catch (PatternSyntaxException e) {
+                    Log.w(TAG, "validationRegexp syntax error: " + validationRegexp, e);
+                    compiledValidationPattern = null;
+                }
+            } else {
+                compiledValidationPattern = null;
+            }
+        }
+
+        // checks adaptation - disable component + show error (consistent with CheckBox, Slider, iOS)
         if (properties.containsKey("checks")) {
             Object checksValue = properties.get("checks");
             if (checksValue instanceof Map) {
@@ -169,11 +194,20 @@ public class TextFieldComponent extends A2UIComponent {
                         String.valueOf(checksMap.get("message")) : "";
 
                 if (!result && !message.isEmpty()) {
-                    textInputLayout.setError(message);
+                    textInputLayout.setEnabled(false);
+                    textInputLayout.setAlpha(0.5f);
                     textInputLayout.setErrorEnabled(true);
+                    textInputLayout.setError(message);
                 } else {
-                    textInputLayout.setError(null);
-                    textInputLayout.setErrorEnabled(false);
+                    textInputLayout.setEnabled(true);
+                    textInputLayout.setAlpha(1.0f);
+                    if (isRegexpValidationFailing) {
+                        textInputLayout.setErrorEnabled(true);
+                        textInputLayout.setError(getRegexpErrorMessage());
+                    } else {
+                        textInputLayout.setError(null);
+                        textInputLayout.setErrorEnabled(false);
+                    }
                 }
             }
         }
@@ -292,6 +326,38 @@ public class TextFieldComponent extends A2UIComponent {
         }
 
         editText.addTextChangedListener(textWatcher);
+    }
+
+    private void validateWithRegexp(String text) {
+        if (compiledValidationPattern == null || text.isEmpty()) {
+            if (isRegexpValidationFailing) {
+                isRegexpValidationFailing = false;
+                textInputLayout.setError(null);
+                textInputLayout.setErrorEnabled(false);
+            }
+            return;
+        }
+
+        boolean matches = compiledValidationPattern.matcher(text).matches();
+
+        if (!matches) {
+            isRegexpValidationFailing = true;
+            textInputLayout.setErrorEnabled(true);
+            textInputLayout.setError(getRegexpErrorMessage());
+        } else {
+            isRegexpValidationFailing = false;
+            textInputLayout.setError(null);
+            textInputLayout.setErrorEnabled(false);
+        }
+    }
+
+    private String getRegexpErrorMessage() {
+        if (regexpErrorMessage != null) return regexpErrorMessage;
+        Map<String, String> style =
+                ComponentStyleConfig.getInstance(context).getComponentStyle("TextField");
+        String msg = style != null ? style.get("validation-error-message") : null;
+        regexpErrorMessage = msg != null ? msg : "Invalid format";
+        return regexpErrorMessage;
     }
 
     private void setDefaultStrokeColorOnly(int newDefaultColor) {

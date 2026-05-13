@@ -1,33 +1,40 @@
 #pragma once
 
 #include "../a2ui_component.h"
+#include "choicepicker_component_utils.h"
 #include <vector>
 
 namespace a2ui {
 
-/** Native handles and value for a single option item. */
-struct OptionItem {
-    ArkUI_NodeHandle rowHandle = nullptr;      // Option row container
-    ArkUI_NodeHandle checkboxHandle = nullptr; // CheckBox handle
-    ArkUI_NodeHandle labelHandle = nullptr;    // Label text handle
-    std::string value;                         // Option value
+/** Native handles and metadata for a single visible option item. */
+struct ChoicePickerOptionItem {
+    ArkUI_NodeHandle containerHandle = nullptr; // Clickable container
+    ArkUI_NodeHandle indicatorHandle = nullptr; // Optional CheckBox indicator
+    ArkUI_NodeHandle labelHandle = nullptr;     // Label text
+    size_t optionIndex = 0;                     // Original option index
+    std::string label;                          // Option label
+    std::string value;                          // Option value
 };
 
 /**
- * Choice picker component with single- and multi-select modes.
+ * Choice picker component with checkbox and chips display modes.
  *
  * Layout structure (composite layout):
- *   ARKUI_NODE_COLUMN or ARKUI_NODE_ROW (root node, decided by orientation)
- *     ├── ARKUI_NODE_ROW (first option row)
- *     │     ├── ARKUI_NODE_CHECKBOX (first checkbox)
- *     │     └── ARKUI_NODE_TEXT (first label)
+ *   ARKUI_NODE_COLUMN (root node)
+ *     ├── ARKUI_NODE_TEXT_INPUT (optional search input)
+ *     └── option container (COLUMN / ROW / FLEX, decided by config)
+ *           ├── ARKUI_NODE_ROW (checkbox row or chip item)
+ *           │     ├── ARKUI_NODE_CHECKBOX (checkbox only)
+ *           │     └── ARKUI_NODE_TEXT (label)
  *     ├── ...
  *
  * Supported properties:
  *   - variant: "mutuallyExclusive" for single-select or "multipleSelection" for multi-select
+ *   - displayStyle: "checkbox" (default) or "chips"
+ *   - filterable: whether to show an inline search input
  *   - options: option array [{label, value}, ...]
  *   - value: selected value, either a string or an array of strings
- *   - styles.orientation: "vertical" by default, or "horizontal"
+ *   - styles.orientation: "vertical" by default, or "horizontal" (checkbox mode)
  */
 class ChoicePickerComponent : public A2UIComponent {
 public:
@@ -38,30 +45,70 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
-    /** Build option UI from options. */
-    void buildOptions(const nlohmann::json& properties);
+    /** Rebuild the whole content tree under the root container. */
+    void rebuildContent();
 
-    /** Remove all option nodes. */
+    /** Build or rebuild the visible option nodes. */
+    void rebuildOptions();
+
+    /** Create the optional search input when filterable=true. */
+    void createSearchInput();
+
+    /** Create the option container matching the active display mode. */
+    void createOptionsContainer();
+
+    /** Build checkbox-style option UI from visible indices. */
+    void buildCheckboxOptions(const std::vector<size_t>& visibleIndices);
+
+    /** Build chips-style option UI from visible indices. */
+    void buildChipOptions(const std::vector<size_t>& visibleIndices);
+
+    /** Remove all visible option nodes. */
     void clearOptions();
 
-    /** Apply the selected state to each option. */
-    void applySelectedValues(const nlohmann::json& properties);
+    /** Remove the search input and option container. */
+    void clearContent();
 
-    /** Parse orientation from properties. */
-    std::string parseOrientation(const nlohmann::json& properties) const;
+    /** Apply the selected state to each visible option. */
+    void applySelectedValues();
 
-    /** Parse variant from properties. */
-    std::string parseVariant(const nlohmann::json& properties) const;
+    /** Update a single option's appearance. */
+    void applyOptionSelectedState(ChoicePickerOptionItem& item, bool selected);
 
-    /** Check whether an option value is selected. */
-    bool isValueSelected(const nlohmann::json& valueField, const std::string& optionValue) const;
+    /** Handle container clicks for checkbox/chip options. */
+    void handleOptionClick(size_t optionIndex);
 
-    /** Extract a string value, including DynamicString input. */
-    static std::string extractStringValue(const nlohmann::json& value);
+    /** Handle runtime search keyword changes. */
+    void handleSearchKeywordChange(const std::string& keyword);
 
-    std::string m_variant = "mutuallyExclusive";
-    std::string m_orientation = "vertical";
-    std::vector<OptionItem> m_optionItems;
+    /** Return whether the current checks state disables editing. */
+    bool isInteractionDisabled() const;
+
+    /** Push the current local value back to the data model. */
+    void syncCurrentValue();
+
+    /** Read a numeric style token from the ChoicePicker style config. */
+    float getStyleDimension(const char* key, float fallbackValue) const;
+
+    /** Read a color style token from the ChoicePicker style config. */
+    uint32_t getStyleColor(const char* key, uint32_t fallbackValue) const;
+
+    /** Read a string style token from the ChoicePicker style config. */
+    std::string getStyleString(const char* key, const std::string& fallbackValue) const;
+
+    /** Shared option click callback. */
+    static void onOptionClickCallback(ArkUI_NodeEvent* event);
+
+    /** Search input text-change callback. */
+    static void onSearchInputChangeCallback(ArkUI_NodeEvent* event);
+
+    ChoicePickerConfig m_config;
+    nlohmann::json m_styleConfig;
+    std::vector<ChoicePickerOptionData> m_options;
+    std::vector<ChoicePickerOptionItem> m_optionItems;
+    ArkUI_NodeHandle m_searchInputHandle = nullptr;
+    ArkUI_NodeHandle m_optionsContainerHandle = nullptr;
+    std::string m_filterKeyword;
 };
 
 } // namespace a2ui

@@ -74,8 +74,7 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
     "Image": {
       "url": {"default": ""},
       "fit": {
-        "default": "cover",
-        "enum": ["contain", "cover", "fill", "none", "scale-down"]
+        "default": "cover"
       },
       "variant": {
         "enum": {
@@ -146,6 +145,14 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
           "mutuallyExclusive": {"styles": {}}
         }
       },
+      "displayStyle": {
+        "default": "checkbox",
+        "enum": {
+          "checkbox": {"styles": {}},
+          "chips": {"styles": {}}
+        }
+      },
+      "filterable": {"default": false},
       "options": {"default": []},
       "value": {"default": []},
       "styles": {
@@ -198,9 +205,9 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
     "Button": {
       "child": {"default": ""},
       "variant": {
-        "default": "primary",
+        "default": "default",
         "enum": {
-          "primary": {"styles": {}},
+          "default": {"styles": {}},
           "borderless": {"styles": {
             "border-width": "0px"
           }}

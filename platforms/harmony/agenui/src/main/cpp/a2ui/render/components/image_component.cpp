@@ -937,7 +937,7 @@ int32_t ImageComponent::mapObjectFit(const std::string& fit) {
         return ARKUI_OBJECT_FIT_CONTAIN;
     } else if (fit == "cover") {
         return ARKUI_OBJECT_FIT_COVER;
-    } else if (fit == "scale-down") {
+    } else if (fit == "scaleDown") {
         return ARKUI_OBJECT_FIT_SCALE_DOWN;
     } else if (fit == "fill") {
         return ARKUI_OBJECT_FIT_FILL;

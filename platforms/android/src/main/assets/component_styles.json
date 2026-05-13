@@ -21,6 +21,9 @@
   "Button": {
     "disabled-opacity": "0.4"
   },
+  "TextField": {
+    "validation-error-message": "Invalid format"
+  },
   "CheckBox": {
     "checkbox-size": "32px",
     "checkbox-background-color-selected": "#2E82FF",
@@ -47,7 +50,30 @@
     "text-margin": "16px",
     "text-color": "#000000",
     "text-size": "32px",
-    "choice-gap": "40px"
+    "choice-gap": "40px",
+    "chip-background-color-selected": "#2E82FF",
+    "chip-text-color-selected":       "#FFFFFF",
+    "chip-background-color":          "#F5F5F5",
+    "chip-border-color":              "#0000001A",
+    "chip-border-width":              "2px",
+    "chip-border-radius":             "40px",
+    "chip-text-color":                "#000000",
+    "chip-text-size":                 "28px",
+    "chip-padding-h":                 "24px",
+    "chip-padding-v":                 "12px",
+    "chip-gap-h":                     "16px",
+    "chip-gap-v":                     "16px",
+    "filter-background-color":        "#F5F5F5",
+    "filter-border-color":            "#0000001A",
+    "filter-border-width":            "2px",
+    "filter-border-radius":           "40px",
+    "filter-text-size":               "28px",
+    "filter-text-color":              "#000000",
+    "filter-hint-color":              "#80000000",
+    "filter-hint-text":               "Search...",
+    "filter-padding-h":               "32px",
+    "filter-padding-v":               "16px",
+    "filter-margin-bottom":           "24px"
   },
   "Slider": {
     "slider-height": "48px",
