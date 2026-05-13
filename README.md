@@ -137,6 +137,25 @@ When integrating an LLM Agent, supply this file's content or its hosted URL as t
 
 ---
 
+## A2UI Generation Skill
+
+The `skills/a2ui-generation/` directory ships a standalone **A2UI generation Skill** that can be mounted into any Agent that supports the [Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills) mechanism (e.g. Claude Code, Codex, Qoder). It guides the LLM — via the Skill's built-in design rules and constraints — to turn a natural-language query into A2UI protocol messages (`updateComponents` / `updateDataModel`) that AGenUI can render directly.
+
+### How to use
+
+Register `skills/a2ui-generation/` as a Skill in your Agent, then describe the UI you want through a query. The Skill drives the LLM to emit A2UI v0.9–conformant JSON protocol.
+
+### Layout & styling
+
+- **Default shape**: a single **Card**, focused on the essential information.
+- **Custom layout & styling**: your query can explicitly request other shapes (full page, list, table, etc.) or specific visual requirements (palette, spacing, font sizes, theme). When your explicit instruction conflicts with the Skill's defaults, the explicit instruction wins.
+
+### LLM selection
+
+Different LLMs may produce somewhat different results when generating A2UI output. We recommend trying a few models against your own scenarios and picking the one that fits best.
+
+---
+
 ## Quick Start
 
 ### Toolchain Requirements
