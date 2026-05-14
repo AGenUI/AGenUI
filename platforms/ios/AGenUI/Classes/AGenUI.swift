@@ -177,7 +177,7 @@ import Foundation
     ///
     /// - Returns: Version string
     @objc public static func getVersion() -> String {
-        return "2.0.0"
+        return "0.9.10"
     }
 }
 

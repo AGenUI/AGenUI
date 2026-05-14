@@ -432,7 +432,7 @@ export class AGenUI {
    * Returns the AGenUI SDK version
    */
   static getVersion(): string {
-    return '2.0.0';
+    return '0.9.10';
   }
 }
 
