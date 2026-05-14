@@ -31,7 +31,7 @@ public class AGenUI {
     private static volatile AGenUI sInstance = null;
     private static final Object sLock = new Object();
 
-    private static final String SDK_VERSION = "2.0.0";
+    private static final String SDK_VERSION = "0.9.10";
 
     private volatile long nativePtr = 0;
     private volatile boolean isInitialized = false;
