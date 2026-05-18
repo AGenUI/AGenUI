@@ -39,7 +39,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install CMake
         run: sdkmanager --install "cmake;3.18.1"
