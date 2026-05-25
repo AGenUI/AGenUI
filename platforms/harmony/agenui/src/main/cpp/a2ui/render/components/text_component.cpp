@@ -1,14 +1,77 @@
 #include "text_component.h"
 #include "log/a2ui_capi_log.h"
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
+#include <vector>
 #include "../../measure/a2ui_platform_layout_bridge.h"
 #include "a2ui/utils/a2ui_unit_utils.h"
 #include "a2ui/utils/a2ui_color_palette.h"
 #include "a2ui/utils/a2ui_font_weight_utils.h"
+#include "a2ui/utils/a2ui_padding_utils.h"
 
 
 namespace a2ui {
+
+namespace {
+
+bool isExplicitTransparentShadowColor(const std::string& colorStr) {
+    return colorStr == "#00000000" ||
+           colorStr == "rgba(0, 0, 0, 0)" ||
+           colorStr == "rgba(0,0,0,0)";
+}
+
+// Resolve a W3C `line-height` value to an absolute a2ui-px line box height.
+// Parsing rules (kept in lockstep with iOS `extractLineHeight` and Android `StyleHelper`):
+//   - JSON number                    -> treat as unitless multiplier (`value * fontSize`)
+//   - JSON string ending with "px"   -> treat as absolute px value
+//   - JSON string without unit       -> treat as unitless multiplier (`atof(value) * fontSize`)
+// A return value of 0 means the style is absent or invalid and the caller should leave
+// the native line-height untouched.
+float resolveLineHeightPx(const nlohmann::json& lhVal, float fontSize) {
+    if (lhVal.is_number()) {
+        float mult = lhVal.get<float>();
+        return (mult > 0.0f && fontSize > 0.0f) ? mult * fontSize : 0.0f;
+    }
+    if (lhVal.is_string()) {
+        const std::string& s = lhVal.get_ref<const std::string&>();
+        if (s.empty()) {
+            return 0.0f;
+        }
+        const float raw = static_cast<float>(std::atof(s.c_str()));
+        if (raw <= 0.0f) {
+            return 0.0f;
+        }
+        const bool hasPxSuffix = s.size() >= 2 &&
+                                 s.compare(s.size() - 2, 2, "px") == 0;
+        if (hasPxSuffix) {
+            return raw;
+        }
+        return fontSize > 0.0f ? raw * fontSize : 0.0f;
+    }
+    return 0.0f;
+}
+
+// Parse a single CSS length token (e.g. "12px", "12", number) into an a2ui-px
+// value. Returns true on success. Trailing/leading whitespace is allowed; the
+// `px` suffix is optional and stripped before atof.
+// (Migrated to a2ui::padding_utils; thin local wrappers retained for callers.)
+bool parsePaddingLength(const nlohmann::json& v, float& outPx) {
+    return ::a2ui::padding_utils::parseLength(v, outPx);
+}
+
+// Resolve CSS `padding` shorthand + `padding-top/right/bottom/left` overrides
+// into four a2ui-px edge values (top/right/bottom/left). Negative results are
+// clamped to 0. Values are returned in a2ui-px; the caller is responsible for
+// the eventual vp conversion (handled by `BaseNode::setPadding`).
+void resolveUserPadding(const nlohmann::json& styles,
+                        float& top, float& right, float& bottom, float& left) {
+    ::a2ui::padding_utils::resolveUserPadding(styles, top, right, bottom, left);
+}
+
+} // namespace
 
 TextComponent::TextComponent(const std::string& id, const nlohmann::json& properties) : A2UIComponent(id, "Text") {
     m_nodeHandle = g_nodeAPI->createNode(ARKUI_NODE_TEXT);
@@ -73,6 +136,7 @@ void TextComponent::applyStyles(const nlohmann::json& properties) {
 
     const auto& styles = properties["styles"];
     A2UITextNode node(m_nodeHandle);
+    A2UINode baseNode(m_nodeHandle);
 
     // Support both kebab-case and camelCase background color keys.
     {
@@ -143,52 +207,197 @@ void TextComponent::applyStyles(const nlohmann::json& properties) {
     }
 
     // line-clamp -> NODE_TEXT_MAX_LINES
+    // line-clamp: 0 means "no limit" — treat as if no line-clamp was set so
+    // that the height-based max-lines calculation below can still apply.
+    int32_t maxLines = 0;
+    bool hasLineClamp = false;
     if (styles.find("line-clamp") != styles.end()) {
-        int32_t maxLines = 0;
         const auto& lineClampVal = styles["line-clamp"];
         if (lineClampVal.is_number_integer()) {
             maxLines = lineClampVal.get<int32_t>();
         } else if (lineClampVal.is_string()) {
             maxLines = std::atoi(lineClampVal.get<std::string>().c_str());
         }
-        node.setTextMaxLines(maxLines);
+        if (maxLines > 0) {
+            hasLineClamp = true;
+            node.setTextMaxLines(maxLines);
+        }
     }
 
-    // line-height -> NODE_TEXT_LINE_HEIGHT
-    if (styles.find("line-height") != styles.end()) {
-        float lineHeight = 0.0f;
-        const auto& lineHeightVal = styles["line-height"];
-        if (lineHeightVal.is_number()) {
-            lineHeight = lineHeightVal.get<float>();
-        } else if (lineHeightVal.is_string()) {
-            lineHeight = static_cast<float>(std::atof(lineHeightVal.get<std::string>().c_str()));
+    int renderedLines = 0;
+    if (styles.find("lines") != styles.end()) {
+        const auto& linesVal = styles["lines"];
+        if (linesVal.is_number_integer()) {
+            renderedLines = linesVal.get<int>();
+        } else if (linesVal.is_string()) {
+            renderedLines = std::atoi(linesVal.get<std::string>().c_str());
         }
-        if (lineHeight > 0.0f) {
-            int lines = 1;
-            if (styles.find("lines") != styles.end()) {
-                const auto& linesVal = styles["lines"];
-                if (linesVal.is_number_integer()) {
-                    lines = linesVal.get<int>();
-                } else if (linesVal.is_string()) {
-                    lines = std::atoi(linesVal.get<std::string>().c_str());
+    }
+
+    bool textContainsLineBreak = false;
+    if (properties.find("text") != properties.end()) {
+        const auto& textValue = properties["text"];
+        if (textValue.is_string()) {
+            const std::string text = textValue.get<std::string>();
+            textContainsLineBreak = text.find('\n') != std::string::npos || text.find('\r') != std::string::npos;
+        } else if (textValue.is_object()) {
+            const auto literalIt = textValue.find("literalString");
+            if (literalIt != textValue.end() && literalIt->is_string()) {
+                const std::string text = literalIt->get<std::string>();
+                textContainsLineBreak = text.find('\n') != std::string::npos || text.find('\r') != std::string::npos;
+            }
+        }
+    }
+
+    // line-height:
+    // - multi-line text must use the native line-height attribute so inter-line
+    //   spacing matches the engine's measured layout.
+    // - single-line text keeps the padding-based centering workaround used by
+    //   Text_ComplexCombined, but merges it with any explicit user padding.
+    //
+    // The resolution rule (number -> multiplier, string+"px" -> absolute,
+    // string without unit -> multiplier) is shared with iOS/Android via
+    // `resolveLineHeightPx` so all three platforms emit the same line box height.
+    //
+    // CSS `padding`:
+    // ArkUI's `ARKUI_NODE_TEXT` is a leaf node, so calling `setPadding` here
+    // inset the glyph rendering area without changing the node's outer size,
+    // which mirrors Android's `TextView.setPadding(...)` and iOS's anchor
+    // constraints. The Yoga engine has already accounted for `padding` when
+    // computing the leaf node's borderBox layout, so this is NOT a double-
+    // count. We resolve the user padding once and merge it with the line-
+    // height vertical-centering workaround below.
+    float userPadTop = 0.0f, userPadRight = 0.0f, userPadBottom = 0.0f, userPadLeft = 0.0f;
+    ::a2ui::padding_utils::resolveUserPadding(styles, userPadTop, userPadRight, userPadBottom, userPadLeft);
+
+    auto applyPadding = [&](float extraTop, float extraBottom) {
+        const float t = userPadTop + extraTop;
+        const float r = userPadRight;
+        const float b = userPadBottom + extraBottom;
+        const float l = userPadLeft;
+        if (t > 0.0f || r > 0.0f || b > 0.0f || l > 0.0f) {
+            baseNode.setPadding(t, r, b, l);
+        } else {
+            baseNode.resetPadding();
+        }
+    };
+
+    float verticalPadding = 0.0f;
+    if (styles.find("line-height") != styles.end()) {
+        const float resolvedLineHeight = resolveLineHeightPx(styles["line-height"], size);
+        if (resolvedLineHeight > 0.0f) {
+            const bool allowsMultipleLines = !hasLineClamp || maxLines != 1;
+            const bool isMultiLineText =
+                renderedLines > 1 ||
+                (renderedLines == 0 && allowsMultipleLines && textContainsLineBreak);
+            if (isMultiLineText) {
+                node.setLineHeight(UnitConverter::a2uiToVp(resolvedLineHeight));
+                // ArkUI's default half-leading behaviour is `false`, which
+                // piles the entire extra line-height below the glyph and makes
+                // the text hug the top of each line box. Force `true` so the
+                // extra space is split evenly above and below the glyph,
+                // matching the W3C vertical-centering produced by Android's
+                // CenteredLineHeightSpan and iOS paragraphStyle with a
+                // positive baselineOffset. Without this the first line would
+                // sit at the top of the line box on Harmony while Android/iOS
+                // render the glyph centered.
+                node.setHalfLeading(true);
+                applyPadding(0.0f, 0.0f);
+            } else {
+                node.resetLineHeight();
+                node.resetHalfLeading();
+                verticalPadding = (resolvedLineHeight - size) / 2.0f;
+                if (verticalPadding > 0.0f) {
+                    applyPadding(verticalPadding, verticalPadding);
+                } else {
+                    verticalPadding = 0.0f;
+                    applyPadding(0.0f, 0.0f);
                 }
             }
-            // Small values act as multipliers; larger values are treated as absolute sizes.
-            if (lineHeight < 5.0) {
-                // Multiplier values are already normalized.
-                lineHeight = lineHeight;
-            } else {
-                // Convert absolute sizes to a multiplier.
-                lineHeight = lineHeight / size;
+        } else {
+            node.resetLineHeight();
+            node.resetHalfLeading();
+            applyPadding(0.0f, 0.0f);
+        }
+    } else {
+        node.resetLineHeight();
+        node.resetHalfLeading();
+        applyPadding(0.0f, 0.0f);
+    }
+
+    // height / max-height -> maxLines + overflow clip
+    // ArkUI's ARKUI_NODE_TEXT does not respect NODE_CLIP for its text content.
+    // The correct way to prevent text overflowing a fixed height is to compute
+    // the maximum number of lines that fit and set NODE_TEXT_MAX_LINES +
+    // NODE_TEXT_OVERFLOW=CLIP.  We only do this when no explicit line-clamp has
+    // already been applied by the caller.
+    if (!hasLineClamp) {
+        // Resolve the constraining height: prefer the Yoga-computed fixed height,
+        // fall back to an explicit max-height value.
+        float constraintH = 0.0f;
+
+        if (styles.find("height") != styles.end()) {
+            const auto& hVal = styles["height"];
+            if (hVal.is_number()) {
+                constraintH = hVal.get<float>();
+            } else if (hVal.is_string()) {
+                constraintH = static_cast<float>(std::atof(hVal.get<std::string>().c_str()));
             }
-            float newLineHeight = lineHeight * UnitConverter::a2uiToVp(size);
-            const ArkUI_AttributeItem* heightItem = g_nodeAPI->getAttribute(m_nodeHandle, NODE_HEIGHT);
-            float currentHeight = (heightItem && heightItem->size > 0) ? heightItem->value[0].f32 : 0.0f;
-            if (newLineHeight > currentHeight) {
-                node.setLineHeight(currentHeight);
-            }else {
-                node.setLineHeight(newLineHeight);
+        }
+
+        if (constraintH <= 0.0f) {
+            // Fallback: max-height sent directly.
+            std::string mhKey;
+            if (styles.find("max-height") != styles.end()) {
+                mhKey = "max-height";
+            } else if (styles.find("maxHeight") != styles.end()) {
+                mhKey = "maxHeight";
             }
+            if (!mhKey.empty()) {
+                const auto& mhVal = styles[mhKey];
+                if (mhVal.is_number()) {
+                    constraintH = mhVal.get<float>();
+                } else if (mhVal.is_string()) {
+                    constraintH = static_cast<float>(std::atof(mhVal.get<std::string>().c_str()));
+                }
+                if (constraintH > 0.0f) {
+                    baseNode.setConstraintSize(0.0f, 100000.0f, 0.0f, constraintH);
+                }
+            }
+        }
+
+        if (constraintH > 0.0f) {
+            // Determine per-line height: use resolved line-height when available,
+            // otherwise fall back to font-size.
+            float lineH = 0.0f;
+            if (styles.find("line-height") != styles.end()) {
+                lineH = resolveLineHeightPx(styles["line-height"], size);
+            }
+            if (lineH <= 0.0f) {
+                // When measurement provided a line count, derive per-line height
+                // from the Yoga-computed constraint to avoid font-size default
+                // mismatch between measurement (fontSize=24) and rendering.
+                if (renderedLines > 0 && constraintH > 0.0f) {
+                    lineH = constraintH / static_cast<float>(renderedLines);
+                } else {
+                    lineH = size > 0.0f ? size : 14.0f;
+                }
+            }
+
+            // Subtract the dynamically calculated vertical padding that was
+            // applied above for single-line line-height centering.
+            float availH = constraintH - verticalPadding * 2.0f;
+            if (availH <= 0.0f) {
+                availH = constraintH;
+            }
+
+            int32_t computedMaxLines = static_cast<int32_t>(availH / lineH);
+            if (computedMaxLines < 1) {
+                computedMaxLines = 1;
+            }
+
+            node.setTextMaxLines(computedMaxLines);
+            node.setTextOverflowClip();
         }
     }
 
@@ -201,6 +410,7 @@ void TextComponent::applyStyles(const nlohmann::json& properties) {
             node.setTextOverflowClip();
         }
     }
+
 
     // border-radius -> NODE_BORDER_RADIUS
     {
@@ -219,12 +429,64 @@ void TextComponent::applyStyles(const nlohmann::json& properties) {
                 radius = static_cast<float>(std::atof(radiusVal.get<std::string>().c_str()));
             }
             if (radius > 0.0f) {
-                node.setBorderRadius(radius);
+                // When border-radius >= font-size the intent is a pill/capsule
+                // shape.  On iOS padding lives outside the view, so the view is
+                // short and a radius >= half-height automatically becomes a
+                // semicircle.  On ArkUI padding is inside the node, making the
+                // node taller, so the same radius may be < half-height and won't
+                // form a pill.  Use a very large value so ArkUI caps it at
+                // half the shorter dimension, producing the expected capsule.
+                float effectiveRadius = (radius >= size) ? 9999.0f : radius;
+                node.setBorderRadius(effectiveRadius);
+                // Clip the background/content to the rounded border path.
+                node.setClip(true);
             } else {
                 node.resetBorderRadius();
+                node.resetClip();
             }
         }
     }
+
+    // border-width -> NODE_BORDER_WIDTH
+    {
+        std::string bwKey;
+        if (styles.find("border-width") != styles.end()) {
+            bwKey = "border-width";
+        } else if (styles.find("borderWidth") != styles.end()) {
+            bwKey = "borderWidth";
+        }
+        if (!bwKey.empty()) {
+            float bw = 0.0f;
+            const auto& bwVal = styles[bwKey];
+            if (bwVal.is_number()) {
+                bw = bwVal.get<float>();
+            } else if (bwVal.is_string()) {
+                bw = static_cast<float>(std::atof(bwVal.get<std::string>().c_str()));
+            }
+            if (bw > 0.0f) {
+                node.setBorderWidth(bw, bw, bw, bw);
+                node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+            } else {
+                node.resetBorderWidth();
+                node.resetBorderStyle();
+            }
+        }
+    }
+
+    // border-color -> NODE_BORDER_COLOR
+    {
+        std::string bcKey;
+        if (styles.find("border-color") != styles.end()) {
+            bcKey = "border-color";
+        } else if (styles.find("borderColor") != styles.end()) {
+            bcKey = "borderColor";
+        }
+        if (!bcKey.empty() && styles[bcKey].is_string()) {
+            uint32_t color = parseColor(styles[bcKey].get<std::string>());
+            node.setBorderColor(color);
+        }
+    }
+
 
     // text-decoration-line, text-decoration-style, text-decoration-color -> NODE_TEXT_DECORATION
     if (styles.find("text-decoration-line") != styles.end() && styles["text-decoration-line"].is_string()) {
@@ -251,36 +513,136 @@ void TextComponent::applyStyles(const nlohmann::json& properties) {
             node.setTextDecoration(decorationType, decorationColor);
         }
     }
+
+    if (styles.find("filter") != styles.end()) {
+        if (styles["filter"].is_string()) {
+            float shadowOffsetX = 0.0f;
+            float shadowOffsetY = 0.0f;
+            float shadowBlur = 0.0f;
+            uint32_t shadowColor = colors::kColorTransparent;
+            if (parseDropShadowFilter(styles["filter"].get<std::string>(),
+                                      shadowOffsetX, shadowOffsetY, shadowBlur, shadowColor)) {
+                // Map CSS drop-shadow directly to ArkUI text shadow semantics.
+                node.setTextShadow(shadowBlur, shadowOffsetX, shadowOffsetY, shadowColor);
+            } else {
+                node.resetTextShadow();
+            }
+        } else {
+            node.resetTextShadow();
+        }
+    }
+
+}
+
+bool TextComponent::parseDropShadowFilter(const std::string& filterValue, float& offsetX, float& offsetY,
+                                          float& blur, uint32_t& color) const {
+    const std::string dropShadowPrefix = "drop-shadow(";
+    size_t dropShadowStart = filterValue.find(dropShadowPrefix);
+    if (dropShadowStart == std::string::npos) {
+        return false;
+    }
+    dropShadowStart += dropShadowPrefix.size();
+
+    size_t dropShadowEnd = filterValue.rfind(')');
+    if (dropShadowEnd == std::string::npos || dropShadowEnd < dropShadowStart) {
+        return false;
+    }
+
+    std::string inner = filterValue.substr(dropShadowStart, dropShadowEnd - dropShadowStart);
+    const char* cursor = inner.c_str();
+    char* endPtr = nullptr;
+
+    auto skipSeparators = [](const char*& current) {
+        while (*current == ' ' || *current == ',') {
+            current++;
+        }
+    };
+
+    auto parseLength = [&](float& outValue) -> bool {
+        skipSeparators(cursor);
+        outValue = std::strtof(cursor, &endPtr);
+        if (endPtr == cursor) {
+            return false;
+        }
+        cursor = endPtr;
+        while (*cursor && *cursor != ' ' && *cursor != ',' && *cursor != '(') {
+            cursor++;
+        }
+        return true;
+    };
+
+    float values[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    for (int i = 0; i < 3; i++) {
+        if (!parseLength(values[i])) {
+            return false;
+        }
+    }
+
+    const char* lookahead = cursor;
+    skipSeparators(lookahead);
+    if (*lookahead != '\0' && *lookahead != 'r' && *lookahead != '#' && *lookahead != 't') {
+        cursor = lookahead;
+        if (!parseLength(values[3])) {
+            return false;
+        }
+    } else {
+        cursor = lookahead;
+    }
+
+    skipSeparators(cursor);
+    std::string colorStr = cursor;
+    if (colorStr.empty()) {
+        return false;
+    }
+
+    uint32_t parsedColor = parseColor(colorStr);
+    if (parsedColor == colors::kColorTransparent && !isExplicitTransparentShadowColor(colorStr)) {
+        return false;
+    }
+
+    offsetX = values[0];
+    offsetY = values[1];
+    blur = values[2];
+    color = parsedColor;
+    return true;
 }
 
 int32_t TextComponent::mapFontWeight(const nlohmann::json& weight) {
     if (weight.is_string()) {
-        const std::string weightStr = weight.get<std::string>();
-        if (weightStr == "bold") {
-            return ARKUI_FONT_WEIGHT_BOLD;
-        } else if (weightStr == "normal") {
-            return ARKUI_FONT_WEIGHT_NORMAL;
-        } else if (weightStr == "medium") {
-            return ARKUI_FONT_WEIGHT_MEDIUM;
-        }
-        // Try to parse numeric font-weight values (e.g. "100" .. "900").
-        const int numWeight = std::atoi(weightStr.c_str());
-        if (numWeight > 0) {
-            return font_weight::mapNumericToArkUIFontWeight(numWeight, /*useNormalBoldAlias=*/true);
-        }
+        return font_weight::mapStringToArkUIFontWeight(weight.get<std::string>());
     } else if (weight.is_number_integer()) {
-        return font_weight::mapNumericToArkUIFontWeight(weight.get<int>(), /*useNormalBoldAlias=*/true);
+        return font_weight::mapNumericToArkUIFontWeight(weight.get<int>());
     }
     return ARKUI_FONT_WEIGHT_NORMAL;
 }
 
 int32_t TextComponent::mapTextAlign(const std::string& align) {
-    if (align == "center") {
+    // Extract the horizontal token (first whitespace-separated segment) so that
+    // two-axis CSS values like "center top" / "center center" / "right bottom"
+    // still resolve to the correct horizontal alignment. This matches the
+    // Android `StyleHelper.parseTextAlign` behaviour which also splits on
+    // whitespace and uses `parts[0]` for the horizontal axis.
+    //
+    // The vertical token is currently dropped on Harmony because the ArkUI
+    // Text node has no built-in vertical text-alignment attribute that mirrors
+    // Android `Gravity.TOP/CENTER_VERTICAL/BOTTOM`.
+    const auto firstNonSpace = align.find_first_not_of(" \t");
+    if (firstNonSpace == std::string::npos) {
+        return ARKUI_TEXT_ALIGNMENT_START;
+    }
+    const auto tokenEnd = align.find_first_of(" \t", firstNonSpace);
+    std::string token = align.substr(
+        firstNonSpace,
+        tokenEnd == std::string::npos ? std::string::npos : tokenEnd - firstNonSpace);
+    for (auto& c : token) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    if (token == "center") {
         return ARKUI_TEXT_ALIGNMENT_CENTER;
-    } else if (align == "end" || align == "right") {
+    } else if (token == "end" || token == "right") {
         return ARKUI_TEXT_ALIGNMENT_END;
     }
-    // Default to START.
+    // Default to START (covers "left", "start", and any unrecognised value).
     return ARKUI_TEXT_ALIGNMENT_START;
 }
 

@@ -6,8 +6,6 @@
 #include <map>
 #include "surface/agenui_serializable_data.h"
 
-//#define TEST_COMPONENT_UPDATE
-
 namespace agenui {
 
 /**

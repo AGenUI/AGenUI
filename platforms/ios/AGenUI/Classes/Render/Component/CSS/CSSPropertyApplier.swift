@@ -6,31 +6,16 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// CSS property applier
 /// Responsible for applying parsed CSS properties to components and views
 class CSSPropertyApplier {
-    
     // MARK: - Main Application Methods
-    
+
     /// Applies CSS properties to a UIView (Component as View mode)
-    /// - Parameters:
-    ///   - properties: Property dictionary
-    ///   - view: Target view (Component itself is a UIView)
     static func apply(properties: [String: Any], to view: UIView) {
-        // Preprocess multi-value properties (e.g., "padding": "10px 20px 30px 40px")
-        let processedProperties = preprocessMultiValueProperties(properties)
-        
-        // Sort properties by priority
-        let sortedProperties = sortByPriority(processedProperties)
-        
-        // Apply properties one by one
+        let sortedProperties = sortByPriority(properties)
         for (key, value) in sortedProperties {
-            // Convert value to string (supports Int, Double, etc.)
             let valueStr: String
             if let str = value as? String {
                 valueStr = str
@@ -40,34 +25,11 @@ class CSSPropertyApplier {
             applyProperty(key: key, value: valueStr, to: view)
         }
     }
-    
-    /// Applies CSS properties to a component (BaseA2UIComponent mode)
-    /// - Parameters:
-    ///   - properties: Property dictionary
-    ///   - component: Target component
-    ///   - view: Target view
-    static func apply(properties: [String: Any], to component: Component, view: UIView) {
-        // Preprocess multi-value properties (e.g., "padding": "10px 20px 30px 40px")
-        let processedProperties = preprocessMultiValueProperties(properties)
-        
-        // CSS standard: calculation rules for aspect-ratio, width, and height
-        // Reference: https://drafts.csswg.org/css-sizing-4/#aspect-ratio
-        //
-        // 1. Only aspect-ratio set: width determined by container, height = width / aspect-ratio
-        // 2. width + aspect-ratio set: uses specified width, height = width / aspect-ratio
-        // 3. height + aspect-ratio set: uses specified height, width = height * aspect-ratio
-        // 4. width + height + aspect-ratio set: width and height take precedence, aspect-ratio is ignored
-        // 5. With min/max constraints: dimensions calculated first, then constraints applied, aspect-ratio may be broken
-        //
-        // Current implementation: FlexLayout automatically handles these property priorities, no extra processing needed
-        // Note: If width + height + aspect-ratio are set together, FlexLayout behavior matches CSS standard
 
-        // Sort properties by priority
-        let sortedProperties = sortByPriority(processedProperties)
-        
-        // Apply properties one by one
+    /// Applies CSS properties to a component (BaseA2UIComponent mode)
+    static func apply(properties: [String: Any], to component: Component, view: UIView) {
+        let sortedProperties = sortByPriority(properties)
         for (key, value) in sortedProperties {
-            // Convert value to string (supports Int, Double, etc.)
             let valueStr: String
             if let str = value as? String {
                 valueStr = str
@@ -77,7 +39,7 @@ class CSSPropertyApplier {
             applyProperty(key: key, value: valueStr, to: component, view: view)
         }
     }
-    
+
     // MARK: - Property Sorting
     
     /// Sort properties by priority
@@ -171,68 +133,7 @@ class CSSPropertyApplier {
     ///   - view: Target view
     private static func applyPropertyByKey(_ key: String, parsedValue: CSSPropertyValue, to view: UIView) {
         switch key {
-        // Position properties
-        case "position":
-            applyPosition(parsedValue, to: view)
-        case "top":
-            applyTop(parsedValue, to: view)
-        case "left":
-            applyLeft(parsedValue, to: view)
-        case "bottom":
-            applyBottom(parsedValue, to: view)
-        case "right":
-            applyRight(parsedValue, to: view)
-        case "z-index":
-            applyZIndex(parsedValue, to: view)
-            
-        // RTL Position properties
-        case "inset-inline-start":
-            applyInsetInlineStart(parsedValue, to: view)
-        case "inset-inline-end":
-            applyInsetInlineEnd(parsedValue, to: view)
-        case "inset-block-start":
-            applyInsetBlockStart(parsedValue, to: view)
-        case "inset-block-end":
-            applyInsetBlockEnd(parsedValue, to: view)
-            
-        // Size control
-        case "width":
-            applyWidth(parsedValue, to: view)
-        case "height":
-            applyHeight(parsedValue, to: view)
-        case "max-width":
-            applyMaxWidth(parsedValue, to: view)
-        case "max-height":
-            applyMaxHeight(parsedValue, to: view)
-        case "min-width":
-            applyMinWidth(parsedValue, to: view)
-        case "min-height":
-            applyMinHeight(parsedValue, to: view)
-            
-        // Spacing control
-        case "margin":
-            applyMargin(parsedValue, to: view)
-        case "padding":
-            applyPadding(parsedValue, to: view)
-        case "margin-inline-start":
-            applyMarginInlineStart(parsedValue, to: view)
-        case "margin-inline-end":
-            applyMarginInlineEnd(parsedValue, to: view)
-            
-        // Layout alignment
-        case "justify-content":
-            applyJustifyContent(parsedValue, to: view)
-        case "align-items":
-            applyAlignItems(parsedValue, to: view)
-        case "align-self":
-            applyAlignSelf(parsedValue, to: view)
-        case "flex-grow":
-            applyFlexGrow(parsedValue, to: view)
-        case "flex-shrink":
-            applyFlexShrink(parsedValue, to: view)
-        case "aspect-ratio":
-            applyFlexAspect(parsedValue, to: view)
-            
+
         // Style properties
         case "background":
             applyBackgroundColor(parsedValue, to: view)
@@ -240,60 +141,16 @@ class CSSPropertyApplier {
             applyBackgroundColor(parsedValue, to: view)
         case "background-image":
             applyBackgroundImage(parsedValue, to: view)
-        case "color":
-            applyTextColor(parsedValue, to: view)
         case "border-radius":
             applyBorderRadius(parsedValue, to: view)
         case "opacity":
             applyOpacity(parsedValue, to: view)
-            
-        // P1: Directional spacing properties
-        case "margin-block-start":
-            applyMarginBlockStart(parsedValue, to: view)
-        case "margin-block-end":
-            applyMarginBlockEnd(parsedValue, to: view)
-        case "padding-inline-start":
-            applyPaddingInlineStart(parsedValue, to: view)
-        case "padding-inline-end":
-            applyPaddingInlineEnd(parsedValue, to: view)
-        case "padding-block-start":
-            applyPaddingBlockStart(parsedValue, to: view)
-        case "padding-block-end":
-            applyPaddingBlockEnd(parsedValue, to: view)
             
         // P1: Border properties
         case "border-color":
             applyBorderColor(parsedValue, to: view)
         case "border-width":
             applyBorderWidth(parsedValue, to: view)
-            
-        // Physical directional margin properties
-        case "margin-top":
-            applyMarginTop(parsedValue, to: view)
-        case "margin-right":
-            applyMarginRight(parsedValue, to: view)
-        case "margin-bottom":
-            applyMarginBottom(parsedValue, to: view)
-        case "margin-left":
-            applyMarginLeft(parsedValue, to: view)
-            
-        // Physical directional padding properties
-        case "padding-top":
-            applyPaddingTop(parsedValue, to: view)
-        case "padding-right":
-            applyPaddingRight(parsedValue, to: view)
-        case "padding-bottom":
-            applyPaddingBottom(parsedValue, to: view)
-        case "padding-left":
-            applyPaddingLeft(parsedValue, to: view)
-            
-        // Flex layout extension properties
-        case "flex-wrap":
-            applyFlexWrap(parsedValue, to: view)
-        case "align-content":
-            applyAlignContent(parsedValue, to: view)
-        case "flex-basis":
-            applyFlexBasis(parsedValue, to: view)
             
         // Requirement 9: Display control and visual effects properties
         case "border-style":
@@ -316,298 +173,6 @@ class CSSPropertyApplier {
         }
     }
     
-    // MARK: - Size Control Properties
-    
-    /// Applies width
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyWidth(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let width):
-            view.flex.width(width)
-        case .percentage(let percent):
-            // FlexLayout percentage method: percent is 0.0-1.0, needs to be converted to 0-100
-            view.flex.width(CGFloat(percent * 100)%)
-        case .keyword:
-            // auto keyword: do not set explicit width, let FlexLayout auto-calculate based on content
-            view.flex.width(nil)
-            break
-        default:
-            break
-        }
-    }
-    
-    /// Applies height
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyHeight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let height):
-            view.flex.height(height)
-        case .percentage(let percent):
-            // FlexLayout percentage method: percent is 0.0-1.0, needs to be converted to 0-100
-            view.flex.height(CGFloat(percent * 100)%)
-        case .keyword:
-            // auto keyword: do not set explicit height, let FlexLayout auto-calculate based on content
-            view.flex.height(nil)
-            break
-        default:
-            break
-        }
-    }
-    
-    /// Applies max width
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMaxWidth(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let maxWidth):
-            view.flex.maxWidth(maxWidth)
-        case .percentage(let percent):
-            view.flex.maxWidth(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies max height
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMaxHeight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let maxHeight):
-            view.flex.maxHeight(maxHeight)
-        case .percentage(let percent):
-            view.flex.maxHeight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies min width
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMinWidth(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let minWidth):
-            view.flex.minWidth(minWidth)
-        case .percentage(let percent):
-            view.flex.minWidth(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies min height
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMinHeight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let minHeight):
-            view.flex.minHeight(minHeight)
-        case .percentage(let percent):
-            view.flex.minHeight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    // MARK: - Spacing Control Properties
-    
-    /// Applies uniform margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMargin(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.margin(margin)
-        case .percentage(let percent):
-            view.flex.margin(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies uniform padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPadding(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.padding(padding)
-        case .percentage(let percent):
-            view.flex.padding(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies inline-start margin (RTL support)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginInlineStart(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let margin):
-            if isRTL {
-                view.flex.marginRight(margin)
-            } else {
-                view.flex.marginLeft(margin)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.marginRight(CGFloat(percent * 100)%)
-            } else {
-                view.flex.marginLeft(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
-    }
-    
-    /// Applies inline-end margin (RTL support)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginInlineEnd(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let margin):
-            if isRTL {
-                view.flex.marginLeft(margin)
-            } else {
-                view.flex.marginRight(margin)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.marginLeft(CGFloat(percent * 100)%)
-            } else {
-                view.flex.marginRight(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
-    }
-    
-    // MARK: - Layout Alignment Properties
-    
-    /// Applies main-axis alignment
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyJustifyContent(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "start", "flex-start":
-            view.flex.justifyContent(.start)
-        case "center":
-            view.flex.justifyContent(.center)
-        case "end", "flex-end":
-            view.flex.justifyContent(.end)
-        case "space-between":
-            view.flex.justifyContent(.spaceBetween)
-        case "space-around":
-            view.flex.justifyContent(.spaceAround)
-        case "space-evenly":
-            view.flex.justifyContent(.spaceEvenly)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown justify-content value: \(alignment)")
-            #endif
-        }
-    }
-    
-    /// Applies cross-axis alignment
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyAlignItems(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "start", "flex-start":
-            view.flex.alignItems(.start)
-        case "center":
-            view.flex.alignItems(.center)
-        case "end", "flex-end":
-            view.flex.alignItems(.end)
-        case "stretch":
-            view.flex.alignItems(.stretch)
-        case "baseline":
-            view.flex.alignItems(.baseline)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown align-items value: \(alignment)")
-            #endif
-        }
-    }
-    
-    /// Applies self-alignment
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyAlignSelf(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "auto":
-            view.flex.alignSelf(.auto)
-        case "start", "flex-start":
-            view.flex.alignSelf(.start)
-        case "center":
-            view.flex.alignSelf(.center)
-        case "end", "flex-end":
-            view.flex.alignSelf(.end)
-        case "stretch":
-            view.flex.alignSelf(.stretch)
-        case "baseline":
-            view.flex.alignSelf(.baseline)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown align-self value: \(alignment)")
-            #endif
-        }
-    }
-    
-    /// Applies flex grow factor
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyFlexGrow(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .number(let grow) = value else { return }
-        view.flex.grow(grow)
-    }
-    
-    /// Applies flex shrink factor
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyFlexShrink(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .number(let shrink) = value else { return }
-        view.flex.shrink(shrink)
-    }
-    
-    /// Applies aspect ratio
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyFlexAspect(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .number(let ratio) = value else { return }
-        view.flex.aspectRatio(ratio)
-    }
-    
     // MARK: - Style Properties
     
     /// Applies background color
@@ -615,8 +180,21 @@ class CSSPropertyApplier {
     ///   - value: CSS property value
     ///   - view: Target view
     private static func applyBackgroundColor(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .color(let color) = value else { return }
-        view.backgroundColor = color
+        // Tear down any gradient installed by a previous update so the new value
+        // is the sole source of truth (idempotent across re-applies).
+        BackgroundGradientHolder.remove(from: view)
+
+        switch value {
+        case .color(let color):
+            view.backgroundColor = color
+        case .gradient(let info):
+            // CAGradientLayer paints the background; clear the UIView color so
+            // the two don't double-stack.
+            view.backgroundColor = .clear
+            BackgroundGradientHolder.install(info, on: view)
+        default:
+            return
+        }
     }
     
     /// Applies background image
@@ -694,8 +272,14 @@ class CSSPropertyApplier {
     ///   - view: Target view
     private static func applyBorderRadius(_ value: CSSPropertyValue, to view: UIView) {
         guard case .number(let radius) = value else { return }
-        view.layer.cornerRadius = radius
-        view.layer.masksToBounds = value.numberValue != 0
+        // Dispatch to Component.setBorderRadius if available, allowing subclasses to propagate
+        // the radius to inner subviews (e.g., imageView, innerTableView) via override.
+        // For plain UIViews, fall back to setting layer.cornerRadius directly.
+        if let component = view as? Component {
+            component.setBorderRadius(radius)
+        } else {
+            view.layer.cornerRadius = radius
+        }
     }
     
     /// Applies opacity
@@ -708,117 +292,7 @@ class CSSPropertyApplier {
         view.alpha = max(0.0, min(1.0, opacity))
     }
     
-    // MARK: - P1 Directional Spacing Properties
-    
-    /// Applies block-start margin (maps to margin-top)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginBlockStart(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginTop(margin)
-        case .percentage(let percent):
-            view.flex.marginTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies block-end margin (maps to margin-bottom)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginBlockEnd(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginBottom(margin)
-        case .percentage(let percent):
-            view.flex.marginBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies inline-start padding (RTL support)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingInlineStart(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let padding):
-            if isRTL {
-                view.flex.paddingRight(padding)
-            } else {
-                view.flex.paddingLeft(padding)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.paddingRight(CGFloat(percent * 100)%)
-            } else {
-                view.flex.paddingLeft(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
-    }
-    
-    /// Applies inline-end padding (RTL support)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingInlineEnd(_ value: CSSPropertyValue, to view: UIView) {
-        let isRTL = RTLHelper.isRTL(for: view)
-        
-        switch value {
-        case .number(let padding):
-            if isRTL {
-                view.flex.paddingLeft(padding)
-            } else {
-                view.flex.paddingRight(padding)
-            }
-        case .percentage(let percent):
-            if isRTL {
-                view.flex.paddingLeft(CGFloat(percent * 100)%)
-            } else {
-                view.flex.paddingRight(CGFloat(percent * 100)%)
-            }
-        default:
-            break
-        }
-    }
-    
-    /// Applies block-start padding (maps to padding-top)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingBlockStart(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingTop(padding)
-        case .percentage(let percent):
-            view.flex.paddingTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies block-end padding (maps to padding-bottom)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingBlockEnd(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingBottom(padding)
-        case .percentage(let percent):
-            view.flex.paddingBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
+
     
     // MARK: - P1 Border Properties
     
@@ -840,194 +314,7 @@ class CSSPropertyApplier {
         view.layer.borderWidth = width
     }
     
-    // MARK: - Physical Directional Margin Properties
-    
-    /// Applies top margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginTop(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginTop(margin)
-        case .percentage(let percent):
-            view.flex.marginTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies right margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginRight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginRight(margin)
-        case .percentage(let percent):
-            view.flex.marginRight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies bottom margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginBottom(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginBottom(margin)
-        case .percentage(let percent):
-            view.flex.marginBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies left margin
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyMarginLeft(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let margin):
-            view.flex.marginLeft(margin)
-        case .percentage(let percent):
-            view.flex.marginLeft(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    // MARK: - Physical Directional Padding Properties
-    
-    /// Applies top padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingTop(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingTop(padding)
-        case .percentage(let percent):
-            view.flex.paddingTop(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies right padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingRight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingRight(padding)
-        case .percentage(let percent):
-            view.flex.paddingRight(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies bottom padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingBottom(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingBottom(padding)
-        case .percentage(let percent):
-            view.flex.paddingBottom(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    /// Applies left padding
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPaddingLeft(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let padding):
-            view.flex.paddingLeft(padding)
-        case .percentage(let percent):
-            view.flex.paddingLeft(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
-    
-    // MARK: - Flex Layout Extension Properties
-    
-    /// Applies flex-wrap property
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyFlexWrap(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let wrap) = value else { return }
-        
-        switch wrap {
-        case "wrap":
-            view.flex.wrap(.wrap)
-        case "wrap-reverse":
-            view.flex.wrap(.wrapReverse)
-        case "nowrap":
-            view.flex.wrap(.noWrap)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown flex-wrap value: \(wrap)")
-            #endif
-        }
-    }
-    
-    /// Applies align-content property
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyAlignContent(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let alignment) = value else { return }
-        
-        switch alignment {
-        case "start", "flex-start":
-            view.flex.alignContent(.start)
-        case "center":
-            view.flex.alignContent(.center)
-        case "end", "flex-end":
-            view.flex.alignContent(.end)
-        case "stretch":
-            view.flex.alignContent(.stretch)
-        case "space-between":
-            view.flex.alignContent(.spaceBetween)
-        case "space-around":
-            view.flex.alignContent(.spaceAround)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Unknown align-content value: \(alignment)")
-            #endif
-        }
-    }
-    
-    /// Applies flex-basis property
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyFlexBasis(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let basis):
-            view.flex.basis(basis)
-        case .percentage(let percent):
-            view.flex.basis(CGFloat(percent * 100)%)
-        default:
-            break
-        }
-    }
+
     
     // MARK: - Requirement 9: Display Control and Visual Effects Properties
     
@@ -1082,11 +369,8 @@ class CSSPropertyApplier {
         switch display {
         case "none":
             view.isHidden = true
-            // display:none takes no space, implemented via FlexLayout
-            view.flex.display(.none)
         default:
             view.isHidden = false
-            view.flex.display(.flex)
         }
     }
     
@@ -1138,7 +422,7 @@ class CSSPropertyApplier {
         // CSS coordinate system: Y-axis positive direction is downward
         // iOS shadowOffset: Y-axis positive direction is also downward (consistent with UIKit coordinate system)
         // Therefore use original value directly, no need to negate
-        view.layer.shadowOffset = CGSize(width: shadow.offsetX, height: shadow.offsetY)
+        view.layer.shadowOffset = CGSize(width: shadow.offsetX/2.0, height: shadow.offsetY/2.0)
         
         // Set shadow blur radius
         // iOS shadowRadius is blur radius, CSS blur is diameter, so divide by 2
@@ -1147,13 +431,12 @@ class CSSPropertyApplier {
         // Set shadow color
         view.layer.shadowColor = shadow.color.cgColor
         
-        // Set shadow opacity
-        // Extract alpha value from color
-        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
-        if shadow.color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) {
+        // Set shadow opacity from color's alpha channel
+        var alpha: CGFloat = 0
+        if shadow.color.getRed(nil, green: nil, blue: nil, alpha: &alpha) {
             view.layer.shadowOpacity = Float(alpha)
         } else {
-            // If unable to extract RGBA, try to get white and alpha (for grayscale colors)
+            // Fallback for grayscale colors
             var white: CGFloat = 0
             if shadow.color.getWhite(&white, alpha: &alpha) {
                 view.layer.shadowOpacity = Float(alpha)
@@ -1187,321 +470,102 @@ class CSSPropertyApplier {
         view.layer.shadowPath = nil
         view.layer.shouldRasterize = false
     }
-    
-    /// Applies text color
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyTextColor(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .color(let color) = value else { return }
         
-        // If UILabel, set textColor
-        if let label = view as? UILabel {
-            label.textColor = color
-        }
-        // If UIButton, set title color
-        else if let button = view as? UIButton {
-            button.setTitleColor(color, for: .normal)
-        }
-        // If UITextField, set text color
-        else if let textField = view as? UITextField {
-            textField.textColor = color
-        }
-        // If UITextView, set text color
-        else if let textView = view as? UITextView {
-            textView.textColor = color
-        }
+
+
+}
+
+// MARK: - Background Gradient Lifecycle
+
+/// Owns the CAGradientLayer that backs a CSS `background: linear-gradient(...)`
+/// (or radial / conic) value. Lives on the host UIView via an associated object so
+/// repeated applies stay idempotent and so we can tear the layer down cleanly when
+/// the background switches back to a solid color.
+///
+/// Geometry is bounds-dependent, so we watch `view.layer.bounds` via
+/// NSKeyValueObservation and rebuild on each change. The engine also re-invokes
+/// `applyBackgroundColor` whenever it pushes a layout update (since layout x/y/w/h
+/// arrive inside the same styles dict), so the KVO path is mostly belt-and-suspenders
+/// for non-engine-driven frame changes.
+fileprivate enum BackgroundGradientHolder {
+
+    private static var key: UInt8 = 0
+
+    static func install(_ info: AGUIGradientInfo, on view: UIView) {
+        let state = State(view: view, info: info)
+        objc_setAssociatedObject(view, &key, state, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
-    
-    // MARK: - Multi-Value Property Preprocessing
-    
-    /// Preprocesses multi-value properties (padding and margin)
-    /// Splits "padding: 10px 20px 30px 40px" into individual padding-top, padding-right, etc.
-    /// - Parameter properties: Original property dictionary
-    /// - Returns: Processed property dictionary
-    private static func preprocessMultiValueProperties(_ properties: [String: Any]) -> [String: Any] {
-        var result = properties
-        
-        // Process padding multi-values
-        if let padding = properties["padding"] as? String, padding.contains(" ") {
-            let expanded = expandShorthandProperty(padding, prefix: "padding")
-            if !expanded.isEmpty {
-                result.removeValue(forKey: "padding")
-                result.merge(expanded) { _, new in new }
+
+    static func remove(from view: UIView) {
+        if let state = objc_getAssociatedObject(view, &key) as? State {
+            state.dispose()
+        }
+        objc_setAssociatedObject(view, &key, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
+
+    /// One per (view, gradient) installation. Holds the CAGradientLayer + KVO token.
+    private final class State {
+        private weak var view: UIView?
+        private let info: AGUIGradientInfo
+        private var gradientLayer: CAGradientLayer?
+        private var observation: NSKeyValueObservation?
+
+        init(view: UIView, info: AGUIGradientInfo) {
+            self.view = view
+            self.info = info
+            rebuild()
+            // CALayer.bounds is KVO-compliant (unlike most UIView properties),
+            // so we observe at the layer level for reliable updates.
+            self.observation = view.layer.observe(\.bounds, options: [.new]) { [weak self] _, _ in
+                self?.rebuild()
             }
         }
-        
-        // Process margin multi-values
-        if let margin = properties["margin"] as? String, margin.contains(" ") {
-            let expanded = expandShorthandProperty(margin, prefix: "margin")
-            if !expanded.isEmpty {
-                result.removeValue(forKey: "margin")
-                result.merge(expanded) { _, new in new }
+
+        func dispose() {
+            observation?.invalidate()
+            observation = nil
+            gradientLayer?.removeFromSuperlayer()
+            gradientLayer = nil
+        }
+
+        private func rebuild() {
+            guard let view = view else { return }
+            let bounds = view.bounds
+            // Defer until the view actually has a non-zero size; KVO will fire again.
+            guard bounds.width > 0, bounds.height > 0 else { return }
+
+            guard let fresh = CAGradientLayerFactory.build(info, bounds: bounds) else {
+                return
+            }
+
+            // Mirror the host view's cornerRadius so the gradient is clipped by
+            // border-radius even when the host has not opted into masksToBounds
+            // (UIView's solid backgroundColor is rounded for free; sublayers are
+            // not unless we set their own cornerRadius + masksToBounds).
+            let hostRadius = view.layer.cornerRadius
+            fresh.cornerRadius = hostRadius
+            fresh.masksToBounds = hostRadius > 0
+
+            if let existing = gradientLayer {
+                // Reuse the existing layer to avoid sublayer churn / flicker.
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                existing.frame = bounds
+                existing.type = fresh.type
+                existing.colors = fresh.colors
+                existing.locations = fresh.locations
+                existing.startPoint = fresh.startPoint
+                existing.endPoint = fresh.endPoint
+                existing.cornerRadius = fresh.cornerRadius
+                existing.masksToBounds = fresh.masksToBounds
+                CATransaction.commit()
+            } else {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                view.layer.insertSublayer(fresh, at: 0)
+                CATransaction.commit()
+                gradientLayer = fresh
             }
         }
-        
-        return result
-    }
-    
-    /// Checks if a string is a unitless number
-    /// - Parameter value: String to check
-    /// - Returns: true if pure number, false otherwise
-    private static func isUnitlessNumber(_ value: String) -> Bool {
-        // Check if empty
-        guard !value.isEmpty else { return false }
-        
-        // Try to convert to Double
-        if Double(value) != nil {
-            // Ensure no unit suffix (px, %, em, rem, etc.)
-            let hasUnit = value.hasSuffix("px") || 
-                         value.hasSuffix("%") || 
-                         value.hasSuffix("em") || 
-                         value.hasSuffix("rem") ||
-                         value.hasSuffix("vw") ||
-                         value.hasSuffix("vh")
-            return !hasUnit
-        }
-        
-        return false
-    }
-    
-    /// Adds px suffix to unitless numbers
-    /// - Parameter value: Original value
-    /// - Returns: Processed value (unitless numbers get "px" suffix)
-    private static func normalizeValue(_ value: String) -> String {
-        if isUnitlessNumber(value) {
-            return value + "px"
-        }
-        return value
-    }
-    
-    /// Splits shorthand properties into individual properties
-    /// Supports CSS standard 1-4 value syntax:
-    /// - 1 value: all (keep as-is, no splitting)
-    /// - 2 values: vertical horizontal
-    /// - 3 values: top horizontal bottom
-    /// - 4 values: top right bottom left
-    /// - Parameter value: Property value string, e.g., "10px 20px 30px 40px" or "0 20 0 0"
-    /// - Parameter prefix: Property prefix, e.g., "padding" or "margin"
-    /// - Returns: Split property dictionary (unitless numbers automatically get "px" suffix)
-    private static func expandShorthandProperty(_ value: String, prefix: String) -> [String: String] {
-        // Split values by space
-        let values = value.split(separator: " ").map { String($0).trimmingCharacters(in: .whitespaces) }
-        var result: [String: String] = [:]
-        
-        switch values.count {
-        case 1:
-            // Single value: no splitting needed, keep original logic
-            return [:]
-            
-        case 2:
-            // Two values: vertical horizontal
-            // Example: "10px 20px" → top=10px, right=20px, bottom=10px, left=20px
-            // Example: "0 20" → top=0px, right=20px, bottom=0px, left=20px
-            result["\(prefix)-top"] = normalizeValue(values[0])
-            result["\(prefix)-right"] = normalizeValue(values[1])
-            result["\(prefix)-bottom"] = normalizeValue(values[0])
-            result["\(prefix)-left"] = normalizeValue(values[1])
-            
-        case 3:
-            // Three values: top horizontal bottom
-            // Example: "10px 20px 30px" → top=10px, right=20px, bottom=30px, left=20px
-            // Example: "10 20 30" → top=10px, right=20px, bottom=30px, left=20px
-            result["\(prefix)-top"] = normalizeValue(values[0])
-            result["\(prefix)-right"] = normalizeValue(values[1])
-            result["\(prefix)-bottom"] = normalizeValue(values[2])
-            result["\(prefix)-left"] = normalizeValue(values[1])
-            
-        case 4:
-            // Four values: top right bottom left
-            // Example: "10px 20px 30px 40px" → top=10px, right=20px, bottom=30px, left=40px
-            // Example: "0 20 0 0" → top=0px, right=20px, bottom=0px, left=0px
-            result["\(prefix)-top"] = normalizeValue(values[0])
-            result["\(prefix)-right"] = normalizeValue(values[1])
-            result["\(prefix)-bottom"] = normalizeValue(values[2])
-            result["\(prefix)-left"] = normalizeValue(values[3])
-            
-        default:
-            // Invalid format (more than 4 values), ignore
-            #if DEBUG
-            Logger.shared.debug("Invalid \(prefix) value format: \(value) (expected 1-4 values)")
-            #endif
-            return [:]
-        }
-        
-        return result
-    }
-    
-    // MARK: - Position Property Application Methods
-    
-    /// Applies position property
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyPosition(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .keyword(let position) = value else {
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid position value type")
-            #endif
-            return
-        }
-        
-        switch position {
-        case "static":
-            view.flex.position(.static)
-        case "relative":
-            view.flex.position(.relative)
-        case "absolute":
-            view.flex.position(.absolute)
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Unsupported position value: \(position)")
-            #endif
-        }
-    }
-    
-    /// Applies top offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyTop(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.top(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.top(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid top value type")
-            #endif
-        }
-    }
-    
-    /// Applies left offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyLeft(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.left(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.left(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid left value type")
-            #endif
-        }
-    }
-    
-    /// Applies bottom offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyBottom(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.bottom(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.bottom(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid bottom value type")
-            #endif
-        }
-    }
-    
-    /// Applies right offset
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyRight(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let pixels):
-            view.flex.right(CGFloat(pixels))
-        case .percentage(let percent):
-            view.flex.right(CGFloat(percent)%)
-        case .keyword("auto"):
-            // Auto is default, no action needed
-            break
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid right value type")
-            #endif
-        }
-    }
-    
-    /// Applies z-index property
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyZIndex(_ value: CSSPropertyValue, to view: UIView) {
-        switch value {
-        case .number(let zIndex):
-            // Use UIView.layer.zPosition to control stacking order
-            view.layer.zPosition = CGFloat(zIndex)
-        case .keyword("auto"):
-            // auto means z-index: 0
-            view.layer.zPosition = 0
-        default:
-            #if DEBUG
-            Logger.shared.debug("Warning: Invalid z-index value type")
-            #endif
-        }
-    }
-    
-    // MARK: - RTL Position Property Application Methods
-    
-    /// Applies inset-inline-start offset (RTL support)
-    /// LTR mode: maps to left
-    /// RTL mode: maps to right
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyInsetInlineStart(_ value: CSSPropertyValue, to view: UIView) {
-        if RTLHelper.isRTL(for: view) {
-            applyRight(value, to: view)
-        } else {
-            applyLeft(value, to: view)
-        }
-    }
-    
-    /// Applies inset-inline-end offset (RTL support)
-    /// LTR mode: maps to right
-    /// RTL mode: maps to left
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyInsetInlineEnd(_ value: CSSPropertyValue, to view: UIView) {
-        if RTLHelper.isRTL(for: view) {
-            applyLeft(value, to: view)
-        } else {
-            applyRight(value, to: view)
-        }
-    }
-    
-    /// Applies inset-block-start offset (always maps to top)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyInsetBlockStart(_ value: CSSPropertyValue, to view: UIView) {
-        applyTop(value, to: view)
-    }
-    
-    /// Applies inset-block-end offset (always maps to bottom)
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    private static func applyInsetBlockEnd(_ value: CSSPropertyValue, to view: UIView) {
-        applyBottom(value, to: view)
     }
 }

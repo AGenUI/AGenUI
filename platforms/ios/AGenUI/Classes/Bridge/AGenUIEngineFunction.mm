@@ -18,7 +18,8 @@ AGenUIEngineFunction::~AGenUIEngineFunction() {
     _bridge = nullptr;
 }
 
-FunctionCallResult AGenUIEngineFunction::callSync(const std::string& params) {
+FunctionCallResult AGenUIEngineFunction::callSync(const FunctionCallContext& context,
+                                                    const std::string& params) {
     @autoreleasepool {
         FunctionCallResult result;
         result.status = FunctionCallStatus::Error;
@@ -39,9 +40,11 @@ FunctionCallResult AGenUIEngineFunction::callSync(const std::string& params) {
             return result;
         }
 
-        // 3. Execute callback with params
+        // 3. Execute callback with context and params
+        int engineId = context.instanceId;
+        NSString* surfaceIdNS = [NSString stringWithUTF8String:context.surfaceId.c_str()];
         NSString* paramsNS = [NSString stringWithUTF8String:params.c_str()];
-        NSString* resultNS = callback(paramsNS);
+        NSString* resultNS = callback(engineId, surfaceIdNS, paramsNS);
         if (resultNS == nil) {
             result.error = "FunctionCall execution returned nil";
             return result;
@@ -50,55 +53,6 @@ FunctionCallResult AGenUIEngineFunction::callSync(const std::string& params) {
         // 4. Parse result
         std::string resultStr = [resultNS UTF8String];
         return parseFunctionCallResult(resultStr);
-    }
-}
-
-FunctionCallResult AGenUIEngineFunction::callAsync(const std::string& params,
-                                                               const FunctionCallCallback& callback) {
-    @autoreleasepool {
-        FunctionCallResult result;
-        result.status = FunctionCallStatus::Error;
-
-        // 1. Validate bridge
-        if (_bridge == nullptr) {
-            result.error = "Bridge is null";
-            return result;
-        }
-
-        AGenUIEngineBridge* bridge = (__bridge AGenUIEngineBridge*)_bridge;
-
-        // 2. Retrieve OC callback by function name
-        NSString* functionNameNS = [NSString stringWithUTF8String:_functionName.c_str()];
-        AGenUIFunctionCallCallback ocCallback = [bridge getFunctionCallCallback:functionNameNS];
-        if (ocCallback == nil) {
-            result.error = "FunctionCall not found: " + _functionName;
-            return result;
-        }
-
-        // 3. Execute asynchronously on a background queue
-        NSString* paramsNS = [NSString stringWithUTF8String:params.c_str()];
-        FunctionCallCallback cppCallback = callback;
-
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            @autoreleasepool {
-                NSString* resultNS = ocCallback(paramsNS);
-
-                FunctionCallResult asyncResult;
-                if (resultNS == nil) {
-                    asyncResult.status = FunctionCallStatus::Error;
-                    asyncResult.error = "FunctionCall execution returned nil";
-                } else {
-                    std::string resultStr = [resultNS UTF8String];
-                    asyncResult = parseFunctionCallResult(resultStr);
-                }
-
-                cppCallback(asyncResult);
-            }
-        });
-
-        // 4. Return pending status immediately
-        result.status = FunctionCallStatus::Pending;
-        return result;
     }
 }
 

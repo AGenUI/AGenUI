@@ -14,7 +14,7 @@ namespace a2ui {
  *
  * Supported properties:
  *   - url: image URL, including network URLs and DynamicString input
- *   - fit: contain, cover, fill, none, or scale-down
+ *   - fit: contain, cover, fill, none, or scaleDown
  *   - styles.border-radius: corner radius
  *   - styles.border-width: numeric or unit-suffixed border width
  *   - styles.border-color: #RGB / #RRGGBB / #AARRGGBB
@@ -63,21 +63,10 @@ private:
     /** Static image-complete callback. */
     static void onImageCompleteCallback(ArkUI_NodeEvent* event);
 
-    /** Return the actual image width. */
-    float getImageWidth() const { return m_imageWidth; }
-
-    /** Return the actual image height. */
-    float getImageHeight() const { return m_imageHeight; }
-
     /** Return the aspect ratio implied by variant. */
-    static float getAspectRatioByVariant(const std::string& variant);
-
-    /** Recalculate width and height from the aspect ratio. */
-    void applyAspectRatio(float inputWidth, float inputHeight, float& outputWidth, float& outputHeight);
-
-    // Shimmer placeholder helpers
-    /** Show the placeholder and start shimmer. */
-    void showPlaceholder();
+    // removed: getAspectRatioByVariant — aspect-ratio is now fully owned by Yoga
+    // (set via YGNodeStyleSetAspectRatio in CSS style converter).
+    // ImageComponent no longer manually computes or applies aspect ratio.
 
     /** Stop shimmer and remove its layer. */
     void stopShimmer();
@@ -98,13 +87,6 @@ private:
     bool isShimmerActive() const { return m_shimmerNode != nullptr || m_shimmerPending; }
 
 private:
-    // Actual image size
-    float m_imageWidth = 0.0f;
-    float m_imageHeight = 0.0f;
-
-    // Cached aspect ratio
-    float m_aspectRatio = 0.0f;
-
     // Current image source and fade state
     std::string m_currentUrl;
     bool m_pendingFadeIn = false;

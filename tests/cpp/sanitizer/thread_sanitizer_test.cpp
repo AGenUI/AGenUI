@@ -1,8 +1,11 @@
-// TSA*: concurrent stress tests compiled into agenui_concurrency_tests.
+// TSA*: tests intended to be run with ThreadSanitizer.
 //
-// These tests pass under the plain build. They can also be run with
-// ThreadSanitizer enabled (-DAGENUI_TESTS_ENABLE_TSAN=ON) for deeper
-// race detection, though that configuration is not part of standard CI.
+// Provides additional concurrent stress beyond concurrency/* to surface
+// data races. Run via:
+//   cmake -B build/tsan -DAGENUI_TESTS_ENABLE_TSAN=ON \
+//                       -DAGENUI_TESTS_ENABLE_ASAN=OFF
+//   cmake --build build/tsan -j
+//   ./build/tsan/agenui_tsan_tests
 
 #include <atomic>
 #include <thread>
@@ -44,8 +47,9 @@ TEST(ThreadSanitizerTest, TSA001_ListenerVector_RaceFree) {
     ::agenui::testing::WaitForWorkerIdle();
 }
 
-// TSA002: serial create/destroy; validates that SurfaceManager
-// init/uninit on the worker thread does not race with main-thread teardown.
+// TSA002: serial create/destroy under TSan to validate SurfaceManager
+// init/uninit happening on the worker thread does not race with main-thread
+// teardown (contract-respecting variant of LR003).
 TEST(ThreadSanitizerTest, TSA002_CreateDestroySurfaceManager_RaceFree) {
     auto* engine = ::agenui::testing::GetEngine();
     ASSERT_NE(engine, nullptr);

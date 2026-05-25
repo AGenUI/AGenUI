@@ -1,5 +1,5 @@
 #include "agenui_format_string_functioncall.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <sstream>
 
 namespace agenui {
@@ -20,20 +20,6 @@ FunctionCallConfig FormatStringFunctionCall::getConfig() const {
     config.setName("formatString");
     config.setDescription("Performs string interpolation of data model values and other functions in the catalog functions list and returns the resulting string. The value string can contain interpolated expressions in the ${expression} format.");
     config.setReturnType("string");
-    config.setSync(true);
-    
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {
-                {"type", "string"},
-                {"description", "Template string with ${} expressions (will be interpolated by the engine before calling this functionCall)"}
-            }}
-        }},
-        {"required", nlohmann::json::array({"value"})}
-    };
-    
-    config.setParameters(params);
     return config;
 }
 

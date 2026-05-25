@@ -38,6 +38,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    testOptions {
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+    }
 }
 
 // ===== AGenUI SDK Dependency Mode Configuration =====
@@ -57,10 +60,6 @@ dependencies {
     } else {
         // AAR artifact dependency (auto-updated by the copySdkAar task)
         implementation files('libs/AGenUI-Client-Android-release.aar')
-
-        // SDK transitive dependencies (not auto-propagated from AAR file deps)
-        // appcompat/material/gson/lottie/markwon/picasso are declared at the top level; only add flexbox here
-        implementation libs.flexbox
     }
 
     implementation libs.mpandroidchart
@@ -83,4 +82,7 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+    androidTestImplementation 'androidx.test:rules:1.5.0'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestUtil libs.test.orchestrator
 }

@@ -39,6 +39,11 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
     /// Registered functions (strong references to prevent deallocation)
     private let toastFunction = ToastFunction()
 
+    // MARK: - Streaming mode configuration
+    private static let streamingModeEnabled = true
+    private static let defaultStreamingChunkCount = 30
+    private static let streamingMinBytes = 10000
+
     // MARK: - QR Code Scanner properties
     private var captureSession: AVCaptureSession?
     private var previewLayer: AVCaptureVideoPreviewLayer?
@@ -62,6 +67,44 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         themeManager.surfaceManager = surfaceManager
         
         registerDecoupledComponents()
+    }
+    
+    /// Auto-load Gallery template from Bundle (used by --gallery launch argument).
+    func autoLoadGalleryTemplate() {
+        guard let templatesPath = Bundle.main.path(forResource: "Templates", ofType: nil) else {
+            print("⚠️ [AutoGallery] Templates folder not found in Bundle")
+            return
+        }
+        
+        let fileManager = FileManager.default
+        // Look for Gallery under "A2UI Show" folder
+        let galleryPath = templatesPath + "/A2UI Show/Gallery"
+        guard fileManager.fileExists(atPath: galleryPath) else {
+            print("⚠️ [AutoGallery] Gallery folder not found at: \(galleryPath)")
+            return
+        }
+        
+        var componentsJSON: String?
+        var dataModelJSON: String?
+        
+        let componentsFile = galleryPath + "/updateComponents.json"
+        let dataModelFile = galleryPath + "/updateDataModel.json"
+        
+        if fileManager.fileExists(atPath: componentsFile) {
+            componentsJSON = try? String(contentsOfFile: componentsFile, encoding: .utf8)
+        }
+        if fileManager.fileExists(atPath: dataModelFile) {
+            dataModelJSON = try? String(contentsOfFile: dataModelFile, encoding: .utf8)
+        }
+        
+        if componentsJSON != nil || dataModelJSON != nil {
+            currentComponentsJSON = componentsJSON
+            currentDataModelJSON = dataModelJSON
+            sendJSONData(componentsJSON: componentsJSON, dataModelJSON: dataModelJSON)
+            print("✅ [AutoGallery] Gallery template loaded successfully")
+        } else {
+            print("⚠️ [AutoGallery] No JSON files found in Gallery folder")
+        }
     }
     
     /// Register components that have been decoupled from the SDK.
@@ -607,6 +650,16 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         if let createSurfaceJson = createSurfaceJson {
             surfaceManager.receiveTextChunk(createSurfaceJson)
             print("✅ [QR Code] Sent createSurface")
+            
+            // Preset surface size between createSurface and updateComponents
+            // (same engine FIFO, so size is applied before component layout).
+            // See sendJSONData(...) for the full rationale on why this prevents
+            // the cross-thread layout race.
+            if let sid = Self.extractSurfaceId(fromCreateSurface: createSurfaceJson) {
+                surfaceManager.presetSurfaceSize(surfaceId: sid,
+                                                 width: self.view.bounds.width,
+                                                 height: .infinity)
+            }
         }
 
         // Process updateComponents JSON
@@ -631,6 +684,19 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
 
         surfaceManager.endTextStream()
     }
+    
+    /// Extract surfaceId from a `createSurface` JSON payload.
+    /// Returns nil when the payload is malformed or the field is missing.
+    private static func extractSurfaceId(fromCreateSurface json: String) -> String? {
+        guard let data = json.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let createSurface = obj["createSurface"] as? [String: Any],
+              let sid = createSurface["surfaceId"] as? String,
+              !sid.isEmpty else {
+            return nil
+        }
+        return sid
+    }
 
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
@@ -647,17 +713,14 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
     ///   - componentsJSON: Components JSON string
     ///   - dataModelJSON: DataModel JSON string
     private func sendJSONData(componentsJSON: String?, dataModelJSON: String?) {
-        // Process Components JSON
         surfaceManager.beginTextStream()
 
         if let componentsJSON = componentsJSON {
-            // Try to parse JSON and extract surfaceId
             if let data = componentsJSON.data(using: .utf8),
                let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let updateComponents = jsonObject["updateComponents"] as? [String: Any],
                let surfaceId = updateComponents["surfaceId"] as? String {
                 
-                // First send deleteSurface for previous surfaceId (if exists)
                 if let previousSurfaceId = previousSurfaceId {
                     let deleteSurfaceJSON: [String: Any] = [
                         "version": "v0.9",
@@ -669,11 +732,10 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
                     if let deleteSurfaceData = try? JSONSerialization.data(withJSONObject: deleteSurfaceJSON, options: []),
                        let deleteSurfaceString = String(data: deleteSurfaceData, encoding: .utf8) {
                         surfaceManager.receiveTextChunk(deleteSurfaceString)
-                        print("✅ [Main Page] Sent deleteSurface: surfaceId = \(previousSurfaceId)")
+                        print("[Main Page] Sent deleteSurface: surfaceId = \(previousSurfaceId)")
                     }
                 }
                 
-                // Then send createSurface
                 let createSurfaceJSON: [String: Any] = [
                     "version": "v0.9",
                     "createSurface": [
@@ -689,25 +751,47 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
                 if let createSurfaceData = try? JSONSerialization.data(withJSONObject: createSurfaceJSON, options: []),
                    let createSurfaceString = String(data: createSurfaceData, encoding: .utf8) {
                     surfaceManager.receiveTextChunk(createSurfaceString)
-                    print("✅ [Main Page] Sent createSurface: surfaceId = \(surfaceId)")
+                    print("[Main Page] Sent createSurface: surfaceId = \(surfaceId)")
                 }
+
+                surfaceManager.presetSurfaceSize(surfaceId: surfaceId,
+                                                 width: self.view.bounds.width,
+                                                 height: .infinity)
                 
-                // Save current surfaceId for next deletion
                 self.previousSurfaceId = surfaceId
             }
             
-            // Send Components JSON
-            surfaceManager.receiveTextChunk(componentsJSON)
-            print("✅ [Main Page] Sent Components data")
+            if Self.streamingModeEnabled && componentsJSON.utf8.count > Self.streamingMinBytes {
+                sendInChunks(componentsJSON, chunkCount: Self.defaultStreamingChunkCount)
+            } else {
+                surfaceManager.receiveTextChunk(componentsJSON)
+            }
+            print("[Main Page] Sent Components data")
         }
         
-        // Process DataModel JSON
         if let dataModelJSON = dataModelJSON {
             surfaceManager.receiveTextChunk(dataModelJSON)
-            print("✅ [Main Page] Sent DataModel data")
+            print("[Main Page] Sent DataModel data")
         }
         
         surfaceManager.endTextStream()
+    }
+
+    // MARK: - Streaming Helpers
+
+    private func sendInChunks(_ json: String, chunkCount: Int) {
+        let totalLength = json.count
+        let chunkSize = max(1, Int(ceil(Double(totalLength) / Double(chunkCount))))
+        var offset = json.startIndex
+        var index = 0
+        while offset < json.endIndex {
+            let end = json.index(offset, offsetBy: chunkSize, limitedBy: json.endIndex) ?? json.endIndex
+            let chunk = String(json[offset..<end])
+            surfaceManager.receiveTextChunk(chunk)
+            index += 1
+            offset = end
+        }
+        print("[Main Page] Streaming: \(index) chunks sent")
     }
 
     // MARK: - AVCaptureMetadataOutputObjectsDelegate

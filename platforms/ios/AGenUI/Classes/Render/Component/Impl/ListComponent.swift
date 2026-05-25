@@ -6,10 +6,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// ListComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -36,7 +32,7 @@ class ListComponent: Component {
     
     /// Underlying ScrollView, all child components are added directly to this
     private let scrollView: UIScrollView = UIScrollView()
-        
+
     // MARK: - Enums
     
     enum ListDirection: String {
@@ -49,10 +45,10 @@ class ListComponent: Component {
     init(componentId: String, properties: [String: Any]) {
         super.init(componentId: componentId, componentType: "List", properties: properties)
         
-        // Configure scrollView basic properties (without setting flex)
+        // Configure scrollView basic properties
         scrollView.showsVerticalScrollIndicator = false
         scrollView.showsHorizontalScrollIndicator = false
-        flex.addItem(scrollView).grow(1)
+        addSubview(scrollView)
         
         // Parse properties and configure
         parseProperties()
@@ -104,12 +100,11 @@ class ListComponent: Component {
             scrollView.isScrollEnabled = false
             scrollView.alwaysBounceVertical = false
             scrollView.alwaysBounceHorizontal = false
-            scrollView.flex.direction(.column)
         } else {
             scrollView.isScrollEnabled = true
             scrollView.alwaysBounceVertical = false
             scrollView.alwaysBounceHorizontal = false
-            scrollView.flex.direction(.row)
+            scrollView.isScrollEnabled = true
         }
     }
     
@@ -140,12 +135,23 @@ class ListComponent: Component {
         if child.superview == self {
             let insertPosition = scrollView.subviews.count
             scrollView.insertSubview(child, at: insertPosition)
-            updateScrollViewContentSize()
+        }
+
+        child.onFrameChange = { [weak self] _ in
+            self?.updateScrollViewContentSize()
         }
     }
-    
+
     override func removeChild(_ child: Component) {
+        child.onFrameChange = nil
         super.removeChild(child)
+    }
+
+    // MARK: - Layout
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        scrollView.frame = bounds
         updateScrollViewContentSize()
     }
 }

@@ -5,7 +5,7 @@ export interface ISurfaceListener {
   /**
    * Called when a surface is created.
    */
-  onCreateSurface(surfaceId: string, messageId: string): void;
+  onCreateSurface(surfaceId: string, messageId: string, rawProtocolContent: string): void;
 
   /**
    * Called when a surface is destroyed.
@@ -29,10 +29,16 @@ export interface ImageLoaderCallback {
 }
 
 /** Starts the AGenUI engine. */
-export const start: () => void;
+export const start: (logger?: object) => void;
 
 /** Stops the AGenUI engine and all SurfaceManager instances. */
 export const stop: () => void;
+
+/**
+ * Sets the minimum log level forwarded to the C++ engine.
+ * @param level 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=FATAL, 5=PERFORMANCE.
+ */
+export const setMinLogLevel: (level: number) => void;
 
 /** Registers the default theme and DesignToken configuration. */
 export const registerDefaultTheme: (theme: string, designToken: string) => boolean;
@@ -55,8 +61,8 @@ export const destroySurfaceManager: (instanceId: number) => void;
 /** Sends mock data to the engine. */
 export const sendMockData: (mockData: string) => void;
 
-/** Sets the working directory. */
-export const setWorkingDir: (dir: string) => void;
+/** Sets path configuration. */
+export const setPathConfig: (configJson: string) => boolean;
 
 /**
  * Removes an event listener.
@@ -103,6 +109,19 @@ export const hybridFactoryGetPropertiesJson: (ptr: bigint) => string;
 /** Reports the rendered size of a component to the engine. Supports Markdown, Web, and other custom components. */
 export const reportComponentRenderSize: (surfaceId: string, nodeId: string, type: string, height: number, width: number, ptr: bigint) => void;
 
+/** Measurement result returned by a component measurement callback. */
+export interface MeasureResult {
+  width: number;
+  height: number;
+  calcType?: number;  // 0=Sync (default), 1=Async
+}
+
+/** Registers an ETS measurement callback for a given component type. */
+export const registerMeasurement: (instanceId: number, type: string, callback: (paramJson: string, widthMode: number, maxWidth: number, heightMode: number, maxHeight: number) => MeasureResult) => void;
+
+/** Unregisters an ETS measurement callback for a given component type. */
+export const unregisterMeasurement: (instanceId: number, type: string) => void;
+
 /** Notifies the native layer that the surface size changed. */
 export const onSurfaceSizeChanged: (surfaceId: string, width: number, height: number) => void;
 
@@ -119,7 +138,7 @@ export const setThemeConfig: (config: string) => boolean;
 export const setDesignTokenConfig: (config: string) => boolean;
 
 /** Registers a platform function with per-skill configuration and callback. */
-export const registerFunction: (name: string, config: string, callback: (paramsJson: string) => string) => void;
+export const registerFunction: (name: string, config: string, callback: (context: { instanceId: number; surfaceId: string }, paramsJson: string) => string) => void;
 
 /** Unregisters a platform function. */
 export const unregisterFunction: (name: string) => void;

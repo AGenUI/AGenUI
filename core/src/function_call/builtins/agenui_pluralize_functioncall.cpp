@@ -37,21 +37,6 @@ FunctionCallConfig PluralizeFunctionCall::getConfig() const {
     config.setName("pluralize");
     config.setDescription("Returns a localized string based on the plural category of the count.");
     config.setReturnType("string");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"type", "number"}}},
-            {"zero", {{"type", "string"}}},
-            {"one", {{"type", "string"}}},
-            {"two", {{"type", "string"}}},
-            {"few", {{"type", "string"}}},
-            {"many", {{"type", "string"}}},
-            {"other", {{"type", "string"}}}
-        }},
-        {"required", nlohmann::json::array({"value", "other"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

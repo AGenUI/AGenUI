@@ -5,37 +5,45 @@
 namespace agenui {
 
 enum AGenUIExeCode {
-    ExeCode_Parse_success = 0,
-    ExeCode_network_Error,
-    ExeCode_ParseError_createSurface_no_keywords,
-    ExeCode_ParseError_createSurface_no_surfaceId,
-    ExeCode_ParseError_createSurface_empty_surfaceId,
-    ExeCode_ParseError_createSurface_jsonexception,
-    ExeCode_ParseError_createSurface_duplicate_surfaceId,
-    ExeCode_ParseError_updateComponents_no_keywords,
-    ExeCode_ParseError_updateComponents_no_surfaceId,
-    ExeCode_ParseError_updateComponents_empty_surfaceId,
-    ExeCode_ParseError_updateComponents_notfound_surfaceId,
-    ExeCode_ParseError_updateComponents_jsonexception,
-    ExeCode_ParseError_updateComponents_no_componentsField,
-    ExeCode_ParseError_updateComponents_components_notarray,
-    ExeCode_ParseError_updateComponents_no_componentEntity,
-    ExeCode_ParseError_updateComponents_parseComponentTemplateFailed,
-    ExeCode_ParseError_updateDataModel_no_keywords,
-    ExeCode_ParseError_updateDataModel_no_surfaceId,
-    ExeCode_ParseError_updateDataModel_empty_surfaceId,
-    ExeCode_ParseError_updateDataModel_notfound_surfaceId,
-    ExeCode_ParseError_updateDataModel_jsonexception,
-    ExeCode_ParseError_appendDataModel_no_keywords,
-    ExeCode_ParseError_appendDataModel_no_surfaceId,
-    ExeCode_ParseError_appendDataModel_empty_surfaceId,
-    ExeCode_ParseError_appendDataModel_notfound_surfaceId,
-    ExeCode_ParseError_appendDataModel_jsonexception,
-    ExeCode_ParseError_deleteSurface_no_keywords,
-    ExeCode_ParseError_deleteSurface_no_surfaceId,
-    ExeCode_ParseError_deleteSurface_empty_surfaceId,
-    ExeCode_ParseError_deleteSurface_jsonexception,
-    ExeCode_ParseError_httpCallback_end_unmatch_data,
+    Execute_Success = 0,
+
+    // CreateSurface
+    CreateSurface_MissingKeyword,
+    CreateSurface_MissingSurfaceId,
+    CreateSurface_EmptySurfaceId,
+    CreateSurface_JsonError,
+    CreateSurface_DuplicateSurfaceId,
+
+    // UpdateComponents
+    UpdateComponents_MissingKeyword,
+    UpdateComponents_MissingSurfaceId,
+    UpdateComponents_EmptySurfaceId,
+    UpdateComponents_SurfaceNotFound,
+    UpdateComponents_JsonError,
+    UpdateComponents_MissingComponentsField,
+    UpdateComponents_ComponentsNotArray,
+    UpdateComponents_MissingComponentEntity,
+    UpdateComponents_TemplateExpansionFailed,
+
+    // UpdateDataModel
+    UpdateDataModel_MissingKeyword,
+    UpdateDataModel_MissingSurfaceId,
+    UpdateDataModel_EmptySurfaceId,
+    UpdateDataModel_SurfaceNotFound,
+    UpdateDataModel_JsonError,
+
+    // AppendDataModel
+    AppendDataModel_MissingKeyword,
+    AppendDataModel_MissingSurfaceId,
+    AppendDataModel_EmptySurfaceId,
+    AppendDataModel_SurfaceNotFound,
+    AppendDataModel_JsonError,
+
+    // DeleteSurface
+    DeleteSurface_MissingKeyword,
+    DeleteSurface_MissingSurfaceId,
+    DeleteSurface_EmptySurfaceId,
+    DeleteSurface_JsonError,
 };
 
 /**
@@ -44,7 +52,5 @@ enum AGenUIExeCode {
  * @return Corresponding string, or "unknown" if not found
  */
 std::string getExeCodeString(AGenUIExeCode code);
-
-std::string formatErrorTips(AGenUIExeCode code);
 
 } // namespace agenui

@@ -200,16 +200,6 @@ FunctionCallConfig FormatDateFunctionCall::getConfig() const {
     config.setName("formatDate");
     config.setDescription("Formats a timestamp into a string using a pattern.");
     config.setReturnType("string");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"description", "The date to format."}}},
-            {"format", {{"type", "string"}}}
-        }},
-        {"required", nlohmann::json::array({"value", "format"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

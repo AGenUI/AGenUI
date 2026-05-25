@@ -46,7 +46,17 @@ public:
 private:
     void processNormalEvent(const ProtocolStreamExtractor::ParseResult& result);
     void sendSingleComponentUpdate(const std::string& componentJson, const std::string& surfaceId, const std::string& version);
-    void dispatchParseResults(const std::vector<ProtocolStreamExtractor::ParseResult>& results);
+    void sendBatchedComponentUpdate(const std::vector<ProtocolStreamExtractor::ParseResult>& results,
+                                    size_t start, size_t end);
+    /**
+     * @brief Coalescing variant of dispatchParseResults.
+     *        Merges contiguous ComponentUpdate results that share the same
+     *        surfaceId into a single updateComponents call so the
+     *        downstream BatchScope in Surface::updateComponents folds N
+     *        full-tree Yoga layouts into 1.
+     *        Falls back to sendSingleComponentUpdate for size-1 runs.
+     */
+    void dispatchParseResultsBatched(const std::vector<ProtocolStreamExtractor::ParseResult>& results);
     void resetState();
 
     SurfaceCoordinator* _coordinator = nullptr;

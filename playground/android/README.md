@@ -20,7 +20,7 @@ This project lives inside a monorepo. The dependency hierarchy is:
 ```
 playground/android/app
     └── platforms/android/        # Android SDK (Java + JNI)
-            └── core/           # C++ core (compiled via CMake + NDK)
+            └── core/             # C++ core (compiled via CMake + NDK)
 ```
 
 ---
@@ -67,3 +67,19 @@ agenui.sdk.source=true
 `platforms/android/` participates directly as a Gradle subproject, allowing the SDK and Playground to be compiled incrementally within the same Gradle build.
 
 Best for: simultaneously modifying the SDK and the Playground for rapid iteration.
+
+---
+
+## Yoga Configuration
+
+The SDK uses [yoga](https://github.com/aspect-build/rules_js) for layout. By default it is fetched from GitHub via CMake FetchContent. You can override this through `local.properties`:
+
+```properties
+# (Optional) Path to prebuilt yoga artifacts (libyoga.so + headers)
+yoga.prebuilt.dir=/path/to/yoga_prebuilt/android/arm64-v8a/Release
+
+# (Optional) Whether to bundle libyoga.so into the AAR (default: true)
+yoga.include.in.aar=true
+```
+
+**Priority:** Gradle `-P` parameter > `local.properties` > default (FetchContent).

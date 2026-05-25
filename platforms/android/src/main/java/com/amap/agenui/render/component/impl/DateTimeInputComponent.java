@@ -5,7 +5,6 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -16,6 +15,7 @@ import android.widget.TextView;
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -130,7 +130,9 @@ public class DateTimeInputComponent extends A2UIComponent {
         if (iconResId != 0) {
             calendarIconView.setImageResource(iconResId);
         } else {
-            Log.w(TAG, "Icon not found: " + compactStyle.iconName);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Icon not found: " + compactStyle.iconName);
+            }
         }
 
         containerLayout.addView(calendarIconView);
@@ -181,10 +183,14 @@ public class DateTimeInputComponent extends A2UIComponent {
                     if (date != null) {
                         calendar.setTime(date);
                         hasSelectedDate = true;
-                        Log.d(TAG, "Parsed initial value: " + valueStr + " -> " + date);
+                        if (AGenUILogger.isLoggingEnabled()) {
+                            AGenUILogger.d(TAG, "Parsed initial value: " + valueStr + " -> " + date);
+                        }
                     }
                 } catch (Exception e) {
-                    Log.w(TAG, "Failed to parse initial value: " + valueStr, e);
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.w(TAG, "Failed to parse initial value: " + valueStr, e);
+                    }
                     // Keep default state on parse failure
                     hasSelectedDate = false;
                 }
@@ -256,7 +262,7 @@ public class DateTimeInputComponent extends A2UIComponent {
             dialog.show();
         } catch (Exception e) {
             // Catch internal exceptions from Android system TimePickerDialog (system bug on some devices)
-            Log.e(TAG, "Error showing time picker", e);
+            AGenUILogger.e(TAG, "Error showing time picker", e);
         }
     }
 
@@ -295,7 +301,7 @@ public class DateTimeInputComponent extends A2UIComponent {
                         timeDialog.show();
                     } catch (Exception e) {
                         // Catch internal exceptions from Android system TimePickerDialog (system bug on some devices)
-                        Log.e(TAG, "Error showing time picker in date-time mode", e);
+                        AGenUILogger.e(TAG, "Error showing time picker in date-time mode", e);
                         // Update date part even if the time picker fails
                         updateValue();
                     }
@@ -429,8 +435,10 @@ public class DateTimeInputComponent extends A2UIComponent {
      * Load style configuration
      */
     private ComponentStyleConfig.StyleHashMap<String, String> loadStyleConfig(Context context) {
-        ComponentStyleConfig.StyleHashMap<String, String> styleConfig = ComponentStyleConfig.getInstance(context).getDateTimeInputStyle();
-        Log.d(TAG, "Loaded style config: " + styleConfig);
+        ComponentStyleConfig.StyleHashMap<String, String> styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("DateTimeInput");
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Loaded style config: " + styleConfig);
+        }
         return styleConfig;
     }
 
@@ -447,70 +455,73 @@ public class DateTimeInputComponent extends A2UIComponent {
         // Parse height
         String height = styleConfig.getOrDefault("compact.height", "56px");
         config.height = StyleHelper.parseDimension(height, context);
-        Log.d(TAG, "Parsed compact.height: " + height + " -> " + config.height + "px");
 
         // Parse font size
         String fontSize = styleConfig.getOrDefault("compact.font-size", "24px");
         config.fontSize = StyleHelper.parseDimension(fontSize, context);
-        Log.d(TAG, "Parsed compact.font-size: " + fontSize + " -> " + config.fontSize + "px");
 
         // Parse selected background color
         String selectedBgColor = styleConfig.getOrDefault("compact.selected-background-color", "#2273F714");
         config.selectedBackgroundColor = StyleHelper.parseColor(selectedBgColor);
-        Log.d(TAG, "Parsed compact.selected-background-color: " + selectedBgColor + " -> " + config.selectedBackgroundColor);
 
         // Parse selected text color
         String selectedTextColor = styleConfig.getOrDefault("compact.selected-text-color", "#2273F7");
         config.selectedTextColor = StyleHelper.parseColor(selectedTextColor);
-        Log.d(TAG, "Parsed compact.selected-text-color: " + selectedTextColor + " -> " + config.selectedTextColor);
 
         // Parse unselected text color
         String unselectedTextColor = styleConfig.getOrDefault("compact.unselected-text-color", "#000000");
         config.unselectedTextColor = StyleHelper.parseColor(unselectedTextColor);
-        Log.d(TAG, "Parsed compact.unselected-text-color: " + unselectedTextColor + " -> " + config.unselectedTextColor);
 
         // Parse placeholder text
         config.placeholderText = styleConfig.getOrDefault("compact.placeholder-text", "Select date");
-        Log.d(TAG, "Parsed compact.placeholder-text: " + config.placeholderText);
 
         // Parse vertical padding
         String paddingVertical = styleConfig.getOrDefault("compact.padding-vertical", "12px");
         config.paddingVertical = StyleHelper.parseDimension(paddingVertical, context);
-        Log.d(TAG, "Parsed compact.padding-vertical: " + paddingVertical + " -> " + config.paddingVertical + "px");
 
         // Parse horizontal padding
         String paddingHorizontal = styleConfig.getOrDefault("compact.padding-horizontal", "24px");
         config.paddingHorizontal = StyleHelper.parseDimension(paddingHorizontal, context);
-        Log.d(TAG, "Parsed compact.padding-horizontal: " + paddingHorizontal + " -> " + config.paddingHorizontal + "px");
 
         // Parse corner radius
         String cornerRadius = styleConfig.getOrDefault("compact.corner-radius", "8px");
         config.cornerRadius = StyleHelper.parseDimension(cornerRadius, context);
-        Log.d(TAG, "Parsed compact.corner-radius: " + cornerRadius + " -> " + config.cornerRadius + "px");
 
         // Parse popup mask color
         String popupMaskColor = styleConfig.getOrDefault("compact.popup-mask-color", "#66000000");
         config.popupMaskColor = StyleHelper.parseColor(popupMaskColor);
-        Log.d(TAG, "Parsed compact.popup-mask-color: " + popupMaskColor + " -> " + config.popupMaskColor);
 
         // Parse popup corner radius
         String popupCornerRadius = styleConfig.getOrDefault("compact.popup-corner-radius", "12px");
         config.popupCornerRadius = StyleHelper.parseDimension(popupCornerRadius, context);
-        Log.d(TAG, "Parsed compact.popup-corner-radius: " + popupCornerRadius + " -> " + config.popupCornerRadius + "px");
 
         // Parse icon name
         config.iconName = styleConfig.getOrDefault("compact.icon-name", "event");
-        Log.d(TAG, "Parsed compact.icon-name: " + config.iconName);
 
         // Parse icon size
         String iconSize = styleConfig.getOrDefault("compact.icon-size", "24px");
         config.iconSize = StyleHelper.parseDimension(iconSize, context);
-        Log.d(TAG, "Parsed compact.icon-size: " + iconSize + " -> " + config.iconSize + "px");
 
         // Parse icon spacing
         String iconSpacing = styleConfig.getOrDefault("compact.icon-spacing", "6px");
         config.iconSpacing = StyleHelper.parseDimension(iconSpacing, context);
-        Log.d(TAG, "Parsed compact.icon-spacing: " + iconSpacing + " -> " + config.iconSpacing + "px");
+
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Parsed compact style: height=" + config.height
+                    + ", fontSize=" + config.fontSize
+                    + ", selectedBg=" + config.selectedBackgroundColor
+                    + ", selectedText=" + config.selectedTextColor
+                    + ", unselectedText=" + config.unselectedTextColor
+                    + ", placeholder=" + config.placeholderText
+                    + ", paddingV=" + config.paddingVertical
+                    + ", paddingH=" + config.paddingHorizontal
+                    + ", cornerRadius=" + config.cornerRadius
+                    + ", popupMask=" + config.popupMaskColor
+                    + ", popupCornerRadius=" + config.popupCornerRadius
+                    + ", icon=" + config.iconName
+                    + ", iconSize=" + config.iconSize
+                    + ", iconSpacing=" + config.iconSpacing);
+        }
 
         return config;
     }

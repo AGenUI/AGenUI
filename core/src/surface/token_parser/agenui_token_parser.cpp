@@ -1,7 +1,7 @@
 #include "agenui_token_parser.h"
 #include "agenui_design_token_config.h"
 #include "nlohmann/json.hpp"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 
@@ -71,12 +71,15 @@ bool TokenParser::loadFromJsonString(const std::string& jsonString) {
     return true;
 }
 
-void TokenParser::setThemeMode(ThemeMode mode) {
+bool TokenParser::setThemeMode(ThemeMode mode) {
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    if (_themeMode == mode) {
+        AGENUI_LOG("skip set theme mode for same mode. %d", mode);
+        return false;
+    }
     _themeMode = mode;
+    return true;
 }
 
-ThemeMode TokenParser::getThemeMode() const {
-    return _themeMode;
-}
 
 } // namespace agenui

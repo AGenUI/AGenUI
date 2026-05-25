@@ -23,6 +23,7 @@
 //   destroyAGenUIEngine
 
 #include <gtest/gtest.h>
+
 #include <string>
 
 #include "agenui_engine.h"

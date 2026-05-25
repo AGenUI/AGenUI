@@ -9,7 +9,6 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Shader;
 import android.os.AsyncTask;
-import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 
@@ -19,6 +18,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * Divider component implementation - compliant with A2UI v0.9 protocol
@@ -114,7 +114,9 @@ public class DividerComponent extends A2UIComponent {
                 return Float.parseFloat(thicknessStr);
             }
         } catch (Exception e) {
-            Log.w(TAG, "Failed to parse thickness: " + thicknessObj, e);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Failed to parse thickness: " + thicknessObj, e);
+            }
         }
 
         return 1.0f;
@@ -154,7 +156,9 @@ public class DividerComponent extends A2UIComponent {
      * Update the divider
      */
     private void updateDivider(String axis, float thickness, String imgUrl) {
-        Log.d(TAG, "updateDivider: axis=" + axis + ", thickness=" + thickness + ", imgUrl=" + imgUrl);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "updateDivider: axis=" + axis + ", thickness=" + thickness + ", imgUrl=" + imgUrl);
+        }
 
         int width, height;
         float density = context.getResources().getDisplayMetrics().density;
@@ -189,7 +193,9 @@ public class DividerComponent extends A2UIComponent {
      * Load image
      */
     private void loadImage(final String imgUrl, final String axis) {
-        Log.d(TAG, "loadImage: " + imgUrl);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "loadImage: " + imgUrl);
+        }
 
         new AsyncTask<Void, Void, Bitmap>() {
             @Override
@@ -204,7 +210,7 @@ public class DividerComponent extends A2UIComponent {
                     input.close();
                     return bitmap;
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to load image: " + imgUrl, e);
+                    AGenUILogger.e(TAG, "Failed to load image: " + imgUrl, e);
                     return null;
                 }
             }
@@ -212,13 +218,15 @@ public class DividerComponent extends A2UIComponent {
             @Override
             protected void onPostExecute(Bitmap bitmap) {
                 if (bitmap != null && dividerView != null) {
-                    Log.d(TAG, "Image loaded successfully, size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.d(TAG, "Image loaded successfully, size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+                    }
                     ((DividerView) dividerView).setImageBitmap(bitmap);
                     ((DividerView) dividerView).setAxis(axis);
                     dividerView.setBackgroundColor(Color.TRANSPARENT);
                     dividerView.invalidate();
                 } else {
-                    Log.w(TAG, "Failed to load image, using default color");
+                    AGenUILogger.w(TAG, "Failed to load image, using default color");
                     ((DividerView) dividerView).setImageBitmap(null);
 //                    dividerView.setBackgroundColor(Color.parseColor("#E0E0E0"));
                 }

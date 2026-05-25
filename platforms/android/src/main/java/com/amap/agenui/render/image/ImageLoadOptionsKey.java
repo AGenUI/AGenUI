@@ -26,12 +26,19 @@ public final class ImageLoadOptionsKey {
     }
 
     /**
-     * Target width (Float). The loader may use this for downsampling to save memory.
+     * Target width in physical device pixels (Float). The loader may use this for
+     * downsampling to save memory and for server-side image cropping.
+     *
+     * <p><b>Unit convention:</b> physical {@code px} after density conversion, NOT
+     * standard units / CSS pixels / dp. Producers must apply
+     * {@link com.amap.agenui.render.style.StyleHelper#standardUnitToPx} (or otherwise
+     * obtain the rendered view dimension) before writing this option.
      */
     public static final String WIDTH = "width";
 
     /**
-     * Target height (Float). The loader may use this for downsampling to save memory.
+     * Target height in physical device pixels (Float). See {@link #WIDTH} for the
+     * unit convention.
      */
     public static final String HEIGHT = "height";
 

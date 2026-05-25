@@ -54,6 +54,10 @@ public:
         g_nodeAPI->resetAttribute(m_nodeHandle, NODE_WIDTH);
     }
 
+    void resetPosition() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_POSITION);
+    }
+
     void setPercentWidth(float percent) {
         ArkUI_NumberValue value[] = {{.f32 = percent}};
         ArkUI_AttributeItem item = {value, 1};
@@ -85,7 +89,7 @@ public:
     /**
      * Set a custom shadow, matching CSS drop-shadow / box-shadow semantics.
      * NODE_CUSTOM_SHADOW parameters:
-     *   [0] blur   - blur radius in vp
+     *   [0] blur   - blur radius in px
      *   [1] spread - spread radius, always 0 here
      *   [2] offsetX - x offset in physical px
      *   [3] offsetY - y offset in physical px
@@ -510,30 +514,6 @@ public:
     }
 };
 
-/**
- * Flex container node for wrap-capable layouts
- */
-class A2UIFlexNode : public A2UIContainerNode {
-public:
-    explicit A2UIFlexNode(ArkUI_NodeHandle nodeHandle) : A2UIContainerNode(nodeHandle) {}
-
-    void setOptions(ArkUI_FlexDirection direction,
-                    ArkUI_FlexWrap wrap,
-                    ArkUI_FlexAlignment justifyContent,
-                    ArkUI_ItemAlignment alignItems,
-                    ArkUI_FlexAlignment alignContent) {
-        ArkUI_NumberValue value[] = {
-            {.i32 = direction},
-            {.i32 = wrap},
-            {.i32 = justifyContent},
-            {.i32 = alignItems},
-            {.i32 = alignContent}
-        };
-        ArkUI_AttributeItem item = {value, 5};
-        g_nodeAPI->setAttribute(m_nodeHandle, NODE_FLEX_OPTION, &item);
-    }
-};
-
 // ========== Text Nodes ==========
 
 /**
@@ -585,6 +565,31 @@ public:
         ArkUI_NumberValue value[] = {{.f32 = height}};
         ArkUI_AttributeItem item = {value, 1};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_LINE_HEIGHT, &item);
+    }
+
+    void resetLineHeight() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_TEXT_LINE_HEIGHT);
+    }
+
+    // Control W3C half-leading distribution inside the line box.
+    //   enable = true  : extra space is split evenly above and below the glyph,
+    //                    visually centering the glyph. This matches Android's
+    //                    CenteredLineHeightSpan (symmetric ascent/descent
+    //                    adjustment) and iOS paragraphStyle + positive
+    //                    baselineOffset, and is the W3C `line-height`
+    //                    semantic that A2UI targets across platforms.
+    //   enable = false : ArkUI default. Extra space is piled entirely below
+    //                    the glyph, so the first line hugs the top of the
+    //                    line box. Prefer `true` for multi-line text unless
+    //                    intentionally matching ArkUI's native behaviour.
+    void setHalfLeading(bool enable) {
+        ArkUI_NumberValue value[] = {{.i32 = enable ? 1 : 0}};
+        ArkUI_AttributeItem item = {value, 1};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_HALF_LEADING, &item);
+    }
+
+    void resetHalfLeading() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_TEXT_HALF_LEADING);
     }
 
     void setLetterSpacing(float spacing) {
@@ -643,6 +648,22 @@ public:
         ArkUI_NumberValue value[] = {{.i32 = ARKUI_TEXT_DECORATION_TYPE_NONE}};
         ArkUI_AttributeItem item = {value, 1};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_DECORATION, &item);
+    }
+
+    void setTextShadow(float blurA2ui, float offsetXA2ui, float offsetYA2ui, uint32_t color) {
+        ArkUI_NumberValue value[] = {
+            {.f32 = UnitConverter::a2uiToVp(blurA2ui)},
+            {.i32 = ARKUI_SHADOW_TYPE_COLOR},
+            {.u32 = color},
+            {.f32 = UnitConverter::a2uiToVp(offsetXA2ui)},
+            {.f32 = UnitConverter::a2uiToVp(offsetYA2ui)},
+        };
+        ArkUI_AttributeItem item = {value, 5};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_TEXT_SHADOW, &item);
+    }
+
+    void resetTextShadow() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_TEXT_TEXT_SHADOW);
     }
 };
 

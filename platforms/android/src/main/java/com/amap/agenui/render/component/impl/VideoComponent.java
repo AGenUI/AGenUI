@@ -2,7 +2,6 @@ package com.amap.agenui.render.component.impl;
 
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -12,6 +11,7 @@ import android.widget.VideoView;
 import com.amap.agenui.render.component.A2UIComponent;
 
 import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * Video component implementation
@@ -110,7 +110,7 @@ public class VideoComponent extends A2UIComponent {
                 Uri uri = Uri.parse(url);
                 videoView.setVideoURI(uri);
             } catch (Exception e) {
-                Log.e(TAG, "Failed to set video URI: " + url, e);
+                AGenUILogger.e(TAG, "Failed to set video URI: " + url, e);
             }
         }
     }

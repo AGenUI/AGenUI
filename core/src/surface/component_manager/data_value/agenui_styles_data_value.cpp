@@ -6,10 +6,10 @@
 
 namespace agenui {
 
-StylesDataValue::StylesDataValue(IDataModel* dataModel) : DataValue(dataModel) {
+StylesDataValue::StylesDataValue(IDataValueContext* context) : DataValue(context) {
 }
 
-StylesDataValue::StylesDataValue(IDataModel* dataModel, const std::map<std::string, std::shared_ptr<DataValue>>& styles) : DataValue(dataModel), _styles(styles) {
+StylesDataValue::StylesDataValue(IDataValueContext* context, const std::map<std::string, std::shared_ptr<DataValue>>& styles) : DataValue(context), _styles(styles) {
 }
 
 StylesDataValue::~StylesDataValue() {
@@ -95,19 +95,16 @@ void StylesDataValue::unbind() {
     }
 }
 
-std::shared_ptr<DataValue> StylesDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
+std::shared_ptr<DataValue> StylesDataValue::cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const {
     std::map<std::string, std::shared_ptr<DataValue>> clonedStyles;
     
     for (const auto& pair : _styles) {
         if (pair.second) {
-            clonedStyles[pair.first] = pair.second->cloneAsTemplate(rootDataPath);
+            clonedStyles[pair.first] = pair.second->cloneAsTemplate(context, rootDataPath);
         }
     }
     
-    auto cloned = std::make_shared<StylesDataValue>(_dataModel, clonedStyles);
-    cloned->_extensions = _extensions;
-    
-    return cloned;
+    return std::make_shared<StylesDataValue>(context, clonedStyles);
 }
 
 }  // namespace agenui

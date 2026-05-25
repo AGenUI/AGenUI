@@ -12,10 +12,11 @@
 #   ctest --test-dir tests/cpp/build --output-on-failure
 #
 # Options:
-#   AGENUI_TESTS_ENABLE_ASAN     Default OFF
+#   AGENUI_TESTS_ENABLE_ASAN    Default ON   (mutex with TSAN)
+#   AGENUI_TESTS_ENABLE_TSAN    Default OFF  (mutex with ASAN)
 #   AGENUI_TESTS_ENABLE_COVERAGE Default OFF
-#   AGENUI_TESTS_USE_LOCAL_YOGA  Default OFF
-#   AGENUI_TESTS_LOCAL_YOGA_DIR  (only when USE_LOCAL_YOGA=ON)
+#   AGENUI_TESTS_USE_LOCAL_YOGA Default OFF
+#   AGENUI_TESTS_LOCAL_YOGA_DIR (only when USE_LOCAL_YOGA=ON)
 # =============================================================================
 cmake_minimum_required(VERSION 3.18)
 project(agenui_cpp_tests CXX)
@@ -24,13 +25,14 @@ project(agenui_cpp_tests CXX)
 # Multi-config support (Xcode / Visual Studio).
 #
 # Single-config generators (Make, Ninja) pick the sanitizer at configure
-# time via -DAGENUI_TESTS_ENABLE_ASAN.
+# time via -DAGENUI_TESTS_ENABLE_ASAN / -DAGENUI_TESTS_ENABLE_TSAN.
 #
-# Multi-config generators (Xcode) define multiple build configurations in
-# the SAME project; the user toggles between them in Xcode via
-# Edit Scheme → Run → Build Configuration.
+# Multi-config generators (Xcode) define BOTH sanitizers as build
+# configurations in the SAME project; the user toggles between them in
+# Xcode (Edit Scheme → Run → Build Configuration).
 #
 #   Debug   → AddressSanitizer + UBSan   (default)
+#   Tsan    → ThreadSanitizer
 #   Release → no sanitizer
 # -----------------------------------------------------------------------------
 get_property(AGENUI_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -78,7 +80,7 @@ endif()
 # -----------------------------------------------------------------------------
 # 3. Options
 # -----------------------------------------------------------------------------
-option(AGENUI_TESTS_ENABLE_ASAN "Enable AddressSanitizer + UBSan" OFF)
+option(AGENUI_TESTS_ENABLE_ASAN "Enable AddressSanitizer + UBSan" ON)
 option(AGENUI_TESTS_ENABLE_TSAN "Enable ThreadSanitizer (mutually exclusive with ASan)" OFF)
 option(AGENUI_TESTS_ENABLE_COVERAGE "Generate coverage" OFF)
 option(AGENUI_TESTS_USE_LOCAL_YOGA "Use local yoga source" OFF)
@@ -233,10 +235,6 @@ target_compile_options(agenui_core_for_test PRIVATE
     -Wno-everything
 )
 
-target_compile_definitions(agenui_core_for_test PUBLIC
-    TEST_COMPONENT_UPDATE
-)
-
 # -----------------------------------------------------------------------------
 # 6. Sanitizer / coverage helper
 # -----------------------------------------------------------------------------
@@ -275,6 +273,15 @@ agenui_apply_sanitizer(yogacore)
 # 7. Fixtures path (compile-time macro)
 # -----------------------------------------------------------------------------
 set(TESTS_FIXTURE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
+
+# Copy standard catalog from test/ into fixtures/catalog (build-time copy, no
+# committed duplicate file).
+set(_SRC_CATALOG  "${AGENUI_REPO_ROOT}/test/a2ui_standard_catalog.json")
+set(_DST_CATALOG  "${TESTS_FIXTURE_DIR}/catalog/standard_catalog.json")
+if(EXISTS "${_SRC_CATALOG}")
+    configure_file("${_SRC_CATALOG}" "${_DST_CATALOG}" COPYONLY)
+    message(STATUS "Catalog copied: ${_SRC_CATALOG} -> ${_DST_CATALOG}")
+endif()
 
 # -----------------------------------------------------------------------------
 # 8. Test executables
@@ -342,25 +349,12 @@ if(_CONCURRENCY_SOURCES OR _SANITIZER_THREAD)
 endif()
 
 # ---- 8.3 Stream Tests (standalone target) ----
-# Streaming parser unit tests that exercise ProtocolStreamExtractor and
-# stream plugins directly (no engine / SurfaceManager dependencies).
-# This target can be run independently in Xcode as its own Scheme.
-file(GLOB_RECURSE _STREAM_TEST_SOURCES unit/stream/*.cpp)
-if(_STREAM_TEST_SOURCES)
-    add_executable(agenui_stream_tests
-        main.cpp
-        ${_STREAM_TEST_SOURCES}
-    )
-    target_include_directories(agenui_stream_tests PRIVATE ${AGENUI_TESTS_INCLUDE_DIRS})
-    target_compile_definitions(agenui_stream_tests PRIVATE ${AGENUI_TESTS_COMPILE_DEFS})
-    target_link_libraries(agenui_stream_tests PRIVATE
-        agenui_core_for_test
-        GTest::gtest
-        GTest::gmock
-    )
-    target_compile_options(agenui_stream_tests PRIVATE -Wno-error)
-    agenui_apply_sanitizer(agenui_stream_tests)
-endif()
+# REMOVED: Internal stream unit tests (ProtocolStreamExtractor,
+# MarkdownStreamPlugin, TextStreamPlugin, CompositeStreamPlugin)
+# have been deleted to enforce black-box testing. Streaming behavior
+# is fully covered by the integration tests (in integration/ and
+# unit/stream/integration/) which exercise the public ISurfaceManager
+# API (beginTextStream / receiveTextChunk / endTextStream).
 
 # ---- 8.4 TSan dedicated executable ----
 # Identical sources to agenui_concurrency_tests but built specifically to
@@ -384,38 +378,13 @@ if((AGENUI_IS_MULTI_CONFIG OR AGENUI_TESTS_ENABLE_TSAN) AND (_CONCURRENCY_SOURCE
     agenui_apply_sanitizer(agenui_tsan_tests)
 endif()
 
-# ---- 8.5 Object library for IDE wrappers (DevEco / Android Studio) ----
-# Contains ALL test source files (no main.cpp). IDE wrappers link this
-# into their shared library alongside a NAPI/JNI bridge so that
-# RUN_ALL_TESTS() finds the registered test cases.
-# NOTE: _UNIT_SOURCES is a recursive glob that already includes stream
-# tests; do NOT add _STREAM_TEST_SOURCES separately.
-add_library(agenui_all_test_sources OBJECT
-    ${_INTEGRATION_SOURCES}
-    ${_UNIT_SOURCES}
-    ${_STRESS_SOURCES}
-    ${_ASAN_SOURCES}
-    ${_CONCURRENCY_SOURCES}
-    ${_SANITIZER_THREAD}
-)
-target_include_directories(agenui_all_test_sources PRIVATE ${AGENUI_TESTS_INCLUDE_DIRS})
-target_compile_definitions(agenui_all_test_sources PRIVATE ${AGENUI_TESTS_COMPILE_DEFS})
-target_compile_options(agenui_all_test_sources PRIVATE -Wno-error)
-# Link dependencies for transitive include dirs (gtest, core headers, etc.)
-target_link_libraries(agenui_all_test_sources PRIVATE
-    agenui_core_for_test
-    GTest::gtest
-    GTest::gmock
-)
-agenui_apply_sanitizer(agenui_all_test_sources)
-
 # -----------------------------------------------------------------------------
-# 8.6 Apple ad-hoc codesign for Xcode generator (macOS Ventura+ arm64
+# 8.5 Apple ad-hoc codesign for Xcode generator (macOS Ventura+ arm64
 #     refuses to launch unsigned binaries; the Ninja/Make generators sign
 #     automatically via the linker but the Xcode generator does not).
 # -----------------------------------------------------------------------------
 if(CMAKE_GENERATOR STREQUAL "Xcode" AND APPLE)
-    foreach(_target agenui_unit_tests agenui_stream_tests agenui_concurrency_tests agenui_tsan_tests)
+    foreach(_target agenui_unit_tests agenui_concurrency_tests agenui_tsan_tests)
         if(TARGET ${_target})
             add_custom_command(TARGET ${_target} POST_BUILD
                 COMMAND codesign --force --sign - "$<TARGET_FILE:${_target}>"
@@ -435,12 +404,6 @@ if(NOT CMAKE_CROSSCOMPILING AND NOT ANDROID)
         PROPERTIES TIMEOUT 60
         DISCOVERY_TIMEOUT 60
     )
-    if(TARGET agenui_stream_tests)
-        gtest_discover_tests(agenui_stream_tests
-            PROPERTIES TIMEOUT 60
-            DISCOVERY_TIMEOUT 60
-        )
-    endif()
     if(TARGET agenui_concurrency_tests)
         gtest_discover_tests(agenui_concurrency_tests
             PROPERTIES TIMEOUT 120

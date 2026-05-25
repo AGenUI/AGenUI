@@ -1,4 +1,4 @@
-import { IFunctionCall, FunctionResult } from './IFunctionCall';
+import { IFunctionCall, FunctionCallContext, FunctionResult } from './IFunctionCall';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import {
   registerFunction as napiRegisterFunction,
@@ -38,9 +38,9 @@ export class FunctionManager {
     }
 
     // Convert FunctionResult into the format expected by the C++ engine.
-    const callback = (paramsJson: string): string => {
+    const callback = (context: FunctionCallContext, paramsJson: string): string => {
       try {
-        const result: FunctionResult = func.execute(paramsJson);
+        const result: FunctionResult = func.execute(context, paramsJson);
         if (result.result) {
           return JSON.stringify({ status: 'Success', value: result.value });
         } else {

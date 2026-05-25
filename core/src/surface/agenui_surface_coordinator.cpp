@@ -1,8 +1,8 @@
 #include "agenui_surface_coordinator.h"
-#include "agenui_log.h"
+#include "agenui_batch_guard.h"
+#include "agenui_logger_internal.h"
 #include "agenui_message_parser.h"
-#include "agenui_component_render_observable.h"
-#include "agenui_surface_layout_observable.h"
+#include "agenui_render_info_types.h"
 #include "module/agenui_event_dispatcher.h"
 #include "surface/virtual_dom/agenui_virtual_dom.h"
 #include "function_call/agenui_functioncall_manager.h"
@@ -23,7 +23,6 @@
 #include "function_call/builtins/agenui_or_functioncall.h"
 #include "function_call/builtins/agenui_not_functioncall.h"
 #include "surface/token_parser/agenui_token_parser.h"
-#include "surface/agenui_expression_parser.h"
 #include "module/agenui_surface_manager.h"
 
 namespace agenui {
@@ -39,14 +38,11 @@ SurfaceCoordinator::~SurfaceCoordinator() {
     AGENUI_LOG("destruction finished");
 }
 
-void SurfaceCoordinator::setDayNightMode() {
-    refreshStyleTokens();
-}
-
-void SurfaceCoordinator::refreshStyleTokens() {
+void SurfaceCoordinator::invalidateFunctionCallValues() {
     for (const auto &pair : _surfaces) {
         if (pair.second) {
-            pair.second->refreshStyleTokens();
+            BatchScope batchScope(pair.second->batchGuard());
+            pair.second->invalidateFunctionCallValues();
         }
     }
 }
@@ -54,18 +50,23 @@ void SurfaceCoordinator::refreshStyleTokens() {
 AGenUIExeCode SurfaceCoordinator::createSurface(const std::string &jsonData) {
     CreateSurfaceMessage message;
     AGenUIExeCode exeCode = AGenUIMessageParser::parseCreateSurfaceData(jsonData, message);
-    if (exeCode != ExeCode_Parse_success) {
+    if (exeCode != Execute_Success) {
+        reportError(exeCode, "");
         return exeCode;
     }
 
+    message.rawProtocolContent = jsonData;
+
     if (message.surfaceId.empty()) {
         AGENUI_LOG("surfaceId is empty");
-        return ExeCode_ParseError_createSurface_empty_surfaceId;
+        reportError(CreateSurface_EmptySurfaceId, "");
+        return CreateSurface_EmptySurfaceId;
     }
 
     if (_surfaces.find(message.surfaceId) != _surfaces.end()) {
         AGENUI_LOG("surfaceId already exists, %s", message.surfaceId.c_str());
-        return ExeCode_ParseError_createSurface_duplicate_surfaceId;
+        reportError(CreateSurface_DuplicateSurfaceId, message.surfaceId);
+        return CreateSurface_DuplicateSurfaceId;
     }
 
     std::string theme;
@@ -80,70 +81,86 @@ AGenUIExeCode SurfaceCoordinator::createSurface(const std::string &jsonData) {
 
     AGENUI_LOG("success: %s", jsonData.c_str());
     _owner->getEventDispatcher()->dispatchCreateSurface(message);
-    return ExeCode_Parse_success;
+    return Execute_Success;
 }
 
 AGenUIExeCode SurfaceCoordinator::updateComponents(const std::string &jsonData) {
     std::string surfaceId;
     nlohmann::json componentsJsonNode;
     AGenUIExeCode exeCode = AGenUIMessageParser::parseUpdateComponentsData(jsonData, surfaceId, componentsJsonNode);
-    if (exeCode != ExeCode_Parse_success) {
+    if (exeCode != Execute_Success) {
+        reportError(exeCode, surfaceId);
         return exeCode;
     }
 
     auto it = _surfaces.find(surfaceId);
     if (it == _surfaces.end()) {
         AGENUI_LOG("surface not found, %s", surfaceId.c_str());
-        return ExeCode_ParseError_updateComponents_notfound_surfaceId;
+        reportError(UpdateComponents_SurfaceNotFound, surfaceId);
+        return UpdateComponents_SurfaceNotFound;
     }
 
-    exeCode = it->second->updateComponents(componentsJsonNode);
-    if (exeCode != ExeCode_Parse_success) {
+    {
+        BatchScope batchScope(it->second->batchGuard());
+        exeCode = it->second->updateComponents(componentsJsonNode);
+    }
+    if (exeCode != Execute_Success) {
+        reportError(exeCode, surfaceId);
         return exeCode;
     }
 
     AGENUI_LOG("success: %s", jsonData.c_str());
-    return ExeCode_Parse_success;
+    return Execute_Success;
 }
 
 AGenUIExeCode SurfaceCoordinator::updateDataModel(const std::string &jsonData) {
     std::string surfaceId;
     nlohmann::json dataModelJsonNode;
     AGenUIExeCode exeCode = AGenUIMessageParser::parseUpdateDataModelData(jsonData, surfaceId, dataModelJsonNode);
-    if (exeCode != ExeCode_Parse_success) {
+    if (exeCode != Execute_Success) {
+        reportError(exeCode, surfaceId);
         return exeCode;
     }
 
     auto it = _surfaces.find(surfaceId);
     if (it == _surfaces.end()) {
         AGENUI_LOG("surface not found, %s", surfaceId.c_str());
-        return ExeCode_ParseError_updateDataModel_notfound_surfaceId;
+        reportError(UpdateDataModel_SurfaceNotFound, surfaceId);
+        return UpdateDataModel_SurfaceNotFound;
     }
 
-    it->second->updateDataModel(dataModelJsonNode);
+    {
+        BatchScope batchScope(it->second->batchGuard());
+        it->second->updateDataModel(dataModelJsonNode);
+    }
 
     AGENUI_LOG("success: %s", jsonData.c_str());
-    return ExeCode_Parse_success;
+    return Execute_Success;
 }
 
 AGenUIExeCode SurfaceCoordinator::appendDataModel(const std::string &jsonData) {
     std::string surfaceId;
     nlohmann::json dataModelJsonNode;
     AGenUIExeCode exeCode = AGenUIMessageParser::parseAppendDataModelData(jsonData, surfaceId, dataModelJsonNode);
-    if (exeCode != ExeCode_Parse_success) {
+    if (exeCode != Execute_Success) {
+        reportError(exeCode, surfaceId);
         return exeCode;
     }
 
     auto it = _surfaces.find(surfaceId);
     if (it == _surfaces.end()) {
         AGENUI_LOG("surface not found, %s", surfaceId.c_str());
-        return ExeCode_ParseError_appendDataModel_notfound_surfaceId;
+        reportError(AppendDataModel_SurfaceNotFound, surfaceId);
+        return AppendDataModel_SurfaceNotFound;
     }
 
-    it->second->appendDataModel(dataModelJsonNode);
+    {
+        BatchScope batchScope(it->second->batchGuard());
+        it->second->appendDataModel(dataModelJsonNode);
+    }
 
     AGENUI_LOG("success: %s", jsonData.c_str());
-    return ExeCode_Parse_success;
+    return Execute_Success;
 }
 
 Surface *SurfaceCoordinator::getSurface(const std::string &surfaceId) const {
@@ -157,7 +174,8 @@ Surface *SurfaceCoordinator::getSurface(const std::string &surfaceId) const {
 AGenUIExeCode SurfaceCoordinator::deleteSurface(const std::string &jsonData) {
     DeleteSurfaceMessage message;
     AGenUIExeCode exeCode = AGenUIMessageParser::parseDeleteSurfaceData(jsonData, message);
-    if (exeCode != ExeCode_Parse_success) {
+    if (exeCode != Execute_Success) {
+        reportError(exeCode, message.surfaceId);
         return exeCode;
     }
 
@@ -168,7 +186,7 @@ AGenUIExeCode SurfaceCoordinator::deleteSurface(const std::string &jsonData) {
     }
 
     _owner->getEventDispatcher()->dispatchDeleteSurface(message);
-    return ExeCode_Parse_success;
+    return Execute_Success;
 }
 
 void SurfaceCoordinator::handleAction(const ActionMessage &msg) {
@@ -184,10 +202,11 @@ void SurfaceCoordinator::handleAction(const ActionMessage &msg) {
 
     auto it = _surfaces.find(msg.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("surface not found, surfaceId:%s", msg.surfaceId.c_str());
+        AGENUI_LOG("surface not found, surfaceId=%s", msg.surfaceId.c_str());
         return;
     }
 
+    BatchScope batchScope(it->second->batchGuard());
     it->second->handleUserAction(msg.sourceComponentId);
 }
 
@@ -199,11 +218,14 @@ void SurfaceCoordinator::handleSyncUIToData(const SyncUIToDataMessage &msg) {
 
     auto it = _surfaces.find(msg.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("surface not found, surfaceId:%s", msg.surfaceId.c_str());
+        AGENUI_LOG("surface not found, surfaceId=%s", msg.surfaceId.c_str());
         return;
     }
 
-    it->second->syncUIToData(msg.componentId, msg.change);
+    {
+        BatchScope batchScope(it->second->batchGuard());
+        it->second->syncUIToData(msg.componentId, msg.change);
+    }
 
     AGENUI_LOG("success: surfaceId:%s, componentId:%s", msg.surfaceId.c_str(), msg.componentId.c_str());
 }
@@ -231,44 +253,61 @@ void SurfaceCoordinator::initFunctionCalls() {
 }
 
 void SurfaceCoordinator::handleRenderFinish(const ComponentRenderInfo &info) {
-    AGENUI_LOG("surfaceId:%s, componentId:%s, type:%s, width:%.1f, height:%.1f", info.surfaceId.c_str(),
+    AGENUI_LOG("handleRenderFinish: surfaceId=%s, componentId=%s, type=%s, width=%.1f, height=%.1f", info.surfaceId.c_str(),
                info.componentId.c_str(), info.type.c_str(), info.width, info.height);
 
     if (info.surfaceId.empty()) {
-        AGENUI_LOG("failed: surfaceId is empty");
+        AGENUI_LOG("handleRenderFinish failed: surfaceId is empty");
         return;
     }
     auto it = _surfaces.find(info.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("failed: surface not found, surfaceId:%s", info.surfaceId.c_str());
+        AGENUI_LOG("handleRenderFinish failed: surface not found, surfaceId=%s", info.surfaceId.c_str());
         return;
     }
     Surface *surface = it->second.get();
     if (surface) {
-        surface->updateComponentSize(info);
-        AGENUI_LOG("success: surfaceId:%s, componentId:%s, type:%s", info.surfaceId.c_str(),
-                   info.componentId.c_str(), info.type.c_str());
+        BatchScope batchScope(surface->batchGuard());
+        if (info.type == "TabsIndexChange") {
+            surface->updateTabsSelectedIndex(info);
+            AGENUI_LOG("handleRenderFinish [TabsIndexChange]: surfaceId=%s, tabsId=%s, selectedIndex=%d",
+                       info.surfaceId.c_str(), info.componentId.c_str(), info.selectedIndex);
+        } else {
+            surface->updateComponentSize(info);
+            AGENUI_LOG("handleRenderFinish success: surfaceId=%s, componentId=%s, type=%s", info.surfaceId.c_str(),
+                       info.componentId.c_str(), info.type.c_str());
+        }
     } else {
-        AGENUI_LOG("failed: surface is null");
+        AGENUI_LOG("handleRenderFinish failed: surface is null");
     }
 }
 
 void SurfaceCoordinator::handleSurfaceSizeChanged(const SurfaceLayoutInfo &info) {
-    AGENUI_LOG("surfaceId:%s, width:%.1f, height:%.1f", info.surfaceId.c_str(), info.width, info.height);
+    AGENUI_LOG("handleSurfaceSizeChanged: surfaceId:%s, width:%.1f, height:%.1f", info.surfaceId.c_str(), info.width, info.height);
 
     if (info.surfaceId.empty()) {
-        AGENUI_LOG("failed: surfaceId is empty");
+        AGENUI_LOG("handleSurfaceSizeChanged failed: surfaceId is empty");
         return;
     }
     auto it = _surfaces.find(info.surfaceId);
     if (it == _surfaces.end()) {
-        AGENUI_LOG("failed: surface not found, surfaceId:%s", info.surfaceId.c_str());
+        AGENUI_LOG("handleSurfaceSizeChanged failed: surface not found, surfaceId=%s", info.surfaceId.c_str());
         return;
     }
     Surface *surface = it->second.get();
     if (surface) {
+        BatchScope batchScope(surface->batchGuard());
         surface->updateSurfaceSize(info);
     }
+}
+
+void SurfaceCoordinator::reportError(AGenUIExeCode code, const std::string& surfaceId) {
+    if (!_owner || !_owner->getEventDispatcher()) return;
+    ErrorMessage msg;
+    msg.code = static_cast<int32_t>(code);
+    msg.surfaceId = surfaceId;
+    msg.message = getExeCodeString(code);
+    _owner->getEventDispatcher()->dispatchError(msg);
 }
 
 } // namespace agenui

@@ -18,7 +18,14 @@ namespace a2ui {
  * Supported properties:
  *   - text: required HTML content, as either a literalString object or a plain string
  *   - variant: preset text style such as h1-h5, caption, or body
- *   - styles: style object including fontSize and color
+ *   - styles:
+ *       - color: text color
+ *       - font-family / fontFamily: font family
+ *       - background-color / backgroundColor: background color
+ *       - border-width / borderWidth: border width
+ *       - border-color / borderColor: border color
+ *       - border-radius / borderRadius: border corner radius
+ *       - padding: inner spacing (supports CSS shorthand)
  *
  * Supported HTML tags:
  *   - text styles: <b>, <strong>, <i>, <em>, <u>, <strike>, <del>
@@ -71,11 +78,17 @@ private:
     /** Parse and apply styles. */
     void applyStyles(const nlohmann::json& properties);
 
+    /** Parse filter: drop-shadow(...) and apply NODE_CUSTOM_SHADOW. */
+    void applyFilter(const nlohmann::json& styles);
+
     /** Managed native span nodes. */
     std::vector<ArkUI_NodeHandle> m_spanNodes;
 
     /** Click-node list (aligned with hm_rich_text.cpp m_clickNodes) */
     std::vector<ClickNode*> m_clickNodes;
+
+    /** Cached font color from styles, applied to all spans */
+    uint32_t m_fontColor = 0xFF000000;
 };
 
 } // namespace a2ui

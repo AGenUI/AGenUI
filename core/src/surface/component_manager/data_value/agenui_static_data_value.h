@@ -19,7 +19,7 @@ public:
     SerializableData getValueData() const override;
     void bind(IDataChangedObserver* observer) override;
     void unbind() override;
-    std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const override;
+    std::shared_ptr<DataValue> cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const override;
 
 private:
     std::string _value;

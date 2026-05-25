@@ -15,6 +15,7 @@ import com.squareup.picasso.Target;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Default image loader implementation based on Picasso.
@@ -23,7 +24,7 @@ import java.util.Map;
  * <ul>
  *   <li>Uses Picasso to load network images</li>
  *   <li>Picasso Targets must be held with a strong reference; otherwise they may be GC'd and callbacks lost</li>
- *   <li>Supports cancelling load tasks by URL</li>
+ *   <li>Supports cancelling load tasks by requestId</li>
  * </ul>
  *
  */
@@ -32,21 +33,20 @@ class DefaultImageLoader implements ImageLoader {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     /**
-     * URL → Target strong-reference map to prevent Picasso Targets from being
+     * requestId → Target strong-reference map to prevent Picasso Targets from being
      * garbage-collected and losing callbacks.
      */
     private final Map<String, InternalTarget> targetMap = new HashMap<>();
     private final Object lock = new Object();
+    private final AtomicLong nextRequestId = new AtomicLong(1L);
 
     @Override
     public String loadImage(@NonNull String url, @Nullable Map<String, Object> options,
                             @NonNull ImageCallback callback) {
-        // Cancel any existing task for the same URL before starting a new one
-        cancel(url);
-
-        InternalTarget target = new InternalTarget(url, callback);
+        String requestId = "img_req_" + nextRequestId.getAndIncrement();
+        InternalTarget target = new InternalTarget(requestId, url, callback);
         synchronized (lock) {
-            targetMap.put(url, target);
+            targetMap.put(requestId, target);
         }
 
         RequestCreator request = Picasso.get().load(url);
@@ -65,7 +65,7 @@ class DefaultImageLoader implements ImageLoader {
         }
 
         request.into(target);
-        return url;
+        return requestId;
     }
 
     /**
@@ -99,10 +99,12 @@ class DefaultImageLoader implements ImageLoader {
      */
     private class InternalTarget implements Target {
 
+        private final String requestId;
         private final String url;
         private final ImageCallback callback;
 
-        InternalTarget(String url, ImageCallback callback) {
+        InternalTarget(String requestId, String url, ImageCallback callback) {
+            this.requestId = requestId;
             this.url = url;
             this.callback = callback;
         }
@@ -110,7 +112,7 @@ class DefaultImageLoader implements ImageLoader {
         @Override
         public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
             synchronized (lock) {
-                targetMap.remove(url);
+                targetMap.remove(requestId);
             }
             boolean isFromCache = (from == Picasso.LoadedFrom.MEMORY
                     || from == Picasso.LoadedFrom.DISK);
@@ -123,7 +125,7 @@ class DefaultImageLoader implements ImageLoader {
         @Override
         public void onBitmapFailed(Exception e, Drawable errorDrawable) {
             synchronized (lock) {
-                targetMap.remove(url);
+                targetMap.remove(requestId);
             }
             ImageLoaderError error = ImageLoaderError.networkError(url, e);
             mainHandler.post(() -> callback.onFailure(error));

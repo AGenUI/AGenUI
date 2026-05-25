@@ -91,6 +91,29 @@ if (!success) {
 }
 ```
 
+#### setPathConfig
+
+Sets path configuration for the engine.
+
+| Platform | Method signature | Return value |
+|---|---|---|
+| Android | `boolean setPathConfig(String configJson)` | `boolean` |
+| iOS | `static func setPathConfig(_ configJson: String) -> AGenUIError` | `AGenUIError` |
+| HarmonyOS | `static setPathConfig(configJson: string): boolean` | `boolean` |
+
+`configJson` example: `{"templateDir": "/absolute/path/to/templates"}`
+
+#### Logging system
+
+| Platform | Custom logger | Set min log level | Get min log level | SDK version |
+|---|---|---|---|---|
+| Android | `void setCustomLogger(IAGenUILogger customLogger)` | `void setMinLogLevel(int level)` | `int getMinLogLevel()` | `static String getVersion()` |
+| iOS | `static func setCustomLogger(_ customLogger: LoggerDelegate?)` | `static func setMinLogLevel(_ level: Logger.Level)` | `static func getMinLogLevel() -> Logger.Level` | `static func getVersion() -> String` |
+| HarmonyOS | `static setCustomLogger(logger: IAGenUILogger): void` | `static setMinLogLevel(level: number): void` | `static getMinLogLevel(): number` | `static getVersion(): string` |
+
+- `level` values: `0=DEBUG`, `1=INFO`, `2=WARNING`, `3=ERROR`, `4=FATAL`, `5=PERFORMANCE`.
+- On Android, call `setCustomLogger` before `initialize()` to capture all engine logs.
+
 ---
 
 ### SurfaceManager
@@ -137,6 +160,18 @@ Full call order: `beginTextStream()` → `receiveTextChunk(chunk)` × N → `end
 - `receiveTextChunk()` supports fragmented delivery or a single complete JSON payload.
 - `endTextStream()` ends the current streaming session. Call this when the SSE stream closes, the HTTP response ends, the user cancels, or a network disconnect occurs.
 
+#### invalidateFunctionCallValues
+
+Re-evaluates every component's attributes and styles across all Surfaces, then emits field-level diffs to the native renderer for any value that actually changed.
+
+Call this when host-owned external state (theme, locale, orientation, etc.) has changed and registered FunctionCalls need to be re-run.
+
+| Platform | Method signature |
+|---|---|
+| Android | `void invalidateFunctionCallValues()` |
+| iOS | `func invalidateFunctionCallValues()` |
+| HarmonyOS | — |
+
 #### addListener / removeListener
 
 Add or remove Surface lifecycle listeners. All platforms support registering multiple listeners simultaneously.
@@ -159,6 +194,26 @@ Retrieves an existing Surface instance by `surfaceId`.
 | iOS | — |
 | HarmonyOS | `getSurface(surfaceId: string): Surface \| null` |
 
+#### getInstanceId
+
+Returns the native instance id assigned by the engine on creation.
+
+| Platform | Method signature |
+|---|---|
+| Android | `int getInstanceId()` |
+| iOS | `func getInstanceId() -> Int` |
+| HarmonyOS | `getInstanceId(): number` |
+
+#### presetSurfaceSize (iOS)
+
+Presets the Surface size **before** the `createSurface` JSON reaches the engine, eliminating the first-frame narrow-width flash.
+
+```swift
+surfaceManager.presetSurfaceSize(surfaceId: "main", width: view.bounds.width, height: .infinity)
+```
+
+Safe to call multiple times; subsequent `surface.updateSize(...)` remains the source of truth and is a no-op when the value matches.
+
 #### destroy
 
 | Platform | Method signature | Notes |
@@ -180,6 +235,8 @@ public interface ISurfaceManagerListener {
     void onCreateSurface(Surface surface);
     void onDeleteSurface(Surface surface);
     default void onReceiveActionEvent(String event) {}
+    default void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+    default void onError(String type, int code, String message, String surfaceId) {}
 }
 ```
 
@@ -190,6 +247,9 @@ public interface ISurfaceManagerListener {
     @objc optional func onCreateSurface(_ surface: Surface)
     @objc optional func onDeleteSurface(_ surface: Surface)
     @objc optional func onReceiveActionEvent(_ event: String)
+    @objc optional func onRootComponentUpdate(_ surface: Surface, props: [String: Any])
+    @objc optional func onError(_ surface: Surface?, code: Int, message: String)
+    @objc optional func onBlankCheckResult(_ surface: Surface, isBlank: Bool)
 }
 ```
 
@@ -269,6 +329,9 @@ surfaceManager.addListener(listener);
 | Surface ID | `getSurfaceId(): String` | `surfaceId: String` | `surfaceId: string` |
 | Root container | `getContainer(): ViewGroup` | `view: UIView` | Rendered via `AGenUIContainer`; no view property |
 | Animation toggle | `setAnimationEnabled(boolean)` / `isAnimationEnabled(): boolean` | `animationEnabled: Bool` (default `true`) | `animationEnabled: boolean` (default `true`) |
+| Raw protocol content | `getRawProtocolContent(): String` / `setRawProtocolContent(String)` | `rawProtocolContent: String` | `rawProtocolContent: string` |
+| Size update | — | `updateSize(width: CGFloat, height: CGFloat)` | — |
+| Blank-screen check | `startBlankCheck(long delayMs, int validComponentCount)` / `cancelBlankCheck()` | `startBlankCheck(checkDelayMs: Int, validComponentCount: Int)` | — |
 
 **HarmonyOS — rendering container**
 
@@ -290,6 +353,8 @@ Registering a custom component requires: defining the component class, registeri
 |---|---|
 | Android | `AGenUI.getInstance().registerComponent(String type, IComponentFactory creator)` |
 | iOS | `AGenUISDK.registerComponent(_ type: String, creator: (String, [String: Any]) -> Component)` |
+| iOS (ObjC) | `AGenUISDK.registerComponentObjC(_ type: String, creator: (String, [String: Any]) -> Component)` |
+| iOS (ObjC + className) | `AGenUISDK.registerComponentObjC(_ type: String, componentClassName: String, creator: (String, [String: Any]) -> Component)` |
 | HarmonyOS | `AGenUI.registerComponent(type: string, creator: IComponentFactory)` |
 
 #### IComponentFactory interface definition
@@ -440,8 +505,13 @@ Custom functions allow UI components to invoke host application capabilities (e.
 
 ```java
 public interface IFunction {
-    FunctionResult execute(String jsonString);
+    FunctionResult execute(FunctionCallContext context, String jsonString);
     FunctionConfig getConfig();
+}
+
+public class FunctionCallContext {
+    public final int instanceId;
+    public final String surfaceId;
 }
 
 public class FunctionConfig {
@@ -452,8 +522,9 @@ public class FunctionConfig {
 
 public class FunctionResult {
     public static FunctionResult createSuccess(Object value)
-    public static FunctionResult createError(Object value)
-    public JSONObject toJson()       // {"result": true/false, "value": ...}
+    public static FunctionResult createError(String error)
+    public static FunctionResult createPending(String requestId)
+    public JSONObject toJson()
     public String toJsonString()
 }
 ```
@@ -463,7 +534,13 @@ public class FunctionResult {
 ```swift
 @objc public protocol Function: AnyObject {
     @objc var functionConfig: FunctionConfig { get }
-    @objc func execute(_ params: String) -> FunctionResult
+    @objc func execute(context: FunctionCallContext, params: String) -> FunctionResult
+}
+
+@objc public class FunctionCallContext: NSObject {
+    @objc public let instanceId: Int
+    @objc public let surfaceId: String
+    @objc public init(instanceId: Int, surfaceId: String)
 }
 
 @objc public class FunctionConfig: NSObject {
@@ -474,17 +551,22 @@ public class FunctionResult {
 
 @objc public class FunctionResult: NSObject {
     @objc public let result: Bool
-    @objc public let value: [String: Any]
-    @objc public static func success(value: [String: Any]) -> FunctionResult
-    @objc public static func failure(value: [String: Any]) -> FunctionResult
+    @objc public let value: String
+    @objc public static func success(value: String) -> FunctionResult
+    @objc public static func failure(value: String) -> FunctionResult
 }
 ```
 
 **HarmonyOS — `IFunctionCall`**
 
 ```typescript
+export interface FunctionCallContext {
+    instanceId: number;
+    surfaceId: string;
+}
+
 export interface IFunctionCall {
-    execute(paramsJson: string): FunctionResult;
+    execute(context: FunctionCallContext, paramsJson: string): FunctionResult;
     getConfig(): FunctionConfig;
 }
 
@@ -508,7 +590,7 @@ export class FunctionResult {
 ```java
 AGenUI.getInstance().registerFunction(new IFunction() {
     @Override
-    public FunctionResult execute(String jsonString) {
+    public FunctionResult execute(FunctionCallContext context, String jsonString) {
         return FunctionResult.createSuccess("success");
     }
 
@@ -525,8 +607,8 @@ AGenUI.getInstance().registerFunction(new IFunction() {
 class OpenPageFunction: NSObject, Function {
     let functionConfig = FunctionConfig(name: "openPage")
 
-    func execute(_ params: String) -> FunctionResult {
-        return FunctionResult.success(value: [:])
+    func execute(context: FunctionCallContext, params: String) -> FunctionResult {
+        return FunctionResult.success(value: "{}")
     }
 }
 
@@ -537,7 +619,7 @@ AGenUISDK.registerFunction(OpenPageFunction())
 
 ```typescript
 const openPageFunc: IFunctionCall = {
-    execute(paramsJson: string): FunctionResult {
+    execute(context: FunctionCallContext, paramsJson: string): FunctionResult {
         return FunctionResult.createSuccess({ status: 'ok' });
     },
     getConfig(): FunctionConfig {
@@ -764,7 +846,8 @@ if (!success) {
 | Listener interface | `ISurfaceManagerListener` (abstract methods, all must be implemented) | `SurfaceManagerListener` (`@objc optional`, all methods optional) | `ISurfaceManagerListener` (all properties optional) |
 | `onDeleteSurface` parameter | `Surface surface` | `Surface surface` | `Surface surface` |
 | Function interface name | `IFunction` | `Function` (Swift protocol) | `IFunctionCall` |
-| FunctionResult factory | `createSuccess(Object)` / `createError(Object)` | `success(value: [String: Any])` / `failure(value: [String: Any])` | `createSuccess(object)` / `createError(string)` |
+| Function.execute signature | `execute(FunctionCallContext, String)` | `execute(context:params:)` | `execute(context, paramsJson)` |
+| FunctionResult factory | `createSuccess(Object)` / `createError(String)` / `createPending(String)` | `success(value: String)` / `failure(value: String)` | `createSuccess(object)` / `createError(string)` |
 | Image loader interface name | `ImageLoader` | `ImageLoader` (`@objc protocol`) | `IImageLoader` |
 | Image callback | `ImageCallback` interface (main-thread callback) | `(UIImage?, Bool, Error?) -> Void` | `(requestId, result?, error?) -> void` |
 | Image data type | `Drawable` | `UIImage` | `PixelData` (Uint8Array byte array) |

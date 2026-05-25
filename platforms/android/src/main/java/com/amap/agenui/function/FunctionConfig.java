@@ -1,9 +1,9 @@
 package com.amap.agenui.function;
 
-import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * Function configuration class
@@ -32,7 +32,7 @@ public class FunctionConfig {
         try {
             json.put("name", name);
         } catch (JSONException e) {
-            Log.e(TAG, "toJSON serialization failed", e);
+            AGenUILogger.e(TAG, "toJSON serialization failed", e);
         }
         return json.toString();
     }

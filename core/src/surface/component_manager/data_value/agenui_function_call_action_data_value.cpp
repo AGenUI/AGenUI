@@ -6,7 +6,7 @@
 
 namespace agenui {
 
-FunctionCallActionDataValue::FunctionCallActionDataValue(IDataModel* dataModel, std::shared_ptr<CallableDataValue> functionCall) : DataValue(dataModel), _functionCall(functionCall) {
+FunctionCallActionDataValue::FunctionCallActionDataValue(IDataValueContext* context, std::shared_ptr<FunctionCallDataValue> functionCall) : DataValue(context), _functionCall(functionCall) {
 }
 
 FunctionCallActionDataValue::~FunctionCallActionDataValue() {
@@ -29,7 +29,7 @@ SerializableData FunctionCallActionDataValue::getValueData() const {
     return SerializableData(impl);
 }
 
-std::shared_ptr<CallableDataValue> FunctionCallActionDataValue::getFunctionCall() const {
+std::shared_ptr<FunctionCallDataValue> FunctionCallActionDataValue::getFunctionCall() const {
     return _functionCall;
 }
 
@@ -45,18 +45,15 @@ void FunctionCallActionDataValue::unbind() {
     }
 }
 
-std::shared_ptr<DataValue> FunctionCallActionDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
-    std::shared_ptr<CallableDataValue> clonedFunctionCall = nullptr;
+std::shared_ptr<DataValue> FunctionCallActionDataValue::cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const {
+    std::shared_ptr<FunctionCallDataValue> clonedFunctionCall = nullptr;
     
     if (_functionCall) {
-        auto clonedValue = _functionCall->cloneAsTemplate(rootDataPath);
-        clonedFunctionCall = std::static_pointer_cast<CallableDataValue>(clonedValue);
+        auto clonedValue = _functionCall->cloneAsTemplate(context, rootDataPath);
+        clonedFunctionCall = std::static_pointer_cast<FunctionCallDataValue>(clonedValue);
     }
     
-    auto cloned = std::make_shared<FunctionCallActionDataValue>(_dataModel, clonedFunctionCall);
-    cloned->_extensions = _extensions;
-    
-    return cloned;
+    return std::make_shared<FunctionCallActionDataValue>(context, clonedFunctionCall);
 }
 
 SerializableData FunctionCallActionDataValue::execute() const {

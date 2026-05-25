@@ -5,12 +5,9 @@
 // Created on 2026/3/20.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
 import AVFoundation
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// Audio player state
 private enum AudioPlayerState {
@@ -76,6 +73,25 @@ private class CircularAudioButton: UIView {
         setupViews()
     }
     
+    override var intrinsicContentSize: CGSize {
+        return CGSize(width: buttonSize, height: buttonSize)
+    }
+
+    override func sizeThatFits(_ size: CGSize) -> CGSize {
+        let isUnboundedWidth = size.width >= CGFloat.greatestFiniteMagnitude
+        let isUnboundedHeight = size.height >= CGFloat.greatestFiniteMagnitude
+        let result: CGSize
+        if isUnboundedWidth || isUnboundedHeight {
+            // Yoga passes CGFLOAT_MAX when there is no constraint (MeasureModeUndefined)
+            result = CGSize(width: buttonSize, height: buttonSize)
+        } else {
+            // Respect given constraint but keep square to preserve circular shape
+            let side = min(size.width, size.height)
+            result = CGSize(width: side, height: side)
+        }
+        return result
+    }
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -83,41 +99,20 @@ private class CircularAudioButton: UIView {
     // MARK: - Setup
     
     private func setupViews() {
-        // Background circle
+        // Background circle - plain addSubview (no flex), laid out in layoutSubviews
         backgroundCircle.layer.cornerRadius = buttonSize / 2
         backgroundCircle.clipsToBounds = true
+        addSubview(backgroundCircle)
         
-        // Icon
+        // Icon - plain addSubview
         iconImageView.contentMode = .scaleAspectFit
         iconImageView.tintColor = playIconColor
+        addSubview(iconImageView)
         
-        // Loading - white loading icon
+        // Loading - plain addSubview
         loadingIndicator.color = .white
         loadingIndicator.hidesWhenStopped = true
-        
-        // Use FlexLayout to layout UIView subviews
-        flex.define { flex in
-            // Background circle - fills entire container
-            flex.addItem(backgroundCircle).position(.absolute).all(0)
-            
-            // Icon - uses absolute positioning + percentage centering
-            flex.addItem(iconImageView)
-                .position(.absolute)
-                .top(50%)
-                .left(50%)
-                .marginTop(-playIconSize / 2)
-                .marginLeft(-playIconSize / 2)
-                .width(playIconSize)
-                .height(playIconSize)
-            
-            // Loading - uses absolute positioning + percentage centering
-            flex.addItem(loadingIndicator)
-                .position(.absolute)
-                .top(50%)
-                .left(50%)
-                .marginTop(-loadingIndicator.intrinsicContentSize.height / 2)
-                .marginLeft(-loadingIndicator.intrinsicContentSize.width / 2)
-        }
+        addSubview(loadingIndicator)
         
         // Add CAShapeLayer (these are not UIViews, need manual management)
         layer.addSublayer(progressBackgroundLayer)
@@ -146,12 +141,36 @@ private class CircularAudioButton: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        // Use FlexLayout to layout UIView subviews
-        flex.layout()
+        // Always use a square region centered in bounds to keep circular shape
+        let side = min(bounds.width, bounds.height)
+        let circleFrame = CGRect(
+            x: (bounds.width - side) / 2,
+            y: (bounds.height - side) / 2,
+            width: side,
+            height: side
+        )
         
-        // Update background circle corner radius
-        let size = min(bounds.width, bounds.height)
-        backgroundCircle.layer.cornerRadius = size / 2
+        // Background circle fills the square region
+        backgroundCircle.frame = circleFrame
+        backgroundCircle.layer.cornerRadius = side / 2
+        
+        // Icon centered within circleFrame
+        let iconSize = currentState == .playing ? pauseIconSize : playIconSize
+        iconImageView.frame = CGRect(
+            x: circleFrame.midX - iconSize / 2,
+            y: circleFrame.midY - iconSize / 2,
+            width: iconSize,
+            height: iconSize
+        )
+        
+        // Loading indicator centered within circleFrame
+        let indicatorSize = loadingIndicator.intrinsicContentSize
+        loadingIndicator.frame = CGRect(
+            x: circleFrame.midX - indicatorSize.width / 2,
+            y: circleFrame.midY - indicatorSize.height / 2,
+            width: indicatorSize.width,
+            height: indicatorSize.height
+        )
         
         // Update CAShapeLayer path (CAShapeLayer is not a UIView, needs manual update)
         updateProgressRingPath()
@@ -248,22 +267,11 @@ private class CircularAudioButton: UIView {
         CATransaction.commit()
     }
     
-    override var intrinsicContentSize: CGSize {
-        return CGSize(width: buttonSize, height: buttonSize)
-    }
-    
     // MARK: - Private Methods
     
     private func updateAppearance() {
-        // Update icon size and centered margin (based on state)
-        let iconSize = currentState == .playing ? pauseIconSize : playIconSize
-        iconImageView.flex
-            .width(iconSize)
-            .height(iconSize)
-            .marginTop(-iconSize / 2)
-            .marginLeft(-iconSize / 2)
-            .markDirty()
-        
+        // Icon size and centering is handled in layoutSubviews via frame layout.
+        // Just trigger a layout pass so the icon frame is recalculated for the current state.
         UIView.animate(withDuration: 0.3) {
             switch self.currentState {
             case .idle:
@@ -388,8 +396,7 @@ class AudioPlayerComponent: Component {
         // Load style configuration
         loadLocalStyleConfig()
         
-        // Use FlexLayout for layout
-        flex.addItem(audioButton).grow(1)
+        addSubview(audioButton)
         
         // Apply initial properties
         updateProperties(properties)
@@ -401,6 +408,25 @@ class AudioPlayerComponent: Component {
     
     deinit {
         cleanup()
+    }
+    
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        let defaultSize: CGFloat = 0
+        var measuredWidth = defaultSize
+        var measuredHeight = defaultSize
+
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
     }
     
     // MARK: - Component Override
@@ -421,10 +447,9 @@ class AudioPlayerComponent: Component {
         // Autoplay
         if let autoPlayValue = properties["autoPlay"] as? Bool {
             autoPlay = autoPlayValue
-        }
-        
-        notifyLayoutChanged()
+        }        
     }
+
     
     override func destroy() {
         cleanup()
@@ -688,3 +713,5 @@ private extension UIColor {
         self.init(red: r, green: g, blue: b, alpha: a)
     }
 }
+
+#endif // AGENUI_SDK_BUILD

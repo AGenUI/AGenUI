@@ -1,6 +1,6 @@
 package com.amap.agenui.function;
 
-import android.util.Log;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import androidx.annotation.NonNull;
 
@@ -27,39 +27,27 @@ public class PlatformFunction implements IPlatformFunction {
     /**
      * Synchronous Function call
      *
-     * @param params Parameters in JSON format
+     * @param context Call context containing instanceId and surfaceId
+     * @param params  Parameters in JSON format
      * @return Execution result in JSON format
      */
     @Override
-    public String callSync(String params) {
-        Log.i(TAG, "callSync: function=" + function.getConfig().getName() + ", params=" + params);
+    public String callSync(FunctionCallContext context, String params) {
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.i(TAG, "callSync: function=" + function.getConfig().getName() + ", params=" + params);
+        }
         try {
-            FunctionResult result = function.execute(params);
+            FunctionResult result = function.execute(context, params);
             String resultJson = (result != null)
                     ? result.toJsonString()
                     : FunctionResult.createSuccess(null).toJsonString();
-            Log.i(TAG, "callSync result: " + resultJson);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.i(TAG, "callSync result: " + resultJson);
+            }
             return resultJson;
         } catch (Exception e) {
-            Log.e(TAG, "callSync: exception in execute()", e);
+            AGenUILogger.e(TAG, "callSync: exception in execute()", e);
             return FunctionResult.createError(e.getMessage()).toJsonString();
         }
-    }
-
-    /**
-     * Asynchronous Function call
-     *
-     * @param params      Parameters in JSON format
-     * @param callbackPtr Callback pointer (used for JNI callback to return the result)
-     * @return JSON result returned immediately
-     */
-    @Override
-    public String callAsync(String params, long callbackPtr) {
-        // TODO: 2026/4/22 async call not yet implemented
-        // callbackPtr is discarded: the C++ layer holds this pointer waiting for the callback;
-        // if the callback never fires, the C++ side will hang indefinitely
-        Log.w(TAG, "callAsync: not yet implemented; callbackPtr=" + callbackPtr
-                + " is discarded. C++ side will wait indefinitely until this is implemented.");
-        return "";
     }
 }

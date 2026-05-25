@@ -1,6 +1,6 @@
 #include <algorithm>
 #include "agenui_surface_manager.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 #include "agenui_thread_manager.h"
 #include "stream/agenui_streaming_content_parser.h"
@@ -37,10 +37,11 @@ bool SurfaceManager::exitRunning() {
 
 bool SurfaceManager::init() {
     AGENUI_LOG("init, %d", _instanceId);
-    // Create EventDispatcher
-    _dispatcher = new EventDispatcher();
+    // Create EventDispatcher and flush cached listeners under the same lock
+    // to prevent race with addSurfaceEventListener/removeSurfaceEventListener
     {
-        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
+        std::lock_guard<std::mutex> mutexWrap(_cachedListenersMutex);
+        _dispatcher = new EventDispatcher();
         for (const auto &listener : _cachedListeners) {
             AGENUI_LOG("add cached listener %p", listener);
             _dispatcher->addEventListener(listener);
@@ -51,14 +52,6 @@ bool SurfaceManager::init() {
     // Create modules in dependency order
     createSurfaceCoordinator();
     createStreamingContentParser();
-
-    // Register platform callbacks
-    if (_componentRenderObservable) {
-        _componentRenderObservable->addComponentRenderListener(this);
-    }
-    if (_surfaceLayoutObservable) {
-        _surfaceLayoutObservable->addSurfaceLayoutListener(this);
-    }
     return true;
 }
 
@@ -66,19 +59,11 @@ void SurfaceManager::uninit() {
     AGENUI_LOG("uninit, %d", _instanceId);
     // Remove all listeners first to prevent callbacks during teardown
     {
-        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
+        std::lock_guard<std::mutex> mutexWrap(_cachedListenersMutex);
         _cachedListeners.clear();
     }
     if (_dispatcher) {
         _dispatcher->removeAllEventListeners();
-    }
-
-    // Unregister platform callbacks
-    if (_componentRenderObservable) {
-        _componentRenderObservable->removeComponentRenderListener(this);
-    }
-    if (_surfaceLayoutObservable) {
-        _surfaceLayoutObservable->removeSurfaceLayoutListener(this);
     }
 
     // Destroy in strict reverse order
@@ -87,40 +72,37 @@ void SurfaceManager::uninit() {
 
     // Destroy EventDispatcher
     SAFELY_DELETE(_dispatcher);
-
-    _componentRenderObservable = nullptr;
-    _surfaceLayoutObservable = nullptr;
 }
 
 void SurfaceManager::addSurfaceEventListener(IAGenUIMessageListener* listener) {
-    AGENUI_LOG("add SurfaceManager %d, listener:%p, %d, %p", _instanceId, listener, _isRunning.load(), _dispatcher);
     if (!_isRunning.load()) {
         return;
     }
+    // Lock ensures _dispatcher visibility is consistent with init() thread
+    std::lock_guard<std::mutex> mutexWrap(_cachedListenersMutex);
     if (_dispatcher) {
+        AGENUI_LOG("add lisenter success %d, listener:%p, %p", _instanceId, listener, _dispatcher);
         _dispatcher->addEventListener(listener);
     } else {
-        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
+        AGENUI_LOG("add lisenter to cache %d, listener:%p", _instanceId, listener);
         _cachedListeners.push_back(listener);
     }
 }
 
 void SurfaceManager::removeSurfaceEventListener(IAGenUIMessageListener* listener) {
-    AGENUI_LOG("remove SurfaceManager %d, listener:%p, %d, %p", _instanceId, listener, _isRunning.load(), _dispatcher);
     if (!_isRunning.load()) {
         return;
     }
-    // Remove from cached listeners
-    {
-        std::lock_guard<std::recursive_mutex> mutexWrap(_cachedListenersMutex);
-        size_t originalSize = _cachedListeners.size();
-        _cachedListeners.erase(std::remove(_cachedListeners.begin(), _cachedListeners.end(), listener), _cachedListeners.end());
-        if (_cachedListeners.size() != originalSize) {
-            AGENUI_LOG("cached listener removed: %p", listener);
-        }
-    }
+    // Lock ensures _dispatcher visibility is consistent with init() thread
+    std::lock_guard<std::mutex> mutexWrap(_cachedListenersMutex);
     if (_dispatcher) {
+        AGENUI_LOG("remove listener success %d, listener:%p, %p", _instanceId, listener, _dispatcher);
         _dispatcher->removeEventListener(listener);
+    } else {
+        AGENUI_LOG("remove listener from cache %d, listener:%p", _instanceId, listener);
+        _cachedListeners.erase(
+            std::remove(_cachedListeners.begin(), _cachedListeners.end(), listener),
+            _cachedListeners.end());
     }
 }
 
@@ -159,6 +141,7 @@ void SurfaceManager::submitUIDataModel(const SyncUIToDataMessage& msg) {
 }
 
 void SurfaceManager::beginTextStream() {
+    AGENUI_LOG("begin text stream");
     if (!_isRunning.load()) {
         return;
     }
@@ -176,6 +159,7 @@ void SurfaceManager::beginTextStream() {
 }
 
 void SurfaceManager::endTextStream() {
+    AGENUI_LOG("end text stream");
     if (!_isRunning.load()) {
         return;
     }
@@ -243,7 +227,7 @@ void SurfaceManager::onSurfaceSizeChanged(const SurfaceLayoutInfo& info) {
     });
 }
 
-void SurfaceManager::setDayNightMode() {
+void SurfaceManager::invalidateFunctionCallValues() {
     if (!_isRunning.load()) {
         return;
     }
@@ -254,18 +238,11 @@ void SurfaceManager::setDayNightMode() {
     auto self = shared_from_this();
     messageThread->post([self]() {
         if (self->_surfaceCoordinator) {
-            self->_surfaceCoordinator->setDayNightMode();
+            self->_surfaceCoordinator->invalidateFunctionCallValues();
         }
     });
 }
 
-void SurfaceManager::setComponentRenderObservable(IComponentRenderObservable* componentRenderObservable) {
-    _componentRenderObservable = componentRenderObservable;
-}
-
-void SurfaceManager::setSurfaceLayoutObservable(ISurfaceLayoutObservable* surfaceLayoutObservable) {
-    _surfaceLayoutObservable = surfaceLayoutObservable;
-}
 EventDispatcher* SurfaceManager::getEventDispatcher() {
     return _dispatcher;
 }
@@ -276,14 +253,6 @@ StreamingContentParser* SurfaceManager::getStreamingContentParser() {
 
 SurfaceCoordinator* SurfaceManager::getSurfaceCoordinator() {
     return _surfaceCoordinator;
-}
-
-IComponentRenderObservable* SurfaceManager::getComponentRenderObservable() {
-    return _componentRenderObservable;
-}
-
-ISurfaceLayoutObservable* SurfaceManager::getSurfaceLayoutObservable() {
-    return _surfaceLayoutObservable;
 }
 
 IThread* SurfaceManager::getMessageThread() {

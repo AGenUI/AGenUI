@@ -7,7 +7,7 @@
 #include "a2ui_component_types.h"
 #include "a2ui_node.h"
 #include "a2ui_component_state.h"
-#include "agenui_component_render_observable.h"
+#include "a2ui/a2ui_component_render_observable.h"
 
 namespace a2ui {
 
@@ -121,12 +121,13 @@ public:
 
     /**
      * Synchronize UI state changes back to the data model.
-     * Mirrors the cross-platform syncState helper used by interactive components.
+     * Mirrors the cross-platform syncState helper used by interactive components
+     * (TextField, ChoicePicker, Slider, etc).
      *
      * @param changeJson Changed content, e.g. {"value": "kotlin"}
      */
     void syncState(const nlohmann::json& changeJson);
-    
+
     /**
      * Set the click listener (aligned with the cross-platform setupClickListener)
      * Register or unregister click events automatically based on the action property
@@ -143,6 +144,30 @@ public:
     virtual void destroy();
     virtual bool shouldAutoAddChildView() const;
     virtual bool shouldApplyChildLayoutPosition(const A2UIComponent* child) const;
+    /**
+     * Whether to apply the child width and height computed by the parent container
+     * to the child's ArkUI node.
+     * Returns true by default. Containers such as Tabs can return false to let
+     * the child size be governed by ArkUI flex layout instead.
+     */
+    virtual bool shouldApplyChildLayoutSize(const A2UIComponent* child) const;
+
+    /**
+     * Called when the framework is about to apply a child's Yoga-computed position.
+     * The default implementation calls child->getNode().setPosition(x, y).
+     * Containers (e.g. List) may override this to apply only the relevant axis
+     * (e.g. List applies x for cross-axis centering but resets y to 0 so ArkUI
+     * ListItem stacking is not disrupted).
+     */
+    virtual void onApplyChildPosition(A2UIComponent* child, float x, float y) {
+        child->getNode().setPosition(x, y);
+    }
+    /**
+     * Called after a child's Yoga-computed size has been applied to its ArkUI node.
+     * Containers (e.g. List) may override this to propagate the size to wrapper
+     * nodes such as ListItem.
+     */
+    virtual void onChildLayoutSizeChanged(A2UIComponent* /*child*/) {}
     bool hasPendingAppearAnimation() const { return m_pendingAppearAnimation; }
     void prepareAppearAnimation(const nlohmann::json& properties);
     void playAppearAnimationIfNeeded();
@@ -179,10 +204,9 @@ protected:
      */
     static uint32_t parseColor(const std::string& colorStr);
 
+public:
     float getX() const { return m_x; }
     float getY() const { return m_y; }
-
-public:
     float getWidth() const { return m_width; }
     float getHeight() const { return m_height; }
 
@@ -212,6 +236,39 @@ protected:
      * @param styles Style JSON object
      */
     void applyBackgroundImage(const nlohmann::json& styles);
+
+    /**
+     * Apply the visibility style.
+     *   visibility: hidden  -> ARKUI_VISIBILITY_HIDDEN (invisible but still occupies layout space)
+     *   visibility: visible -> ARKUI_VISIBILITY_VISIBLE (default)
+     * Mirrors Android StyleHelper.applyDisplay's visibility branch and CSS semantics.
+     * No-op when the "visibility" key is absent so previous values are preserved.
+     * @param styles Style JSON object
+     */
+    void applyVisibility(const nlohmann::json& styles);
+    
+    /**
+     * Apply background-color style
+     * Parse and apply background color from styles
+     * @param properties Properties JSON object (contains "styles" field)
+     */
+    void applyBackgroundColor(const nlohmann::json& properties);
+    
+    /**
+     * Apply border styles uniformly
+     * Parse and apply border-radius, border-width, border-color from styles
+     * @param properties Properties JSON object (contains "styles" field)
+     */
+    void applyBorderStyles(const nlohmann::json& properties);
+    
+    /**
+     * DEPRECATED: CSS padding is handled by Yoga layout engine; applying it
+     * on native ArkUI nodes causes double-counting.  All former callers
+     * (RichTextComponent, ButtonComponent, ListComponent) have been updated
+     * to NOT call this method.  Kept for reference only.
+     */
+    // void applyPaddingStyles(const nlohmann::json& properties);
+    
     virtual float resolveAppearTargetOpacity(const nlohmann::json& properties) const;
     
 private:

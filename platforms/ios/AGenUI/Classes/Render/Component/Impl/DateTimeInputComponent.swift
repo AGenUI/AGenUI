@@ -6,11 +6,8 @@
 //  Updated on 2026/3/19 - Added Compact popup interaction
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// DateTimeInput component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -112,7 +109,119 @@ class DateTimeInputComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Measurement Override
+    
+    /// Measure the intrinsic size of the DateTimeInput component
+    ///
+    /// Logic (aligned with Harmony datetimeinput_component_measurement.cpp):
+    /// 1. Read compact style config from local style config (height, fontSize, iconSize, padding, etc.)
+    /// 2. Parse value / placeholder from paramJson to determine display text
+    /// 3. Measure text dimensions
+    /// 4. measuredWidth = textWidth + paddingHorizontal*2 + (iconSpacing+iconSize if showIcon)
+    /// 5. measuredHeight = max(compactHeight, textHeight + paddingVertical*2)
+    /// 6. Apply MeasureMode constraints
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        // 1. Load compact style config
+        var compactHeight: CGFloat = 56
+        var fontSize: CGFloat = 24
+        var iconSize: CGFloat = 12
+        var iconSpacing: CGFloat = 3
+        var paddingVertical: CGFloat = 12
+        var paddingHorizontal: CGFloat = 24
+        
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "DateTimeInput"),
+           let compactConfig = config["compact"] as? [String: Any] {
+            if let height = compactConfig["height"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(height) {
+                compactHeight = value
+            }
+            if let size = compactConfig["font-size"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(size) {
+                fontSize = value
+            }
+            if let size = compactConfig["icon-size"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(size) {
+                iconSize = value
+            }
+            if let spacing = compactConfig["icon-spacing"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(spacing) {
+                iconSpacing = value
+            }
+            if let padding = compactConfig["padding-vertical"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(padding) {
+                paddingVertical = value
+            }
+            if let padding = compactConfig["padding-horizontal"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(padding) {
+                paddingHorizontal = value
+            }
+        }
+        
+        // 2. Parse paramJson for display text
+        var displayText = "Select Date"
+        var showIcon = true
+        
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "DateTimeInput"),
+           let compactConfig = config["compact"] as? [String: Any],
+           let placeholder = compactConfig["placeholder-text"] as? String {
+            displayText = placeholder
+        }
+        
+        if let jsonData = paramJson.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+            if let value = json["value"] as? String, !value.isEmpty, value != "0" {
+                displayText = value
+                showIcon = false
+            } else if let placeholder = json["placeholder"] as? String, !placeholder.isEmpty {
+                displayText = placeholder
+            }
+        }
+        
+        // 3. Measure text
+        let font = UIFont.systemFont(ofSize: fontSize)
+        let constraintWidth: CGFloat = (widthMode == .undefined) ? .greatestFiniteMagnitude : CGFloat(maxWidth)
+        let reservedWidth = paddingHorizontal * 2 + (showIcon ? (iconSpacing + iconSize) : 0)
+        let textAvailWidth = max(1.0, constraintWidth - reservedWidth)
+        
+        let attributedString = NSAttributedString(string: displayText, attributes: [.font: font])
+        let textBounds = attributedString.boundingRect(
+            with: CGSize(width: textAvailWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            context: nil)
+        let textWidth = ceil(textBounds.size.width)
+        let textHeight = ceil(textBounds.size.height)
+        
+        // 4. Calculate final size
+        var measuredWidth = textWidth + paddingHorizontal * 2
+        if showIcon { measuredWidth += iconSpacing + iconSize }
+        
+        var measuredHeight = max(compactHeight, textHeight + paddingVertical * 2)
+        if showIcon { measuredHeight = max(measuredHeight, iconSize + paddingVertical * 2) }
+        
+        // 5. Apply MeasureMode constraints
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+        
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
     // MARK: - Component Override
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Layout background view and button to fill bounds with compact height
+        buttonBackgroundView?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: compactHeight)
+        compactButton?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: compactHeight)
+    }
     
     override func updateProperties(_ properties: [String: Any]) {
         super.updateProperties(properties)
@@ -308,15 +417,9 @@ class DateTimeInputComponent: Component {
         button.setTitle(compactPlaceholderText, for: .normal)
         button.setTitleColor(compactUnselectedTextColor, for: .normal)
         
-        // Use FlexLayout layout - width determined by parent container, fixed height
-        flex.define { flex in
-            flex.addItem().position(.absolute).all(0).define { flex in
-                flex.addItem(backgroundView).grow(1).height(compactHeight)
-            }
-            flex.addItem(button)
-                .grow(1)
-                .height(compactHeight)
-        }
+        // Add background and button (frame layout managed by layoutSubviews)
+        addSubview(backgroundView)
+        addSubview(button)
         
         // Initialize button title display
         updateButtonTitle()
@@ -459,11 +562,14 @@ class DateTimeInputComponent: Component {
         pickerView.backgroundColor = .clear
         self.customPickerView = pickerView
         
-        popup.flex.padding(wheelsContainerPadding).define { flex in
-            flex.addItem(pickerView)
-                .height(wheelsPickerHeight)
-        }
-        popup.flex.layout()
+        pickerView.translatesAutoresizingMaskIntoConstraints = false
+        popup.addSubview(pickerView)
+        NSLayoutConstraint.activate([
+            pickerView.topAnchor.constraint(equalTo: popup.topAnchor, constant: wheelsContainerPadding),
+            pickerView.leadingAnchor.constraint(equalTo: popup.leadingAnchor, constant: wheelsContainerPadding),
+            pickerView.trailingAnchor.constraint(equalTo: popup.trailingAnchor, constant: -wheelsContainerPadding),
+            pickerView.heightAnchor.constraint(equalToConstant: wheelsPickerHeight)
+        ])
         
         setPickerToCurrentDate()
         
@@ -896,3 +1002,5 @@ extension DateTimeInputComponent: UIPickerViewDelegate {
         }
     }
 }
+
+#endif // AGENUI_SDK_BUILD

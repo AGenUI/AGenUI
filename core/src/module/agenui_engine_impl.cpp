@@ -1,14 +1,17 @@
 #include "agenui_engine_impl.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 #include "agenui_surface_manager.h"
 #include "function_call/agenui_functioncall_manager.h"
 #include "function_call/agenui_functioncall_config.h"
 #include "agenui_platform_function.h"
+#include "surface/agenui_template_registry.h"
+#include "surface/agenui_path_config.h"
 #include "surface/agenui_surface_coordinator.h"
 #include "agenui_thread_manager.h"
 #include "surface/token_parser/agenui_token_parser.h"
 #include "surface/component_property_spec/agenui_component_property_spec_manager.h"
+#include "surface/yoga_node/agenui_measurement_manager.h"
 
 namespace agenui {
 
@@ -25,17 +28,25 @@ void AGenUIEngine::start() {
     }
     _functionCallManager = new FunctionCallManager();
     _componentPropertySpecManager = new ComponentPropertySpecManager();
+    _templateRegistry = new TemplateRegistry();
+    _pathConfig = new PathConfig();
+    _templateRegistry->initialize();
+    _templateRegistry->start();
 
     // Create shared worker thread
     ThreadManager::getInstance().createThread(AGENUI_SHARED_THREAD_ID);
 
+    // Create shared MeasurementManager
+    _measurementManager = std::make_unique<MeasurementManagerImpl>();
+
     // Register engine context for global access
     setEngineContext(this);
     _isRunning.store(true);
-    AGENUI_LOG("AGenUIEngine started successfully");
+    AGENUI_LOG("started");
 }
 
 void AGenUIEngine::stop() {
+    AGENUI_LOG("begin stopping");
     if (!_isRunning.load()) {
         return;
     }
@@ -49,6 +60,7 @@ void AGenUIEngine::stop() {
         pair.second->uninit();
     }
     _surfaceManagers.clear();
+    _measurementManager.reset();
 
     // Clear engine context before destroying modules
     setEngineContext(nullptr);
@@ -56,12 +68,19 @@ void AGenUIEngine::stop() {
     // Destroy single-instance modules in reverse order
     SAFELY_DELETE(_componentPropertySpecManager);
 
-    SAFELY_DELETE(_functionCallManager);
+    if (_templateRegistry) {
+        _templateRegistry->stop();
+        _templateRegistry->shutdown();
+        SAFELY_DELETE(_templateRegistry);
+    }
 
-    AGENUI_LOG("AGenUIEngine stopped");
+    SAFELY_DELETE(_pathConfig);
+
+    SAFELY_DELETE(_functionCallManager);
 }
 
 ISurfaceManager* AGenUIEngine::createSurfaceManager() {
+    AGENUI_LOG("begin creating");
     if (!_isRunning.load()) {
         return nullptr;
     }
@@ -77,8 +96,7 @@ ISurfaceManager* AGenUIEngine::createSurfaceManager() {
     messageThread->post([sm]() {
         sm->init();
     });
-
-    AGENUI_LOG("created SurfaceManager with instanceId:%d", instanceId);
+    AGENUI_LOG("created, %d", instanceId);
     return sm.get();
 }
 
@@ -100,12 +118,22 @@ void AGenUIEngine::destroySurfaceManager(ISurfaceManager* surfaceManager) {
             messageThread->post([shared]() {
                 shared->uninit();
             });
-            AGENUI_LOG("destroying SurfaceManager with instanceId:%d", instanceId);
+            AGENUI_LOG("Destroying SurfaceManager %d", instanceId);
             return;
         }
     }
 
     AGENUI_LOG("SurfaceManager not found for destruction");
+}
+
+bool AGenUIEngine::setPathConfig(const std::string &configJson) {
+    if (!_isRunning.load()) {
+        return false;
+    }
+    if (!_pathConfig) {
+        return false;
+    }
+    return _pathConfig->setPathConfig(configJson);
 }
 
 void AGenUIEngine::setPlatformLayoutBridge(IPlatformLayoutBridge* platformLayoutBridge) {
@@ -120,16 +148,14 @@ IPlatformLayoutBridge* AGenUIEngine::getPlatformLayoutBridge() {
 }
 
 bool AGenUIEngine::registerFunction(const std::string& config, IPlatformFunction* function) {
+    AGENUI_LOG("config:%s, function:%p", config.c_str(), function);
     if (!_isRunning.load()) {
-        AGENUI_LOG("registerFunction failed: engine is not running");
         return false;
     }
     if (!_functionCallManager) {
-        AGENUI_LOG("registerFunction failed: FunctionCallManager not initialized");
         return false;
     }
     if (!function) {
-        AGENUI_LOG("registerFunction failed: function is null");
         return false;
     }
     nlohmann::json configJson = nlohmann::json::parse(config, nullptr, false);
@@ -146,12 +172,11 @@ bool AGenUIEngine::registerFunction(const std::string& config, IPlatformFunction
 }
 
 bool AGenUIEngine::unregisterFunction(const std::string& name) {
+    AGENUI_LOG("name:%s", name.c_str());
     if (!_isRunning.load()) {
-        AGENUI_LOG("unregisterFunction failed: engine is not running");
         return false;
     }
     if (!_functionCallManager) {
-        AGENUI_LOG("unregisterFunction failed: FunctionCallManager not initialized");
         return false;
     }
     return _functionCallManager->unregisterFunctionCall(name);
@@ -184,6 +209,7 @@ bool AGenUIEngine::loadDesignTokenConfig(const std::string &designTokenConfig, s
 }
 
 void AGenUIEngine::setDayNightMode(const std::string &mode) {
+    AGENUI_LOG("theme mode set to %s", mode.c_str());
     if (!_isRunning.load()) {
         return;
     }
@@ -195,15 +221,13 @@ void AGenUIEngine::setDayNightMode(const std::string &mode) {
     } else {
         AGENUI_LOG("invalid mode '%s', using Light mode as default", mode.c_str());
     }
-    if (TokenParser::getInstance().getThemeMode() == themeMode) {
-        AGENUI_LOG("skip set theme mode for same mode. %s", mode.c_str());
+    bool setResult = TokenParser::getInstance().setThemeMode(themeMode);
+    if (!setResult) {
         return;
     }
-    TokenParser::getInstance().setThemeMode(themeMode);
-    AGENUI_LOG("theme mode set to %s", mode.c_str());
 
     for (auto& pair : _surfaceManagers) {
-        pair.second->setDayNightMode();
+        pair.second->invalidateFunctionCallValues();
     }
 }
 
@@ -216,6 +240,10 @@ ISurfaceManager* AGenUIEngine::findSurfaceManager(int instanceId) {
         return it->second.get();
     }
     return nullptr;
+}
+
+IMeasurementManager* AGenUIEngine::getMeasurementManager() {
+    return _measurementManager.get();
 }
 
 } // namespace agenui

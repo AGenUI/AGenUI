@@ -7,53 +7,66 @@
 
 import Foundation
 
+// MARK: - Logger Delegate Protocol
+
+/// Logger delegate protocol for receiving log output events
+/// Interface design is consistent with C++ ILogObserver
+@objc public protocol LoggerDelegate: AnyObject {
+    /// Log output callback
+    ///
+    /// - Parameters:
+    ///   - level: Log level
+    ///   - tag: Log tag (typically filename)
+    ///   - func: Function name
+    ///   - line: Line number
+    ///   - message: Log message
+    func onLog(level: Logger.Level, tag: String, func: String, line: Int, message: String)
+}
+
 /// AGenUI SDK Logger
 ///
 /// Provides unified log output interface with log switch control and level filtering
-class Logger {
+@objc public class Logger: NSObject {
     
     // MARK: - Log Level
     
     /// Log level
-    enum Level: Int, Comparable {
-        case verbose = 0  // Verbose log
-        case debug = 1    // Debug log
-        case info = 2     // Info log
-        case warning = 3  // Warning log
-        case error = 4    // Error log
-        
-        static func < (lhs: Level, rhs: Level) -> Bool {
-            return lhs.rawValue < rhs.rawValue
-        }
+    @objc public enum Level: Int {
+        case debug = 0          // Debug log
+        case info = 1           // Info log
+        case warning = 2        // Warning log
+        case error = 3          // Error log
+        case fatal = 4          // Fatal log
+        case performance = 5    // performance log
     }
     
     // MARK: - Singleton
     
     /// Singleton instance
-    static let shared = Logger()
+    @objc public static let shared = Logger()
     
     // MARK: - Properties
     
     /// Whether log output is enabled
-    /// Default is disabled in both DEBUG and Release modes
-    var isEnabled: Bool = {
-        #if DEBUG
-        return false
-        #else
-        return false
-        #endif
+    /// Default is enabled, aligned with Android/Harmony.
+    /// When no `delegate` is set, logs fall back to NSLog so the SDK is never silent by default.
+    @objc public var isEnabled: Bool = {
+        return true
     }()
     
     /// Minimum log level
     /// Only logs with level greater than or equal to this will be output
-    var minimumLevel: Level = .debug
+    @objc public var minimumLevel: Level = .debug
     
     /// Whether to show file name and line number
-    var showFileInfo: Bool = true
+    @objc public var showFileInfo: Bool = true
+    
+    /// Logger delegate for receiving log events
+    @objc public weak var delegate: LoggerDelegate?
     
     // MARK: - Initialization
     
-    private init() {}
+    private override init() {}
     
     // MARK: - Public Methods
     
@@ -65,20 +78,26 @@ class Logger {
     ///   - file: File name (auto captured)
     ///   - function: Function name (auto captured)
     ///   - line: Line number (auto captured)
-    func log(_ message: String, 
+    @objc public func log(_ message: String, 
                    level: Level = .debug,
                    file: String = #file, 
                    function: String = #function, 
                    line: Int = #line) {
-        guard isEnabled, level >= minimumLevel else { return }
+        guard isEnabled, level.rawValue >= minimumLevel.rawValue else { return }
         
         let prefix = levelPrefix(level)
+        let fileName = (file as NSString).lastPathComponent
         
-        if showFileInfo {
-            let fileName = (file as NSString).lastPathComponent
-            print("[\(prefix)] [\(fileName):\(line)] \(message)")
+        if let delegate = delegate {
+            // Output to delegate
+            delegate.onLog(level: level, tag: fileName, func: function, line: line, message: message)
         } else {
-            print("[\(prefix)] \(message)")
+            // Fallback to NSLog so logs land in the system log / Console.app instead of being silent.
+            if showFileInfo {
+                NSLog("[%@] [%@:%d] %@", prefix, fileName, line, message)
+            } else {
+                NSLog("[%@] %@", prefix, message)
+            }
         }
     }
     
@@ -86,11 +105,12 @@ class Logger {
     
     private func levelPrefix(_ level: Level) -> String {
         switch level {
-        case .verbose: return "VERBOSE"
         case .debug: return "DEBUG"
         case .info: return "INFO"
         case .warning: return "WARNING"
         case .error: return "ERROR"
+        case .fatal: return "FATAL"
+        case .performance: return "PERFORMANCE"
         }
     }
 }
@@ -99,16 +119,8 @@ class Logger {
 
 extension Logger {
     
-    /// Output verbose log
-    func verbose(_ message: String, 
-                       file: String = #file, 
-                       function: String = #function, 
-                       line: Int = #line) {
-        log(message, level: .verbose, file: file, function: function, line: line)
-    }
-    
     /// Output debug log
-    func debug(_ message: String, 
+    @objc public func debug(_ message: String, 
                      file: String = #file, 
                      function: String = #function, 
                      line: Int = #line) {
@@ -116,7 +128,7 @@ extension Logger {
     }
     
     /// Output info log
-    func info(_ message: String, 
+    @objc public func info(_ message: String, 
                     file: String = #file, 
                     function: String = #function, 
                     line: Int = #line) {
@@ -124,7 +136,7 @@ extension Logger {
     }
     
     /// Output warning log
-    func warning(_ message: String, 
+    @objc public func warning(_ message: String, 
                        file: String = #file, 
                        function: String = #function, 
                        line: Int = #line) {
@@ -132,21 +144,28 @@ extension Logger {
     }
     
     /// Output error log
-    func error(_ message: String, 
+    @objc public func error(_ message: String, 
                      file: String = #file, 
                      function: String = #function, 
                      line: Int = #line) {
         log(message, level: .error, file: file, function: function, line: line)
     }
-}
-
-// MARK: - Objective-C Bridge Support
-
-extension Logger {
     
-    /// Objective-C compatible log method
-    @objc static func logFromObjC(_ message: String, levelRaw: Int) {
-        guard let level = Level(rawValue: levelRaw) else { return }
-        shared.log(message, level: level)
+    /// Output fatal log
+    @objc public func fatal(_ message: String,
+                     file: String = #file,
+                     function: String = #function,
+                     line: Int = #line) {
+        log(message, level: .fatal, file: file, function: function, line: line)
+    }
+    
+    /// Output performance log
+    @objc public func performance(_ message: String,
+                       file: String = #file,
+                       function: String = #function,
+                       line: Int = #line) {
+        log(message, level: .performance, file: file, function: function, line: line)
     }
 }
+
+

@@ -20,6 +20,18 @@ English | [中文](README.zh-CN.md)
 
 ---
 
+## What's New in v1.0.0
+
+> Released on 2026-05-25
+
+- **Layout engine upgrade** — All layout computation now converges into the shared C++ core; cross-platform Flex nesting, alignment, and sizing behaviors are unified at the source.
+- **Rendering pipeline optimization** — Streamlined diff-redraw paths, restructured key data structures, and batched computation passes to reduce drawing overhead across the board.
+- **Pluggable runtime logger** — New `IRuntimeLogger` interface allows integrators to inject custom log implementations with dynamic level control (Debug → Fatal + Performance).
+- **Runtime error reporting** — Protocol anomalies (missing fields, type mismatches, JSON failures) are now surfaced through a unified error callback for production-grade monitoring.
+- **Stability & visual polish** — Automated cross-platform visual comparison testing; fixed rendering consistency issues and edge cases in List, Table, and Image.
+
+---
+
 ## What is AGenUI?
 
 **AGenUI** is an A2UI SDK that simultaneously supports iOS, Android, and HarmonyOS. Built on and fully implementing the [A2UI v0.9 protocol open-sourced by Google](https://github.com/google/A2UI), it renders the streaming data of LLM-generated interactive UI in real time on mobile devices. Under the hood, it is powered by a cross-platform **shared C++ core engine**, while the three-platform rendering engines consume the component protocol dispatched by the core engine and perform drawing using native system capabilities.

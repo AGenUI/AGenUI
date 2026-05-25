@@ -21,18 +21,6 @@ FunctionCallConfig NotFunctionCall::getConfig() const {
     config.setName("not");
     config.setDescription("Returns the negation of the input boolean value.");
     config.setReturnType("boolean");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {
-                {"type", "DynamicBoolean"},
-                {"description", "The boolean value to negate."}
-            }}
-        }},
-        {"required", nlohmann::json::array({"value"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

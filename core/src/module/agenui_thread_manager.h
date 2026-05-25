@@ -55,7 +55,7 @@ private:
     ThreadManager& operator=(const ThreadManager&) = delete;
 
     std::unordered_map<int, IThread*> _threads;
-    std::recursive_mutex _mutex;
+    std::mutex _mutex;
 };
 
 } // namespace agenui

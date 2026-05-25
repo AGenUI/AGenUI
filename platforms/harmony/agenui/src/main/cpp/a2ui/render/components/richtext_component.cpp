@@ -1,6 +1,7 @@
 #include "richtext_component.h"
-#include <layout/Html.h>
+#include "a2ui/third_party/Html.h"
 #include "../../bridge/open_url_helper.h"
+#include "../../utils/a2ui_font_weight_utils.h"
 #include "../a2ui_node.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
 #include "a2ui/utils/a2ui_unit_utils.h"
@@ -13,7 +14,7 @@
 
 namespace a2ui {
 
-static constexpr float kDefaultFontSize = 24.0f;
+static constexpr float kDefaultFontSize = 32.0f;
 
 RichTextComponent::RichTextComponent(const std::string& id, const nlohmann::json& properties)
     : A2UIComponent(id, "RichText") {
@@ -109,7 +110,7 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
 
     std::string processedHtml = preprocessHtml(html);
 
-    agenui::Html ho(processedHtml);
+    a2ui::Html ho(processedHtml);
     if (ho.isMalformed()) {
         HM_LOGW( "Malformed HTML, id=%s", m_id.c_str());
     }
@@ -118,12 +119,12 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
                 ho.getSpanSize(), m_id.c_str());
 
     for (int i = 0; i < ho.getSpanSize(); i++) {
-        agenui::Html::Span* span = ho.getSpan(i);
+        a2ui::Html::Span* span = ho.getSpan(i);
         if (!span) continue;
 
         bool isImageSpan = false;
         for (const auto& t : span->_tag_list) {
-            if (t._tagID == agenui::Html::img) {
+            if (t._tagID == a2ui::Html::img) {
                 isImageSpan = true;
                 break;
             }
@@ -136,7 +137,7 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
         if (isImageSpan) {
             // Image spans use dedicated image nodes.
             for (const auto& t : span->_tag_list) {
-                if (t._tagID != agenui::Html::img) continue;
+                if (t._tagID != a2ui::Html::img) continue;
 
                 std::string imgId;
                 std::string imgSrc;
@@ -202,12 +203,12 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
             // Add to the root node
             g_nodeAPI->addChild(m_nodeHandle, spanNodeHandle);
 
-            uint32_t fontColor = colors::kColorBlack;
+            uint32_t fontColor = m_fontColor;  // Use cached color from styles
             int32_t decorationType = ARKUI_TEXT_DECORATION_TYPE_NONE;
 
             for (const auto& t : span->_tag_list) {
                 switch (t._tagID) {
-                    case agenui::Html::font: {
+                    case a2ui::Html::font: {
                         for (const auto& kv : t._attributes) {
                             if (kv.first == "color") {
                                 fontColor = parseColor(kv.second);
@@ -230,7 +231,7 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
                                 ArkUI_AttributeItem faceItem = {nullptr, 0, fontFamily.c_str(), nullptr};
                                 g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_FAMILY, &faceItem);
                             } else if (kv.first == "font-weight") {
-                                int32_t weight = (kv.second == "bold") ? ARKUI_FONT_WEIGHT_BOLD : ARKUI_FONT_WEIGHT_NORMAL;
+                                int32_t weight = font_weight::mapStringToArkUIFontWeight(kv.second);
                                 ArkUI_NumberValue weightVal[] = {{.i32 = weight}};
                                 ArkUI_AttributeItem weightItem = {weightVal, 1, nullptr, nullptr};
                                 g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_WEIGHT, &weightItem);
@@ -244,32 +245,32 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
                         break;
                     }
 
-                    case agenui::Html::b:
-                    case agenui::Html::strong: {
+                    case a2ui::Html::b:
+                    case a2ui::Html::strong: {
                         ArkUI_NumberValue weightVal[] = {{.i32 = ARKUI_FONT_WEIGHT_BOLD}};
                         ArkUI_AttributeItem weightItem = {weightVal, 1, nullptr, nullptr};
                         g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_WEIGHT, &weightItem);
                         break;
                     }
 
-                    case agenui::Html::i: {
+                    case a2ui::Html::i: {
                         ArkUI_NumberValue styleVal[] = {{.i32 = ARKUI_FONT_STYLE_ITALIC}};
                         ArkUI_AttributeItem styleItem = {styleVal, 1, nullptr, nullptr};
                         g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_STYLE, &styleItem);
                         break;
                     }
 
-                    case agenui::Html::u: {
+                    case a2ui::Html::u: {
                         decorationType = ARKUI_TEXT_DECORATION_TYPE_UNDERLINE;
                         break;
                     }
 
-                    case agenui::Html::strike: {
+                    case a2ui::Html::strike: {
                         decorationType = ARKUI_TEXT_DECORATION_TYPE_LINE_THROUGH;
                         break;
                     }
 
-                    case agenui::Html::a: {
+                    case a2ui::Html::a: {
                         fontColor = 0xFF007FFF;
                         decorationType = ARKUI_TEXT_DECORATION_TYPE_UNDERLINE;
 
@@ -295,15 +296,15 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
                     }
 
 
-                    case agenui::Html::br:
-                    case agenui::Html::blockquote:
+                    case a2ui::Html::br:
+                    case a2ui::Html::blockquote:
                         break;
                     
-                    case agenui::Html::text:
-                    case agenui::Html::img:
-                    case agenui::Html::sub:
-                    case agenui::Html::sup:
-                    case agenui::Html::small:
+                    case a2ui::Html::text:
+                    case a2ui::Html::img:
+                    case a2ui::Html::sub:
+                    case a2ui::Html::sup:
+                    case a2ui::Html::small:
                         break;
                 }
             }
@@ -416,31 +417,10 @@ void RichTextComponent::applyStyles(const nlohmann::json& properties) {
 
     const auto& styles = properties["styles"];
 
-    {
-        const nlohmann::json* fontSizeVal = nullptr;
-        if (styles.find("font-size") != styles.end()) {
-            fontSizeVal = &styles["font-size"];
-        } else if (styles.find("fontSize") != styles.end()) {
-            fontSizeVal = &styles["fontSize"];
-        }
-        if (fontSizeVal != nullptr) {
-            float fontSize = 16.0f;
-            if (fontSizeVal->is_number()) {
-                fontSize = fontSizeVal->get<float>();
-            } else if (fontSizeVal->is_string()) {
-                fontSize = static_cast<float>(std::atof(fontSizeVal->get<std::string>().c_str()));
-            }
-            ArkUI_NumberValue sizeVal[] = {{.f32 = UnitConverter::a2uiToVp(fontSize)}};
-            ArkUI_AttributeItem sizeItem = {sizeVal, 1, nullptr, nullptr};
-            g_nodeAPI->setAttribute(m_nodeHandle, NODE_FONT_SIZE, &sizeItem);
-        }
-    }
-    
-
-    // color -> NODE_FONT_COLOR
+    // color -> NODE_FONT_COLOR (cache for span inheritance)
     if (styles.find("color") != styles.end() && styles["color"].is_string()) {
-        uint32_t color = parseColor(styles["color"].get<std::string>());
-        ArkUI_NumberValue colorVal[] = {{.u32 = color}};
+        m_fontColor = parseColor(styles["color"].get<std::string>());
+        ArkUI_NumberValue colorVal[] = {{.u32 = m_fontColor}};
         ArkUI_AttributeItem colorItem = {colorVal, 1, nullptr, nullptr};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_FONT_COLOR, &colorItem);
     }
@@ -450,6 +430,94 @@ void RichTextComponent::applyStyles(const nlohmann::json& properties) {
     } else if (styles.find("fontFamily") != styles.end() && styles["fontFamily"].is_string()) {
         A2UITextNode(m_nodeHandle).setFontFamily(styles["fontFamily"].get<std::string>());
     }
+
+    // opacity
+    if (styles.contains("opacity") && (styles["opacity"].is_number() || styles["opacity"].is_string())) {
+        float opacity = 1.0f;
+        if (styles["opacity"].is_number()) {
+            opacity = styles["opacity"].get<float>();
+        } else {
+            opacity = static_cast<float>(std::atof(styles["opacity"].get<std::string>().c_str()));
+        }
+        if (opacity < 0.0f) opacity = 0.0f;
+        if (opacity > 1.0f) opacity = 1.0f;
+        A2UINode(m_nodeHandle).setOpacity(opacity);
+    }
+
+    // Apply background and border styles from base class
+    applyBackgroundColor(properties);
+    applyBorderStyles(properties);
+
+    // filter: drop-shadow
+    applyFilter(styles);
+}
+
+// ---- Filter: drop-shadow ----
+
+void RichTextComponent::applyFilter(const nlohmann::json& styles) {
+    if (!styles.contains("filter") || !styles["filter"].is_string()) return;
+
+    std::string filterVal = styles["filter"].get<std::string>();
+
+    // Find the drop-shadow payload.
+    const std::string dsPrefix = "drop-shadow(";
+    size_t dsStart = filterVal.find(dsPrefix);
+    if (dsStart == std::string::npos) return;
+    dsStart += dsPrefix.size();
+
+    size_t dsEnd = filterVal.rfind(')');
+    if (dsEnd == std::string::npos || dsEnd < dsStart) return;
+
+    std::string inner = filterVal.substr(dsStart, dsEnd - dsStart);
+    const char* p = inner.c_str();
+    char* endPtr;
+
+    auto skipSeparators = [](const char*& cursor) {
+        while (*cursor == ' ' || *cursor == ',') cursor++;
+    };
+
+    auto parseLength = [&](float& outValue) -> bool {
+        skipSeparators(p);
+        outValue = std::strtof(p, &endPtr);
+        if (endPtr == p) return false;
+        p = endPtr;
+        // Skip unit suffixes such as px, vp, or em.
+        while (*p && *p != ' ' && *p != ',' && *p != '(') p++;
+        return true;
+    };
+
+    // Support both 3-length and 4-length drop-shadow forms.
+    float vals[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    for (int i = 0; i < 3; i++) {
+        if (!parseLength(vals[i])) return;
+    }
+
+    // Parse spread when present, but ignore it because ArkUI does not expose it yet.
+    {
+        const char* lookahead = p;
+        skipSeparators(lookahead);
+        if (*lookahead != '\0' && *lookahead != 'r' && *lookahead != '#' && *lookahead != 't') {
+            p = lookahead;
+            if (!parseLength(vals[3])) return;
+        } else {
+            p = lookahead;
+        }
+    }
+
+    // Treat the remaining payload as the color string.
+    skipSeparators(p);
+    std::string colorStr = p;
+    if (colorStr.empty()) return;
+
+    // Parse the shadow color.
+    uint32_t color = parseColor(colorStr);
+    if (color == colors::kColorTransparent && colorStr != "#00000000" && colorStr != "rgba(0, 0, 0, 0)" &&
+        colorStr != "rgba(0,0,0,0)" && colorStr != "rgb(0, 0, 0)") {
+        return;
+    }
+
+    // Apply the shadow.
+    A2UINode(m_nodeHandle).setCustomShadow(vals[2], vals[0], vals[1], color);
 }
 
 } // namespace a2ui

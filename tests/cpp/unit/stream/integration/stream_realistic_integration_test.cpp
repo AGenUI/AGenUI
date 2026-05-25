@@ -299,6 +299,106 @@ TEST_F(StreamRealisticIntegrationTest, SRI003_StreamingText_MixedSiblings) {
     EXPECT_TRUE(ids.count("article")) << "article missing";
 }
 
+// SRI004: Streaming Text DataModel with many tiny chunks.
+// Simulates LLM token-by-token delivery.
+TEST_F(StreamRealisticIntegrationTest, SRI004_StreamingTextDM_TinyChunks) {
+    createTestSurface("s1");
+    listener.clear();
+
+    // Phase 1: updateComponents with binding paths
+    nlohmann::json root;
+    root["id"] = "root";
+    root["component"] = "Column";
+    root["children"] = nlohmann::json::array(
+        {"md_title", "divider", "info_text", "tag_row"});
+    root["align"] = "stretch";
+
+    nlohmann::json mdTitle;
+    mdTitle["id"] = "md_title";
+    mdTitle["component"] = "Markdown";
+    mdTitle["content"] = nlohmann::json::object({{"path", "/article/title"}});
+
+    nlohmann::json divider;
+    divider["id"] = "divider";
+    divider["component"] = "Divider";
+
+    nlohmann::json infoText;
+    infoText["id"] = "info_text";
+    infoText["component"] = "Text";
+    infoText["text"] = nlohmann::json::object({{"path", "/article/content"}});
+    infoText["variant"] = "body";
+
+    nlohmann::json tagRow;
+    tagRow["id"] = "tag_row";
+    tagRow["component"] = "Row";
+    tagRow["children"] = nlohmann::json::array({"tag1", "tag2"});
+    tagRow["justify"] = "start";
+
+    nlohmann::json tag1;
+    tag1["id"] = "tag1";
+    tag1["component"] = "Text";
+    tag1["text"] = nlohmann::json::object({{"path", "/article/tag1"}});
+    tag1["variant"] = "caption";
+
+    nlohmann::json tag2;
+    tag2["id"] = "tag2";
+    tag2["component"] = "Text";
+    tag2["text"] = nlohmann::json::object({{"path", "/article/tag2"}});
+    tag2["variant"] = "caption";
+
+    nlohmann::json compArr = nlohmann::json::array(
+        {root, mdTitle, divider, infoText, tagRow, tag1, tag2});
+    std::string compUpdate = buildUpdateComponents("s1", compArr.dump());
+    feedAll(compUpdate);
+
+    EXPECT_TRUE(listener.waitFor(
+        [&]() { return !listener.componentsAddCalls.empty(); }, 2000));
+    listener.clear();
+
+    // Phase 2: updateDataModel with large content split into tiny chunks
+    const std::string contentText =
+        "故宫博物院位于北京市中心，是中国明清两代的皇家宫殿，"
+        "旧称紫禁城。占地面积72万平方米，建筑面积约15万平方米，"
+        "几家在口碑榜和本地人推荐中都比较靠前。"
+        "鸭皮酥而不硬，鸭肉多汁不柴，卷饼配葱丝、黄瓜和甜面酱很下饭，"
+        "店里环境较新，适合家庭聚会。"
+        "便宜坊、北平盛世、紫光园等老牌和新派烤鸭店都在你周边几公里范围内。"
+        "如果现在就想吃，直接去四季民福或大鸭梨望京店，基本不会踩雷。"
+        "门票价格旺季60元、淡季40元。周一闭馆，建议提前在线预约。";
+
+    nlohmann::json dmValue;
+    dmValue["article"] = nlohmann::json::object({
+        {"title", "# 故宫博物院参观攻略"},
+        {"content", contentText},
+        {"tag1", "\xF0\x9F\x8F\x9B\xEF\xB8\x8F 文化遗产"},  // 🏛️
+        {"tag2", "\xE2\xAD\x90 5A景区"}  // ⭐
+    });
+    std::string dmJson = buildUpdateDataModel("s1", "/", dmValue.dump());
+
+    // Feed in many tiny chunks (simulating LLM token delivery)
+    sm->beginTextStream();
+    size_t pos = 0;
+    // Vary chunk sizes: 5, 8, 12, 15, 20, 7, 10, 25...
+    const std::vector<size_t> chunkSizes = {
+        30, 8, 12, 15, 6, 20, 7, 10, 25, 5, 18, 9, 22, 11, 14,
+        8, 30, 6, 19, 13, 7, 16, 10, 25, 8, 12, 20, 50};
+    size_t chunkIdx = 0;
+    while (pos < dmJson.size()) {
+        size_t sz = chunkSizes[chunkIdx % chunkSizes.size()];
+        size_t len = std::min(sz, dmJson.size() - pos);
+        sm->receiveTextChunk(dmJson.substr(pos, len));
+        pos += len;
+        chunkIdx++;
+    }
+    sm->endTextStream();
+    Drain(5000);
+
+    EXPECT_TRUE(listener.waitFor(
+        [&]() { return !listener.componentsUpdateCalls.empty(); }, 5000));
+    EXPECT_GE(countComponentsUpdate(), 1)
+        << "DM streaming should produce at least one update";
+}
+
 // SRI005: Markdown inline streaming in mixed tree.
 // Markdown content split across chunks with Text sibling.
 TEST_F(StreamRealisticIntegrationTest, SRI005_StreamingMarkdown_MixedTree) {
@@ -381,6 +481,74 @@ TEST_F(StreamRealisticIntegrationTest, SRI005_StreamingMarkdown_MixedTree) {
     EXPECT_TRUE(ids.count("item_1")) << "item_1 missing";
 }
 
+// SRI006: Markdown DataModel streaming with many tiny chunks.
+// Markdown binding receives incremental updates as tiny chunks arrive.
+TEST_F(StreamRealisticIntegrationTest, SRI006_StreamingMarkdownDM_TinyChunks) {
+    createTestSurface("s1");
+    listener.clear();
 
+    // Phase 1: updateComponents with binding paths
+    nlohmann::json root;
+    root["id"] = "root";
+    root["component"] = "List";
+    root["children"] = nlohmann::json::array({"md_1", "item_1"});
+
+    nlohmann::json md1;
+    md1["id"] = "md_1";
+    md1["component"] = "Markdown";
+    md1["content"] = nlohmann::json::object({{"path", "/route/info"}});
+
+    nlohmann::json item1;
+    item1["id"] = "item_1";
+    item1["component"] = "Text";
+    item1["text"] = nlohmann::json::object({{"path", "/route/content"}});
+    item1["variant"] = "body";
+
+    nlohmann::json compArr = nlohmann::json::array({root, md1, item1});
+    std::string compUpdate = buildUpdateComponents("s1", compArr.dump());
+    feedAll(compUpdate);
+
+    EXPECT_TRUE(listener.waitFor(
+        [&]() { return !listener.componentsAddCalls.empty(); }, 2000));
+    listener.clear();
+
+    // Phase 2: updateDataModel with large Markdown content, tiny chunks
+    const std::string infoText =
+        "# Markdown 标题\n\n"
+        "这是一段 **粗体** 和 *斜体* 文本。\n\n"
+        "- 列表项 1\n- 列表项 2\n- 列表项 3\n\n"
+        "需要处理A2UI协议中下发markdown时的流式处理，"
+        "即在流式解析updateComponents时，如果是Markdown组件，"
+        "则需要判断展示的内容是否是数据绑定。"
+        "updatedatamodel是判断所有json完整闭合后才发送事件。";
+
+    nlohmann::json dmValue;
+    dmValue["route"] = nlohmann::json::object({
+        {"info", infoText},
+        {"content", "列表项 1"}
+    });
+    std::string dmJson = buildUpdateDataModel("s1", "/", dmValue.dump());
+
+    // Feed in many tiny chunks
+    sm->beginTextStream();
+    size_t pos = 0;
+    const std::vector<size_t> chunkSizes = {
+        25, 10, 15, 8, 20, 12, 30, 7, 18, 11, 22, 9, 14, 35, 10};
+    size_t chunkIdx = 0;
+    while (pos < dmJson.size()) {
+        size_t sz = chunkSizes[chunkIdx % chunkSizes.size()];
+        size_t len = std::min(sz, dmJson.size() - pos);
+        sm->receiveTextChunk(dmJson.substr(pos, len));
+        pos += len;
+        chunkIdx++;
+    }
+    sm->endTextStream();
+    Drain(5000);
+
+    EXPECT_TRUE(listener.waitFor(
+        [&]() { return !listener.componentsUpdateCalls.empty(); }, 5000));
+    EXPECT_GE(countComponentsUpdate(), 1)
+        << "DM streaming should produce at least one update";
+}
 
 }  // namespace

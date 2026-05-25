@@ -3,6 +3,71 @@ cmake_minimum_required(VERSION 3.18.1)
 
 project("amap_AGenUI")
 
+# ---------------------------------------------------------------------------
+# yoga: prebuilt binary OR build from source via FetchContent
+# ---------------------------------------------------------------------------
+# Option: YOGA_PREBUILT_DIR - path to a directory containing prebuilt yoga artifacts
+# Expected structure:
+#   {YOGA_PREBUILT_DIR}/
+#   ├── include/yoga/   (header files)
+#   └── libs/libyoga.so (shared library)
+#
+# If YOGA_PREBUILT_DIR is set and valid, use prebuilt; otherwise fetch from GitHub.
+# ---------------------------------------------------------------------------
+
+if(DEFINED YOGA_PREBUILT_DIR AND EXISTS "${YOGA_PREBUILT_DIR}/libs/libyoga.so")
+    message(STATUS "Using prebuilt yoga from: ${YOGA_PREBUILT_DIR}")
+
+    # Import prebuilt libyoga.so as a shared library
+    add_library(yoga SHARED IMPORTED)
+    set_target_properties(yoga PROPERTIES
+        IMPORTED_LOCATION "${YOGA_PREBUILT_DIR}/libs/libyoga.so"
+    )
+    # Make headers available
+    target_include_directories(yoga INTERFACE
+        "${YOGA_PREBUILT_DIR}/include"
+    )
+    # Set yoga_SOURCE_DIR for downstream include_directories compatibility
+    set(yoga_SOURCE_DIR "${YOGA_PREBUILT_DIR}/include")
+
+else()
+    if(DEFINED YOGA_PREBUILT_DIR)
+        message(WARNING "YOGA_PREBUILT_DIR is set but libyoga.so not found at: ${YOGA_PREBUILT_DIR}/libs/libyoga.so")
+        message(WARNING "Falling back to FetchContent from GitHub...")
+    endif()
+
+    message(STATUS "Building yoga from source (GitHub FetchContent)")
+    include(FetchContent)
+    FetchContent_Declare(yoga
+        GIT_REPOSITORY https://github.com/facebook/yoga.git
+        GIT_TAG        v2.0.0
+        GIT_SHALLOW    TRUE
+    )
+    FetchContent_Populate(yoga)
+
+    file(GLOB_RECURSE YOGA_SOURCES "${yoga_SOURCE_DIR}/yoga/*.cpp")
+    add_library(yoga SHARED ${YOGA_SOURCES})
+    target_include_directories(yoga
+        PUBLIC "${yoga_SOURCE_DIR}"
+    )
+    target_compile_options(yoga PRIVATE
+        -fno-omit-frame-pointer
+        -fexceptions
+        -fno-rtti
+        -Wno-error
+    )
+    target_include_directories(yoga PRIVATE
+        "${yoga_SOURCE_DIR}/include"
+        "${yoga_SOURCE_DIR}/include/yoga"
+    )
+    set_target_properties(yoga PROPERTIES
+        CXX_VISIBILITY_PRESET default
+        POSITION_INDEPENDENT_CODE ON
+    )
+
+    target_link_libraries(yoga PRIVATE log)
+endif()
+
 add_definitions(-DPLATFORM_ANDROID)
 add_definitions(-D_GNU_SOURCE)
 add_definitions(-DMT_MAIN=15)
@@ -65,42 +130,42 @@ include_directories(
     ${AGENUI_CPP_ROOT}/src/jni
     ${AGENUI_CPP_ROOT}/src/third_party
     ${AGENUI_CPP_ROOT}/src/third_party/nlohmann
-    ${AGENUI_CPP_ROOT}/src/third_party/jschema_validator
+    ${yoga_SOURCE_DIR}
 )
 
 # src/ root level cpp files (agenui_log.cpp, agenui_errorcode_define.cpp, etc.)
-file(GLOB AGENUI_ROOT_SOURCES
+file(GLOB AGENUI_ROOT_SOURCES CONFIGURE_DEPENDS
     "${AGENUI_CPP_ROOT}/src/*.cpp"
 )
 
 # src/jni (JNI files for Android)
-file(GLOB JNI_SOURCES
+file(GLOB JNI_SOURCES CONFIGURE_DEPENDS
     "${AGENUI_CPP_ROOT}/src/jni/*.cpp"
 )
 
 # src/module
-file(GLOB MODULE_SOURCES
+file(GLOB MODULE_SOURCES CONFIGURE_DEPENDS
     "${AGENUI_CPP_ROOT}/src/module/*.cpp"
 )
 
 # src/stream
-file(GLOB STREAM_SOURCES
+file(GLOB STREAM_SOURCES CONFIGURE_DEPENDS
     "${AGENUI_CPP_ROOT}/src/stream/*.cpp"
 )
 
 # src/function_call
-file(GLOB_RECURSE FUNCTIONCALL_SOURCES
+file(GLOB_RECURSE FUNCTIONCALL_SOURCES CONFIGURE_DEPENDS
     "${AGENUI_CPP_ROOT}/src/function_call/*.cpp"
 )
 
-# src/third_party/jschema_validator
-file(GLOB JSCHEMA_SOURCES
-    "${AGENUI_CPP_ROOT}/src/third_party/jschema_validator/*.cpp"
+# src/surface (all subdirectories recursively)
+file(GLOB_RECURSE SURFACE_SOURCES CONFIGURE_DEPENDS
+    "${AGENUI_CPP_ROOT}/src/surface/*.cpp"
 )
 
-# src/surface (all subdirectories recursively)
-file(GLOB_RECURSE SURFACE_SOURCES
-    "${AGENUI_CPP_ROOT}/src/surface/*.cpp"
+# src/style_parser
+file(GLOB STYLE_PARSER_SOURCES CONFIGURE_DEPENDS
+    "${AGENUI_CPP_ROOT}/src/style_parser/*.cpp"
 )
 
 # Combine all sources
@@ -110,8 +175,8 @@ set(AGENUI_SOURCES
     ${MODULE_SOURCES}
     ${STREAM_SOURCES}
     ${FUNCTIONCALL_SOURCES}
-    ${JSCHEMA_SOURCES}
     ${SURFACE_SOURCES}
+    ${STYLE_PARSER_SOURCES}
 )
 
 # ============ Exclude platform-specific and non-Android files ============
@@ -121,8 +186,6 @@ list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*agenui_platform_invoker_android\\.cp
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/Html.cpp")
 # Exclude sax/ (Harmony only, not for Android/iOS)
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/sax/.*")
-# Exclude yoga/ (Harmony only, not in Android all_srcs_path)
-list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/yoga/.*")
 # Exclude ik/ (not in Android all_srcs_path)
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/ik/.*")
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/third_party/key_define.cpp")
@@ -136,6 +199,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     z
     android
     log
+    yoga
 )
 
 # Note: -Wl,--no-wchar-size-warning is not supported by lld (Android NDK linker), omitted

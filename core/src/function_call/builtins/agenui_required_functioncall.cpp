@@ -33,15 +33,6 @@ FunctionCallConfig RequiredFunctionCall::getConfig() const {
     config.setName("required");
     config.setDescription("Checks that the value is not null, undefined, or empty.");
     config.setReturnType("boolean");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"description", "The value to check."}}}
-        }},
-        {"required", nlohmann::json::array({"value"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

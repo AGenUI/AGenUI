@@ -3,6 +3,8 @@
 #include <arkui/native_node_napi.h>
 #include <atomic>
 #include <cstdlib>
+#include <sstream>
+#include <vector>
 
 #include "a2ui_component.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
@@ -16,6 +18,8 @@
 #include "a2ui/a2ui_message_listener.h"
 #include "log/a2ui_capi_log.h"
 #include "a2ui/bridge/image_loader_bridge.h"
+#include "a2ui/render/gradient_applier.h"
+#include "style_parser/agenui_color_parser.h"
 
 namespace a2ui {
 
@@ -150,13 +154,32 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
             
             if (!m_parent || m_parent->shouldApplyChildLayoutPosition(this)) {
                 getNode().setPosition(m_x, m_y);
+            } else {
+                // Parent opted out of full position, but may still apply partial position
+                // (e.g. ListComponent applies only the x axis for cross-axis alignment).
+                m_parent->onApplyChildPosition(this, m_x, m_y);
             }
-            getNode().setWidth(m_width);
-            getNode().setHeight(m_height);
+            if (!m_parent || m_parent->shouldApplyChildLayoutSize(this)) {
+                getNode().setWidth(m_width);
+                getNode().setHeight(m_height);
+            }
+            if (m_parent) {
+                m_parent->onChildLayoutSizeChanged(this);
+            }
+#if 0
+            const float kDebugBorderWidth = 1.0f;
+            const uint32_t kDebugBorderColorRed = 0xFFFF0000;
+            getNode().setBorderWidth(kDebugBorderWidth, kDebugBorderWidth, kDebugBorderWidth, kDebugBorderWidth);
+            getNode().setBorderColor(kDebugBorderColorRed);
+            getNode().setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+#endif
             HM_LOGI("Updated layout for component %s: x=%.1f, y=%.1f, width=%.1f, height=%.1f", m_id.c_str(), posX, posY, width, height);
             
             // Apply the background-image style
             applyBackgroundImage(stylesJson);
+
+            // Apply the visibility style
+            applyVisibility(stylesJson);
         }
     }
 }
@@ -259,6 +282,11 @@ bool A2UIComponent::shouldAutoAddChildView() const {
 }
 
 bool A2UIComponent::shouldApplyChildLayoutPosition(const A2UIComponent* child) const {
+    (void)child;
+    return true;
+}
+
+bool A2UIComponent::shouldApplyChildLayoutSize(const A2UIComponent* child) const {
     (void)child;
     return true;
 }
@@ -430,92 +458,36 @@ void A2UIComponent::syncState(const nlohmann::json& changeJson) {
     HM_LOGI("surfaceId=%s, componentId=%s, change=%s",
             m_surfaceId.c_str(), m_id.c_str(), syncMessage.change.c_str());
 
-    int engineId = agenui::A2UIMessageListener::findInstanceIdBySurfaceId(m_surfaceId);
-    if (engineId != 0) {
+    int instanceId = agenui::A2UIMessageListener::findInstanceIdBySurfaceId(m_surfaceId);
+    if (instanceId != 0) {
         auto* engine = agenui::getAGenUIEngine();
         if (engine) {
-            auto* sm = engine->findSurfaceManager(engineId);
+            auto* sm = engine->findSurfaceManager(instanceId);
             if (sm) {
                 sm->submitUIDataModel(syncMessage);
             } else {
-                HM_LOGE("ISurfaceManager not found for engineId=%d", engineId);
+                HM_LOGE("ISurfaceManager not found for instanceId=%d", instanceId);
             }
         } else {
             HM_LOGE("AGenUI Engine is null");
         }
     } else {
-        HM_LOGE("engineId not found for surfaceId=%s", m_surfaceId.c_str());
+        HM_LOGE("instanceId not found for surfaceId=%s", m_surfaceId.c_str());
     }
 }
 
 
 uint32_t A2UIComponent::parseColor(const std::string& colorStr) {
-    if (colorStr.empty()) {
-        return kColorTransparent;
-    }
-
-    if (colorStr == "transparent") {
-        return kColorTransparent;
-    }
-
-    if (colorStr.size() >= 4 && colorStr[0] == 'r' && colorStr[1] == 'g' && colorStr[2] == 'b') {
-        size_t parenOpen = colorStr.find('(');
-        size_t parenClose = colorStr.rfind(')');
-        if (parenOpen == std::string::npos || parenClose == std::string::npos) {
-            return kColorTransparent;
-        }
-        std::string inner = colorStr.substr(parenOpen + 1, parenClose - parenOpen - 1);
-        float r = 0.0f, g = 0.0f, b = 0.0f, a = 1.0f;
-        const char* p = inner.c_str();
-        char* end = nullptr;
-        r = std::strtof(p, &end); if (end == p) return kColorTransparent; p = end;
-        while (*p == ' ' || *p == ',') p++;
-        g = std::strtof(p, &end); if (end == p) return kColorTransparent; p = end;
-        while (*p == ' ' || *p == ',') p++;
-        b = std::strtof(p, &end); if (end == p) return kColorTransparent; p = end;
-        while (*p == ' ' || *p == ',') p++;
-        if (*p != '\0' && *p != ')') {
-            a = std::strtof(p, &end);
-            if (end == p) a = 1.0f;
-        }
-        auto clamp = [](float v, float lo, float hi) -> uint32_t {
-            if (v < lo) v = lo;
-            if (v > hi) v = hi;
-            return static_cast<uint32_t>(v);
-        };
-        uint32_t ai = static_cast<uint32_t>(a * 255.0f + 0.5f);
-        if (ai > 255) ai = 255;
-        return (ai << 24) | (clamp(r, 0, 255) << 16) | (clamp(g, 0, 255) << 8) | clamp(b, 0, 255);
-    }
-
-    // #RRGGBB / #RRGGBBAA / #RGB
-    if (colorStr[0] == '#') {
-        std::string hex = colorStr.substr(1);
-
-        if (hex.length() == 3) {
-            std::string expanded;
-            expanded.reserve(6);
-            for (char ch : hex) { expanded += ch; expanded += ch; }
-            hex = expanded;
-        }
-
-        char* endPtr = nullptr;
-        if (hex.length() == 6) {
-            unsigned long value = std::strtoul(hex.c_str(), &endPtr, 16);
-            if (endPtr != hex.c_str() + 6) return kColorTransparent;
-            return colors::kColorBlack | static_cast<uint32_t>(value);
-        } else if (hex.length() == 8) {
-            unsigned long value = std::strtoul(hex.c_str(), &endPtr, 16);
-            if (endPtr != hex.c_str() + 8) return kColorTransparent;
-            uint32_t rr = (value >> 24) & 0xFF;
-            uint32_t gg = (value >> 16) & 0xFF;
-            uint32_t bb = (value >> 8) & 0xFF;
-            uint32_t aa = value & 0xFF;
-            return (aa << 24) | (rr << 16) | (gg << 8) | bb;
-        }
-    }
-
-    return kColorTransparent;
+    // Delegates to the shared cross-platform CSS color parser
+    // (core/src/style_parser/agenui_color_parser.cpp). Solid colors return their
+    // ARGB; gradients fall through to transparent because callers of this method
+    // expect a single uint32_t — gradient values are written via GradientApplier
+    // from applyBackgroundColor instead.
+    if (colorStr.empty()) return kColorTransparent;
+    agenui::ColorValue cv;
+    if (!agenui::ColorParser::parse(colorStr, cv)) return kColorTransparent;
+    if (cv.type != agenui::ColorValueType::Solid) return kColorTransparent;
+    return cv.solidColor;
 }
 
 
@@ -682,5 +654,224 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
 
     HM_LOGI("Set background image %s for component %s", bgImageUrl.c_str(), m_id.c_str());
 }
+
+void A2UIComponent::applyVisibility(const nlohmann::json& styles) {
+    if (!m_nodeHandle || !styles.contains("visibility") || !styles["visibility"].is_string()) {
+        return;
+    }
+
+    const std::string value = styles["visibility"].get<std::string>();
+    ArkUI_Visibility visibility = (value == "hidden")
+        ? ARKUI_VISIBILITY_HIDDEN
+        : ARKUI_VISIBILITY_VISIBLE;
+    A2UINode(m_nodeHandle).setVisibility(visibility);
+    HM_LOGI("Set visibility=%s for component %s", value.c_str(), m_id.c_str());
+}
+
+/**
+ * Parse and apply border styles from properties.styles
+ * Supported properties:
+ *   - border-radius / borderRadius: corner radius (number or string)
+ *   - border-width / borderWidth: border width (number or string, applied to all four sides)
+ *   - border-color / borderColor: border color (color string)
+ *   - background-color / backgroundColor: background color (color string)
+ */
+void A2UIComponent::applyBackgroundColor(const nlohmann::json& properties) {
+    if (!m_nodeHandle) {
+        return;
+    }
+    
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+    
+    const auto& styles = properties["styles"];
+    A2UINode node(m_nodeHandle);
+
+    // Accept background-color / backgroundColor / background (Android shorthand
+    // also dispatches to the same value resolution).
+    std::string bgColorKey;
+    if (styles.contains("background-color")) {
+        bgColorKey = "background-color";
+    } else if (styles.contains("backgroundColor")) {
+        bgColorKey = "backgroundColor";
+    } else if (styles.contains("background")) {
+        bgColorKey = "background";
+    }
+    if (bgColorKey.empty() || !styles[bgColorKey].is_string()) {
+        return;
+    }
+
+    const std::string raw = styles[bgColorKey].get<std::string>();
+    agenui::ColorValue cv;
+    if (!agenui::ColorParser::parse(raw, cv)) {
+        HM_LOGW("applyBackgroundColor: parse failed for '%s'", raw.c_str());
+        GradientApplier::reset(m_nodeHandle);
+        node.setBackgroundColor(kColorTransparent);
+        return;
+    }
+
+    if (cv.type == agenui::ColorValueType::Gradient) {
+        // Clear any solid color first so it does not bleed through the gradient
+        // when the gradient has alpha.
+        node.setBackgroundColor(kColorTransparent);
+        GradientApplier::apply(m_nodeHandle, cv.gradient, getWidth(), getHeight());
+    } else {
+        // Always reset gradient state when switching back to a solid color so a
+        // previous gradient does not linger on the node.
+        GradientApplier::reset(m_nodeHandle);
+        node.setBackgroundColor(cv.solidColor);
+    }
+}
+
+void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
+    if (!m_nodeHandle) {
+        return;
+    }
+    
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+    
+    const auto& styles = properties["styles"];
+    A2UINode node(m_nodeHandle);
+    
+    // border-radius
+    {
+        std::string radiusKey;
+        if (styles.contains("border-radius")) {
+            radiusKey = "border-radius";
+        } else if (styles.contains("borderRadius")) {
+            radiusKey = "borderRadius";
+        }
+        if (!radiusKey.empty()) {
+            float radius = 0.0f;
+            const auto& radiusVal = styles[radiusKey];
+            if (radiusVal.is_number()) {
+                radius = radiusVal.get<float>();
+            } else if (radiusVal.is_string()) {
+                radius = static_cast<float>(std::atof(radiusVal.get<std::string>().c_str()));
+            }
+            if (radius > 0.0f) {
+                node.setBorderRadius(radius);
+                node.setClip(true);
+            } else {
+                node.resetBorderRadius();
+                node.resetClip();
+            }
+        }
+    }
+    
+    // border-width
+    {
+        std::string bwKey;
+        if (styles.contains("border-width")) {
+            bwKey = "border-width";
+        } else if (styles.contains("borderWidth")) {
+            bwKey = "borderWidth";
+        }
+        if (!bwKey.empty()) {
+            float bw = 0.0f;
+            const auto& bwVal = styles[bwKey];
+            if (bwVal.is_number()) {
+                bw = bwVal.get<float>();
+            } else if (bwVal.is_string()) {
+                bw = static_cast<float>(std::atof(bwVal.get<std::string>().c_str()));
+            }
+            if (bw > 0.0f) {
+                node.setBorderWidth(bw, bw, bw, bw);
+                node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+            } else {
+                node.resetBorderWidth();
+                node.resetBorderStyle();
+            }
+        }
+    }
+    
+    // border-color
+    {
+        std::string bcKey;
+        if (styles.contains("border-color")) {
+            bcKey = "border-color";
+        } else if (styles.contains("borderColor")) {
+            bcKey = "borderColor";
+        }
+        if (!bcKey.empty() && styles[bcKey].is_string()) {
+            uint32_t color = parseColor(styles[bcKey].get<std::string>());
+            node.setBorderColor(color);
+        }
+    }
+}
+
+/**
+ * DEPRECATED: CSS padding is handled by Yoga layout engine; applying it
+ * on native ArkUI nodes causes double-counting (Yoga layout dimensions
+ * already include padding).  All former callers (RichTextComponent,
+ * ButtonComponent, ListComponent) have been updated to NOT call this.
+ * Kept for reference only.
+ */
+#if 0
+void A2UIComponent::applyPaddingStyles(const nlohmann::json& properties) {
+    if (!m_nodeHandle) {
+        return;
+    }
+    
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+    
+    const auto& styles = properties["styles"];
+    if (!styles.contains("padding")) {
+        return;
+    }
+    
+    A2UINode node(m_nodeHandle);
+    const auto& paddingVal = styles["padding"];
+    
+    float paddingTop = 0.0f;
+    float paddingRight = 0.0f;
+    float paddingBottom = 0.0f;
+    float paddingLeft = 0.0f;
+    
+    if (paddingVal.is_string()) {
+        // Parse CSS shorthand format like "10 20 30 40"
+        std::string paddingStr = paddingVal.get<std::string>();
+        // Remove "px" suffix if present
+        size_t pxPos = paddingStr.find("px");
+        if (pxPos != std::string::npos) {
+            paddingStr = paddingStr.substr(0, pxPos);
+        }
+        
+        std::vector<float> values;
+        std::istringstream stream(paddingStr);
+        std::string token;
+        while (stream >> token) {
+            values.push_back(static_cast<float>(std::atof(token.c_str())));
+        }
+        
+        if (values.size() == 1) {
+            paddingTop = paddingRight = paddingBottom = paddingLeft = values[0];
+        } else if (values.size() == 2) {
+            paddingTop = paddingBottom = values[0];
+            paddingRight = paddingLeft = values[1];
+        } else if (values.size() == 3) {
+            paddingTop = values[0];
+            paddingRight = paddingLeft = values[1];
+            paddingBottom = values[2];
+        } else if (values.size() >= 4) {
+            paddingTop = values[0];
+            paddingRight = values[1];
+            paddingBottom = values[2];
+            paddingLeft = values[3];
+        }
+    } else if (paddingVal.is_number()) {
+        // Single numeric value
+        const float pad = paddingVal.get<float>();
+        paddingTop = paddingRight = paddingBottom = paddingLeft = pad;
+    }
+    
+    node.setPadding(paddingTop, paddingRight, paddingBottom, paddingLeft);
+}
+#endif
 
 } // namespace a2ui

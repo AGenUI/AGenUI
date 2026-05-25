@@ -15,6 +15,52 @@ plugins {
 
 def localMavenDir = "${System.getProperty('user.home')}/.m2/repository"
 
+// ==================== Yoga Configuration (dual-control) ====================
+// Two independent controls:
+//   1. yoga.prebuilt.dir  — path to prebuilt yoga (libyoga.so + headers)
+//   2. yoga.include.in.aar — whether to bundle libyoga.so into the AAR (default: true)
+//
+// Priority: Gradle -P parameter > local.properties > default (FetchContent + include)
+// ============================================================================
+
+// --- Read local.properties for yoga config ---
+def localProps = new Properties()
+def localPropsFile = file("${rootProject.projectDir}/local.properties")
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+
+// --- Resolve YOGA_PREBUILT_DIR ---
+def resolvedYogaPrebuiltDir = ''
+if (project.hasProperty('YOGA_PREBUILT_DIR')) {
+    resolvedYogaPrebuiltDir = project.property('YOGA_PREBUILT_DIR')
+    logger.lifecycle("[yoga] Using prebuilt dir from -P parameter: ${resolvedYogaPrebuiltDir}")
+} else if (localProps.containsKey('yoga.prebuilt.dir')) {
+    resolvedYogaPrebuiltDir = localProps.getProperty('yoga.prebuilt.dir')
+    logger.lifecycle("[yoga] Using prebuilt dir from local.properties: ${resolvedYogaPrebuiltDir}")
+}
+// Validate if set
+if (resolvedYogaPrebuiltDir && !file("${resolvedYogaPrebuiltDir}/libs/libyoga.so").exists()) {
+    throw new GradleException("[yoga] ERROR: yoga.prebuilt.dir is set but invalid — " +
+        "libyoga.so not found at: ${resolvedYogaPrebuiltDir}/libs/libyoga.so")
+}
+
+// --- Resolve YOGA_INCLUDE_IN_AAR (default: true) ---
+def resolvedYogaIncludeInAar = true
+if (project.hasProperty('YOGA_INCLUDE_IN_AAR')) {
+    resolvedYogaIncludeInAar = project.property('YOGA_INCLUDE_IN_AAR').toString().toBoolean()
+    logger.lifecycle("[yoga] Include in AAR from -P parameter: ${resolvedYogaIncludeInAar}")
+} else if (localProps.containsKey('yoga.include.in.aar')) {
+    resolvedYogaIncludeInAar = localProps.getProperty('yoga.include.in.aar').toBoolean()
+    logger.lifecycle("[yoga] Include in AAR from local.properties: ${resolvedYogaIncludeInAar}")
+}
+
+if (!resolvedYogaPrebuiltDir) {
+    logger.lifecycle("[yoga] No prebuilt configured — will use GitHub FetchContent (built-in)")
+} else {
+    logger.lifecycle("[yoga] Prebuilt: ${resolvedYogaPrebuiltDir}, include in AAR: ${resolvedYogaIncludeInAar}")
+}
+
 android {
     namespace 'com.amap.a2ui_sdk'
     compileSdk 34
@@ -34,8 +80,16 @@ android {
             cmake {
                 cppFlags "-std=c++17"
                 abiFilters 'arm64-v8a'
-                arguments "-DANDROID_STL=c++_static",
-                          "-DAGENUI_REPO_ROOT=${rootProject.projectDir.parentFile.parentFile.absolutePath}"
+                // When using prebuilt yoga (compiled with c++_shared), we must use c++_shared
+                // to avoid mixing STL types in the same process (NDK requirement).
+                def stlType = resolvedYogaPrebuiltDir ? "c++_shared" : "c++_static"
+                def cmakeArgs = ["-DANDROID_STL=" + stlType,
+                          "-DAGENUI_REPO_ROOT=" + rootProject.projectDir.parentFile.parentFile.absolutePath]
+                // Pass YOGA_PREBUILT_DIR to CMake if resolved
+                if (resolvedYogaPrebuiltDir) {
+                    cmakeArgs.add("-DYOGA_PREBUILT_DIR=" + resolvedYogaPrebuiltDir)
+                }
+                arguments(*cmakeArgs)
             }
         }
     }
@@ -69,7 +123,22 @@ android {
         }
     }
 
-    ndkVersion "25.2.9519653"
+    ndkVersion "27.3.13750724"
+
+    // Exclude libyoga.so and libc++_shared.so from AAR when configured not to include yoga.
+    // In this mode, the host app is responsible for providing both libraries.
+    if (resolvedYogaPrebuiltDir && !resolvedYogaIncludeInAar) {
+        packagingOptions {
+            exclude '**/libyoga.so'
+            exclude '**/libc++_shared.so'
+        }
+    }
+
+    sourceSets {
+        main {
+            res.srcDirs = ['src/main/res', 'src/main/res-icons']
+        }
+    }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
@@ -78,11 +147,11 @@ android {
 }
 
 dependencies {
-    implementation libs.appcompat
-    implementation libs.material
-    implementation libs.flexbox
     implementation libs.picasso
     implementation libs.gson
+    implementation libs.cardview
+    implementation libs.viewpager2
+    implementation libs.recyclerview
 
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit

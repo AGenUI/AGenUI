@@ -7,16 +7,15 @@
 
 // Project headers
 #include "agenui_dispatcher_types.h"
+#include "agenui_render_info_types.h"
 #include "agenui_surface.h"
+#include "agenui_errorcode_define.h"
 
 namespace agenui {
 
 class SurfaceManager;
 class EventDispatcher;
-
-// Forward declarations: callback info structs (defined in agenui_component_render_observable.h / agenui_surface_layout_observable.h)
-struct ComponentRenderInfo;
-struct SurfaceLayoutInfo;
+class TemplateRegistry;
 
 /**
  * @brief Surface coordinator (formerly AGenUIStateEngine)
@@ -37,8 +36,7 @@ public:
     SurfaceCoordinator(const SurfaceCoordinator&) = delete;
     SurfaceCoordinator& operator=(const SurfaceCoordinator&) = delete;
 
-    void setDayNightMode();
-    void refreshStyleTokens();
+    void invalidateFunctionCallValues();
 
     // Surface management
     AGenUIExeCode createSurface(const std::string& jsonData);
@@ -57,6 +55,13 @@ public:
     // Platform callback handlers (dispatched by SurfaceManager to the message thread)
     void handleRenderFinish(const ComponentRenderInfo& info);
     void handleSurfaceSizeChanged(const SurfaceLayoutInfo& info);
+
+    /**
+     * @brief Dispatches an execution error event to all listeners.
+     * @param code Error code (AGenUIExeCode enum value)
+     * @param surfaceId Surface identifier (empty if not yet parsed from the protocol)
+     */
+    void reportError(AGenUIExeCode code, const std::string& surfaceId);
 
 private:
     void initFunctionCalls();

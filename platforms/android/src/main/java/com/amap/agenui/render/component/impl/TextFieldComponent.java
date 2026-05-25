@@ -1,24 +1,21 @@
 package com.amap.agenui.render.component.impl;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.text.Editable;
 import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
 import android.text.TextWatcher;
-import android.util.Log;
-import android.view.ContextThemeWrapper;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import com.amap.agenui.render.component.A2UIComponent;
-import com.amap.agenui.render.style.StyleHelper;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
-
 import com.amap.agenui.render.style.ComponentStyleConfig;
+import com.amap.agenui.render.style.StyleHelper;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,6 +23,7 @@ import org.json.JSONObject;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * TextField component implementation (compliant with A2UI v0.9 protocol, supports two-way data binding)
@@ -39,17 +37,24 @@ import java.util.regex.PatternSyntaxException;
 public class TextFieldComponent extends A2UIComponent {
 
     private static final String TAG = "TextFieldComponent";
+    private static final int ERROR_COLOR = 0xFFB00020;
+
+    private static final int ERROR_LABEL_HEIGHT_DP = 20;
 
     private Context context;
 
-    private TextInputLayout textInputLayout;
+    private FrameLayout containerLayout;
     private EditText editText;
-    private String dataBindingPath;
+    private TextView errorTextView;
     private boolean isUpdatingFromNative = false;
+    private boolean errorShowing = false;
     private String validationRegexp = null;
     private boolean isRegexpValidationFailing = false;
     private Pattern compiledValidationPattern = null;
     private String regexpErrorMessage = null;
+    // External checks error message (separate from local regexp failure so that
+    // user typing a valid value does not silently clear an external check error).
+    private String externalErrorMessage = null;
     private TextWatcher textWatcher = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -81,31 +86,57 @@ public class TextFieldComponent extends A2UIComponent {
     @Override
     protected View onCreateView(Context context) {
         this.context = context;
-        Context themeWrapper = new ContextThemeWrapper(context, androidx.appcompat.R.style.Theme_AppCompat_Light);
-        // Create TextInputLayout container
-        textInputLayout = new TextInputLayout(themeWrapper, null, com.google.android.material.R.attr.textInputOutlinedDenseStyle);
-        textInputLayout.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE);
-        textInputLayout.setHintEnabled(false);
-        textInputLayout.post(() -> textInputLayout.setShapeAppearanceModel(
-                textInputLayout.getShapeAppearanceModel().toBuilder()
-                        .setAllCornerSizes(0f) // set all corner sizes to 0
-                        .build()
-        ));
+        float density = context.getResources().getDisplayMetrics().density;
+        int errorHeightPx = (int) (ERROR_LABEL_HEIGHT_DP * density);
 
-        // Create TextInputEditText (replacing the original EditText)
-        editText = new TextInputEditText(textInputLayout.getContext());
-        // Remove fixed style settings; use styles to set dynamically
-        editText.setLayoutParams(new LinearLayout.LayoutParams(
+        // Use FrameLayout to manually position editText and errorLabel within fixed bounds
+        containerLayout = new FrameLayout(context) {
+            @Override
+            protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+                int w = right - left;
+                int h = bottom - top;
+                if (errorShowing && errorTextView != null) {
+                    int inputH = h - errorHeightPx;
+                    editText.layout(0, 0, w, inputH);
+                    errorTextView.layout(0, inputH, w, h);
+                } else {
+                    editText.layout(0, 0, w, h);
+                    if (errorTextView != null) {
+                        errorTextView.layout(0, h, w, h + errorHeightPx);
+                    }
+                }
+            }
+        };
+        containerLayout.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // Create EditText (default single-line, matching iOS UITextField behavior)
+        editText = new EditText(context);
+        editText.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
         editText.setBackground(null);
+        editText.setGravity(Gravity.CENTER_VERTICAL);
+        editText.setSingleLine(true);
+        editText.setMaxLines(1);
+        containerLayout.addView(editText);
 
-        textInputLayout.addView(editText);
+        // Create error label (hidden by default, positioned at bottom inside bounds)
+        errorTextView = new TextView(context);
+        errorTextView.setTextColor(ERROR_COLOR);
+        errorTextView.setTextSize(12f);
+        errorTextView.setVisibility(View.GONE);
+        errorTextView.setGravity(Gravity.CENTER_VERTICAL);
+        FrameLayout.LayoutParams errorParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, errorHeightPx);
+        errorParams.gravity = Gravity.BOTTOM;
+        errorTextView.setLayoutParams(errorParams);
+        containerLayout.addView(errorTextView);
 
         applyProperties();
 
-        // Return TextInputLayout as the root View
-        return textInputLayout;
+        return containerLayout;
     }
 
     @Override
@@ -141,21 +172,12 @@ public class TextFieldComponent extends A2UIComponent {
         if (properties.containsKey("value")) {
             Object textValue = properties.get("value");
 
-            // Extract data binding path
-            if (textValue instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> textMap = (Map<String, Object>) textValue;
-                if (textMap.containsKey("path")) {
-                    dataBindingPath = String.valueOf(textMap.get("path"));
-                }
-            }
-
             // Update text content
             isUpdatingFromNative = true;
             String text = extractTextValue(textValue);
             if (!editText.getText().toString().equals(text)) {
                 editText.setText(text);
-                editText.setSelection(text.length()); // move cursor to the end
+                editText.setSelection(text.length());
             }
             isUpdatingFromNative = false;
         }
@@ -174,7 +196,7 @@ public class TextFieldComponent extends A2UIComponent {
                 try {
                     compiledValidationPattern = Pattern.compile(validationRegexp);
                 } catch (PatternSyntaxException e) {
-                    Log.w(TAG, "validationRegexp syntax error: " + validationRegexp, e);
+                    AGenUILogger.w(TAG, "validationRegexp syntax error: " + validationRegexp, e);
                     compiledValidationPattern = null;
                 }
             } else {
@@ -182,7 +204,9 @@ public class TextFieldComponent extends A2UIComponent {
             }
         }
 
-        // checks adaptation - disable component + show error (consistent with CheckBox, Slider, iOS)
+        // checks adaptation - external validation error from the host. Stored
+        // separately from regexp failure so display priority is: external first,
+        // then regexp failure, otherwise no error.
         if (properties.containsKey("checks")) {
             Object checksValue = properties.get("checks");
             if (checksValue instanceof Map) {
@@ -194,26 +218,85 @@ public class TextFieldComponent extends A2UIComponent {
                         String.valueOf(checksMap.get("message")) : "";
 
                 if (!result && !message.isEmpty()) {
-                    textInputLayout.setEnabled(false);
-                    textInputLayout.setAlpha(0.5f);
-                    textInputLayout.setErrorEnabled(true);
-                    textInputLayout.setError(message);
+                    externalErrorMessage = message;
                 } else {
-                    textInputLayout.setEnabled(true);
-                    textInputLayout.setAlpha(1.0f);
-                    if (isRegexpValidationFailing) {
-                        textInputLayout.setErrorEnabled(true);
-                        textInputLayout.setError(getRegexpErrorMessage());
-                    } else {
-                        textInputLayout.setError(null);
-                        textInputLayout.setErrorEnabled(false);
-                    }
+                    externalErrorMessage = null;
                 }
+                refreshErrorDisplay();
             }
         }
 
         // Set text change listener (for two-way binding)
         editText.addTextChangedListener(textWatcher);
+    }
+
+    private void setError(String errorMessage) {
+        if (errorMessage != null && !errorMessage.isEmpty()) {
+            errorShowing = true;
+            errorTextView.setText(errorMessage);
+            errorTextView.setVisibility(View.VISIBLE);
+            StyleHelper.setBorderColorOverride(containerLayout, ERROR_COLOR);
+        } else {
+            errorShowing = false;
+            errorTextView.setText("");
+            errorTextView.setVisibility(View.GONE);
+            StyleHelper.clearBorderColorOverride(containerLayout);
+        }
+        containerLayout.requestLayout();
+    }
+
+    /**
+     * Decide what error (if any) to show based on current external + regexp state.
+     * Display priority: external checks failure > local regexp failure > no error.
+     */
+    private void refreshErrorDisplay() {
+        String message = null;
+        if (externalErrorMessage != null && !externalErrorMessage.isEmpty()) {
+            message = externalErrorMessage;
+        } else if (isRegexpValidationFailing) {
+            message = getRegexpErrorMessage();
+        }
+        setError(message);
+    }
+
+    /**
+     * Validate the latest text against the compiled validationRegexp pattern.
+     * Empty input is treated as "not yet validated" so the placeholder state
+     * does not flash an error before the user types anything.
+     */
+    private void validateWithRegexp(String text) {
+        if (compiledValidationPattern == null || text.isEmpty()) {
+            if (isRegexpValidationFailing) {
+                isRegexpValidationFailing = false;
+                refreshErrorDisplay();
+            }
+            return;
+        }
+
+        boolean matches = compiledValidationPattern.matcher(text).matches();
+        boolean wasFailing = isRegexpValidationFailing;
+        isRegexpValidationFailing = !matches;
+        if (wasFailing != isRegexpValidationFailing) {
+            refreshErrorDisplay();
+        } else if (isRegexpValidationFailing) {
+            // Already failing — keep error visible (covers reactivation after
+            // an external check transition that may have replaced the message).
+            refreshErrorDisplay();
+        }
+    }
+
+    /**
+     * Resolve the error message shown when validationRegexp fails. Reads from
+     * the TextField theme config (`validation-error-message`) once and caches
+     * it; falls back to the hard-coded "Invalid format" string otherwise.
+     */
+    private String getRegexpErrorMessage() {
+        if (regexpErrorMessage != null) return regexpErrorMessage;
+        Map<String, String> style =
+                ComponentStyleConfig.getInstance(context).getComponentStyle("TextField");
+        String msg = style != null ? style.get("validation-error-message") : null;
+        regexpErrorMessage = msg != null ? msg : "Invalid format";
+        return regexpErrorMessage;
     }
 
     /**
@@ -224,25 +307,20 @@ public class TextFieldComponent extends A2UIComponent {
             @SuppressWarnings("unchecked")
             Map<String, Object> textMap = (Map<String, Object>) textValue;
 
-            // Support literalString
             if (textMap.containsKey("literalString")) {
                 return String.valueOf(textMap.get("literalString"));
             }
 
-            // Support path (data binding)
             if (textMap.containsKey("path")) {
-                // Temporarily return the path itself as a placeholder
                 return "";
             }
         }
 
-        // Direct string
         return String.valueOf(textValue);
     }
 
     /**
      * Parse input type variant.
-     * A2UI v0.9 protocol values: longText, number, shortText, obscured
      */
     private int parseVariant(String variant) {
         switch (variant.toLowerCase()) {
@@ -267,13 +345,12 @@ public class TextFieldComponent extends A2UIComponent {
             json.put("value", value);
             syncState(json.toString());
         } catch (JSONException e) {
-            Log.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
+            AGenUILogger.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
         }
     }
 
     /**
      * Apply styles (compatible with all style properties from TextComponent).
-     * Uses StyleHelper.applyTextStyles for unified text style handling.
      */
     private void applyStyles(Map<String, Object> styles) {
         if (styles == null || styles.isEmpty() || editText == null) {
@@ -282,7 +359,6 @@ public class TextFieldComponent extends A2UIComponent {
 
         editText.removeTextChangedListener(textWatcher);
 
-        // Get the current variant to determine if we are in longText mode
         String variant = properties.containsKey("variant") ?
                 String.valueOf(properties.get("variant")).toLowerCase() : "shorttext";
 
@@ -294,7 +370,6 @@ public class TextFieldComponent extends A2UIComponent {
             Object colorValue = styles.get("color");
             int color = StyleHelper.parseColor(colorValue);
             if (color != 0) {
-                // Use the same color with reduced alpha for the hint
                 editText.setHintTextColor(Color.argb(128, Color.red(color), Color.green(color), Color.blue(color)));
             } else {
                 editText.setHintTextColor(Color.GRAY);
@@ -303,80 +378,17 @@ public class TextFieldComponent extends A2UIComponent {
 
         // 3. TextField specific: handle line-clamp and text-overflow based on variant mode
         if (variant.equals("longtext")) {
-            // longText mode: support multiple lines (StyleHelper already handles line-clamp)
-            // No additional processing needed
-        } else {
-            // Other modes: force single line
+            // longText mode: support multiple lines
+        } else if (variant.equals("obscured")) {
             editText.setMaxLines(1);
             editText.setSingleLine(true);
-            // text-overflow is already handled by StyleHelper
-        }
-
-        // 4. TextField specific: apply border color
-        if (styles.containsKey("border-color") && textInputLayout != null) {
-            Object value = styles.get("border-color");
-            if (value != null) {
-                try {
-                    String colorStr = String.valueOf(value).trim();
-                    setDefaultStrokeColorOnly(Color.parseColor(colorStr));
-                } catch (Exception e) {
-                    Log.w(TAG, "Failed to parse color: " + value, e);
-                }
-            }
+            editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            editText.setTransformationMethod(PasswordTransformationMethod.getInstance());
+        } else {
+            editText.setMaxLines(1);
+            editText.setSingleLine(true);
         }
 
         editText.addTextChangedListener(textWatcher);
     }
-
-    private void validateWithRegexp(String text) {
-        if (compiledValidationPattern == null || text.isEmpty()) {
-            if (isRegexpValidationFailing) {
-                isRegexpValidationFailing = false;
-                textInputLayout.setError(null);
-                textInputLayout.setErrorEnabled(false);
-            }
-            return;
-        }
-
-        boolean matches = compiledValidationPattern.matcher(text).matches();
-
-        if (!matches) {
-            isRegexpValidationFailing = true;
-            textInputLayout.setErrorEnabled(true);
-            textInputLayout.setError(getRegexpErrorMessage());
-        } else {
-            isRegexpValidationFailing = false;
-            textInputLayout.setError(null);
-            textInputLayout.setErrorEnabled(false);
-        }
-    }
-
-    private String getRegexpErrorMessage() {
-        if (regexpErrorMessage != null) return regexpErrorMessage;
-        Map<String, String> style =
-                ComponentStyleConfig.getInstance(context).getComponentStyle("TextField");
-        String msg = style != null ? style.get("validation-error-message") : null;
-        regexpErrorMessage = msg != null ? msg : "Invalid format";
-        return regexpErrorMessage;
-    }
-
-    private void setDefaultStrokeColorOnly(int newDefaultColor) {
-
-        // getBoxStrokeColor() source directly returns focusedStrokeColor
-        int focusedColor = textInputLayout.getBoxStrokeColor();
-
-        int[][] states = new int[][]{
-                new int[]{android.R.attr.state_focused, android.R.attr.state_enabled},
-                new int[]{}  // default
-        };
-
-        int[] colors = new int[]{
-                focusedColor,   // keep the original focused color
-                newDefaultColor // only change the default color
-        };
-
-        textInputLayout.setBoxStrokeColorStateList(new ColorStateList(states, colors));
-    }
-
-
 }

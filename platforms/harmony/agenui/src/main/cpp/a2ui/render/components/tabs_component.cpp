@@ -4,6 +4,7 @@
 #include "log/a2ui_capi_log.h"
 #include "../../measure/a2ui_platform_layout_bridge.h"
 #include "../../utils/a2ui_unit_utils.h"
+#include "../../utils/a2ui_font_weight_utils.h"
 #include <cstdlib>
 
 namespace a2ui {
@@ -50,7 +51,6 @@ TabsComponent::TabsComponent(const std::string& id, const nlohmann::json& proper
     {
         A2UIColumnNode content(m_contentContainerHandle);
         content.setWidth(-1.0f);
-        content.setMargin(16.0f, 0.0f, 0.0f, 0.0f);
         content.setJustifyContent(ARKUI_FLEX_ALIGNMENT_START);
         content.setAlignItems(ARKUI_ITEM_ALIGNMENT_START);
         // Allow the content container to shrink inside constrained parents.
@@ -110,6 +110,20 @@ void TabsComponent::destroy() {
 
 bool TabsComponent::shouldAutoAddChildView() const {
     // Tabs mount children into the content container explicitly.
+    return false;
+}
+
+// ---- shouldApplyChildLayoutPosition ----
+
+bool TabsComponent::shouldApplyChildLayoutPosition(const A2UIComponent* /*child*/) const {
+    // Tabs direct children do not use the Yoga absolute y coordinate.
+    return false;
+}
+
+// ---- shouldApplyChildLayoutSize ----
+
+bool TabsComponent::shouldApplyChildLayoutSize(const A2UIComponent* /*child*/) const {
+    // Tabs direct children do not use the Yoga-computed width and height.
     return false;
 }
 
@@ -319,11 +333,27 @@ void TabsComponent::showTabContent(int index) {
     if (m_selectedIndex >= 0 && m_selectedIndex < static_cast<int>(m_children.size())) {
         A2UIComponent* newChild = m_children[m_selectedIndex];
         if (newChild && newChild->getNodeHandle()) {
+            // Reset position/height and fill parent width to avoid Yoga absolute
+            // coordinates and wrap-content width from interfering with ArkUI COLUMN layout.
+            A2UINode node(newChild->getNodeHandle());
+            node.resetPosition();
+            node.resetHeight();
+            node.setPercentWidth(1.0f);
             g_nodeAPI->addChild(m_contentContainerHandle, newChild->getNodeHandle());
         }
     }
 
     updateTabStyles();
+
+    // Notify VirtualDOM to update Tabs height (second layout pass).
+    if (m_componentRenderObservable) {
+        agenui::ComponentRenderInfo info;
+        info.surfaceId    = getSurfaceId();
+        info.componentId  = m_id;
+        info.type         = "TabsIndexChange";
+        info.selectedIndex = m_selectedIndex;
+        m_componentRenderObservable->notifyRenderFinish(info);
+    }
 
     HM_LOGI( "Showing tab %d, children=%zu",
                 index, m_children.size());
@@ -361,10 +391,10 @@ void TabsComponent::updateTabStyles() {
         readFontSize("tab-font-size-selected",  fontSizeSelected);
 
         if (tabsStyles.contains("tab-font-weight") && tabsStyles["tab-font-weight"].is_string()) {
-            fontWeightBold = (tabsStyles["tab-font-weight"].get<std::string>() == "bold");
+            fontWeightBold = (font_weight::mapStringToArkUIFontWeight(tabsStyles["tab-font-weight"].get<std::string>()) == ARKUI_FONT_WEIGHT_BOLD);
         }
         if (tabsStyles.contains("tab-font-weight-selected") && tabsStyles["tab-font-weight-selected"].is_string()) {
-            fontWeightSelectedBold = (tabsStyles["tab-font-weight-selected"].get<std::string>() == "bold");
+            fontWeightSelectedBold = (font_weight::mapStringToArkUIFontWeight(tabsStyles["tab-font-weight-selected"].get<std::string>()) == ARKUI_FONT_WEIGHT_BOLD);
         }
     }
 
@@ -389,6 +419,16 @@ void TabsComponent::updateTabStyles() {
 void TabsComponent::onChildMounted(A2UIComponent* child) {
     HM_LOGI( "child=%s, total children=%zu, expected=%zu",
                 child ? child->getId().c_str() : "null", m_children.size(), m_tabInfos.size());
+
+    // Reset position/width/height on the child's native node to prevent
+    // previously applied Yoga absolute coordinates from disrupting ArkUI COLUMN layout.
+    if (child && child->getNodeHandle()) {
+        A2UINode node(child->getNodeHandle());
+        node.resetPosition();
+        node.resetHeight();
+        node.setPercentWidth(1.0f);
+    }
+
     tryShowFirstTab();
 }
 

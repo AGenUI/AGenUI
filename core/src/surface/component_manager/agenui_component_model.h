@@ -4,14 +4,16 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <unordered_set>
 #include "surface/datamodel/agenui_data_observer.h"
 #include "data_value/agenui_data_value_base.h"
 #include "data_value/agenui_static_data_value.h"
-#include "data_value/agenui_bindable_data_value.h"
+#include "data_value/agenui_data_binding_data_value.h"
 #include "data_value/agenui_tabs_data_value.h"
 #include "data_value/agenui_styles_data_value.h"
 #include "data_value/agenui_event_action_data_value.h"
 #include "data_value/agenui_function_call_action_data_value.h"
+#include "data_value/agenui_idata_value_context.h"
 #include "surface/virtual_dom/agenui_component_snapshot.h"
 #include "surface/component_property_spec/agenui_ispec_applicable.h"
 
@@ -19,6 +21,7 @@ namespace agenui {
 
 class EventDispatcher;
 class IDataModel;
+class ISurfaceContext;
 class ComponentModel;
 
 /**
@@ -39,7 +42,7 @@ public:
     /**
      * @brief Generate a component from a template
      * @param templateId Template ID
-     * @param data Component data (must be a BindableDataValue so that the bindingPath can be extracted)
+     * @param data Component data (must be a DataBindingDataValue so that the bindingPath can be extracted)
      * @return Generated component model smart pointer
      */
     virtual std::shared_ptr<ComponentModel> generateComponentWithTemplate(const std::string& templateId, std::shared_ptr<DataValue> data) = 0;
@@ -53,17 +56,24 @@ public:
     virtual ~IComponentChangedObserver() = default;
 
     /**
-     * @brief Called when a component attribute changes
-     * @param componentId ID of the changed component
-     * @param attributeName Name of the changed attribute
-     */
-    virtual void onComponentAttributeChanged(const std::string& componentId, const std::string& attributeName) = 0;
-
-    /**
      * @brief Called when a component is deleted
      * @param componentId ID of the deleted component
      */
     virtual void onComponentDeleted(const std::string& componentId) = 0;
+
+    /**
+     * @brief Called when a component has changed and needs to be flushed.
+     *
+     * The detailed dirty state (which attributes changed, whether the change
+     * is in streaming append mode, full-snapshot vs per-attribute) is
+     * accumulated on the component itself via ComponentModel::markDirty()
+     * before this callback fires. The manager only needs to remember the
+     * component id and schedule a flush, so this callback intentionally
+     * carries no extra payload.
+     *
+     * @param componentId ID of the changed component
+     */
+    virtual void onComponentChanged(const std::string& componentId) = 0;
 };
 
 /**
@@ -84,18 +94,18 @@ public:
  * @brief Component model class
  * @remark Represents the complete information of a component, including attributes, children, and data binding paths
  */
-class ComponentModel : public IComponentAttributeDataChangedObserver, public ISpecApplicable {
+class ComponentModel : public IComponentAttributeDataChangedObserver, public ISpecApplicable, public IDataValueContext {
 public:
     /**
      * @brief Constructor
      * @param id Component ID (as defined by the a2ui protocol)
      * @param rawId Raw component ID
      * @param component Component type
-     * @param dataModel Data model pointer
+     * @param surfaceContext Surface context pointer
      * @param observer Component change observer
      * @param generator List child component generator
      */
-    ComponentModel(const std::string& id, const std::string& rawId, const std::string& component, IDataModel* dataModel, IComponentChangedObserver* observer, ITemplateComponentGenerator* generator);
+    ComponentModel(const std::string& id, const std::string& rawId, const std::string& component, ISurfaceContext* surfaceContext, IComponentChangedObserver* observer, ITemplateComponentGenerator* generator);
 
     ~ComponentModel() override;
 
@@ -193,6 +203,49 @@ public:
     const ComponentSnapshot& updateSnapshot(const std::string& attributeName);
 
     /**
+     * @brief Whether this component has any pending dirty attribute marks.
+     */
+    bool hasDirty() const { return _isDirty; }
+
+    /**
+     * @brief Flush all accumulated dirty attribute marks into the snapshot
+     *        and return the merged snapshot.
+     *
+     * Merge rules:
+     * - If a full-snapshot dirty mark exists (recorded as empty string ""),
+     *   the snapshot is rebuilt entirely and per-attribute marks are ignored.
+     * - Otherwise each dirty attribute name is applied incrementally via
+     *   updateSnapshot(attr).
+     * - appendMode is set on the snapshot only when at least one dirty mark
+     *   was recorded with appendMode = true; it is reset on the component
+     *   right after the call so subsequent flushes start clean.
+     *
+     * After this call returns, hasDirty() is false.
+     */
+    const ComponentSnapshot& flushDirty();
+
+    /**
+     * @brief Discard all pending dirty marks without producing a snapshot.
+     */
+    void clearDirty();
+
+    /**
+     * @brief Record a dirty attribute locally without notifying the observer.
+     *
+     * Public so that ComponentManager can route direct
+     * markComponentDirty calls through the same dirty-mark / flush
+     * machinery as data-binding-driven changes, ensuring all updates
+     * within a batch window are coalesced into a single virtual-DOM
+     * notification per component.
+     *
+     * - attributeName == "" marks the whole component dirty and supersedes
+     *   any previously recorded per-attribute marks.
+     * - appendMode is OR-merged: once any dirty mark in the current batch
+     *   has appendMode = true, the eventual flush will run in append mode.
+     */
+    void markDirty(const std::string& attributeName, bool appendMode);
+
+    /**
      * @brief Set the component display rule
      * @param rule Display rule
      */
@@ -244,6 +297,11 @@ public:
      */
     void executeAction(const std::string& surfaceId, agenui::EventDispatcher* dispatcher);
 
+    // IDataValueContext implementation
+    int getInstanceId() const override;
+    std::string getSurfaceId() const override;
+    IDataModel* getDataModel() const override;
+
 private:
     /**
      * @brief Attribute data binder
@@ -274,7 +332,7 @@ private:
         IComponentAttributeDataChangedObserver* _observer;
     };
 
-    void notifyComponentChange(const std::string& attributeName);
+    void notifyComponentChange(const std::string& attributeName, bool appendMode = false);
     void notifyChildComponentDelete(const std::string& childComponentId);
 
     std::string _id;
@@ -293,12 +351,28 @@ private:
     std::shared_ptr<DataValue> _templateBindingData = nullptr;
     std::vector<std::string> _templateChildrenIds;
 
-    IDataModel* _dataModel;
+    ISurfaceContext* _surfaceContext;
     IComponentChangedObserver* _observer;
     ITemplateComponentGenerator* _templateComponentGenerator;
 
     ComponentSnapshot _currentSnapshot;
     DisplayRule _displayRule = DisplayRule::Always;
+
+    // ---- Dirty tracking (batched notification) ----
+    // _isDirty: any dirty mark recorded since the last flushDirty/clearDirty
+    // _isFullDirty: a full-snapshot mark ("") has been recorded; overrides
+    //               any per-attribute marks accumulated so far
+    // _dirtyAttributes: per-attribute marks, empty when _isFullDirty is true
+    // _dirtyAppendMode: OR-merged appendMode flag across all marks
+    //
+    // Initial state: a freshly constructed component is implicitly full-dirty
+    // because nothing has been pushed to the virtual DOM yet. The owner
+    // (ComponentManager::addComponent) only needs to enqueue the id; the
+    // first flushDirty() call will rebuild the snapshot from scratch.
+    bool _isDirty = true;
+    bool _isFullDirty = true;
+    std::unordered_set<std::string> _dirtyAttributes;
+    bool _dirtyAppendMode = false;
 };
 
 }  // namespace agenui

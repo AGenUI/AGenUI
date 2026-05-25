@@ -98,5 +98,5 @@ iOSInjectionProject/
 .DS_Store
 
 # AGenUI monorepo: hard-link tree created by prepare_command during pod install
-# Same name as the repo root engine/, acts as a "mirror" in the podspec directory; should not be tracked by git
-engine/
+# Same name as the repo root core/, acts as a "mirror" in the podspec directory; should not be tracked by git
+core/

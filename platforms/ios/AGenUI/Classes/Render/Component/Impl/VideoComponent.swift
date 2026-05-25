@@ -5,13 +5,10 @@
 // Created on 2026/2/28.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
 import AVFoundation
 import AVKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// VideoComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -49,11 +46,14 @@ class VideoComponent: Component {
         self.playerViewController = playerVC
         
         // Add playerViewController.view to container
+        playerVC.view.translatesAutoresizingMaskIntoConstraints = false
         addSubview(playerVC.view)
-        
-        // Use FlexLayout for layout: full width with 16:9 aspect ratio
-        flex.width(100%).aspectRatio(16.0 / 9.0)
-        playerVC.view.flex.width(100%).height(100%)
+        NSLayoutConstraint.activate([
+            playerVC.view.topAnchor.constraint(equalTo: topAnchor),
+            playerVC.view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            playerVC.view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            playerVC.view.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
         
         // Apply initial properties
         updateProperties(properties)
@@ -138,6 +138,12 @@ class VideoComponent: Component {
         
         // Remove old notification observer (prevent observer stacking from multiple setVideoUrl calls)
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem)
+        
+        // Remove timeObserver token
+        if let timeObserver = timeObserver {
+            player?.removeTimeObserver(timeObserver)
+            self.timeObserver = nil
+        }
         
         // Create AVPlayer
         player = AVPlayer(url: url)
@@ -234,3 +240,5 @@ class VideoComponent: Component {
         return player.rate > 0
     }
 }
+
+#endif // AGENUI_SDK_BUILD

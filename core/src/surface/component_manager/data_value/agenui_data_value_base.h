@@ -6,6 +6,7 @@
 #include <map>
 #include "surface/agenui_serializable_data.h"
 #include "surface/virtual_dom/agenui_component_snapshot.h"
+#include "agenui_idata_value_context.h"
 
 namespace agenui {
 
@@ -18,10 +19,9 @@ class IDataChangedObserver;
  */
 enum class DataType {
     StaticData,                    // Static data
-    BindableData,                  // Bindable data
-    ParseableData,                 // Parseable data
-    CallableData,                  // Callable data
-    InterpolationBindableData,     // String-interpolation bindable data
+    DataBindingData,               // Data binding data
+    FunctionCallData,              // Function call data
+    InterpolationExpressionData,   // Composite of multiple interpolation expression segments
     CheckRuleData,                 // Single check rule data
     ChecksData,                    // Conditional check data
     StylesData,                    // Style data
@@ -32,7 +32,7 @@ enum class DataType {
 
 /**
  * @brief Data value interface
- * @remark Represents the data value of a component attribute; supports static, bindable, and parseable values
+ * @remark Represents the data value of a component attribute; supports static, data-binding, and parseable values
  */
 class DataValue {
 public:
@@ -76,25 +76,6 @@ public:
      */
     virtual void unbind() = 0;
 
-    /**
-     * @brief Set an extension field
-     * @param key Extension field name
-     * @param value Extension field value
-     */
-    virtual void setExtension(const std::string& key, const std::string& value);
-
-    /**
-     * @brief Get all extension fields
-     * @return Extension field map
-     */
-    virtual std::map<std::string, std::string> getExtensions() const;
-
-    /**
-     * @brief Get the value of a specific extension field
-     * @param key Extension field name
-     * @return Extension field value, or empty string if not found
-     */
-    virtual std::string getExtension(const std::string& key) const;
 
     /**
      * @brief Clone the data value for template generation
@@ -102,19 +83,18 @@ public:
      * @return Cloned data value
      * @remark Used when generating components from templates; supports path substitution
      */
-    virtual std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const = 0;
+    virtual std::shared_ptr<DataValue> cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const = 0;
 
 protected:
     /**
      * @brief Constructor
-     * @param dataModel Data model pointer
+     * @param context Data value context pointer
      */
-    explicit DataValue(IDataModel* dataModel);
+    explicit DataValue(IDataValueContext* context);
 
     DataValue();
 
-    IDataModel* _dataModel;                          // Data model pointer
-    std::map<std::string, std::string> _extensions;  // Extension field map
+    IDataValueContext* _context;                     // Data value context pointer
 };
 
 }  // namespace agenui

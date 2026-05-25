@@ -2,11 +2,12 @@
 #
 # Generate a single Xcode project for the AGenUI C++ test suite.
 #
-# Xcode is a multi-config generator, so different sanitizer modes are
-# exposed as build configurations inside the SAME project. Switch between
-# them via Edit Scheme → Run → Build Configuration:
+# Xcode is a multi-config generator, so ASan and TSan are exposed as two
+# build configurations inside the SAME project. Switch between them via
+# Edit Scheme → Run → Build Configuration:
 #
 #   Debug    → AddressSanitizer + UBSan   (default)
+#   Tsan     → ThreadSanitizer
 #   Release  → no sanitizer
 #
 # Output: tests/cpp/build/xcode/agenui_cpp_tests.xcodeproj
@@ -55,11 +56,13 @@ cat <<EOF
 
 Build configurations (switch via Edit Scheme → Run → Build Configuration):
   - Debug    AddressSanitizer + UBSan   (default)
+  - Tsan     ThreadSanitizer
   - Release  no sanitizer
 
 Schemes:
   - agenui_unit_tests           integration / unit / stress / asan
   - agenui_concurrency_tests    concurrency + chaos
+  - agenui_tsan_tests           TSan-dedicated suite (use Tsan config)
 
 CMD+R to run, CMD+Y to debug.
 EOF

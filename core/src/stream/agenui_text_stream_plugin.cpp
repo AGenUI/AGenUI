@@ -1,5 +1,5 @@
 #include "agenui_text_stream_plugin.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <sstream>
 #include "nlohmann/json.hpp"
 
@@ -590,16 +590,37 @@ void TextStreamPlugin::collectBindingPath(const std::string& componentJson) {
         return; // Not an object; likely inline string; no path to record
     }
 
-    std::string path = extractStringValue(componentJson.substr(pos), "\"path\"");
+    std::string path = extractStringValue(componentJson.substr(pos), "\"path\"", true);
     if (!path.empty()) {
         _textBindingPaths.insert(path);
     }
 }
 
-std::string TextStreamPlugin::extractStringValue(const std::string& buffer, const std::string& key) const {
+std::string TextStreamPlugin::extractStringValue(const std::string& buffer, const std::string& key, bool strictScope) const {
     size_t keyPos = buffer.find(key);
     if (keyPos == std::string::npos) {
         return "";
+    }
+
+    // When parsing the data binding of a Text component's text property, only the format
+    // `"text": {"path": "/event/date"}` should be recognized. Other formats must NOT be
+    // treated as a data binding that needs to be recorded, for example:
+    /*
+     "text": {
+       "call": "formatDate",
+       "args": { "value": { "path": "/event/date" }, "format": "yyyy/MM/dd" },
+       "returnType": "string"
+     }
+     */
+    // Detection rule: between the start of buffer and keyPos, no a-zA-Z characters are
+    // allowed; only structural characters such as `{`, `}`, whitespace, etc. should appear.
+    if (strictScope) {
+        for (size_t i = 0; i < keyPos; i++) {
+            char c = buffer[i];
+            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+                return "";
+            }
+        }
     }
 
     size_t pos = keyPos + key.length();

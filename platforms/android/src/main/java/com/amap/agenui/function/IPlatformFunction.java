@@ -20,18 +20,9 @@ interface IPlatformFunction {
     /**
      * Synchronous function call, invoked by the C++ layer via JNI.
      *
-     * @param params Parameters in JSON format
+     * @param context Call context containing instanceId and surfaceId
+     * @param params  Parameters in JSON format
      * @return Return result in JSON format
      */
-    String callSync(String params);
-
-    /**
-     * Asynchronous function call, invoked by the C++ layer via JNI.
-     *
-     * @param params      Parameters in JSON format
-     * @param callbackPtr C++ callback handle; must be returned via
-     *                    {@link com.amap.agenui.AGenUI#nativeOnAsyncCallbackResult} after execution
-     * @return Placeholder result returned immediately (usually an empty string)
-     */
-    String callAsync(String params, long callbackPtr);
+    String callSync(FunctionCallContext context, String params);
 }

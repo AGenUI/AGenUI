@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -18,19 +17,15 @@ import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.view.CustomCheckBoxView;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
-
-import com.google.android.flexbox.AlignItems;
-import com.google.android.flexbox.FlexDirection;
-import com.google.android.flexbox.FlexWrap;
-import com.google.android.flexbox.FlexboxLayout;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * ChoicePicker component implementation
@@ -58,6 +53,7 @@ import org.json.JSONObject;
 public class ChoicePickerComponent extends A2UIComponent {
 
     private static final String TAG = "ChoicePickerComponent";
+
     private LinearLayout containerLayout;
     private ViewGroup choiceContainer;
     private EditText filterEditText;
@@ -202,13 +198,14 @@ public class ChoicePickerComponent extends A2UIComponent {
         }
     }
 
+    /**
+     * Build the choice container based on displayStyle.
+     * - chips:  ChipsFlowLayout (custom row+wrap ViewGroup, no FlexboxLayout dependency)
+     * - others: vertical/horizontal LinearLayout
+     */
     private ViewGroup buildChoiceContainer(Context context) {
         if ("chips".equals(displayStyle)) {
-            FlexboxLayout fl = new FlexboxLayout(context);
-            fl.setFlexDirection(FlexDirection.ROW);
-            fl.setFlexWrap(FlexWrap.WRAP);
-            fl.setAlignItems(AlignItems.CENTER);
-            return fl;
+            return new ChipsFlowLayout(context);
         } else {
             LinearLayout ll = new LinearLayout(context);
             ll.setOrientation("horizontal".equals(orientation)
@@ -405,7 +402,8 @@ public class ChoicePickerComponent extends A2UIComponent {
         chip.setPadding(padH, padV, padH, padV);
         chip.setBackground(bg);
 
-        FlexboxLayout.LayoutParams lp = new FlexboxLayout.LayoutParams(
+        // Use MarginLayoutParams so ChipsFlowLayout can pick up gap-h / gap-v as margins
+        ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.setMarginEnd(gapH);
         lp.bottomMargin = gapV;
@@ -663,7 +661,7 @@ public class ChoicePickerComponent extends A2UIComponent {
             json.put("value", value);
             syncState(json.toString());
         } catch (JSONException e) {
-            Log.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
+            AGenUILogger.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
         }
     }
 
@@ -677,7 +675,169 @@ public class ChoicePickerComponent extends A2UIComponent {
             json.put("value", array);
             syncState(json.toString());
         } catch (JSONException e) {
-            Log.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
+            AGenUILogger.e(TAG, "sendDataChangeToNative: failed to build JSON", e);
+        }
+    }
+
+    /**
+     * Lightweight flow layout that lays children out in left-to-right rows
+     * and wraps to the next row when the next child would exceed the parent's
+     * available width. Honors per-child {@link MarginLayoutParams} margins.
+     *
+     * Replaces {@code com.google.android.flexbox.FlexboxLayout} so the project
+     * does not need to add a third-party dependency just for the chips layout.
+     */
+    private static class ChipsFlowLayout extends ViewGroup {
+        ChipsFlowLayout(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected LayoutParams generateDefaultLayoutParams() {
+            return new MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        }
+
+        @Override
+        public LayoutParams generateLayoutParams(LayoutParams p) {
+            return new MarginLayoutParams(p);
+        }
+
+        @Override
+        protected boolean checkLayoutParams(LayoutParams p) {
+            return p instanceof MarginLayoutParams;
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+            int widthMode = MeasureSpec.getMode(widthMeasureSpec);
+            int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+            int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+
+            int paddingH = getPaddingLeft() + getPaddingRight();
+            int paddingV = getPaddingTop() + getPaddingBottom();
+            int availableWidth = Math.max(0, widthSize - paddingH);
+
+            int rowWidth = 0;
+            int rowHeight = 0;
+            int totalHeight = 0;
+            int maxRowWidth = 0;
+            boolean firstChildInRow = true;
+
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                if (child.getVisibility() == GONE) continue;
+
+                MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+                measureChildWithMargins(child, widthMeasureSpec, paddingH, heightMeasureSpec, paddingV);
+                int childW = child.getMeasuredWidth() + lp.leftMargin + lp.rightMargin;
+                int childH = child.getMeasuredHeight() + lp.topMargin + lp.bottomMargin;
+
+                if (!firstChildInRow && rowWidth + childW > availableWidth) {
+                    // Wrap to next row
+                    totalHeight += rowHeight;
+                    maxRowWidth = Math.max(maxRowWidth, rowWidth);
+                    rowWidth = childW;
+                    rowHeight = childH;
+                } else {
+                    rowWidth += childW;
+                    rowHeight = Math.max(rowHeight, childH);
+                }
+                firstChildInRow = false;
+            }
+            totalHeight += rowHeight;
+            maxRowWidth = Math.max(maxRowWidth, rowWidth);
+
+            int finalWidth = (widthMode == MeasureSpec.EXACTLY)
+                    ? widthSize
+                    : Math.min(maxRowWidth + paddingH, widthSize);
+            int desiredHeight = totalHeight + paddingV;
+            int finalHeight = (heightMode == MeasureSpec.EXACTLY)
+                    ? heightSize
+                    : (heightMode == MeasureSpec.AT_MOST
+                        ? Math.min(desiredHeight, heightSize)
+                        : desiredHeight);
+
+            setMeasuredDimension(finalWidth, finalHeight);
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            int paddingLeft = getPaddingLeft();
+            int paddingTop = getPaddingTop();
+            int paddingRight = getPaddingRight();
+            int width = r - l;
+            int availableWidth = width - paddingLeft - paddingRight;
+
+            // Pass 1: group children into rows and remember each row's used width
+            // so we can horizontally center each row in pass 2.
+            int childCount = getChildCount();
+            int[] rowStartIndex = new int[childCount];
+            int[] rowChildCount = new int[childCount];
+            int[] rowWidth = new int[childCount];
+            int[] rowHeights = new int[childCount];
+            int rowCount = 0;
+            int currentRowWidth = 0;
+            int currentRowHeight = 0;
+            int currentRowStart = 0;
+            int currentRowChildren = 0;
+
+            for (int i = 0; i < childCount; i++) {
+                View child = getChildAt(i);
+                if (child.getVisibility() == GONE) continue;
+                MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+                int childTotalW = child.getMeasuredWidth() + lp.leftMargin + lp.rightMargin;
+                int childTotalH = child.getMeasuredHeight() + lp.topMargin + lp.bottomMargin;
+
+                if (currentRowChildren > 0 && currentRowWidth + childTotalW > availableWidth) {
+                    rowStartIndex[rowCount] = currentRowStart;
+                    rowChildCount[rowCount] = currentRowChildren;
+                    rowWidth[rowCount] = currentRowWidth;
+                    rowHeights[rowCount] = currentRowHeight;
+                    rowCount++;
+                    currentRowStart = i;
+                    currentRowWidth = childTotalW;
+                    currentRowHeight = childTotalH;
+                    currentRowChildren = 1;
+                } else {
+                    if (currentRowChildren == 0) {
+                        currentRowStart = i;
+                    }
+                    currentRowWidth += childTotalW;
+                    currentRowHeight = Math.max(currentRowHeight, childTotalH);
+                    currentRowChildren++;
+                }
+            }
+            if (currentRowChildren > 0) {
+                rowStartIndex[rowCount] = currentRowStart;
+                rowChildCount[rowCount] = currentRowChildren;
+                rowWidth[rowCount] = currentRowWidth;
+                rowHeights[rowCount] = currentRowHeight;
+                rowCount++;
+            }
+
+            // Pass 2: lay out each row centered horizontally inside availableWidth.
+            int currentY = paddingTop;
+            for (int row = 0; row < rowCount; row++) {
+                int rowOffset = paddingLeft + Math.max(0, (availableWidth - rowWidth[row]) / 2);
+                int currentX = rowOffset;
+
+                int start = rowStartIndex[row];
+                int end = start + rowChildCount[row];
+                for (int i = start; i < end; i++) {
+                    View child = getChildAt(i);
+                    if (child.getVisibility() == GONE) continue;
+                    MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+                    int childW = child.getMeasuredWidth();
+                    int childH = child.getMeasuredHeight();
+                    int childLeft = currentX + lp.leftMargin;
+                    int childTop = currentY + lp.topMargin;
+                    child.layout(childLeft, childTop, childLeft + childW, childTop + childH);
+                    currentX += childW + lp.leftMargin + lp.rightMargin;
+                }
+
+                currentY += rowHeights[row];
+            }
         }
     }
 }

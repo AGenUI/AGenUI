@@ -1,7 +1,7 @@
 #include "agenui_component_property_spec_manager.h"
 #include "agenui_component_spec_config.h"
 #include "agenui_ispec_applicable.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "nlohmann/json.hpp"
 #include <set>
 
@@ -116,7 +116,7 @@ bool ComponentPropertySpecManager::loadFromString(const std::string& jsonString)
 
     nlohmann::json jsonData = nlohmann::json::parse(jsonString, nullptr, false);
     if (jsonData.is_discarded()) {
-        AGENUI_LOG("failed: JSON parse error");
+        AGENUI_LOG(" failed: JSON parse error");
         return false;
     }
 
@@ -150,7 +150,7 @@ bool ComponentPropertySpecManager::loadFromString(const std::string& jsonString)
 
         parsedThemes[theme] = parseComponentSpecs(mergedConfig);
 
-        AGENUI_LOG("loaded %zu component specs for theme:%s",
+        AGENUI_LOG("loaded %zu component specs for theme=%s",
                    parsedThemes[theme].size(), theme.c_str());
         themeCount++;
     }

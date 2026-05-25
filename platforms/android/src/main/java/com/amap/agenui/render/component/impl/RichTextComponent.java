@@ -10,8 +10,8 @@ import android.os.Build;
 import android.text.Html;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
-import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -23,17 +23,16 @@ import com.squareup.picasso.Target;
 
 import java.lang.ref.WeakReference;
 import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * RichText component implementation - based on Android native Html.fromHtml() + Picasso ImageGetter
  * <p>
  * Supported properties:
  * - text:        HTML-formatted rich text content (required)
- * - fontSize:    Font size in sp (optional, default 16)
  * - variant:     Text style preset (h1, h2, h3, h4, h5, caption, body) (optional)
  * - linksEnable: Whether link clicks are enabled (default true)
- * <p>
- * Note: fontSize takes precedence over variant. If both are specified, fontSize will be used.
+ * - styles:      Style dictionary (text-align, color, etc.)
  * <p>
  * Supported HTML tags:
  * - Text style:  <b>, <strong>, <i>, <em>, <u>, <strike>, <del>
@@ -43,22 +42,6 @@ import java.util.Map;
  * - Paragraphs:  <p>, <br>, <div>
  * - Lists:       <ul>, <ol>, <li>
  * - Headings:    <h1> ~ <h6>
- * <p>
- * Usage example:
- * {
- * "id": "richtext1",
- * "component": "RichText",
- * "text": "<p>This is <b>bold</b> and <i>italic</i> text</p>",
- * "fontSize": 20
- * }
- * <p>
- * Or using a preset style:
- * {
- * "id": "richtext2",
- * "component": "RichText",
- * "text": "<p>This is heading-style text</p>",
- * "variant": "h3"
- * }
  *
  */
 public class RichTextComponent extends A2UIComponent {
@@ -67,6 +50,9 @@ public class RichTextComponent extends A2UIComponent {
 
     private Context context;
     private TextView textView;
+    private boolean currentHtmlContainsImage;
+    private final AsyncRenderSizeReporter asyncRenderSizeReporter =
+            createAsyncRenderSizeReporter("RichText", TAG);
 
     public RichTextComponent(Context context, String id, Map<String, Object> properties) {
         super(id, "RichText");
@@ -89,6 +75,8 @@ public class RichTextComponent extends A2UIComponent {
         // Set default text size and color
         textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         textView.setTextColor(Color.BLACK);
+        asyncRenderSizeReporter.bind(textView);
+        asyncRenderSizeReporter.setEnabled(false);
 
         // Apply initial properties
         onUpdateProperties(this.properties);
@@ -102,32 +90,36 @@ public class RichTextComponent extends A2UIComponent {
             return;
         }
 
-        // Handle font size (priority: styles.fontSize > variant > default)
-        Float fontSize = null;
-
-        // Read fontSize from styles
+        // Handle text-align and color from styles
         if (properties.containsKey("styles")) {
             Object stylesValue = properties.get("styles");
             if (stylesValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> styles = (Map<String, Object>) stylesValue;
-                if (styles.containsKey("fontSize")) {
-                    Object fontSizeValue = styles.get("fontSize");
-                    if (fontSizeValue instanceof Number) {
-                        fontSize = ((Number) fontSizeValue).floatValue();
-                    } else {
-                        try {
-                            fontSize = Float.parseFloat(String.valueOf(fontSizeValue));
-                        } catch (NumberFormatException e) {
-                            Log.w(TAG, "⚠️ [FONT_SIZE] Invalid fontSize value: " + fontSizeValue);
-                        }
+                
+                // Handle text-align
+                if (styles.containsKey("text-align")) {
+                    String textAlign = String.valueOf(styles.get("text-align")).toLowerCase().trim();
+                    int gravity = parseTextAlign(textAlign);
+                    if (gravity != -1) {
+                        textView.setGravity(gravity);
                     }
                 }
-            }
-        }
+                
+                // Handle color
+                if (styles.containsKey("color")) {
+                    Object colorValue = styles.get("color");
+                    int color = StyleHelper.parseColor(colorValue);
+                    if (color != 0) {
+                        textView.setTextColor(color);
+                    } else {
+                        textView.setTextColor(Color.BLACK);
+                    }
+                }
 
-        if (fontSize != null) {
-            textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, StyleHelper.standardUnitToPx(context, fontSize));
+                // filter: drop-shadow is handled by the base class via
+                // StyleHelper.applyFilter (component-level shadow using elevation).
+            }
         }
 
         // Handle link click setting (must be set before setting content)
@@ -149,8 +141,10 @@ public class RichTextComponent extends A2UIComponent {
 
             if (htmlContent != null && !htmlContent.isEmpty()) {
                 setHtmlContent(htmlContent);
-                Log.d(TAG, "📝 [CONTENT_SET] RichText " + getId() +
-                        " content set, length: " + htmlContent.length());
+                if (AGenUILogger.isLoggingEnabled()) {
+                    AGenUILogger.d(TAG, "📝 [CONTENT_SET] RichText " + getId() +
+                            " content set, length: " + htmlContent.length());
+                }
             }
         }
     }
@@ -162,9 +156,11 @@ public class RichTextComponent extends A2UIComponent {
         if (textView == null || htmlContent == null) {
             return;
         }
+        currentHtmlContainsImage = htmlContent.toLowerCase().contains("<img");
+        asyncRenderSizeReporter.setEnabled(currentHtmlContainsImage);
 
         // Use custom ImageGetter to load images
-        PicassoImageGetter imageGetter = new PicassoImageGetter(textView, context);
+        PicassoImageGetter imageGetter = new PicassoImageGetter(textView, context, this::reportRichTextRenderSizeIfNeeded);
 
         // Parse HTML
         Spanned spanned;
@@ -175,6 +171,9 @@ public class RichTextComponent extends A2UIComponent {
         }
 
         textView.setText(spanned);
+        if (currentHtmlContainsImage) {
+            asyncRenderSizeReporter.request();
+        }
     }
 
     /**
@@ -201,6 +200,36 @@ public class RichTextComponent extends A2UIComponent {
     }
 
     /**
+     * Parse text-align value to Gravity
+     * Supports: left, center, right, start, end
+     * @param textAlign Alignment string
+     * @return Gravity value, or -1 if parsing fails
+     */
+    private int parseTextAlign(String textAlign) {
+        if (textAlign == null || textAlign.isEmpty()) {
+            return -1;
+        }
+
+        String[] parts = textAlign.toLowerCase().trim().split("\\s+");
+        int horizontal = Gravity.START;
+
+        // Parse horizontal alignment
+        String h = parts[0];
+        if (h.equals("left") || h.equals("start")) {
+            horizontal = Gravity.START;
+        } else if (h.equals("center")) {
+            horizontal = Gravity.CENTER_HORIZONTAL;
+        } else if (h.equals("right") || h.equals("end")) {
+            horizontal = Gravity.END;
+        } else {
+            return -1;  // Invalid value
+        }
+
+        // Combine with default vertical center
+        return horizontal | Gravity.CENTER_VERTICAL;
+    }
+
+    /**
      * Set HTML content (public method, callable externally)
      *
      * @param htmlContent HTML-formatted content
@@ -218,8 +247,10 @@ public class RichTextComponent extends A2UIComponent {
                 @Override
                 public void run() {
                     setHtmlContent(finalContent);
-                    Log.d(TAG, "📝 [CONTENT_SET_API] RichText " + getId() +
-                            " content set, length: " + finalContent.length());
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.d(TAG, "📝 [CONTENT_SET_API] RichText " + getId() +
+                                " content set, length: " + finalContent.length());
+                    }
                 }
             });
         }
@@ -239,7 +270,15 @@ public class RichTextComponent extends A2UIComponent {
 
     @Override
     protected void onDestroy() {
+        asyncRenderSizeReporter.unbind();
         textView = null;
+    }
+
+    private void reportRichTextRenderSizeIfNeeded() {
+        if (textView == null || !currentHtmlContainsImage) {
+            return;
+        }
+        asyncRenderSizeReporter.request();
     }
 
     /**
@@ -249,10 +288,12 @@ public class RichTextComponent extends A2UIComponent {
 
         private final WeakReference<TextView> textViewRef;
         private final Context context;
+        private final Runnable onImageLoaded;
 
-        public PicassoImageGetter(TextView textView, Context context) {
+        public PicassoImageGetter(TextView textView, Context context, Runnable onImageLoaded) {
             this.textViewRef = new WeakReference<>(textView);
             this.context = context;
+            this.onImageLoaded = onImageLoaded;
         }
 
         @Override
@@ -263,7 +304,7 @@ public class RichTextComponent extends A2UIComponent {
             // Load image asynchronously using Picasso
             Picasso.get()
                     .load(source)
-                    .into(new ImageTarget(urlDrawable, textViewRef));
+                    .into(new ImageTarget(urlDrawable, textViewRef, onImageLoaded));
 
             return urlDrawable;
         }
@@ -300,10 +341,14 @@ public class RichTextComponent extends A2UIComponent {
 
         private final UrlDrawable urlDrawable;
         private final WeakReference<TextView> textViewRef;
+        private final Runnable onImageLoaded;
 
-        public ImageTarget(UrlDrawable urlDrawable, WeakReference<TextView> textViewRef) {
+        public ImageTarget(UrlDrawable urlDrawable,
+                           WeakReference<TextView> textViewRef,
+                           Runnable onImageLoaded) {
             this.urlDrawable = urlDrawable;
             this.textViewRef = textViewRef;
+            this.onImageLoaded = onImageLoaded;
         }
 
         @Override
@@ -339,11 +384,14 @@ public class RichTextComponent extends A2UIComponent {
             // Refresh TextView
             textView.setText(textView.getText());
             textView.invalidate();
+            if (onImageLoaded != null) {
+                onImageLoaded.run();
+            }
         }
 
         @Override
         public void onBitmapFailed(Exception e, Drawable errorDrawable) {
-            Log.e(TAG, "Image load failed: " + e.getMessage());
+            AGenUILogger.e(TAG, "Image load failed: " + e.getMessage());
         }
 
         @Override

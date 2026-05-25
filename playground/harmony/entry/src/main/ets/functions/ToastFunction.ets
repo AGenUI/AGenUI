@@ -1,6 +1,6 @@
 import { promptAction } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { IFunctionCall, FunctionConfig, FunctionResult } from '@agenui/agenui';
+import { IFunctionCall, FunctionCallContext, FunctionConfig, FunctionResult } from '@agenui/agenui';
 
 /**
  * App-side Toast function implementation.
@@ -15,7 +15,7 @@ export class ToastFunction implements IFunctionCall {
     this.config.name = 'toast';
   }
 
-  execute(paramsJson: string): FunctionResult {
+  execute(_context: FunctionCallContext, paramsJson: string): FunctionResult {
     try {
       const args = JSON.parse(paramsJson) as Record<string, Object>;
 

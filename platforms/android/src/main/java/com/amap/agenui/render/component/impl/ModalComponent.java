@@ -6,7 +6,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.drawable.ColorDrawable;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +20,7 @@ import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.A2UILayoutComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.Map;
 
@@ -109,7 +109,7 @@ public class ModalComponent extends A2UILayoutComponent {
     private void loadStyleConfig(Context context) {
         try {
             // Get Modal style configuration
-            Map<String, String> modalStyle = ComponentStyleConfig.getInstance(context).getModalStyle();
+            Map<String, String> modalStyle = ComponentStyleConfig.getInstance(context).getComponentStyle("Modal");
 
             // Parse style properties
             showCloseButton = parseBoolean(modalStyle.get("show-close-button"), true);
@@ -122,12 +122,14 @@ public class ModalComponent extends A2UILayoutComponent {
                 overlayColor = Color.parseColor("#80000000");
             }
 
-            Log.d(TAG, "Style config loaded: showCloseButton=" + showCloseButton +
-                    ", closeButtonMargin=" + closeButtonMargin +
-                    ", closeButtonSize=" + closeButtonSize +
-                    ", overlayColor=#" + Integer.toHexString(overlayColor));
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Style config loaded: showCloseButton=" + showCloseButton +
+                        ", closeButtonMargin=" + closeButtonMargin +
+                        ", closeButtonSize=" + closeButtonSize +
+                        ", overlayColor=#" + Integer.toHexString(overlayColor));
+            }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to load style config, using defaults", e);
+            AGenUILogger.e(TAG, "Failed to load style config, using defaults", e);
         }
     }
 
@@ -234,7 +236,9 @@ public class ModalComponent extends A2UILayoutComponent {
             // Add the close button to the modal container (below the white container)
             modalContainer.addView(closeButton);
 
-            Log.d(TAG, "Close button added below content: size=" + closeButtonSize + ", margin=" + closeButtonMargin);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Close button added below content: size=" + closeButtonSize + ", margin=" + closeButtonMargin);
+            }
         }
 
         // Set a click listener on rootLayout to close the dialog when the overlay is tapped
@@ -264,7 +268,9 @@ public class ModalComponent extends A2UILayoutComponent {
                     ViewGroup.LayoutParams.MATCH_PARENT
             );
 
-            Log.d(TAG, "Dialog window configured with overlay color: #" + Integer.toHexString(overlayColor));
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Dialog window configured with overlay color: #" + Integer.toHexString(overlayColor));
+            }
         }
 
         // Default cancelable (allow back key to close)
@@ -274,7 +280,7 @@ public class ModalComponent extends A2UILayoutComponent {
         if (context instanceof Activity) {
             Activity activity = (Activity) context;
             if (activity.isFinishing() || activity.isDestroyed()) {
-                Log.w(TAG, "showDialog: Activity is finishing or destroyed, skipping");
+                AGenUILogger.w(TAG, "showDialog: Activity is finishing or destroyed, skipping");
                 return;
             }
         }
@@ -282,7 +288,7 @@ public class ModalComponent extends A2UILayoutComponent {
         // Show the dialog
         dialog.show();
 
-        Log.d(TAG, "Dialog shown with floating close button");
+        AGenUILogger.d(TAG, "Dialog shown with floating close button");
     }
 
     /**
@@ -303,7 +309,7 @@ public class ModalComponent extends A2UILayoutComponent {
         super.addChild(child);
         if (child != null) {
             // Reset LayoutParams to FrameLayout.LayoutParams
-            // to avoid ClassCastException when they are later set to FlexboxLayout.LayoutParams
+            // so the modal host always owns child layout params explicitly
             if (child.getView() != null) {
                 ViewGroup.LayoutParams params = child.getView().getLayoutParams();
                 if (params != null && !(params instanceof FrameLayout.LayoutParams)) {
@@ -322,7 +328,9 @@ public class ModalComponent extends A2UILayoutComponent {
                         );
                     }
                     child.getView().setLayoutParams(frameParams);
-                    Log.d(TAG, "Reset LayoutParams to FrameLayout.LayoutParams for child: " + child.getId());
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.d(TAG, "Reset LayoutParams to FrameLayout.LayoutParams for child: " + child.getId());
+                    }
                 }
             }
 
@@ -343,47 +351,30 @@ public class ModalComponent extends A2UILayoutComponent {
      * @param child the child component
      */
     public void onChildViewCreated(A2UIComponent child) {
-        Log.d(TAG, "========== onChildViewCreated ==========");
-        Log.d(TAG, "child=" + child.getId() + ", type=" + child.getComponentType());
-
         if (child == triggerComponent) {
-            // The trigger button's View has been created; add it to the container and set up the click event
-            Log.d(TAG, "→ Trigger component view created");
-
             if (containerLayout != null && child.getView() != null) {
                 View triggerView = child.getView();
 
-                // If the view already has a parent, remove it first
                 if (triggerView.getParent() != null) {
-                    Log.d(TAG, "  Removing trigger view from old parent");
                     ((ViewGroup) triggerView.getParent()).removeView(triggerView);
                 }
 
-                Log.d(TAG, "  Adding trigger view to container");
                 containerLayout.addView(triggerView);
-                Log.d(TAG, "  ✓ Trigger view added, container child count=" + containerLayout.getChildCount());
 
-                // Set click event
                 triggerView.setOnClickListener(v -> {
-                    Log.d(TAG, "Trigger button clicked, showing dialog");
                     if (cachedContext != null) {
                         showDialog(cachedContext);
                     } else {
-                        Log.e(TAG, "❌ Context is null, cannot show dialog");
+                        AGenUILogger.e(TAG, "Context is null, cannot show dialog");
                     }
                 });
-                Log.d(TAG, "  ✓ Click listener set");
             } else {
-                Log.w(TAG, "  ⚠ Cannot add trigger view: containerLayout=" +
-                      (containerLayout != null) + ", triggerView=" + (child.getView() != null));
+                if (AGenUILogger.isLoggingEnabled()) {
+                    AGenUILogger.w(TAG, "Cannot add trigger view: containerLayout=" +
+                          (containerLayout != null) + ", triggerView=" + (child.getView() != null));
+                }
             }
-        } else if (child == contentComponent) {
-            // The content component's View has been created
-            Log.d(TAG, "→ Content component view created");
-            Log.d(TAG, "  Content will be shown in dialog when triggered");
         }
-
-        Log.d(TAG, "========== onChildViewCreated END ==========");
     }
 
     /**

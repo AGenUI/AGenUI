@@ -19,12 +19,6 @@ public:
     virtual void onCreateSurface(const CreateSurfaceMessage& msg) {};
     
     /**
-     * @brief Handles the UpdateComponents event
-     * @param msg UpdateComponents message
-     */
-    virtual void onUpdateComponents(const UpdateComponentsMessage& msg) {};
-    
-    /**
      * @brief Handles the DeleteSurface event
      * @param msg DeleteSurface message
      */
@@ -50,17 +44,18 @@ public:
      * @param msg List of ComponentsRemove messages
      */
     virtual void onComponentsRemove(const std::string& surfaceId, const std::vector<ComponentsRemoveMessage>& msg) {};
-    /**
-     * @brief Implementation of interaction status, such as start, transfer content, end, etc.
-     * @param eventType Event type
-     * @param content Event content
-     */
-    virtual void onInteractionStatusEvent(int32_t eventType, const std::string &content) {};
+
     /**
      * @brief After the renderer triggers an action, forwards the action event to other observers
      * @param content actionEvent configuration content (data binding already resolved)
      */
     virtual void onActionEventRouted(const std::string &content) {};
+
+    /**
+     * @brief Handles execution error events from the C++ core
+     * @param msg Error message containing code, surfaceId, and description
+     */
+    virtual void onError(const ErrorMessage& msg) {};
 };
 
 }  // namespace agenui

@@ -27,19 +27,6 @@ FunctionCallConfig OrFunctionCall::getConfig() const {
     config.setName("or");
     config.setDescription("Returns true if any value is true; short-circuits on first true.");
     config.setReturnType("boolean");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"values", {
-                {"type", "array"},
-                {"items", {{"type", "DynamicBoolean"}}},
-                {"description", "Array of boolean values to evaluate."}
-            }}
-        }},
-        {"required", nlohmann::json::array({"values"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

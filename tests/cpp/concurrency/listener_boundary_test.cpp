@@ -67,9 +67,139 @@ TEST(ListenerBoundaryTest, LB002_AddTwiceRemoveOnce_StillFires) {
     sm->removeSurfaceEventListener(&listener);
 }
 
-// LB003: remove listener mid-stream (between two chunks). The dispatch
+// LB003: a listener removes ANOTHER listener mid-dispatch.
+//
+// **DISABLED — surfaces a known engine bug.**
+//
+// `EventDispatcher::dispatch*()` iterates `_listeners` with a range-based
+// for loop while holding a `std::mutex`. The mutex is NOT recursive (see
+// `agenui_event_dispatcher.cpp`); on top of that, the loop reads through
+// the live container, so when one listener's callback calls
+// `removeEventListener(other)`, std::vector::erase invalidates the
+// loop's cached `end()`, causing the next iteration to read past the
+// (now shorter) buffer. AddressSanitizer flags this as a container-
+// overflow at agenui_event_dispatcher.cpp:38.
+//
+// Fix in the engine should snapshot `_listeners` at the start of each
+// dispatch and release the lock before invoking callbacks:
+//
+//     std::vector<IAGenUIMessageListener*> snapshot;
+//     {
+//         std::lock_guard<std::mutex> g(_mutex);
+//         snapshot = _listeners;          // copy under lock
+//     }
+//     for (auto* listener : snapshot) {   // iterate the snapshot
+//         if (listener) listener->onCreateSurface(msg);
+//     }
+//
+// To enable this regression test once the engine is fixed, drop the
+// `DISABLED_` prefix. Run it explicitly via:
+//   ./build/host/agenui_concurrency_tests \
+//       --gtest_also_run_disabled_tests \
+//       --gtest_filter='ListenerBoundaryTest.DISABLED_LB003*'
+namespace {
+class RemoverListener : public ::agenui::testing::MockMessageListener {
+public:
+    ::agenui::ISurfaceManager* sm = nullptr;
+    ::agenui::IAGenUIMessageListener* target = nullptr;
+    void onCreateSurface(const ::agenui::CreateSurfaceMessage& m) override {
+        ::agenui::testing::MockMessageListener::onCreateSurface(m);
+        if (sm && target) sm->removeSurfaceEventListener(target);
+    }
+};
+}  // namespace
+
+TEST(ListenerBoundaryTest, DISABLED_LB003_ListenerRemovesOther_EngineBugIteratorInvalidation) {
+    ::agenui::testing::ScopedSurfaceManager sm;
+    ASSERT_TRUE(sm);
+
+    ::agenui::testing::MockMessageListener other;
+    RemoverListener remover;
+    remover.sm = sm.get();
+    remover.target = &other;
+
+    sm->addSurfaceEventListener(&remover);
+    sm->addSurfaceEventListener(&other);
+    ::agenui::testing::WaitForWorkerIdle();
+
+    auto proto = ::agenui::testing::LoadFixtureOrEmpty(
+        "protocol/create_surface.json");
+    sm->beginTextStream();
+    sm->receiveTextChunk(proto);
+    sm->endTextStream();
+    ::agenui::testing::WaitForWorkerIdle();
+
+    EXPECT_EQ(remover.createSurfaceCalls.size(), 1u);
+    // Whether `other` saw the event depends on iteration order, but the
+    // suite must not deadlock or crash.
+    sm->removeSurfaceEventListener(&remover);
+    sm->removeSurfaceEventListener(&other);
+}
+
+// LB004: a listener adds ANOTHER listener mid-dispatch. The new one must
+// not be invoked for the in-flight event but is registered for future ones.
+//
+// **DISABLED — surfaces a known engine bug (deadlock).**
+//
+// `EventDispatcher::dispatch*()` holds a non-recursive `std::mutex` while
+// invoking each listener (`agenui_event_dispatcher.cpp:37` etc.). When a
+// listener's `onCreateSurface` callback calls back into
+// `addSurfaceEventListener` -> `EventDispatcher::addEventListener`
+// (`agenui_event_dispatcher.cpp:11`), the same thread tries to acquire
+// the same non-recursive mutex a second time and self-deadlocks. The
+// worker thread blocks forever on its own mutex, so the test process
+// hangs and never returns to gtest.
+//
+// The same root cause covers LB003 (remove during dispatch) — dispatch
+// must not hold the listener mutex across user callbacks at all. The
+// engine fix is the snapshot-and-release pattern documented above LB003.
+//
+// To enable this regression test once the engine is fixed, drop the
+// `DISABLED_` prefix. Run it explicitly via:
+//   ./build/host/agenui_concurrency_tests \
+//       --gtest_also_run_disabled_tests \
+//       --gtest_filter='ListenerBoundaryTest.DISABLED_LB004*'
+namespace {
+class AdderListener : public ::agenui::testing::MockMessageListener {
+public:
+    ::agenui::ISurfaceManager* sm = nullptr;
+    ::agenui::IAGenUIMessageListener* toAdd = nullptr;
+    void onCreateSurface(const ::agenui::CreateSurfaceMessage& m) override {
+        ::agenui::testing::MockMessageListener::onCreateSurface(m);
+        if (sm && toAdd && createSurfaceCalls.size() == 1) {
+            sm->addSurfaceEventListener(toAdd);
+        }
+    }
+};
+}  // namespace
+
+TEST(ListenerBoundaryTest, DISABLED_LB004_ListenerAddsOther_EngineBugNonRecursiveMutexDeadlock) {
+    ::agenui::testing::ScopedSurfaceManager sm;
+    ASSERT_TRUE(sm);
+
+    ::agenui::testing::MockMessageListener freshListener;
+    AdderListener adder;
+    adder.sm = sm.get();
+    adder.toAdd = &freshListener;
+
+    sm->addSurfaceEventListener(&adder);
+    ::agenui::testing::WaitForWorkerIdle();
+
+    auto proto = ::agenui::testing::LoadFixtureOrEmpty(
+        "protocol/create_surface.json");
+    sm->beginTextStream();
+    sm->receiveTextChunk(proto);
+    sm->endTextStream();
+    ::agenui::testing::WaitForWorkerIdle();
+
+    EXPECT_EQ(adder.createSurfaceCalls.size(), 1u);
+    sm->removeSurfaceEventListener(&adder);
+    sm->removeSurfaceEventListener(&freshListener);
+}
+
+// LB005: remove listener mid-stream (between two chunks). The dispatch
 // for the post-removal envelope must not invoke the listener.
-TEST(ListenerBoundaryTest, LB003_RemoveListenerMidStream_NoCallbackAfter) {
+TEST(ListenerBoundaryTest, LB005_RemoveListenerMidStream_NoCallbackAfter) {
     auto* engine = ::agenui::testing::GetEngine();
     ASSERT_NE(engine, nullptr);
 
@@ -95,9 +225,9 @@ TEST(ListenerBoundaryTest, LB003_RemoveListenerMidStream_NoCallbackAfter) {
     ::agenui::testing::WaitForWorkerIdle();
 }
 
-// LB004: mass register / mass remove. Final state has zero registered
+// LB006: mass register / mass remove. Final state has zero registered
 // listeners; subsequent dispatch must not fire any.
-TEST(ListenerBoundaryTest, LB004_MassAddRemove_FinalStateClean) {
+TEST(ListenerBoundaryTest, LB006_MassAddRemove_FinalStateClean) {
     ::agenui::testing::ScopedSurfaceManager sm;
     ASSERT_TRUE(sm);
 
@@ -119,8 +249,8 @@ TEST(ListenerBoundaryTest, LB004_MassAddRemove_FinalStateClean) {
     }
 }
 
-// LB005: 3 listeners, remove the middle one. The other two still fire.
-TEST(ListenerBoundaryTest, LB005_RemoveMiddleListener_NeighborsStillFire) {
+// LB007: 3 listeners, remove the middle one. The other two still fire.
+TEST(ListenerBoundaryTest, LB007_RemoveMiddleListener_NeighborsStillFire) {
     ::agenui::testing::ScopedSurfaceManager sm;
     ASSERT_TRUE(sm);
     ::agenui::testing::MockMessageListener a, b, c;
@@ -145,9 +275,9 @@ TEST(ListenerBoundaryTest, LB005_RemoveMiddleListener_NeighborsStillFire) {
     sm->removeSurfaceEventListener(&c);
 }
 
-// LB006: listener added BEFORE init() runs (cached path), removed AFTER
+// LB008: listener added BEFORE init() runs (cached path), removed AFTER
 // init runs. Must NOT receive subsequent events.
-TEST(ListenerBoundaryTest, LB006_AddBeforeInit_RemoveAfterInit) {
+TEST(ListenerBoundaryTest, LB008_AddBeforeInit_RemoveAfterInit) {
     auto* engine = ::agenui::testing::GetEngine();
     ASSERT_NE(engine, nullptr);
 
@@ -173,9 +303,9 @@ TEST(ListenerBoundaryTest, LB006_AddBeforeInit_RemoveAfterInit) {
     ::agenui::testing::WaitForWorkerIdle();
 }
 
-// LB007: listener added AND removed BEFORE init() runs. Cached listener
+// LB009: listener added AND removed BEFORE init() runs. Cached listener
 // vector must be drained, listener gets nothing.
-TEST(ListenerBoundaryTest, LB007_AddAndRemoveBeforeInit_NoFire) {
+TEST(ListenerBoundaryTest, LB009_AddAndRemoveBeforeInit_NoFire) {
     auto* engine = ::agenui::testing::GetEngine();
     ASSERT_NE(engine, nullptr);
 
@@ -199,7 +329,7 @@ TEST(ListenerBoundaryTest, LB007_AddAndRemoveBeforeInit_NoFire) {
     ::agenui::testing::WaitForWorkerIdle();
 }
 
-// LB008: a listener that re-enters the SDK (calls submitUIAction) inside
+// LB010: a listener that re-enters the SDK (calls submitUIAction) inside
 // its callback. Must not deadlock — submit posts to worker, which is
 // already executing the dispatch.
 namespace {
@@ -218,7 +348,7 @@ public:
 };
 }  // namespace
 
-TEST(ListenerBoundaryTest, LB008_ListenerReentersSDK_NoDeadlock) {
+TEST(ListenerBoundaryTest, LB010_ListenerReentersSDK_NoDeadlock) {
     ::agenui::testing::ScopedSurfaceManager sm;
     ASSERT_TRUE(sm);
     ReentrantListener rl;

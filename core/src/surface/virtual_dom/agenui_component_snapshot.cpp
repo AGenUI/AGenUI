@@ -1,5 +1,5 @@
 #include "agenui_component_snapshot.h"
-#include "agenui_css_style_converter.h"
+#include "surface/yoga_node/agenui_css_style_converter.h"
 #include "surface/agenui_serializable_data_impl.h"
 
 namespace agenui {
@@ -46,7 +46,6 @@ std::string ComponentSnapshot::stringify() const {
             }
             stylesImpl->set(style.first, style.second);
         }
-#if defined(__OHOS__)
         // Include Yoga layout results in styles
         stylesImpl->set("x", layout.x);
         stylesImpl->set("y", layout.y);
@@ -60,11 +59,9 @@ std::string ComponentSnapshot::stringify() const {
         if (!layout.styleInfo.empty()) {
             stylesImpl->set("styleInfo", layout.styleInfo);
         }
-#endif
         dataImpl->set("styles", SerializableData(stylesImpl));
     }
-    
-#if !defined(TEST_COMPONENT_UPDATE)
+
     if (!children.empty()) {
         auto childrenImpl = SerializableData::Impl::createArray();
         for (const auto& child : children) {
@@ -72,8 +69,7 @@ std::string ComponentSnapshot::stringify() const {
         }
         dataImpl->set("children", SerializableData(childrenImpl));
     }
-#endif
-    
+
     return SerializableData(dataImpl).dump();
 }
 

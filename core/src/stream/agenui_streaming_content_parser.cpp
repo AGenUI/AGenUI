@@ -1,5 +1,5 @@
 #include "agenui_streaming_content_parser.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <cstring>
 #include "nlohmann/json.hpp"
 #include "module/agenui_thread_manager.h"
@@ -33,26 +33,97 @@ namespace agenui {
     }
 
     void StreamingContentParser::processDataBeginning() {
+        AGENUI_LOG("processing begin");
         resetState();
+
+        AGENUI_PERFORMANCE_LOG("stream_begin", "");
     }
 
     void StreamingContentParser::processDataAssembling(const std::string& data) {
+        AGENUI_PERFORMANCE_LOG("stream_assembling_begin", "");
+        AGENUI_LOG("%s", data.c_str());
         _extractor.appendData(data);
         auto results = _extractor.driveParser();
-        dispatchParseResults(results);
+        dispatchParseResultsBatched(results);
+
+        AGENUI_PERFORMANCE_LOG("stream_assembling_end", "");
     }
 
     void StreamingContentParser::processDataEnding() {
+        AGENUI_LOG("processing end");
         resetState();
+        
+        AGENUI_PERFORMANCE_LOG("stream_end", "");
     }
 
-    void StreamingContentParser::dispatchParseResults(const std::vector<ProtocolStreamExtractor::ParseResult>& results) {
-        for (const auto& result : results) {
-            if (result.type == ProtocolStreamExtractor::ParseResult::Type::NormalEvent) {
-                processNormalEvent(result);
-            } else {
-                sendSingleComponentUpdate(result.componentJson, result.surfaceId, result.version);
+    void StreamingContentParser::dispatchParseResultsBatched(const std::vector<ProtocolStreamExtractor::ParseResult>& results) {
+        // Find component protocols sharing the same surfaceId from streaming parse results,
+        // merge them into a single batch for component parsing, layout calculation, etc.
+        // This reduces overhead of protocol component parsing, JSON deserialization and layout computation.
+        size_t resultCursor = 0;
+        const size_t resultCount = results.size();
+        while (resultCursor < resultCount) {
+            const auto& head = results[resultCursor];
+            if (head.type == ProtocolStreamExtractor::ParseResult::Type::NormalEvent) {
+                processNormalEvent(head);
+                ++resultCursor;
+                continue;
             }
+            // Collect contiguous ComponentUpdate results with the same surfaceId into one batch.
+            // (Logically allows receiving and parsing two updateComponents events with different surfaceIds.)
+            size_t batchIndex = resultCursor + 1;
+            while (batchIndex < resultCount) {
+                const auto& cur = results[batchIndex];
+                if (cur.type != ProtocolStreamExtractor::ParseResult::Type::ComponentUpdate) {
+                    break;
+                }
+                if (cur.surfaceId != head.surfaceId) {
+                    break;
+                }
+                ++batchIndex;
+            }
+            if (batchIndex - resultCursor == 1) {
+                // Fast path: keep behavior identical to legacy single-component path.
+                const auto& singleContent = results[resultCursor];
+                sendSingleComponentUpdate(singleContent.componentJson, singleContent.surfaceId, singleContent.version);
+            } else {
+                sendBatchedComponentUpdate(results, resultCursor, batchIndex);
+            }
+            resultCursor = batchIndex;
+        }
+    }
+
+    void StreamingContentParser::sendBatchedComponentUpdate(
+        const std::vector<ProtocolStreamExtractor::ParseResult>& results,
+        size_t start, size_t end) {
+        if (!_coordinator || start >= end) {
+            return;
+        }
+        const auto& first = results[start];
+        std::string updateJson;
+        // Pre-reserve a reasonable capacity; component JSONs can be large.
+        size_t reserveBytes = 64 + first.surfaceId.size() + first.version.size();
+        for (size_t cursor = start; cursor < end; ++cursor) {
+            reserveBytes += results[cursor].componentJson.size() + 2;
+        }
+        updateJson.reserve(reserveBytes);
+        updateJson += "{";
+        if (!first.version.empty()) {
+            updateJson += "\"version\":\"";
+            updateJson += first.version;
+            updateJson += "\",";
+        }
+        updateJson += "\"updateComponents\":{\"surfaceId\":\"";
+        updateJson += first.surfaceId;
+        updateJson += "\",\"components\":[";
+        for (size_t k = start; k < end; ++k) {
+            if (k > start) updateJson += ",";
+            updateJson += results[k].componentJson;
+        }
+        updateJson += "]}}";
+        AGenUIExeCode ret = _coordinator->updateComponents(updateJson);
+        if (ret != Execute_Success) {
+            AGENUI_LOG("ret:%s, batch:%zu", getExeCodeString(ret).c_str(), end - start);
         }
     }
 
@@ -61,15 +132,19 @@ namespace agenui {
             return;
         }
 
+        AGenUIExeCode ret = Execute_Success;
         const std::string& data = result.eventJson;
         if (result.eventType == ProtocolStreamExtractor::EventType::CreateSurface) {
-            _coordinator->createSurface(data);
+            ret = _coordinator->createSurface(data);
         } else if (result.eventType == ProtocolStreamExtractor::EventType::UpdateDataModel) {
-            _coordinator->updateDataModel(data);
+            ret = _coordinator->updateDataModel(data);
         } else if (result.eventType == ProtocolStreamExtractor::EventType::AppendDataModel) {
-            _coordinator->appendDataModel(data);
+            ret = _coordinator->appendDataModel(data);
         } else if (result.eventType == ProtocolStreamExtractor::EventType::DeleteSurface) {
-            _coordinator->deleteSurface(data);
+            ret = _coordinator->deleteSurface(data);
+        }
+        if (ret != Execute_Success) {
+            AGENUI_LOG("ret:%s, type:%d, data:%s", getExeCodeString(ret).c_str(), result.eventType, data.c_str());
         }
     }
 
@@ -78,15 +153,23 @@ namespace agenui {
             return;
         }
 
-        std::string updateJson = "{";
+        std::string updateJson;
+        updateJson.reserve(64 + surfaceId.size() + version.size() + componentJson.size());
+        updateJson += "{";
         if (!version.empty()) {
-            updateJson += "\"version\":\"" + version + "\",";
+            updateJson += "\"version\":\"";
+            updateJson += version;
+            updateJson += "\",";
         }
-        updateJson += "\"updateComponents\":{";
-        updateJson += "\"surfaceId\":\"" + surfaceId + "\",";
-        updateJson += "\"components\":[" + componentJson + "]";
-        updateJson += "}}";
-        _coordinator->updateComponents(updateJson);
+        updateJson += "\"updateComponents\":{\"surfaceId\":\"";
+        updateJson += surfaceId;
+        updateJson += "\",\"components\":[";
+        updateJson += componentJson;
+        updateJson += "]}}";
+        AGenUIExeCode ret = _coordinator->updateComponents(updateJson);
+        if (ret != Execute_Success) {
+            AGENUI_LOG("ret:%s, data:%s", getExeCodeString(ret).c_str(), updateJson.c_str());
+        }
     }
 
     void StreamingContentParser::resetState() {

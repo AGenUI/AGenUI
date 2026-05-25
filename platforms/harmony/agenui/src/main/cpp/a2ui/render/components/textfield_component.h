@@ -9,6 +9,16 @@ namespace a2ui {
 /**
  * Text input component backed by a composite ARKUI_NODE_COLUMN layout.
  *
+ * Layout:
+ *   COLUMN (m_nodeHandle)
+ *     - TEXT_INPUT or TEXT_AREA (m_textInputHandle, decided by variant at construction)
+ *     - TEXT (m_errorTextHandle, hidden by default; shown when validation fails)
+ *
+ * Node type for the inner text node is decided at construction time by the
+ * "variant" property:
+ *   - longText -> ARKUI_NODE_TEXT_AREA (multi-line, supports line wrapping)
+ *   - others   -> ARKUI_NODE_TEXT_INPUT (single line)
+ *
  * Supported properties:
  *   - label: fallback text for the placeholder
  *   - placeholder: placeholder text
@@ -29,9 +39,9 @@ public:
     TextFieldComponent(const std::string& id, const nlohmann::json& properties);
     ~TextFieldComponent() override;
     void destroy() override;
-    
+
 public:
-    A2UITextInputNode getTextFiledNode() {
+    A2UITextInputNode getTextInputNode() {
         return A2UITextInputNode(m_textInputHandle);
     }
 
@@ -104,6 +114,11 @@ private:
     void applyBorderColor(const nlohmann::json& styles);
 
     /**
+     * @brief Apply the background image on the inner text node.
+     */
+    void applyBackgroundImage(const nlohmann::json& styles);
+
+    /**
      * @brief Handle runtime text changes from the native input node.
      * @param text Current text content
      */
@@ -134,18 +149,19 @@ private:
     void updateValidationPresentation();
 
     /**
-     * @brief Shared native text change callback.
+     * @brief Shared native text change callback (TEXT_INPUT and TEXT_AREA share the same string-async-event shape).
      * @param event ArkUI text input change event
      */
     static void onTextChangeCallback(ArkUI_NodeEvent* event);
 
 private:
-    ArkUI_NodeHandle m_textInputHandle = nullptr;
-    ArkUI_NodeHandle m_errorTextHandle = nullptr;
+    ArkUI_NodeHandle m_textInputHandle = nullptr;  // Inner TEXT_INPUT or TEXT_AREA node
+    ArkUI_NodeHandle m_errorTextHandle = nullptr;  // Validation error message node
     std::string m_currentText;
     std::string m_validationRegexp;
     std::string m_validationMessage;
     std::regex m_compiledValidationRegex;
+    bool m_isTextArea = false;  // true if the inner node is ARKUI_NODE_TEXT_AREA
     bool m_isUpdatingFromNative = false;
     bool m_hasUserEdited = false;
     bool m_hasValidationRegexp = false;
@@ -157,6 +173,7 @@ private:
     std::string m_externalCheckMessage;
     float m_borderWidth = 0.0f;   // Border width
     float m_borderRadius = 0.0f;  // Border radius
+    float m_fontSize = 0.0f;      // Parsed font size (0 = use kDefaultFontSize)
 };
 
 } // namespace a2ui

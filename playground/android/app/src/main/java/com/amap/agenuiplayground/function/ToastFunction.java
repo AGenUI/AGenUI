@@ -7,6 +7,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.amap.agenui.function.FunctionCallContext;
 import com.amap.agenui.function.FunctionConfig;
 import com.amap.agenui.function.FunctionResult;
 import com.amap.agenui.function.IFunction;
@@ -24,13 +25,13 @@ public class ToastFunction implements IFunction {
     }
 
     @Override
-    public FunctionResult execute(String jsonString) {
+    public FunctionResult execute(FunctionCallContext context, String jsonString) {
         try {
             JSONObject object = new JSONObject(jsonString);
             String toastString = object.optString("value", null);
             if (!TextUtils.isEmpty(toastString)) {
                 handler.post(() -> {
-                    Toast.makeText(context, toastString, Toast.LENGTH_LONG).show();
+                    Toast.makeText(ToastFunction.this.context, toastString, Toast.LENGTH_LONG).show();
                 });
             }
         } catch (JSONException exception) {

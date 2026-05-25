@@ -5,7 +5,6 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.View;
 
 import com.amap.agenui.render.component.A2UIComponent;
@@ -15,6 +14,7 @@ import com.amap.agenui.render.style.StyleHelper;
 
 import java.io.IOException;
 import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * AudioPlayer component implementation
@@ -172,7 +172,7 @@ public class AudioPlayerComponent extends A2UIComponent {
                 mediaPlayer.prepareAsync();
 
             } catch (IOException e) {
-                Log.e(TAG, "Failed to initialize MediaPlayer", e);
+                AGenUILogger.e(TAG, "Failed to initialize MediaPlayer", e);
                 if (audioPlayerView != null) {
                     audioPlayerView.setState(CustomAudioPlayerView.State.ERROR);
                 }

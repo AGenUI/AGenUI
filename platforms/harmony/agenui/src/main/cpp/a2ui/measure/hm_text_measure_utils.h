@@ -9,31 +9,72 @@
 #include <native_drawing/drawing_text_declaration.h>
 #include <native_drawing/drawing_font_collection.h>
 #include <agenui_platform_layout_bridge.h>
-#include "layout/key_define.h"
-#include "layout/Html.h"
+#include "a2ui/third_party/key_define.h"
+#include "a2ui/third_party/Html.h"
 #include "a2ui/utils/hm_font_utils.h"
+#include "a2ui/utils/a2ui_font_weight_utils.h"
 
 #include <native_drawing/drawing_register_font.h>
 #include <native_drawing/drawing_text_typography.h>
 #include <native_drawing/drawing_text_declaration.h>
 #include <native_drawing/drawing_font_collection.h>
 
-extern const std::string kstr_line_through = "line-through";
-extern const std::string kstr_underline = "underline";
 extern float gFontWeightScale;
 
 #if defined(FLOAT_EQUAL)
 #undef FLOAT_EQUAL
 #endif
 #define FLOAT_EQUAL(a, b) (std::isnan(a) || std::isnan(b) ? false : std::abs(a - b) < std::numeric_limits<float>::epsilon())
+namespace a2ui {
+
+
+constexpr std::string_view kstr_line_through = "line-through";
+constexpr std::string_view kstr_underline = "underline";
+
+struct MeasureSize {
+    int lines;
+    float width;
+    float height;
+    std::vector<int> countOfLines;
+};
+
+struct TextMeasureParam {
+    const char* text           = nullptr;
+    int         fontSize       = 24;
+    int         fontWeight     = 0;
+    int         fontStyle      = 0;
+    int         textAlign      = 0;
+    bool        isMultLineHeight = true;
+    float       lineHeight     = 1.0f;
+    int         maxLines       = INT_MAX;
+    bool        isRichtext     = false;
+    int         textOverflow   = 0;
+    long        id             = 0;
+    const char* fontFamily     = "";
+    const char* extras         = "";
+    float       letter_spacing = 0.0f;
+    long        ctx_id         = 0;
+};
+
+enum MeasureMode {
+    MeasureModeUndefined,
+    MeasureModeExactly,
+    MeasureModeAtMost,
+};
+
+enum TextOverflow {
+    TextOverflowUndefined,
+    TextOverflowClip,
+    TextOverflowEllipsis,
+};
 
 namespace css{
     enum TextOverflow {
-        TextOverflow_undefined = agenui::NODE_PROPERTY_TEXT_OVERFLOW_UNDEFINED,      // 
-        TextOverflow_clip      = agenui::NODE_PROPERTY_TEXT_OVERFLOW_CLIP,           // clip
-        TextOverflow_ellipsis  = agenui::NODE_PROPERTY_TEXT_OVERFLOW_ELLIPSIS,       // ellipsis
-        TextOverflow_middle    = agenui::NODE_PROPERTY_TEXT_OVERFLOW_MIDDLE,         // middle
-        TextOverflow_head      = agenui::NODE_PROPERTY_TEXT_OVERFLOW_HEAD,           // head
+        TextOverflow_undefined = NODE_PROPERTY_TEXT_OVERFLOW_UNDEFINED,      // 
+        TextOverflow_clip      = NODE_PROPERTY_TEXT_OVERFLOW_CLIP,           // clip
+        TextOverflow_ellipsis  = NODE_PROPERTY_TEXT_OVERFLOW_ELLIPSIS,       // ellipsis
+        TextOverflow_middle    = NODE_PROPERTY_TEXT_OVERFLOW_MIDDLE,         // middle
+        TextOverflow_head      = NODE_PROPERTY_TEXT_OVERFLOW_HEAD,           // head
     };
 }
 
@@ -45,10 +86,10 @@ private:
         double fontSize;
         double letterSpacing;
 
-        int fontWeight = agenui::NODE_PROPERTY_FONT_NORMAL;
-        int fontStyle = agenui::NODE_PROPERTY_FONT_NORMAL;
-        int textAlign = agenui::TEXT_ALIGN_LEFT_V_CENTER;
-        int textOverflow = agenui::NODE_PROPERTY_TEXT_OVERFLOW_UNDEFINED;
+        int fontWeight = NODE_PROPERTY_FONT_NORMAL;
+        int fontStyle = NODE_PROPERTY_FONT_NORMAL;
+        int textAlign = TEXT_ALIGN_LEFT_V_CENTER;
+        int textOverflow = NODE_PROPERTY_TEXT_OVERFLOW_UNDEFINED;
 
         OH_Drawing_TextDecoration decoration = TEXT_DECORATION_NONE;
 
@@ -76,19 +117,19 @@ public:
     static OH_Drawing_TextAlign convertToHMLayoutTextAlign(int textAlign) {
         OH_Drawing_TextAlign fixTextAlign = TEXT_ALIGN_LEFT;
         switch (textAlign) {
-        case agenui::TEXT_ALIGN_LEFT_TOP:
-        case agenui::TEXT_ALIGN_LEFT_V_CENTER:
-        case agenui::TEXT_ALIGN_LEFT_BOTTOM:
+        case TEXT_ALIGN_LEFT_TOP:
+        case TEXT_ALIGN_LEFT_V_CENTER:
+        case TEXT_ALIGN_LEFT_BOTTOM:
             fixTextAlign = TEXT_ALIGN_LEFT;
             break;
-        case agenui::TEXT_ALIGN_TOP_H_CENTER:
-        case agenui::TEXT_ALIGN_CENTER:
-        case agenui::TEXT_ALIGN_BOTTOM_H_CENTER:
-            fixTextAlign = TEXT_ALIGN_CENTER;
+        case TEXT_ALIGN_TOP_H_CENTER:
+        case TEXT_ALIGN_CENTER:
+        case TEXT_ALIGN_BOTTOM_H_CENTER:
+            fixTextAlign = ::TEXT_ALIGN_CENTER;
             break;
-        case agenui::TEXT_ALIGN_RIGHT_TOP:
-        case agenui::TEXT_ALIGN_RIGHT_V_CENTER:
-        case agenui::TEXT_ALIGN_RIGHT_BOTTOM:
+        case TEXT_ALIGN_RIGHT_TOP:
+        case TEXT_ALIGN_RIGHT_V_CENTER:
+        case TEXT_ALIGN_RIGHT_BOTTOM:
             fixTextAlign = TEXT_ALIGN_RIGHT;
             break;
         }
@@ -98,25 +139,17 @@ public:
     static OH_Drawing_FontWeight convertToHMLayoutFontWeight(int fontWeight) {
         OH_Drawing_FontWeight fixWeight = FONT_WEIGHT_400;
         switch (fontWeight) {
-        case agenui::NODE_PROPERTY_FONT_THIN:
-            fixWeight = FONT_WEIGHT_100;
-            break;
-        case agenui::NODE_PROPERTY_FONT_LIGHT:
-            fixWeight = FONT_WEIGHT_300;
-            break;
-        case agenui::NODE_PROPERTY_FONT_NORMAL:
-            fixWeight = FONT_WEIGHT_400;
-            break;
-        case agenui::NODE_PROPERTY_FONT_MEDIUM:
-            fixWeight = FONT_WEIGHT_600;
-            break;
-        case agenui::NODE_PROPERTY_FONT_BOLD:
+        case NODE_PROPERTY_FONT_BOLD:
             fixWeight = FONT_WEIGHT_700;
             break;
-        case agenui::NODE_PROPERTY_FONT_BOLDER:
-            fixWeight = FONT_WEIGHT_900;
+        case NODE_PROPERTY_FONT_NORMAL:
+            fixWeight = FONT_WEIGHT_400;
             break;
         default:
+            // Raw numeric values (100-900): >= 500 is bold
+            if (fontWeight >= 100 && fontWeight <= 900) {
+                fixWeight = fontWeight >= 500 ? FONT_WEIGHT_700 : FONT_WEIGHT_400;
+            }
             break;
         }
         return fixWeight;
@@ -157,11 +190,11 @@ public:
     
     static OH_Drawing_EllipsisModal convertToHMLayoutTextOverflow(int textOverflow) {
         OH_Drawing_EllipsisModal fixTextOverflow = ELLIPSIS_MODAL_TAIL;
-        if (textOverflow == agenui::NODE_PROPERTY_TEXT_OVERFLOW_ELLIPSIS) {
+        if (textOverflow == NODE_PROPERTY_TEXT_OVERFLOW_ELLIPSIS) {
             fixTextOverflow = ELLIPSIS_MODAL_TAIL;
-        } else if (textOverflow == agenui::NODE_PROPERTY_TEXT_OVERFLOW_MIDDLE) {
+        } else if (textOverflow == NODE_PROPERTY_TEXT_OVERFLOW_MIDDLE) {
             fixTextOverflow = ELLIPSIS_MODAL_MIDDLE;
-        } else if (textOverflow == agenui::NODE_PROPERTY_TEXT_OVERFLOW_HEAD) {
+        } else if (textOverflow == NODE_PROPERTY_TEXT_OVERFLOW_HEAD) {
             fixTextOverflow = ELLIPSIS_MODAL_HEAD;
         } else {
             assert(false); // This path should be unreachable.
@@ -171,32 +204,31 @@ public:
     
     static OH_Drawing_FontStyle convertToHMLayoutFontStyle(int fontStyle) {
         OH_Drawing_FontStyle fixStyle = FONT_STYLE_NORMAL;
-        if (fontStyle == agenui::NODE_PROPERTY_FONT_ITALIC) {
+        if (fontStyle == NODE_PROPERTY_FONT_ITALIC) {
             fixStyle = FONT_STYLE_ITALIC;
         }
         return fixStyle;
     }
     
-    // Note that CAPI control setters expect vp units, so property assignment requires an explicit conversion
-    static agenui::IPlatformLayoutBridge::MeasureSize doMeasure(const agenui::IPlatformLayoutBridge::TextMeasureParam &param, float width, agenui::IPlatformLayoutBridge::MeasureMode widthMode, float height,
-                                                      agenui::IPlatformLayoutBridge::MeasureMode heightMode, float &baseLine, float &ascent, float &descent) {
-        agenui::IPlatformLayoutBridge::MeasureSize result = {.lines=1, .width=0.0, .height=0.0};
+    static MeasureSize doMeasure(const TextMeasureParam &param, float width, MeasureMode widthMode, float height,
+                                                      MeasureMode heightMode, float &baseLine, float &ascent, float &descent) {
+        MeasureSize result = {.lines=1, .width=0.0, .height=0.0};
         if (!param.text || strlen(param.text) == 0) {
             return result;
         }
-        if (widthMode != agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeUndefined && width <= 0.0f) {
+        if (widthMode != MeasureMode::MeasureModeUndefined && width <= 0.0f) {
             return result;
         }
 
         float maxWidth = 0.0;
         switch (widthMode) {
-        case agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeExactly:
+        case MeasureMode::MeasureModeExactly:
             maxWidth = width;
             break;
-        case agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeAtMost:
+        case MeasureMode::MeasureModeAtMost:
             maxWidth = width;
             break;
-        case agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeUndefined:
+        case MeasureMode::MeasureModeUndefined:
             maxWidth = 9999.f;
             break;
         default:
@@ -305,19 +337,19 @@ public:
         
         // Resolve measured text height.
         switch (heightMode) {
-        case agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeExactly:
+        case MeasureMode::MeasureModeExactly:
             result.height = height;
             break;
-        case agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeAtMost:
+        case MeasureMode::MeasureModeAtMost:
             result.height = std::min(measuredHeight, height);
             break;
-        case agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeUndefined:
+        case MeasureMode::MeasureModeUndefined:
             result.height = measuredHeight;
             break;
         default:
             std::abort();
         }
-        result.width = widthMode == agenui::IPlatformLayoutBridge::MeasureMode::MeasureModeExactly ? width : measuredWidth;
+        result.width = widthMode == MeasureMode::MeasureModeExactly ? width : measuredWidth;
         result.width = (fabs(result.width) <= 1e-6) ? measuredWidth : result.width;
         result.lines = lines;
         
@@ -334,7 +366,7 @@ public:
     }
 
 private:
-    static void SetTextDecoration(const agenui::IPlatformLayoutBridge::TextMeasureParam &param, MeasureTextStyle &text_style) {
+    static void SetTextDecoration(const TextMeasureParam &param, MeasureTextStyle &text_style) {
         if (param.extras == nullptr || strlen(param.extras) == 0)
             return;
         if (param.extras == kstr_underline) {
@@ -346,15 +378,15 @@ private:
         }
     }
 
-    static std::vector<RichTextSpan> BuildRichTextSpans(const std::string &html, const agenui::IPlatformLayoutBridge::TextMeasureParam &param, const MeasureTextStyle &rootTextStyle, float &maxHeight) {
+    static std::vector<RichTextSpan> BuildRichTextSpans(const std::string &html, const TextMeasureParam &param, const MeasureTextStyle &rootTextStyle, float &maxHeight) {
         std::vector<RichTextSpan> span_array;
         if (html.empty()) {
             return span_array;
         }
-        agenui::Html ho(html);
+        a2ui::Html ho(html);
         int index = 0;
         for (size_t i = 0; i < ho.getSpanSize(); i++) {
-            agenui::Html::Span *span = ho.getSpan(i);
+            a2ui::Html::Span *span = ho.getSpan(i);
             auto sub_text = span->_text;
             RichTextSpan sub_span;
             sub_span.style = rootTextStyle;
@@ -365,9 +397,9 @@ private:
 
             for (auto &it : span->_tag_list) {
                 switch (it._tagID) {
-                case agenui::Html::TagID::text: {
+                case a2ui::Html::TagID::text: {
                 } break;
-                case agenui::Html::TagID::font: {
+                case a2ui::Html::TagID::font: {
                     if (it._attributes.empty()) {
                         break;
                     }
@@ -395,15 +427,11 @@ private:
                                 sub_span.style.fontSize = font_size;
                             }
                         } else if ("font-weight" == first && !second.empty()) {
-                            if ("bold" == second) {
-                                sub_span.style.fontWeight = agenui::NODE_PROPERTY_FONT_BOLD;
-                            } else if ("light" == second) {
-                                sub_span.style.fontWeight = agenui::NODE_PROPERTY_FONT_LIGHT;
-                            }
+                            sub_span.style.fontWeight = font_weight::parseStringToMeasureWeight(second);
                         }
                     }
                 } break;
-                case agenui::Html::TagID::a: {
+                case a2ui::Html::TagID::a: {
                     if (it._attributes.empty()) {
                         break;
                     }
@@ -423,55 +451,55 @@ private:
                         }
                     }
                 } break;
-                case agenui::Html::TagID::br: {
+                case a2ui::Html::TagID::br: {
                     HM_LOGD("[measure] span <br> parse start.");
                     sub_span.text = "\n";
                 } break;
-                case agenui::Html::TagID::blockquote: {
+                case a2ui::Html::TagID::blockquote: {
                     HM_LOGD("[measure] span <blockquote> parse start.");
                     sub_span.text = "\n\n" + sub_text + "\n\n";
                 } break;
-                case agenui::Html::TagID::i: {
+                case a2ui::Html::TagID::i: {
                     HM_LOGD("[measure] span <i> parse start.");
-                    sub_span.style.fontStyle = agenui::NODE_PROPERTY_FONT_ITALIC;
+                    sub_span.style.fontStyle = NODE_PROPERTY_FONT_ITALIC;
                 } break;
-                case agenui::Html::TagID::u: {
+                case a2ui::Html::TagID::u: {
                     HM_LOGD("[measure] span <u> parse start.");
                     sub_span.style.decoration = TEXT_DECORATION_UNDERLINE;
                 } break;
-                case agenui::Html::TagID::strike: {
+                case a2ui::Html::TagID::strike: {
                     HM_LOGD("[measure] span <strike> parse start.");
                     sub_span.style.decoration = TEXT_DECORATION_LINE_THROUGH;
                 } break;
-                case agenui::Html::TagID::sub: {
+                case a2ui::Html::TagID::sub: {
                     HM_LOGD("[measure] span <sub> parse start.");
-                    // sub/sup do not support line-through by default to match justified text behavior.
+                    // Align with both platforms: sub tag does not support strikethrough by default
                     sub_span.style.decoration = TEXT_DECORATION_NONE;
                     sub_span.style.fontSize = sub_span.style.fontSize * 0.5;
                 } break;
-                case agenui::Html::TagID::sup: {
+                case a2ui::Html::TagID::sup: {
                     HM_LOGD("[measure] span <sup> parse start.");
-                    // sub/sup do not support line-through by default to match justified text behavior.
+                    // Align with both platforms: sub tag does not support strikethrough by default
                     sub_span.style.decoration = TEXT_DECORATION_NONE;
                     sub_span.style.fontSize = sub_span.style.fontSize * 0.5;
                 } break;
-                case agenui::Html::TagID::strong: {
+                case a2ui::Html::TagID::strong: {
                     HM_LOGD("[measure] span <strong> parse start.");
-                    sub_span.style.fontStyle = agenui::NODE_PROPERTY_FONT_NORMAL;
-                    sub_span.style.fontWeight = agenui::NODE_PROPERTY_FONT_BOLD;
+                    sub_span.style.fontStyle = NODE_PROPERTY_FONT_NORMAL;
+                    sub_span.style.fontWeight = NODE_PROPERTY_FONT_BOLD;
                 } break;
-                case agenui::Html::TagID::b: {
+                case a2ui::Html::TagID::b: {
                     HM_LOGD("[measure] span <b> parse start.");
-                    sub_span.style.fontStyle = agenui::NODE_PROPERTY_FONT_NORMAL;
-                    sub_span.style.fontWeight = agenui::NODE_PROPERTY_FONT_BOLD;
+                    sub_span.style.fontStyle = NODE_PROPERTY_FONT_NORMAL;
+                    sub_span.style.fontWeight = NODE_PROPERTY_FONT_BOLD;
                 } break;
-                case agenui::Html::TagID::small: {
+                case a2ui::Html::TagID::small: {
                     HM_LOGD("[measure] span <small> parse start.");
                     if (sub_span.style.fontSize > 2.0f) {
                         sub_span.style.fontSize -= 2.0f;
                     }
                 } break;
-                case agenui::Html::TagID::img: {
+                case a2ui::Html::TagID::img: {
                     HM_LOGD("[measure] span <img> parse start.");
                     sub_span.isPlaceHolder = true;
                     index = index + 1;
@@ -510,7 +538,7 @@ private:
         return span_array;
     }
 
-    static MeasureTextStyle convertTextStyle(const agenui::IPlatformLayoutBridge::TextMeasureParam &param) {
+    static MeasureTextStyle convertTextStyle(const TextMeasureParam &param) {
         MeasureTextStyle textStyle;
         textStyle.isMultLineHeight = param.isMultLineHeight;
         textStyle.lineHeight = param.lineHeight;
@@ -548,9 +576,9 @@ private:
         OH_Drawing_SetTextStyleLetterSpacing(ohTextStyle, textStyle.letterSpacing);
 
         OH_Drawing_SetTextStyleDecoration(ohTextStyle, textStyle.decoration);
-        if (textStyle.textOverflow == agenui::NODE_PROPERTY_TEXT_OVERFLOW_ELLIPSIS || 
-            textStyle.textOverflow == agenui::NODE_PROPERTY_TEXT_OVERFLOW_MIDDLE ||
--           textStyle.textOverflow == agenui::NODE_PROPERTY_TEXT_OVERFLOW_HEAD) {
+        if (textStyle.textOverflow == NODE_PROPERTY_TEXT_OVERFLOW_ELLIPSIS || 
+            textStyle.textOverflow == NODE_PROPERTY_TEXT_OVERFLOW_MIDDLE ||
+            textStyle.textOverflow == NODE_PROPERTY_TEXT_OVERFLOW_HEAD) {
             OH_Drawing_SetTextStyleEllipsisModal(ohTextStyle, convertToHMLayoutTextOverflow(textStyle.textOverflow));
         }
 
@@ -562,3 +590,4 @@ private:
         return ohTextStyle;
     }
 };
+}   // a2ui

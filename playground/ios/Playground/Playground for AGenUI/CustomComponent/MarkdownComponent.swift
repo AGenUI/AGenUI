@@ -109,9 +109,16 @@ class MarkdownComponent: Component {
         ]
         textView.isSelectable = false
         
-        
-        // Add to self using FlexLayout
-        flex.addItem(textView).grow(1)
+        // Add textView as subview
+        addSubview(textView)
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            textView.topAnchor.constraint(equalTo: topAnchor),
+            textView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            textView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            textView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
         self.textView = textView
         
         // Initialize MarkdownParser
@@ -125,12 +132,35 @@ class MarkdownComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Measurement Override
+    
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        let defaultSize: CGFloat = 0
+        var measuredWidth = defaultSize
+        var measuredHeight = defaultSize
+
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+  
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
     // MARK: - Layout
     
-//    override func sizeThatFits(_ size: CGSize) -> CGSize {
-//        // Use UITextView's sizeThatFits to calculate actual height
-//        return textView?.sizeThatFits(CGSize(width: size.width, height:size.height)) ?? CGSize(width: 10, height: 10)
-//    }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Sync textView frame with component bounds
+        textView?.frame = bounds
+    }
     
     // MARK: - Component Override
     
@@ -190,9 +220,17 @@ class MarkdownComponent: Component {
                 
                 // Update UI on main thread
                 textView.attributedText = attributedString
-                textView.sizeToFit()
-                textView.flex.markDirty()
-                notifyLayoutChanged()
+                
+                // Notify layout change
+                if self.bounds.width == 0 || self.bounds.height == 0 {
+                    // If current component size is (0, 0), calculate intrinsic size and notify Yoga
+                    let targetSize = CGSize(width: self.bounds.width > 0 ? self.bounds.width : CGFloat.greatestFiniteMagnitude,
+                                            height: CGFloat.greatestFiniteMagnitude)
+                    let fittedSize = textView.sizeThatFits(targetSize)
+                    if fittedSize.width > 0 && fittedSize.height > 0 {
+                        self.notifyLayoutChanged(width: fittedSize.width, height: fittedSize.height)
+                    }
+                }
             }
         }
         

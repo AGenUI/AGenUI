@@ -1,5 +1,7 @@
 package com.amap.agenui.render.surface;
 
+import java.util.Map;
+
 /**
  * SurfaceManager listener interface.
  * Used to notify external components such as RecyclerView's ChatAdapter.
@@ -36,5 +38,28 @@ public interface ISurfaceManagerListener {
      * @param event Event content as a JSON string
      */
     default void onReceiveActionEvent(String event) {
+    }
+
+    /**
+     * Callback when the root component of a Surface is created or updated.
+     * Triggered once the root component (id="root") has been processed.
+     * Also triggered on subsequent incremental updates that include the root component.
+     *
+     * @param surface The Surface whose root component was updated
+     * @param props   The root component's properties as String map, may be null
+     */
+    default void onRootComponentUpdate(Surface surface, Map<String, String> props) {
+    }
+
+    /**
+     * Callback when a C++ execution error occurs.
+     *
+     * @param type      Error type: "SDKInternal" (engine error) or "BlankScreen" (blank screen detection)
+     * @param code      Error reason string (e.g. "DSL_parse_failed", "surfaceNotFound",
+     *                  "componentCountInsufficient")
+     * @param message
+     * @param surfaceId Surface identifier (empty if not yet parsed)
+     */
+    default void onError(String type, int code, String message, String surfaceId) {
     }
 }

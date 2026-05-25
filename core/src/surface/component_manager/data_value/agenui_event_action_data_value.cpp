@@ -10,7 +10,7 @@
 
 namespace agenui {
 
-EventActionDataValue::EventActionDataValue(IDataModel* dataModel, const std::string& eventName, const std::map<std::string, std::shared_ptr<DataValue>>& context) : DataValue(dataModel), _eventName(eventName), _context(context) {
+EventActionDataValue::EventActionDataValue(IDataValueContext* context, const std::string& eventName, const std::map<std::string, std::shared_ptr<DataValue>>& context_data) : DataValue(context), _eventName(eventName), _contextData(context_data) {
 }
 
 EventActionDataValue::~EventActionDataValue() {
@@ -23,7 +23,7 @@ DataType EventActionDataValue::getDataType() const {
 
 DataBindingStatus EventActionDataValue::getDataBindingStatus() const {
     std::vector<DataBindingStatus> statuses;
-    for (const auto& pair : _context) {
+    for (const auto& pair : _contextData) {
         if (pair.second) {
             statuses.emplace_back(pair.second->getDataBindingStatus());
         }
@@ -40,12 +40,12 @@ std::string EventActionDataValue::getEventName() const {
     return _eventName;
 }
 
-std::map<std::string, std::shared_ptr<DataValue>> EventActionDataValue::getContext() const {
-    return _context;
+std::map<std::string, std::shared_ptr<DataValue>> EventActionDataValue::getContextData() const {
+    return _contextData;
 }
 
 void EventActionDataValue::bind(IDataChangedObserver* observer) {
-    for (auto& pair : _context) {
+    for (auto& pair : _contextData) {
         if (pair.second) {
             pair.second->bind(observer);
         }
@@ -53,26 +53,23 @@ void EventActionDataValue::bind(IDataChangedObserver* observer) {
 }
 
 void EventActionDataValue::unbind() {
-    for (auto& pair : _context) {
+    for (auto& pair : _contextData) {
         if (pair.second) {
             pair.second->unbind();
         }
     }
 }
 
-std::shared_ptr<DataValue> EventActionDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
+std::shared_ptr<DataValue> EventActionDataValue::cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const {
     std::map<std::string, std::shared_ptr<DataValue>> clonedContext;
     
-    for (const auto& pair : _context) {
+    for (const auto& pair : _contextData) {
         if (pair.second) {
-            clonedContext[pair.first] = pair.second->cloneAsTemplate(rootDataPath);
+            clonedContext[pair.first] = pair.second->cloneAsTemplate(context, rootDataPath);
         }
     }
     
-    auto cloned = std::make_shared<EventActionDataValue>(_dataModel, _eventName, clonedContext);
-    cloned->_extensions = _extensions;
-    
-    return cloned;
+    return std::make_shared<EventActionDataValue>(context, _eventName, clonedContext);
 }
 
 void EventActionDataValue::execute(const std::string& surfaceId, const std::string& sourceComponentId, EventDispatcher* dispatcher) const {
@@ -81,7 +78,7 @@ void EventActionDataValue::execute(const std::string& surfaceId, const std::stri
     }
     
     auto contextImpl = SerializableData::Impl::createObject();
-    for (const auto& pair : _context) {
+    for (const auto& pair : _contextData) {
         if (!pair.second) {
             continue;
         }

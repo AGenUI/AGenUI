@@ -1,7 +1,6 @@
 package com.amap.agenui.render.component.impl;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.View;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -12,6 +11,7 @@ import android.webkit.WebViewClient;
 import com.amap.agenui.render.component.A2UIComponent;
 
 import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * Web component implementation
@@ -92,7 +92,9 @@ public class WebComponent extends A2UIComponent {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                Log.i(TAG, "WebView page loaded: " + getId());
+                if (AGenUILogger.isLoggingEnabled()) {
+                    AGenUILogger.i(TAG, "WebView page loaded: " + getId());
+                }
                 // Adjust WebView height to fit content after page load
                 adjustWebViewHeight();
             }
@@ -109,19 +111,23 @@ public class WebComponent extends A2UIComponent {
                     try {
                         String heightStr = message.substring("A2UI_HEIGHT_CHANGE:".length());
                         int newHeight = Integer.parseInt(heightStr);
-                        Log.d(TAG, "🔄 [HEIGHT_CHANGE] WebView " + getId() +
-                                " detected content height change: " + newHeight + "px");
+                        if (AGenUILogger.isLoggingEnabled()) {
+                            AGenUILogger.d(TAG, "🔄 [HEIGHT_CHANGE] WebView " + getId() +
+                                    " detected content height change: " + newHeight + "px");
+                        }
 
                         // Update WebView height in real time
 //                        updateWebViewHeight(newHeight);
                     } catch (NumberFormatException e) {
-                        Log.e(TAG, "❌ [HEIGHT_CHANGE] Failed to parse height change: " + message);
+                        AGenUILogger.e(TAG, "❌ [HEIGHT_CHANGE] Failed to parse height change: " + message);
                     }
                 } else {
                     // Regular console log
-                    Log.d(TAG, "WebView Console [" + getId() + "]: " +
-                            message + " -- From line " +
-                            consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.d(TAG, "WebView Console [" + getId() + "]: " +
+                                message + " -- From line " +
+                                consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+                    }
                 }
                 return true;
             }
@@ -146,11 +152,15 @@ public class WebComponent extends A2UIComponent {
                 // Determine whether it is a URL or HTML content
                 if (source.startsWith("http://") || source.startsWith("https://")) {
                     // Load as URL
-                    Log.i(TAG, "Loading URL: " + source + " for component: " + getId());
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.i(TAG, "Loading URL: " + source + " for component: " + getId());
+                    }
                     webView.loadUrl(source);
                 } else {
                     // Load as HTML content
-                    Log.i(TAG, "Loading HTML content for component: " + getId());
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.i(TAG, "Loading HTML content for component: " + getId());
+                    }
                     webView.loadDataWithBaseURL(null, source, "text/html", "UTF-8", null);
                 }
             }
@@ -177,9 +187,9 @@ public class WebComponent extends A2UIComponent {
                         lastContentHeight = contentHeight;
                     }
                 } catch (NumberFormatException e) {
-                    Log.e(TAG, "❌ [HEIGHT_ADJUST] Failed to parse content height: " + value + ", componentId: " + getId());
+                    AGenUILogger.e(TAG, "❌ [HEIGHT_ADJUST] Failed to parse content height: " + value + ", componentId: " + getId());
                 } catch (Exception e) {
-                    Log.e(TAG, "❌ [HEIGHT_ADJUST] Exception while adjusting WebView height: " + e.getMessage() +
+                    AGenUILogger.e(TAG, "❌ [HEIGHT_ADJUST] Exception while adjusting WebView height: " + e.getMessage() +
                             ", componentId: " + getId());
                 }
             }

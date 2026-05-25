@@ -1,6 +1,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { buffer } from '@kit.ArkTS';
 
 const DOMAIN = 0x0000;
 const TAG = 'AGenUITest';
@@ -14,6 +15,29 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+
+    // Save test parameters to AppStorage
+    const testCase = want.parameters?.testCase as string;
+    if (testCase) {
+      AppStorage.setOrCreate('testCase', testCase);
+      hilog.info(DOMAIN, TAG, 'Test mode: testCase=%{public}s', testCase);
+    }
+    const testDataPath = want.parameters?.testDataPath as string;
+    if (testDataPath) {
+      AppStorage.setOrCreate('testDataPath', testDataPath);
+      hilog.info(DOMAIN, TAG, 'Test mode: testDataPath=%{public}s', testDataPath);
+    }
+    const testBundleData = want.parameters?.testBundleData as string;
+    if (testBundleData) {
+      AppStorage.setOrCreate('testBundleData', testBundleData);
+      hilog.info(DOMAIN, TAG, 'Test mode: testBundleData length=%{public}d', testBundleData.length);
+    }
+    const testBundleDataB64 = want.parameters?.testBundleDataB64 as string;
+    if (testBundleDataB64) {
+      const decoded = buffer.from(testBundleDataB64, 'base64').toString('utf-8');
+      AppStorage.setOrCreate('testBundleData', decoded);
+      hilog.info(DOMAIN, TAG, 'Test mode: testBundleDataB64 decoded length=%{public}d', decoded.length);
+    }
   }
 
   onDestroy(): void {
@@ -24,12 +48,13 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
+    // Always load main demo page
     windowStage.loadContent('pages/AGenUIDemoPage', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
       }
-      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
+      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading: pages/AGenUIDemoPage');
     });
   }
 

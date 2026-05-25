@@ -33,11 +33,17 @@ else()
 endif()
 
 # ---------------------------------------------------------------------------
-# yoga: build from source via FetchContent (MIT license, shared library)
+# yoga sources, in priority order:
+#   1. Bundled prebuilt (declared by prebuilt/CMakeLists.txt, zero build cost).
+#   2. System-installed yoga (-DAGENUI_USE_SYSTEM_YOGA=ON).
+#   3. FetchContent from GitHub source (fallback).
 # ---------------------------------------------------------------------------
-if(AGENUI_USE_SYSTEM_YOGA)
+add_subdirectory(prebuilt)
+
+if(NOT TARGET yoga)
+  if(AGENUI_USE_SYSTEM_YOGA)
     find_package(yoga REQUIRED)
-else()
+  else()
     include(FetchContent)
     if(AGENUI_YOGA_SOURCE_DIR)
         FetchContent_Declare(yoga SOURCE_DIR "${AGENUI_YOGA_SOURCE_DIR}")
@@ -56,15 +62,22 @@ else()
     target_include_directories(yoga
         PUBLIC "${yoga_SOURCE_DIR}"
     )
+    # OHOS cross-compile: disable -Werror and add include paths for internal headers
     target_compile_options(yoga PRIVATE
         -fno-omit-frame-pointer
         -fexceptions
-        $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>
+        -fno-rtti
+        -Wno-error
+    )
+    target_include_directories(yoga PRIVATE
+        "${yoga_SOURCE_DIR}/include"
+        "${yoga_SOURCE_DIR}/include/yoga"
     )
     set_target_properties(yoga PROPERTIES
         CXX_VISIBILITY_PRESET default
         POSITION_INDEPENDENT_CODE ON
     )
+  endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -76,7 +89,7 @@ if(AGENUI_USE_SYSTEM_IKSEMEL)
     add_library(iksemel SHARED IMPORTED)
     set_target_properties(iksemel PROPERTIES IMPORTED_LOCATION ${IKSEMEL_LIB})
 else()
-    set(IKSEMEL_VENDORED_DIR "${AGENUI_REPO_ROOT}/core/src/third_party/ik")
+    set(IKSEMEL_VENDORED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/a2ui/third_party/ik")
     file(GLOB IKSEMEL_SOURCES "${IKSEMEL_VENDORED_DIR}/src/*.c")
     add_library(iksemel SHARED ${IKSEMEL_SOURCES})
     # config.h in ik/ root must be found BEFORE include/ (shadows autotools config)
@@ -94,15 +107,16 @@ else()
 endif()
 
 include_directories(${NATIVERENDER_ROOT_PATH}
-                    ${NATIVERENDER_ROOT_PATH}/include)
+                    ${NATIVERENDER_ROOT_PATH}/include
+                    ${NATIVERENDER_ROOT_PATH}/a2ui)
 
 set(Harmony_AGenUI_DIR "${AGENUI_REPO_ROOT}/core")
 include_directories(
     ${Harmony_AGenUI_DIR}/include
     ${Harmony_AGenUI_DIR}/src
-    ${Harmony_AGenUI_DIR}/src/third_party/jschema_validator
     ${Harmony_AGenUI_DIR}/src/surface
     ${Harmony_AGenUI_DIR}/src/third_party
+    ${CMAKE_CURRENT_SOURCE_DIR}/a2ui/third_party/ik/include
 )
 
 file(GLOB_RECURSE AGENUI_SOURCES
@@ -111,8 +125,6 @@ file(GLOB_RECURSE AGENUI_SOURCES
     "${Harmony_AGenUI_DIR}/src/module/*.cpp"
     "${Harmony_AGenUI_DIR}/src/stream/*.cpp"
     "${Harmony_AGenUI_DIR}/src/function_call/*.cpp"
-    "${Harmony_AGenUI_DIR}/src/third_party/*.cpp"
-    "${Harmony_AGenUI_DIR}/src/third_party/sax/sax.c"
 )
 
 list(FILTER AGENUI_SOURCES EXCLUDE REGEX ".*/jni/.*")
@@ -154,6 +166,11 @@ file(GLOB_RECURSE A2UI_HYBRID_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/a2ui/render/hybrid/*.cpp"
 )
 
+file(GLOB_RECURSE A2UI_THIRD_PARTY_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/a2ui/third_party/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/a2ui/third_party/sax/sax.c"
+)
+
 set(A2UI_SOURCES
     ${A2UI_ROOT_SOURCES}
     ${A2UI_RENDER_SOURCES}
@@ -164,6 +181,7 @@ set(A2UI_SOURCES
     ${A2UI_BRIDGE_SOURCES}
     ${A2UI_UTILS_SOURCES}
     ${A2UI_HYBRID_SOURCES}
+    ${A2UI_THIRD_PARTY_SOURCES}
 )
 
 set(CMAKE_CXX_STANDARD 17)

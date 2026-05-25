@@ -5,11 +5,8 @@
 // Created on 2026/2/28.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// TextFieldComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -43,12 +40,12 @@ class TextFieldComponent: Component {
     private var dataBindingPath: String?
     private var isUpdatingFromNative = false
     private var currentVariant: String = "shortText"
-    
+
     // Validation regexp support
     private var validationRegexp: String?
     private var validationError: String?
     private var isValid: Bool = true
-    
+
     // Style configuration properties
     private var fontFamily: String = "PingFang SC"
     private var fontSize: CGFloat = 16
@@ -91,6 +88,98 @@ class TextFieldComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Measurement Override
+
+    override class func measure(type: String,
+                                paramJson: String,
+                                maxWidth: Float,
+                                widthMode: MeasureMode,
+                                maxHeight: Float,
+                                heightMode: MeasureMode) -> CGSize {
+        // 1. Parse paramJson
+        guard let jsonData = paramJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return CGSize(width: CGFloat(maxWidth), height: 44)
+        }
+
+        // 2. Resolve font size from localConfig or default
+        var fontSize: CGFloat = 16
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "TextField") {
+            if let sizeStr = config["font-size"] as? String {
+                let parsed = CSSPropertyParser.parseOffset(sizeStr)
+                if case .number(let v) = parsed { fontSize = v }
+            }
+        }
+
+        // 3. Build font
+        var fontFamily = "PingFang SC"
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "TextField"),
+           let family = config["font-family"] as? String {
+            fontFamily = family
+        }
+        let font: UIFont = UIFont(name: fontFamily, size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
+
+        // 4. Determine if multi-line (longText variant)
+        let variant = (json["variant"] as? String ?? "shortText").lowercased()
+        let isMultiLine = variant == "longtext"
+
+        // 5. Calculate constraint width
+        let constraintWidth: CGFloat = (widthMode == .undefined)
+            ? .greatestFiniteMagnitude
+            : CGFloat(maxWidth)
+
+        // 6. Calculate height
+        let singleLineHeight = font.lineHeight + 16  // 16pt vertical padding
+        let multiLineMinHeight: CGFloat = singleLineHeight * 3
+
+        var measuredWidth: CGFloat
+        var measuredHeight: CGFloat
+
+        if widthMode == .exactly {
+            measuredWidth = CGFloat(maxWidth)
+        } else {
+            measuredWidth = constraintWidth
+        }
+
+        if heightMode == .exactly {
+            measuredHeight = CGFloat(maxHeight)
+        } else if isMultiLine {
+            measuredHeight = multiLineMinHeight
+        } else {
+            measuredHeight = singleLineHeight
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+
+    // MARK: - Layout
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        if let errorLabel = errorLabel, !errorLabel.isHidden {
+            // errorLabel displayed below the input field, estimated height 20pt
+            let errorLabelHeight: CGFloat = 20
+            let inputHeight = bounds.height - errorLabelHeight
+            textField?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: inputHeight)
+            textView?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: inputHeight)
+            errorLabel.frame = CGRect(x: 0, y: inputHeight, width: bounds.width, height: errorLabelHeight)
+        } else {
+            textField?.frame = bounds
+            textView?.frame = bounds
+            errorLabel?.frame = CGRect(x: 0, y: bounds.height, width: bounds.width, height: 20)
+        }
+
+        // Vertically center the placeholder in UITextView when no real text is entered.
+        // UITextView is multi-line by nature, so we only do this while showing the placeholder;
+        // once the user starts typing, the standard top-aligned behavior is restored elsewhere.
+        if let tv = textView {
+            let lineHeight = tv.font?.lineHeight ?? 17
+            let topInset = max(0, (tv.bounds.height - lineHeight) / 2)
+            tv.textContainerInset = UIEdgeInsets(top: topInset, left: 5, bottom: 0, right: 5)
+        }
+    }
+
     override func updateProperties(_ properties: [String: Any]) {
         super.updateProperties(properties)
         
@@ -131,14 +220,14 @@ class TextFieldComponent: Component {
         if let variant = properties["variant"] as? String {
             applyVariant(variant)
         }
-        
+
         // Update validation regexp
         if let regexp = properties["validationRegexp"] as? String {
             validationRegexp = regexp
             // Validate current value when regexp changes
             validateCurrentInput()
         }
-        
+
         // checks adaptation - display validation errors
         if let checks = properties["checks"] as? [String: Any] {
             let result = checks["result"] as? Bool ?? true
@@ -165,7 +254,7 @@ class TextFieldComponent: Component {
     
     /// Create single-line text input
     private func createTextField() {
-        let field = UITextField()
+        let field = PaddedTextField()
         // Apply style configuration
         applyTextStyle(to: field)
         
@@ -178,12 +267,16 @@ class TextFieldComponent: Component {
         self.textField = field
         
         // Add to Component
-        flex.addItem(field)
+        addSubview(field)
     }
     
     /// Create multi-line text input
     private func createTextView() {
         let view = UITextView()
+        // Make background transparent so the component's background color shows through
+        // (UITextView defaults to white, unlike UITextField which is transparent)
+        view.backgroundColor = .clear
+        //view.textContainerInset = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
         // Apply style configuration
         applyTextStyle(to: view)
         
@@ -216,7 +309,7 @@ class TextFieldComponent: Component {
         self.textView = view
         
         // Add to Component
-        flex.addItem(view)
+        addSubview(view)
     }
     
     /// Create error label
@@ -230,7 +323,7 @@ class TextFieldComponent: Component {
         self.errorLabel = label
         
         // Add to Component
-        flex.addItem(label)
+        addSubview(label)
     }
     
     // MARK: - Private Methods - Input Control Switching
@@ -270,9 +363,6 @@ class TextFieldComponent: Component {
             applyTextStyle(to: view)
         }
         applyVariant(variant)
-        
-        // Notify layout changed
-        notifyLayoutChanged()
     }
     
     // MARK: - Configuration Methods
@@ -519,15 +609,15 @@ class TextFieldComponent: Component {
         textView?.layer.borderColor = UIColor.lightGray.cgColor
         textView?.layer.borderWidth = 1.0
     }
-    
+
     // MARK: - Private Methods - Validation
-    
+
     /// Validate current input against validationRegexp
     private func validateCurrentInput() {
         guard let regexp = validationRegexp else { return }
-        
+
         let currentValue = textField?.text ?? textView?.text ?? ""
-        
+
         // Skip validation if empty (unless regexp requires non-empty)
         if currentValue.isEmpty {
             isValid = true
@@ -535,15 +625,15 @@ class TextFieldComponent: Component {
             syncValidationResult()
             return
         }
-        
+
         // Perform regex validation
         do {
             let regex = try NSRegularExpression(pattern: regexp, options: [])
             let range = NSRange(location: 0, length: currentValue.utf16.count)
-            
+
             // Check if the entire string matches the pattern
             let matches = regex.matches(in: currentValue, options: [], range: range)
-            
+
             // Full match required: the match should cover the entire string
             if let firstMatch = matches.first,
                firstMatch.range.location == 0 && firstMatch.range.length == currentValue.utf16.count {
@@ -551,32 +641,32 @@ class TextFieldComponent: Component {
                 validationError = nil
             } else {
                 isValid = false
-                validationError = "输入格式不正确"
+                validationError = "Invalid input format."
             }
         } catch {
             Logger.shared.error("Invalid regex pattern: \(regexp), error: \(error.localizedDescription)")
             isValid = true // Don't block input on invalid regex
             validationError = nil
         }
-        
+
         syncValidationResult()
     }
-    
+
     /// Sync validation result to checks property
     private func syncValidationResult() {
         var checks: [String: Any] = [:]
-        
+
         if isValid {
             checks["result"] = true
             checks["message"] = ""
         } else {
             checks["result"] = false
-            checks["message"] = validationError ?? "输入格式不正确"
+            checks["message"] = validationError ?? "Invalid input format."
         }
-        
+
         // Send validation result to native
         syncState(["checks": checks])
-        
+
         // Update UI based on validation result
         if !isValid {
             showError(checks["message"] as? String ?? "")
@@ -584,7 +674,7 @@ class TextFieldComponent: Component {
             hideError()
         }
     }
-    
+
     // MARK: - Private Methods - Data Binding
     
     // MARK: - Event Handlers
@@ -592,10 +682,10 @@ class TextFieldComponent: Component {
     /// TextField text change handler
     @objc private func textFieldDidChange(_ textField: UITextField) {
         guard !isUpdatingFromNative else { return }
-        
+
         let newValue = textField.text ?? ""
         syncState(["value": newValue])
-        
+
         // Trigger validation if validationRegexp is set
         if validationRegexp != nil {
             // Debounce validation with 300ms delay
@@ -639,7 +729,7 @@ class TextFieldComponent: Component {
         
         let newValue = textView.text ?? ""
         syncState(["value" : newValue])
-        
+
         // Trigger validation if validationRegexp is set
         if validationRegexp != nil {
             // Debounce validation with 300ms delay
@@ -648,9 +738,28 @@ class TextFieldComponent: Component {
             }
         }
     }
+
+    private class PaddedTextField:UITextField{
+        var contentInset = UIEdgeInsets(top:0,left:12,bottom:0,right:12)
+        override func textRect(forBounds bounds:CGRect)-> CGRect{
+            bounds.inset(by: contentInset);
+        }
+        
+        override func editingRect(forBounds bounds:CGRect)-> CGRect{
+            bounds.inset(by: contentInset);
+        }
+        
+        override func placeholderRect(forBounds bounds:CGRect)-> CGRect{
+            bounds.inset(by: contentInset);
+        }
+
+
+    }
     
     deinit {
         // Remove notification observer
         NotificationCenter.default.removeObserver(self)
     }
 }
+
+#endif // AGENUI_SDK_BUILD

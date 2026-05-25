@@ -52,18 +52,6 @@ FunctionCallConfig FormatCurrencyFunctionCall::getConfig() const {
     config.setName("formatCurrency");
     config.setDescription("Formats a number as a currency string.");
     config.setReturnType("string");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"type", "number"}}},
-            {"currency", {{"type", "string"}}},
-            {"decimals", {{"type", "number"}}},
-            {"grouping", {{"type", "boolean"}}}
-        }},
-        {"required", nlohmann::json::array({"value", "currency"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

@@ -2,16 +2,21 @@
 
 #include "agenui_component_snapshot.h"
 #include "agenui_virtual_dom_observer.h"
-#include "agenui_virtual_dom_table.h"
-#include "agenui_virtual_dom_choice_picker.h"
-#include "agenui_virtual_dom_tabs.h"
+#include "agenui_measurement.h"
 #include <memory>
 #include <vector>
 #include <string>
+#include <limits>
 
-#if defined(__OHOS__)
+// Forward declaration
+namespace agenui {
+class IMeasurementManager;
+class ILayoutDelegate;
+}  // namespace agenui
+
 #include <yoga/Yoga.h>
-#endif
+#include "surface/yoga_node/agenui_yoga_node.h"
+#include "surface/yoga_node/agenui_yoga_node_manager.h"
 
 namespace agenui {
 
@@ -45,7 +50,12 @@ public:
      * @param observer Virtual DOM observer
      * @param orphanFetcher Orphan snapshot fetcher
      */
-    VirtualDOMNode(const std::string& id, IVirtualDOMObserver* observer, IOrphanSnapshotFetcher* orphanFetcher);
+    VirtualDOMNode(const std::string& id,
+                   IVirtualDOMObserver* observer,
+                   IOrphanSnapshotFetcher* orphanFetcher,
+                   ::agenui::IMeasurementManager* measurementManager = nullptr
+                   , ILayoutDelegate* layoutDelegate = nullptr
+                   );
 
     /**
      * @brief Destructor
@@ -72,6 +82,17 @@ public:
     const ComponentSnapshot* getSnapshot() const { return _snapshot.get(); }
 
     /**
+     * @brief Get the parent node pointer (non-owning)
+     */
+    const VirtualDOMNode* getParent() const { return _parent; }
+
+    /**
+     * @brief Get the snapshot with layout info (mutable)
+     * @return Snapshot pointer; nullptr if layout has not been notified yet
+     */
+    ComponentSnapshot* getSnapshotWithLayout() { return _snapshotWithLayout.get(); }
+
+    /**
      * @brief Set the component snapshot
      * @param snapshot Component snapshot
      * @param parentId Parent node ID
@@ -84,12 +105,16 @@ public:
      */
     const std::vector<std::shared_ptr<VirtualDOMNode>>& getChildren() const;
 
-#if defined(__OHOS__)
     /**
-     * @brief Get the Yoga layout node
+     * @brief Get the Yoga layout node (YGNodeRef, backward-compatible)
      * @return Yoga node reference
      */
-    YGNodeRef getYogaNode() const { return _yogaNode; }
+    YGNodeRef getYogaNode() const { return _yogaNode ? _yogaNode->get() : nullptr; }
+
+    /**
+     * @brief Get the YogaNode wrapper object
+     */
+    YogaNode* getYogaNodeObj() const { return _yogaNode; }
 
     /**
      * @brief Set the Yoga node dimensions
@@ -98,7 +123,6 @@ public:
      * @remark Used to dynamically update component dimensions, e.g., after Markdown rendering completes
      */
     void setYogaNodeSize(float width, float height);
-#endif
 
     /**
      * @brief Check and notify layout changes
@@ -119,7 +143,18 @@ public:
      */
     std::shared_ptr<VirtualDOMNode> findChild(const std::string& id) const;
 
+    /**
+     * @brief Reset platform-supplied size lock, restore Yoga style to original values
+     * @remark Called when Surface size changes; restores width/height to applySnapshot values
+     */
+    void resetPlatformSize();
+
 private:
+    /**
+     * @brief Log Yoga layout results and applied style properties for the current node
+     * @param snapshotWithLayout Snapshot copy populated with layout info
+     */
+    void logYogaLayoutInfo(const ComponentSnapshot& snapshotWithLayout) const;
     /**
      * @brief Notify the observer of a component update
      * @param newSnapshot New component snapshot
@@ -143,14 +178,12 @@ private:
      */
     void updateChildren();
 
-#if defined(__OHOS__)
-
     /**
      * @brief Set up a measure function for components that need intrinsic sizing
      * @remark Called before convertYogaStyles; determines whether intrinsic measurement is needed
      */
     void setupMeasureFunctionIfNeeded();
-
+    
     /**
      * @brief Save width/height from snapshot.styles into layout.styleInfo before Yoga conversion
      * @remark Only applies to Image components; must be called before convertToYoga with clearAfterConvert=true
@@ -158,130 +191,17 @@ private:
     void saveImageStyleInfo();
 
     /**
-     * @brief Yoga measure function callback
-     * @param node Yoga node
-     * @param width Available width
-     * @param widthMode Width mode
-     * @param height Available height
-     * @param heightMode Height mode
-     * @return Computed size
+     * @brief Route measurement to the corresponding component implementation via IMeasurementManager
+     * @remark Constructs paramJson and MeasureModes, then calls _measurementManager->measure()
      */
-    static YGSize measureFunction(
-        YGNodeRef node,
-        float width,
-        YGMeasureMode widthMode,
-        float height,
-        YGMeasureMode heightMode);
+    YGSize routeMeasure(const ComponentSnapshot& snapshot,
+                        float width, YGMeasureMode widthMode,
+                        float height, YGMeasureMode heightMode);
 
     /**
-     * @brief Compute the intrinsic size of a text component
-     * @param snapshot Component snapshot
-     * @param width Available width from Yoga
-     * @param widthMode Yoga width mode
-     * @return Computed size
+     * @brief Serialize ComponentSnapshot to paramJson (for use by IMeasurement)
      */
-    YGSize measureTextComponent(const ComponentSnapshot& snapshot, float width, YGMeasureMode widthMode, int& lines) const;
-
-    /**
-     * @brief Compute the intrinsic size of an image component
-     * @param snapshot Component snapshot
-     * @return Computed size
-     */
-    YGSize measureImageComponent(const ComponentSnapshot& snapshot, float maxWidth, YGMeasureMode widthMode, float maxHeight, YGMeasureMode heightMode) const;
-
-    /**
-     * @brief Compute the intrinsic size of a Lottie component
-     * @param snapshot Component snapshot
-     * @param maxWidth Maximum width
-     * @param widthMode Width mode
-     * @param maxHeight Maximum height
-     * @param heightMode Height mode
-     * @return Computed size
-     */
-    YGSize measureLottieComponent(const ComponentSnapshot& snapshot, float maxWidth, YGMeasureMode widthMode, float maxHeight, YGMeasureMode heightMode) const;
-
-    /**
-     * @brief Compute the intrinsic size of a Chart component
-     * @param snapshot Component snapshot
-     * @param maxWidth Maximum width
-     * @param widthMode Width mode
-     * @param maxHeight Maximum height
-     * @param heightMode Height mode
-     * @return Computed size
-     */
-    YGSize measureChartComponent(const ComponentSnapshot& snapshot, float maxWidth, YGMeasureMode widthMode, float maxHeight, YGMeasureMode heightMode) const;
-
-    /**
-     * @brief Compute the intrinsic size of a Slider component
-     * @param snapshot Component snapshot
-     * @param maxWidth Maximum width
-     * @param widthMode Width mode
-     * @param maxHeight Maximum height
-     * @param heightMode Height mode
-     * @return Computed size
-     */
-    YGSize measureSliderComponent(const ComponentSnapshot& snapshot, float maxWidth, YGMeasureMode widthMode, float maxHeight, YGMeasureMode heightMode) const;
-
-    /**
-     * @brief Compute the intrinsic size of a DateTimeInput component
-     * @param snapshot Component snapshot
-     * @param maxWidth Maximum width
-     * @param widthMode Width mode
-     * @param maxHeight Maximum height
-     * @param heightMode Height mode
-     * @return Computed size
-     */
-    YGSize measureDateTimeInputComponent(const ComponentSnapshot& snapshot, float maxWidth, YGMeasureMode widthMode, float maxHeight, YGMeasureMode heightMode) const;
-
-    /**
-     * @brief Initialize Yoga layout for the Divider component
-     * @remark Sets Divider width/height based on the thickness and axis attributes
-     */
-    void setupDividerLayout();
-
-    /**
-     * @brief Initialize Yoga layout for the Button component
-     */
-    void setupButtonLayout();
-
-    /**
-     * @brief Initialize Yoga layout for the Table component
-     * @remark Builds the internal Table Yoga tree and mounts it to the current node
-     */
-    void setupTableLayout();
-
-    /**
-     * @brief Initialize Yoga layout for the ChoicePicker component
-     * @remark Builds the internal ChoicePicker Yoga tree and mounts it to the current node
-     */
-    void setupChoicePickerLayout();
-
-    /**
-     * @brief Initialize Yoga layout for the Tabs component
-     * @remark Builds the internal Tabs Yoga tree and mounts it to the current node
-     */
-    void setupTabsLayout();
-
-    /**
-     * @brief Initialize Yoga layout for the AudioPlayer component
-     * @remark Builds the internal AudioPlayer Yoga tree and mounts it to the current node
-     */
-    void setupAudioPlayerLayout();
-
-    /**
-     * @brief Initialize Yoga layout for the CheckBox component
-     * @remark Builds a Row(checkbox + text) internal Yoga tree, aligned with ARKUI_NODE_ROW on HarmonyOS
-     */
-    void setupCheckBoxLayout();
-
-    /**
-     * @brief Yoga measure callback for the CheckBox internal text node
-     */
-    static YGSize checkBoxTextMeasureFunc(
-        YGNodeRef node, float width, YGMeasureMode widthMode,
-        float height, YGMeasureMode heightMode);
-
-#endif
+    std::string buildParamJson(const ComponentSnapshot& snapshot) const;
 
     /**
      * @brief Compare two component snapshots for changes (ignoring the children field)
@@ -295,6 +215,7 @@ private:
 
 private:
     std::string _id;                                                                        // Node ID
+    std::string _yogaKey;                                                                   // Unique key for YogaNodeManager (id#seq)
     std::string _parentId;                                                                  // Parent node ID
     VirtualDOMNode* _parent = nullptr;                                                      // Parent node pointer (non-owning)
     std::shared_ptr<ComponentSnapshot> _snapshot;                                           // Raw component snapshot (before Yoga layout)
@@ -302,12 +223,18 @@ private:
     std::vector<std::shared_ptr<VirtualDOMNode>> _children;                                 // Child node list
     IVirtualDOMObserver* _observer;                                                         // Virtual DOM observer
     IOrphanSnapshotFetcher* _orphanFetcher;                                                 // Orphan snapshot fetcher
-#if defined(__OHOS__)
-    YGNodeRef _yogaNode = nullptr;                                                          // Yoga layout node
-    std::shared_ptr<IVirtualDomTable> _table;                                               // Table component Yoga tree builder
-    std::shared_ptr<IvirtualDomChoicePicker> _choicePicker;                                 // ChoicePicker component Yoga tree builder
-    std::shared_ptr<IvirtualDomTabs> _tabsPicker;                                           // Tabs component Yoga tree builder
-#endif
+    ::agenui::IMeasurementManager* _measurementManager = nullptr;                          // Component measurement manager (non-owning)
+    YogaNode* _yogaNode = nullptr;                                                          // Yoga layout node (owned by YogaNodeManager)
+    ILayoutDelegate* _layoutDelegate = nullptr;                                             // Layout delegate (non-owning)
+    bool _hasPlatformSize = false;                                                          // True after platform reports a concrete size via notifyRenderFinish;
+                                                                                            // suppresses measureFunc re-registration until the snapshot actually changes
+
+    // De-duplication state for logYogaLayoutInfo: skip output when layout (x/y/w/h) is unchanged.
+    // Keeps original AGENUI_LOG macro but prevents flooding the same numbers on every recalc.
+    mutable float _lastLogX = std::numeric_limits<float>::quiet_NaN();
+    mutable float _lastLogY = std::numeric_limits<float>::quiet_NaN();
+    mutable float _lastLogW = std::numeric_limits<float>::quiet_NaN();
+    mutable float _lastLogH = std::numeric_limits<float>::quiet_NaN();
 };
 
 }  // namespace agenui

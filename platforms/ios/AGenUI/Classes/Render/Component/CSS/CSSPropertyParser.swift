@@ -30,12 +30,6 @@ public class CSSPropertyParser {
         return try? NSRegularExpression(pattern: pattern)
     }()
     
-    /// rgb/rgba regex: rgb(r, g, b) or rgba(r, g, b, a)
-    private static let rgbColorRegex: NSRegularExpression? = {
-        let pattern = "rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)(?:\\s*,\\s*([\\d.]+))?\\s*\\)"
-        return try? NSRegularExpression(pattern: pattern)
-    }()
-    
     /// url() regex: supports double quotes, single quotes, and no quotes formats
     private static let urlFunctionRegex: NSRegularExpression? = {
         let pattern = #"url\(\s*['"]?([^'"\)]+)['"]?\s*\)"#
@@ -59,8 +53,7 @@ public class CSSPropertyParser {
             return parseNumber(trimmedValue)
         case .color:
             return parseColor(trimmedValue)
-        case .alignment:
-            return parseAlignment(trimmedValue)
+
         case .opacity:
             return parseOpacity(trimmedValue)
         case .shadow:
@@ -149,142 +142,35 @@ public class CSSPropertyParser {
     
     // MARK: - Color Parsing
     
-    /// Parses color values
-    /// Supported formats:
-    /// - Hexadecimal: "#FF0000", "#FF0000FF"
-    /// - RGB: "rgb(255, 0, 0)"
-    /// - RGBA: "rgba(255, 0, 0, 0.5)"
-    /// - Keyword: "transparent"
+    /// Parses CSS color values via the shared C++ CSS color parser
+    /// (`core/src/style_parser/agenui_color_parser.cpp`) — single source of truth
+    /// across Android / iOS / Harmony for hex (incl. #RGB shorthand), rgb / rgba,
+    /// hsl / hwb, named colors (incl. `transparent`), `currentcolor`, and
+    /// linear / radial / conic gradients.
     /// - Parameter value: Color value string
-    /// - Returns: Parsed property value
+    /// - Returns: `.color(UIColor)`, `.gradient(GradientInfo)`, or `.invalid` on parse failure
     public static func parseColor(_ value: String) -> CSSPropertyValue {
-        let lowercased = value.lowercased()
-        
-        // Handle keyword (only supports transparent)
-        if lowercased == "transparent" {
-            return .color(UIColor.clear)
-        }
-        
-        // Handle hexadecimal color
-        if value.hasPrefix("#") {
-            return parseHexColor(value)
-        }
-        
-        // Handle RGB/RGBA color
-        if lowercased.hasPrefix("rgb") {
-            return parseRGBColor(value)
-        }
-        
-        // Return invalid for other cases (do not attempt to parse as named colors)
-        return .invalid
-    }
-    
-    /// Parses hexadecimal color
-    /// - Parameter hex: Hexadecimal color string, e.g., "#FF0000" or "#FF0000FF"
-    /// - Returns: Parsed property value
-    private static func parseHexColor(_ hex: String) -> CSSPropertyValue {
-        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
-        
-        var rgb: UInt64 = 0
-        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else {
+        let css = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !css.isEmpty else { return .invalid }
+
+        guard let cv = AGenUIColorBridge.parseColor(css) else {
+            Logger.shared.debug("[CSSPropertyParser] parseColor: native parse failed for: \(value)")
             return .invalid
         }
-        
-        let length = hexSanitized.count
-        let r, g, b, a: CGFloat
-        
-        if length == 6 {
-            // #RRGGBB
-            r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
-            g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
-            b = CGFloat(rgb & 0x0000FF) / 255.0
-            a = 1.0
-        } else if length == 8 {
-            // #RRGGBBAA
-            r = CGFloat((rgb & 0xFF000000) >> 24) / 255.0
-            g = CGFloat((rgb & 0x00FF0000) >> 16) / 255.0
-            b = CGFloat((rgb & 0x0000FF00) >> 8) / 255.0
-            a = CGFloat(rgb & 0x000000FF) / 255.0
-        } else {
-            return .invalid
+
+        if cv.type == .gradient, let gi = cv.gradient {
+            return .gradient(gi)
         }
-        
+
+        let argb = cv.solidColor
+        let a = CGFloat((argb >> 24) & 0xFF) / 255.0
+        let r = CGFloat((argb >> 16) & 0xFF) / 255.0
+        let g = CGFloat((argb >>  8) & 0xFF) / 255.0
+        let b = CGFloat( argb        & 0xFF) / 255.0
         return .color(UIColor(red: r, green: g, blue: b, alpha: a))
     }
     
-    /// Parses RGB/RGBA color
-    /// - Parameter rgb: RGB color string, e.g., "rgb(255, 0, 0)" or "rgba(255, 0, 0, 0.5)"
-    /// - Returns: Parsed property value
-    private static func parseRGBColor(_ rgb: String) -> CSSPropertyValue {
-        // Use precompiled regex to match rgb(r, g, b) or rgba(r, g, b, a)
-        guard let regex = rgbColorRegex,
-              let match = regex.firstMatch(in: rgb, range: NSRange(rgb.startIndex..., in: rgb)) else {
-            return .invalid
-        }
-        
-        let nsString = rgb as NSString
-        
-        guard let rValue = Int(nsString.substring(with: match.range(at: 1))),
-              let gValue = Int(nsString.substring(with: match.range(at: 2))),
-              let bValue = Int(nsString.substring(with: match.range(at: 3))) else {
-            return .invalid
-        }
-        
-        // Validate RGB value range (0-255)
-        guard rValue >= 0 && rValue <= 255,
-              gValue >= 0 && gValue <= 255,
-              bValue >= 0 && bValue <= 255 else {
-            return .invalid
-        }
-        
-        let r = CGFloat(rValue) / 255.0
-        let g = CGFloat(gValue) / 255.0
-        let b = CGFloat(bValue) / 255.0
-        
-        var a: CGFloat = 1.0
-        if match.range(at: 4).location != NSNotFound {
-            if let aValue = Double(nsString.substring(with: match.range(at: 4))) {
-                // Validate alpha value range (0-1)
-                guard aValue >= 0.0 && aValue <= 1.0 else {
-                    return .invalid
-                }
-                a = CGFloat(aValue)
-            }
-        }
-        
-        return .color(UIColor(red: r, green: g, blue: b, alpha: a))
-    }
-    
-    // MARK: - Alignment Parsing
-    
-    /// Parses alignment values
-    /// - Parameter value: Alignment string, supports kebab-case (e.g., "space-between") and camelCase (e.g., "spaceBetween")
-    /// - Returns: Parsed property value
-    private static func parseAlignment(_ value: String) -> CSSPropertyValue {
-        switch value.lowercased() {
-        case "start", "flex-start":
-            return .keyword("start")
-        case "center":
-            return .keyword("center")
-        case "end", "flex-end":
-            return .keyword("end")
-        case "baseline":
-            return .keyword("baseline")
-        case "stretch":
-            return .keyword("stretch")
-        case "space-between", "spacebetween":
-            return .keyword("space-between")
-        case "space-around", "spacearound":
-            return .keyword("space-around")
-        case "space-evenly", "spaceevenly":
-            return .keyword("space-evenly")
-        case "auto":
-            return .keyword("auto")
-        default:
-            return .invalid
-        }
-    }
+
     
     // MARK: - Opacity Parsing
     
@@ -446,34 +332,7 @@ public class CSSPropertyParser {
         return .url(urlString)
     }
     
-    // MARK: - Position Property Parsing Methods
-    
-    /// Parses position property value
-    /// Supported values: static, relative, absolute
-    /// Unsupported values: fixed, sticky (returns .invalid with warning)
-    /// - Parameter value: position property value string, e.g., "static", "relative", "absolute"
-    /// - Returns: Parsed property value
-    static func parsePosition(_ value: String) -> CSSPropertyValue {
-        let trimmed = value.trimmingCharacters(in: .whitespaces).lowercased()
-        
-        switch trimmed {
-        case "static":
-            return .keyword("static")
-        case "relative":
-            return .keyword("relative")
-        case "absolute":
-            return .keyword("absolute")
-        case "fixed":
-            Logger.shared.debug("Warning: position: fixed is not supported by FlexLayout")
-            return .invalid
-        case "sticky":
-            Logger.shared.debug("Warning: position: sticky is not supported by FlexLayout")
-            return .invalid
-        default:
-            Logger.shared.debug("Warning: Invalid position value: \(value)")
-            return .invalid
-        }
-    }
+
     
     /// Parses offset property values (used for top, left, bottom, right)
     /// Reuses parseDimension logic to ensure consistent px unit scaling behavior
@@ -492,31 +351,6 @@ public class CSSPropertyParser {
         return parseDimension(trimmed)
     }
     
-    /// Parses z-index property value
-    /// Supported formats:
-    /// - Integer: "10" → .number(10)
-    /// - Negative integer: "-5" → .number(-5)
-    /// - Zero: "0" → .number(0)
-    /// - Keyword: "auto" → .keyword("auto")
-    /// Note: z-index must be an integer, decimals will return .invalid
-    /// - Parameter value: z-index property value string
-    /// - Returns: Parsed property value
-    static func parseZIndex(_ value: String) -> CSSPropertyValue {
-        let trimmed = value.trimmingCharacters(in: .whitespaces).lowercased()
-        
-        // Handle auto keyword
-        if trimmed == "auto" {
-            return .keyword("auto")
-        }
-        
-        // Handle integer values (z-index must be integer)
-        if let intValue = Int(trimmed) {
-            return .number(CGFloat(intValue))
-        }
-        
-        Logger.shared.debug("Warning: Invalid z-index value (must be integer): \(value)")
-        return .invalid
-    }
     
     // MARK: - Property Value Extraction Helper Methods
     

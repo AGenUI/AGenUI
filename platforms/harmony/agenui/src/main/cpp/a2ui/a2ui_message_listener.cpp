@@ -133,17 +133,27 @@ void A2UIMessageListener::onCreateSurface(const CreateSurfaceMessage& msg) {
     // listeners_ and surfaceManager_ are only touched on the main thread.
     std::string surfaceId = msg.surfaceId;
     bool animated = msg.animated;
-    postToMainThread([this, surfaceId, animated](napi_env env) {
+    std::string rawProtocolContent = msg.rawProtocolContent;
+    // Capture weak_ptr instead of `this`: the main-thread task may run after
+    // the listener has been destroyed (e.g. rapid create/destroy on the main
+    // thread keeps the TSFN queue from draining).
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, surfaceId, animated, rawProtocolContent](napi_env env) {
+        auto self = weakSelf.lock();
+        if (!self || !self->surfaceManager_) {
+            HM_LOGW("onCreateSurface: listener already destroyed, surfaceId=%s", surfaceId.c_str());
+            return;
+        }
         // Register the surfaceId -> instanceId mapping.
-        registerSurfaceMapping(surfaceId);
-        a2ui::A2UISurface* surface = surfaceManager_->createSurface(surfaceId, animated);
+        self->registerSurfaceMapping(surfaceId);
+        a2ui::A2UISurface* surface = self->surfaceManager_->createSurface(surfaceId, animated);
         if (!surface) {
             HM_LOGE("Failed to create surface: %s", surfaceId.c_str());
             return;
         }
 
         // Notify ArkTS listeners after the surface is created.
-        for (auto& ref : listeners_) {
+        for (auto& ref : self->listeners_) {
             napi_value listener = nullptr;
             napi_get_reference_value(env, ref, &listener);
             if (!listener) continue;
@@ -156,17 +166,14 @@ void A2UIMessageListener::onCreateSurface(const CreateSurfaceMessage& msg) {
             if (funcType == napi_function) {
                 napi_value surfaceIdValue = nullptr;
                 napi_create_string_utf8(env, surfaceId.c_str(), NAPI_AUTO_LENGTH, &surfaceIdValue);
-                napi_value args[] = { surfaceIdValue };
+                napi_value rawProtocolContentValue = nullptr;
+                napi_create_string_utf8(env, rawProtocolContent.c_str(), NAPI_AUTO_LENGTH, &rawProtocolContentValue);
+                napi_value args[] = { surfaceIdValue, rawProtocolContentValue };
                 napi_value result = nullptr;
-                napi_call_function(env, listener, onCreatedFunc, 1, args, &result);  // 1 arg: surfaceId
+                napi_call_function(env, listener, onCreatedFunc, 2, args, &result);  // 2 args: surfaceId, rawProtocolContent
             }
         }
     });
-}
-
-void A2UIMessageListener::onUpdateComponents(const UpdateComponentsMessage& msg) {
-    // Deprecated: use onComponentsUpdate / onComponentsAdd / onComponentsRemove.
-    HM_LOGW("[DEPRECATED] instanceId=%d, surfaceId=%s", instanceId_, msg.surfaceId.c_str());
 }
 
 void A2UIMessageListener::onContentHandleReady() {
@@ -178,8 +185,15 @@ void A2UIMessageListener::onDeleteSurface(const DeleteSurfaceMessage& msg) {
 
     // listeners_ and surfaceManager_ are only touched on the main thread.
     std::string surfaceId = msg.surfaceId;
-    postToMainThread([this, surfaceId](napi_env env) {
-        for (auto& ref : listeners_) {
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, surfaceId](napi_env env) {
+        auto self = weakSelf.lock();
+        if (!self || !self->surfaceManager_) {
+            // Surface was already torn down with the listener; mapping cleanup is still safe.
+            A2UIMessageListener::unregisterSurfaceMappingStatic(surfaceId);
+            return;
+        }
+        for (auto& ref : self->listeners_) {
             napi_value listener = nullptr;
             napi_get_reference_value(env, ref, &listener);
             if (!listener) continue;
@@ -197,12 +211,12 @@ void A2UIMessageListener::onDeleteSurface(const DeleteSurfaceMessage& msg) {
             }
         }
 
-        surfaceManager_->destroySurface(surfaceId);
+        self->surfaceManager_->destroySurface(surfaceId);
 
         // Remove the surfaceId -> instanceId mapping.
         A2UIMessageListener::unregisterSurfaceMappingStatic(surfaceId);
 
-        HM_LOGI("Surface destroyed: %s, remaining: %d", surfaceId.c_str(), surfaceManager_->getSurfaceCount());
+        HM_LOGI("Surface destroyed: %s, remaining: %d", surfaceId.c_str(), self->surfaceManager_->getSurfaceCount());
     });
 }
 
@@ -213,8 +227,11 @@ void A2UIMessageListener::onComponentsUpdate(const std::string &surfaceId, const
     }
 
     // surfaceManager_ is only accessed on the main thread.
-    postToMainThread([this, surfaceId, msg](napi_env /*env*/) {
-        a2ui::A2UISurface* surface = surfaceManager_->getSurface(surfaceId);
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, surfaceId, msg](napi_env /*env*/) {
+        auto self = weakSelf.lock();
+        if (!self || !self->surfaceManager_) return;  // listener torn down before task ran
+        a2ui::A2UISurface* surface = self->surfaceManager_->getSurface(surfaceId);
         if (!surface) {
             HM_LOGE("onComponentsUpdate: Surface not found: %s", surfaceId.c_str());
             return;
@@ -222,7 +239,7 @@ void A2UIMessageListener::onComponentsUpdate(const std::string &surfaceId, const
         surface->handleComponentsUpdate(msg);
     });
 }
-    
+
 void A2UIMessageListener::onComponentsAdd(const std::string &surfaceId, const std::vector<ComponentsAddMessage> &msg) {
     for (size_t msgIndex = 0; msgIndex < msg.size(); ++msgIndex) {
         std::string brief = A2UILogUtils::formatComponentBrief(msg[msgIndex].component);
@@ -230,8 +247,11 @@ void A2UIMessageListener::onComponentsAdd(const std::string &surfaceId, const st
     }
 
     // surfaceManager_ is only accessed on the main thread.
-    postToMainThread([this, surfaceId, msg](napi_env /*env*/) {
-        a2ui::A2UISurface* surface = surfaceManager_->getSurface(surfaceId);
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, surfaceId, msg](napi_env /*env*/) {
+        auto self = weakSelf.lock();
+        if (!self || !self->surfaceManager_) return;
+        a2ui::A2UISurface* surface = self->surfaceManager_->getSurface(surfaceId);
         if (!surface) {
             HM_LOGE("onComponentsAdd: Surface not found: %s", surfaceId.c_str());
             return;
@@ -246,8 +266,11 @@ void A2UIMessageListener::onComponentsRemove(const std::string &surfaceId, const
     HM_LOGI("surfaceId: %s, count: %zu", surfaceId.c_str(), msg.size());
 
     // surfaceManager_ is only accessed on the main thread.
-    postToMainThread([this, surfaceId, msg](napi_env /*env*/) {
-        a2ui::A2UISurface* surface = surfaceManager_->getSurface(surfaceId);
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, surfaceId, msg](napi_env /*env*/) {
+        auto self = weakSelf.lock();
+        if (!self || !self->surfaceManager_) return;
+        a2ui::A2UISurface* surface = self->surfaceManager_->getSurface(surfaceId);
         if (!surface) {
             HM_LOGE("onComponentsRemove: Surface not found: %s", surfaceId.c_str());
             return;
@@ -256,17 +279,16 @@ void A2UIMessageListener::onComponentsRemove(const std::string &surfaceId, const
     });
 }
 
-void A2UIMessageListener::onInteractionStatusEvent(int32_t eventType, const std::string &content) {
-    HM_LOGI("instanceId=%d, type: %d, content: %s", instanceId_, eventType, content.c_str());
-}
-
 void A2UIMessageListener::onActionEventRouted(const std::string &content) {
     HM_LOGI("instanceId=%d, content: %s", instanceId_, content.c_str());
 
     // listeners_ are only accessed on the main thread.
     std::string contentCopy = content;
-    postToMainThread([this, contentCopy](napi_env env) {
-        for (auto& ref : listeners_) {
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, contentCopy](napi_env env) {
+        auto self = weakSelf.lock();
+        if (!self) return;
+        for (auto& ref : self->listeners_) {
             napi_value listener = nullptr;
             napi_get_reference_value(env, ref, &listener);
             if (!listener) continue;
@@ -281,6 +303,42 @@ void A2UIMessageListener::onActionEventRouted(const std::string &content) {
                 napi_create_string_utf8(env, contentCopy.c_str(), NAPI_AUTO_LENGTH, &contentValue);
                 napi_value result = nullptr;
                 napi_call_function(env, listener, onActionEventRoutedFunc, 1, &contentValue, &result);
+            }
+        }
+    });
+}
+
+void A2UIMessageListener::onError(const ErrorMessage& msg) {
+    HM_LOGE("instanceId=%d, code=%d, surfaceId=%s, message=%s",
+            instanceId_, msg.code, msg.surfaceId.c_str(), msg.message.c_str());
+
+    int32_t code = msg.code;
+    std::string surfaceId = msg.surfaceId;
+    std::string message = msg.message;
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, code, surfaceId, message](napi_env env) {
+        auto self = weakSelf.lock();
+        if (!self) return;
+        for (auto& ref : self->listeners_) {
+            napi_value listener = nullptr;
+            napi_get_reference_value(env, ref, &listener);
+            if (!listener) continue;
+
+            napi_value onErrorFunc = nullptr;
+            napi_get_named_property(env, listener, "onError", &onErrorFunc);
+
+            napi_valuetype funcType = napi_undefined;
+            if (onErrorFunc) napi_typeof(env, onErrorFunc, &funcType);
+            if (funcType == napi_function) {
+                napi_value codeValue = nullptr;
+                napi_create_int32(env, code, &codeValue);
+                napi_value surfaceIdValue = nullptr;
+                napi_create_string_utf8(env, surfaceId.c_str(), NAPI_AUTO_LENGTH, &surfaceIdValue);
+                napi_value messageValue = nullptr;
+                napi_create_string_utf8(env, message.c_str(), NAPI_AUTO_LENGTH, &messageValue);
+                napi_value args[] = { codeValue, surfaceIdValue, messageValue };
+                napi_value result = nullptr;
+                napi_call_function(env, listener, onErrorFunc, 3, args, &result);
             }
         }
     });

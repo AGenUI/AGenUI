@@ -7,16 +7,6 @@
 //
 
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
-
-/// Surface state
-public enum SurfaceState {
-    case created    // Created
-    case destroyed  // Destroyed
-}
 
 /// Surface - Independent UI canvas
 ///
@@ -28,9 +18,6 @@ public enum SurfaceState {
     
     /// Surface unique identifier
     @objc public let surfaceId: String
-    
-    /// Surface state
-    public private(set) var state: SurfaceState = .created
     
     /// Surface width constraint (CGFloat.infinity means infinite width)
     private(set) var width: CGFloat
@@ -48,21 +35,26 @@ public enum SurfaceState {
     /// Component tree (componentId -> Component)
     private var componentTree: [String: Component] = [:]
     
-    /// Pending children waiting to be claimed by parent (componentId -> Component)
-    /// Used when child component arrives before its parent
-    private var pendingChildren: [String: Component] = [:]
-    
     /// Layout change callback
     @objc public var onLayoutChanged: (() -> Void)?
     
     /// Whether component appear animations are enabled for this surface
     @objc public var animationEnabled: Bool = true
+
+    /// Original raw protocol content (the full JSON string that was parsed to create this surface)
+    @objc public var rawProtocolContent: String = ""
     
     /// Associated SurfaceManager (weak reference to avoid retain cycle)
     weak var surfaceManager: SurfaceManager?
     
     /// Flag indicating whether built-in components have been registered
     private static var hasRegisteredBuiltInComponents = false
+    
+    // MARK: - Blank Check Properties
+    
+    /// Pending blank-check work item; cancelled on deinit or when re-armed
+    /// by another `startBlankCheck(...)` invocation.
+    private var blankCheckWorkItem: DispatchWorkItem?
     
     // MARK: - Initialization
     
@@ -101,78 +93,30 @@ public enum SurfaceState {
     
     // MARK: - Notification
     @objc internal func notifyLayoutChangedInternal() {
-        // Cancel previously scheduled but not yet executed layout updates
         notifyLayoutChangedInternalReal()
-//        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(Surface.notifyLayoutChangedInternalReal), object: nil)
-//
-//        // Perform layout update on next runloop (delay: 0 means next runloop)
-//        perform(#selector(Surface.notifyLayoutChangedInternalReal), with: nil, afterDelay: 0)
     }
     
     /// Notify layout change
     @objc internal func notifyLayoutChangedInternalReal() {
-        guard rootComponent != nil else {
+        guard let rootComponent = rootComponent else {
             return
         }
         
-        // Determine layout mode based on width/height constraints
-        let layoutMode = determineLayoutMode()
-        Logger.shared.debug("notifyLayoutChangedInternal: width=\(self.width), height=\(self.height), mode=\(layoutMode)")
-        
-        switch layoutMode {
-        case .fitContainer:
-            // Both width and height are finite: use fitContainer mode
-            guard width > 0, height > 0 else {
-                Logger.shared.debug("⚠ Invalid size for fitContainer mode")
-                return
-            }
-            view.flex.width(width).height(height)
-            view.flex.layout(mode: .fitContainer)
-            view.tag = 0
-            Logger.shared.debug("Layout completed (fitContainer): \(width) x \(height)")
-            
-        case .adjustHeight:
-            // Width is finite, height is infinite: use adjustHeight mode
-            let layoutWidth = width.isFinite ? width : UIScreen.main.bounds.width
-            guard layoutWidth > 0 else {
-                return
-            }
-            // Set view frame width to ensure correct percentage width calculation for child components
-            view.flex.width(layoutWidth)
-            view.flex.layout(mode: .adjustHeight)
-            view.tag = 1
-            Logger.shared.debug("Layout completed (adjustHeight): \(layoutWidth) x \(view.frame.height)")
-            
-        case .adjustWidth:
-            // Width is infinite, height is finite: use adjustWidth mode
-            guard height > 0 else {
-                Logger.shared.debug("⚠ Invalid height for adjustWidth mode")
-                return
-            }
-            // Set view frame height to ensure correct percentage height calculation for child components
-            view.flex.height(height)
-            view.flex.layout(mode: .adjustWidth)
-            view.tag = 2
-            Logger.shared.debug("Layout completed (adjustWidth): \(view.frame.width) x \(height)")
+        // Sync surface.view size with the root component's frame computed by C++ Yoga engine.
+        // Each Component's frame is set by applyLayoutFromStyles() when updateProperties() is called.
+        // Without this step, surface.view always has zero height and callers cannot read the
+        // rendered content height from surface.view.frame in the onLayoutChanged callback.
+        let contentWidth  = rootComponent.frame.width
+        let contentHeight = rootComponent.frame.maxY  // use maxY to include absolute-positioned children that extend below root
+        if contentWidth > 0 || contentHeight > 0 {
+            view.frame = CGRect(x: view.frame.origin.x,
+                                y: view.frame.origin.y,
+                                width: contentWidth,
+                                height: contentHeight)
         }
         
-        // Trigger layout change callback
+        // Layout computed by C++ Engine; iOS only triggers callback
         onLayoutChanged?()
-    }
-    
-    /// Determine layout mode based on width/height constraints
-    private func determineLayoutMode() -> Flex.LayoutMode {
-        if width.isFinite && height.isFinite {
-            return .fitContainer
-        }
-        if width.isFinite && height.isInfinite {
-            return .adjustHeight
-        }
-        if width.isInfinite && height.isFinite {
-            return .adjustWidth
-        }
-        // Default: both infinite, use adjustHeight
-        return .adjustHeight
     }
     
     // MARK: - Size Management
@@ -192,6 +136,12 @@ public enum SurfaceState {
         
         Logger.shared.debug("Size updated: width=\(width)(normalized: \(normalizedWidth)), height=\(height)(normalized: \(normalizedHeight))")
         
+        // Notify C++ Yoga engine that surface size changed
+        // a2ui units = pt * 2 (consistent with BS_POINT_SCALE = 0.5)
+        let widthCXX = normalizedWidth.isFinite ? Float(normalizedWidth) : 0.0
+        let heightCXX = normalizedHeight.isFinite ? Float(normalizedHeight) : 0.0
+        surfaceManager?.notifySurfaceSizeChanged(surfaceId: surfaceId, width: widthCXX, height: heightCXX)
+        
         // Trigger layout change
         notifyLayoutChangedInternal()
     }
@@ -210,12 +160,7 @@ public enum SurfaceState {
     ///   - componentId: Component ID
     ///   - componentType: Component type
     ///   - properties: Component properties
-    func addComponent(componentId: String, componentType: String, properties: [String: Any]) {
-        guard state != .destroyed else {
-            Logger.shared.debug("Cannot add component: Surface is destroyed")
-            return
-        }
-        
+    func addComponent(componentId: String, componentType: String, properties: [String: Any], parentId: String?) {
         Logger.shared.debug("[Surface] Adding component: \(componentId) (\(componentType))")
         
         // Check if component already exists
@@ -243,62 +188,28 @@ public enum SurfaceState {
             Logger.shared.debug("Set as root component (id == 'root')")
             
             // Add root component to view
-            view.flex.addItem(component)
-        }
-        
-        // Process pending children: check if children IDs are in pendingChildren
-        let childrenIds = component.getChildrenIdsFromProperties()
-        if !childrenIds.isEmpty {
-            processPendingChildren(for: component, childrenIds: childrenIds)
+            view.addSubview(component)
+            
+            // Set up properties update callback for root component
+            component.onPropertiesUpdate = { [weak self] props in
+                guard let self = self else { return }
+                self.surfaceManager?.notifyRootComponentUpdate(surface: self, props: props)
+            }
         }
         
         // Case 2: Check if parent already exists in componentTree
         // (parent arrived before this child) - traverse to find parent
-        if componentId != "root" && component.parent == nil {
-            if let parentComponent = findParentComponent(for: componentId) {
+        if componentId != "root" && component.parent == nil && parentId != nil {
+            if let parentComponent = getComponent(componentId: parentId!) {
                 parentComponent.addChild(component)
                 Logger.shared.debug("Added to existing parent: \(parentComponent.componentId)")
             } else {
-                // Parent not yet arrived, add to pendingChildren
-                pendingChildren[componentId] = component
-                Logger.shared.debug("Component added to pendingChildren: \(componentId)")
+                Logger.shared.error("Component added to pendingChildren error: \(componentId)")
             }
         }
         
         notifyLayoutChangedInternal()
         Logger.shared.debug("Component added: \(component.componentId)")
-    }
-    
-    /// Find parent component by traversing componentTree
-    ///
-    /// - Parameter childId: Child component ID
-    /// - Returns: Parent component if found, nil otherwise
-    private func findParentComponent(for childId: String) -> Component? {
-        for (_, component) in componentTree {
-            let childrenIds = component.getChildrenIdsFromProperties()
-            if childrenIds.contains(childId) {
-                return component
-            }
-        }
-        return nil
-    }
-    
-    /// Process pending children for a newly added component
-    ///
-    /// - Parameters:
-    ///   - parent: The parent component
-    ///   - childrenIds: Array of children component IDs
-    private func processPendingChildren(for parent: Component, childrenIds: [String]) {
-        for childId in childrenIds {
-            // Check if child is in pendingChildren
-            if let pendingChild = pendingChildren[childId] {
-                parent.addChild(pendingChild)
-                Logger.shared.debug("Added pending child: \(childId) to parent: \(parent.componentId)")
-                
-                // Remove from pending
-                pendingChildren.removeValue(forKey: childId)
-            }
-        }
     }
     
     /// Remove component from tree
@@ -341,94 +252,13 @@ public enum SurfaceState {
             return
         }
         
-        // Snapshot old children IDs before properties are overwritten
-        let oldChildrenIds = component.getChildrenIdsFromProperties()
-        
         // Update properties (component.properties["children"] is now updated)
         component.updateProperties(properties)
-        
-        // Sync children tree if children changed
-        if properties["children"] != nil {
-            let newChildrenIds = component.getChildrenIdsFromProperties()
-            syncChildrenAfterUpdate(component: component,
-                                    oldChildrenIds: oldChildrenIds,
-                                    newChildrenIds: newChildrenIds)
-        }
         
         // Notify layout change
         notifyLayoutChangedInternal()
         
         Logger.shared.debug("Component updated: \(componentId)")
-    }
-    
-    /// Sync component children after a properties update.
-    ///
-    /// Mirrors the coordination logic in addComponent / processPendingChildren,
-    /// keeping Surface as the sole orchestrator of the component tree.
-    ///
-    /// - Parameters:
-    ///   - component:      The component whose children list changed
-    ///   - oldChildrenIds: Children IDs before the update
-    ///   - newChildrenIds: Children IDs after the update
-    private func syncChildrenAfterUpdate(component: Component,
-                                         oldChildrenIds: [String],
-                                         newChildrenIds: [String]) {
-        let oldSet = Set(oldChildrenIds)
-        let newSet = Set(newChildrenIds)
-        
-        // 1. Remove children that are no longer listed
-        //    Keep them in componentTree — they may be reused elsewhere
-        let removedIds = oldSet.subtracting(newSet)
-        for id in removedIds {
-            if let child = component.getChild(id) {
-                component.removeChild(child)
-                Logger.shared.debug("[syncChildren] Removed child: \(id) from \(component.componentId)")
-            }
-        }
-        
-        // 2. Add newly listed children
-        //    - If already in componentTree: attach immediately via addChild
-        //      (addChild uses the now-updated properties["children"] for ordering)
-        //    - If not yet arrived: register in pendingChildren so addComponent
-        //      will claim them when they arrive — reusing the existing mechanism
-        let addedIds = newSet.subtracting(oldSet)
-        for id in addedIds {
-            if let child = componentTree[id] {
-                component.addChild(child)
-                pendingChildren.removeValue(forKey: id)
-                Logger.shared.debug("[syncChildren] Added child: \(id) to \(component.componentId)")
-            } else {
-                // Child not yet arrived; addComponent will find this parent via
-                // findParentComponent when the child's JSON is processed
-                Logger.shared.debug("[syncChildren] Child not yet arrived, pending: \(id)")
-            }
-        }
-        
-        // 3. Re-order retained children whose position may have changed.
-        //    removeChild + addChild round-trips through the existing ordered-insert
-        //    algorithm in Component.addChild, which reads the already-updated
-        //    properties["children"] for the correct target index.
-        let retainedIds = oldSet.intersection(newSet)
-        let reorderNeeded = oldChildrenIds.filter { retainedIds.contains($0) }
-                            != newChildrenIds.filter { retainedIds.contains($0) }
-        if reorderNeeded {
-            // Detach retained children (view + children array) without destroying
-            var retainedComponents: [Component] = []
-            for id in retainedIds {
-                if let child = component.getChild(id) {
-                    retainedComponents.append(child)
-                    component.removeChild(child)
-                }
-            }
-            // Re-attach in the order dictated by newChildrenIds
-            let ordered = newChildrenIds.compactMap { id in
-                retainedComponents.first { $0.componentId == id }
-            }
-            for child in ordered {
-                component.addChild(child)
-                Logger.shared.debug("[syncChildren] Reordered child: \(child.componentId)")
-            }
-        }
     }
     
     /// Get component by ID
@@ -446,15 +276,56 @@ public enum SurfaceState {
         return Array(componentTree.values)
     }
     
+    // MARK: - Blank Check
+    
+    /// Start blank-check on this Surface.
+    ///
+    /// Calling this method **immediately** schedules a single delayed detection.
+    /// After `checkDelayMs` elapses, the SDK counts current valid components on
+    /// this Surface and emits the result via
+    /// `SurfaceManagerListener.onBlankCheckResult(_:isBlank:)`.
+    ///
+    /// Calling again before the previous detection fires will cancel the previous
+    /// schedule and start a new one with the latest parameters.
+    ///
+    /// - Parameters:
+    ///   - checkDelayMs:        Delay (in ms) before detection runs
+    ///   - validComponentCount: Threshold; if actual valid component count is lower, treated as blank
+    @objc public func startBlankCheck(checkDelayMs: Int, validComponentCount: Int) {
+        let delayMs = max(0, checkDelayMs)
+        let threshold = max(0, validComponentCount)
+        Logger.shared.info("BlankCheck armed: surface=\(surfaceId), delayMs=\(delayMs), threshold=\(threshold)")
+        
+        // Cancel any previous pending check
+        blankCheckWorkItem?.cancel()
+        
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            // lcpX rule: count components whose view bounds (width & height) are both > 0
+            var count = 0
+            for component in self.componentTree.values {
+                if component.bounds.width > 0 && component.bounds.height > 0 {
+                    count += 1
+                    if count >= threshold { break }
+                }
+            }
+            let isBlank = count < threshold
+            Logger.shared.info("BlankCheck result: surface=\(self.surfaceId), count=\(count), threshold=\(threshold), isBlank=\(isBlank)")
+            self.surfaceManager?.notifyBlankCheckResult(surface: self, isBlank: isBlank)
+        }
+        blankCheckWorkItem = work
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delayMs), execute: work)
+    }
+    
     // MARK: - Lifecycle
     
-    /// Destroy Surface
-    func destroy() {
-        guard state != .destroyed else {
-            return
-        }
+    deinit {
+        Logger.shared.debug("Deinit: \(surfaceId)")
         
-        Logger.shared.debug("Destroying: \(surfaceId)")
+        // Cancel any pending blank check
+        blankCheckWorkItem?.cancel()
+        blankCheckWorkItem = nil
         
         // Destroy all components
         for component in componentTree.values {
@@ -465,10 +336,7 @@ public enum SurfaceState {
         componentTree.removeAll()
         rootComponent = nil
         
-        // Update state
-        state = .destroyed
-        
-        Logger.shared.debug("Destroyed: \(surfaceId)")
+        Logger.shared.debug("Deinitialized: \(surfaceId)")
     }
     
     // MARK: - JSON Processing
@@ -476,7 +344,7 @@ public enum SurfaceState {
     /// Process single component JSON
     ///
     /// - Parameter componentJson: Component JSON string
-    func processComponentJson(_ componentJson: String) {
+    func processAddComponentJson(_ componentJson: String, parentId: String?) {
         // Parse component JSON
         guard var componentData = parseJSON(componentJson) else {
             Logger.shared.error("Failed to parse component JSON")
@@ -486,7 +354,7 @@ public enum SurfaceState {
         // Normalize: convert "child" to "children" array
         // This allows components like Button to have a single child
         if let child = componentData["child"] as? String {
-            if (child.count != 0) {
+            if !child.isEmpty {
                 componentData["children"] = [child]
                 componentData.removeValue(forKey: "child")
             }
@@ -507,7 +375,7 @@ public enum SurfaceState {
             Logger.shared.error("Component missing type: \(componentId)")
             return
         }
-        
+                
         Logger.shared.debug("Processing component: id=\(componentId), type=\(type)")
         
         // Extract properties: use entire componentData excluding metadata fields
@@ -517,28 +385,65 @@ public enum SurfaceState {
         properties.removeValue(forKey: "component")
         properties.removeValue(forKey: "parent")
         
-        // Check if component already exists
-        if getComponent(componentId: componentId) != nil {
-            Logger.shared.warning("Component already exists, updating: \(componentId)")
-            updateComponent(componentId: componentId, properties: properties)
-        } else {
-            // Add new component
-            addComponent(
-                componentId: componentId,
-                componentType: type,
-                properties: properties
-            )
-            Logger.shared.info("Component added: \(componentId)")
+        // Add new component
+        addComponent(
+            componentId: componentId,
+            componentType: type,
+            properties: properties,
+            parentId: parentId
+        )
+        Logger.shared.info("Component added: \(componentId)")
+    }
+    
+    /// Process components update messages
+    ///
+    /// - Parameter messages: Array of update messages, each containing componentId and component JSON
+    func processComponentsUpdate(_ messages: [[String: String]]) {
+        for message in messages {
+            guard let componentId = message["componentId"],
+                  let componentJson = message["component"] else {
+                Logger.shared.error("Invalid components update message")
+                continue
+            }
+            
+            guard var componentData = parseJSON(componentJson) else {
+                Logger.shared.error("Failed to parse component JSON for update: \(componentId)")
+                continue
+            }
+            
+            componentData.removeValue(forKey: "id")
+            componentData.removeValue(forKey: "type")
+            componentData.removeValue(forKey: "component")
+            componentData.removeValue(forKey: "parent")
+            updateComponent(componentId: componentId, properties: componentData)
         }
     }
     
-    /// Process multiple component JSON strings
+    /// Process components add messages
     ///
-    /// - Parameter components: Array of component JSON strings
-    func processComponents(_ components: [String]) {
-        for (index, componentJson) in components.enumerated() {
-            Logger.shared.debug("[\(index)]: Processing component JSON")
-            processComponentJson(componentJson)
+    /// - Parameter messages: Array of add messages, each containing parentId, componentId and component JSON
+    func processComponentsAdd(_ messages: [[String: String]]) {
+        for message in messages {
+            guard let componentJson = message["component"] else {
+                Logger.shared.error("Invalid components add message")
+                continue
+            }
+            
+            let parentId = message["parentId"]
+            processAddComponentJson(componentJson, parentId: parentId)
+        }
+    }
+    
+    /// Process components remove messages
+    ///
+    /// - Parameter messages: Array of remove messages, each containing parentId and componentId
+    func processComponentsRemove(_ messages: [[String: String]]) {
+        for message in messages {
+            guard let componentId = message["componentId"] else {
+                Logger.shared.error("Invalid components remove message")
+                continue
+            }
+            removeComponent(componentId: componentId)
         }
     }
     

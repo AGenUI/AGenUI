@@ -48,17 +48,6 @@ FunctionCallConfig FormatNumberFunctionCall::getConfig() const {
     config.setName("formatNumber");
     config.setDescription("Formats a number with the specified grouping and decimal precision.");
     config.setReturnType("string");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"type", "number"}}},
-            {"decimals", {{"type", "number"}}},
-            {"grouping", {{"type", "boolean"}}}
-        }},
-        {"required", nlohmann::json::array({"value"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

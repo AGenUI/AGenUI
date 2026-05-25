@@ -39,21 +39,40 @@ import Foundation
     @objc public let result: Bool
     
     /// Additional data returned by the function call
-    @objc public let value: [String: Any]
-    
-    @objc public init(result: Bool, value: [String: Any]) {
+    @objc public let value: String
+
+    @objc public init(result: Bool, value: String) {
         self.result = result
         self.value = value
     }
     
     /// Create a success result
-    @objc public static func success(value: [String: Any]) -> FunctionResult {
+    @objc public static func success(value: String) -> FunctionResult {
         return FunctionResult(result: true, value: value)
     }
     
     /// Create a failure result
-    @objc public static func failure(value: [String: Any]) -> FunctionResult {
+    @objc public static func failure(value: String) -> FunctionResult {
         return FunctionResult(result: false, value: value)
+    }
+}
+
+// MARK: - FunctionCallContext
+
+/// Context information for a function call
+///
+/// Provides the instance and surface context in which the function call is invoked.
+@objc public class FunctionCallContext: NSObject {
+    
+    /// Instance unique identifier
+    @objc public let instanceId: Int
+    
+    /// Surface unique identifier
+    @objc public let surfaceId: String
+    
+    @objc public init(instanceId: Int, surfaceId: String) {
+        self.instanceId = instanceId
+        self.surfaceId = surfaceId
     }
 }
 
@@ -69,7 +88,9 @@ import Foundation
     @objc var functionConfig: FunctionConfig { get }
     
     /// Execute the function synchronously
-    /// - Parameter params: JSON string containing the function parameters
+    /// - Parameters:
+    ///   - context: Context information containing instanceId and surfaceId
+    ///   - params: JSON string containing the function parameters
     /// - Returns: Execution result with success/failure status and return value
-    @objc func execute(_ params: String) -> FunctionResult
+    @objc func execute(context: FunctionCallContext, params: String) -> FunctionResult
 }

@@ -15,10 +15,6 @@ public:
     
     FunctionCallResolution execute(const nlohmann::json& args) override;
     FunctionCallConfig getConfig() const override;
-    
-    bool isSync() const override {
-        return true;
-    }
 };
 
 } // namespace agenui

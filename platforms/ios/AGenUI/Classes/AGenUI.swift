@@ -22,6 +22,9 @@ import Foundation
         return AGenUIEngineBridge.sharedInstance()
     }
 
+    /// Strong references to registered functions to prevent deallocation
+    private static var registeredFunctions: [String: Function] = [:]
+
     // MARK: - Global Configuration
 
     // MARK: - Theme Management
@@ -82,6 +85,24 @@ import Foundation
         Logger.shared.info("Day/Night mode set to: \(mode)")
     }
 
+    // MARK: - Path Configuration
+
+    /// Set path configuration
+    ///
+    /// - Parameter configJson: Path configuration JSON string, e.g. {"templateDir": "/path/to/templates"}
+    /// - Returns: AGenUIError with result and message fields
+    @objc public static func setPathConfig(_ configJson: String) -> AGenUIError {
+        Logger.shared.debug("setPathConfig - configJson length: \(configJson.count)")
+        let result = engineBridge.setPathConfig(configJson)
+        if result {
+            Logger.shared.info("Path config set successfully")
+            return AGenUIError(result: true, message: "Success")
+        } else {
+            Logger.shared.error("Failed to set path config")
+            return AGenUIError(result: false, message: "Failed to parse path config JSON")
+        }
+    }
+
     // MARK: - Component Registration
 
     /// Register a custom component factory
@@ -90,10 +111,41 @@ import Foundation
     ///   - type: Component type name
     ///   - creator: Factory closure to create the component
     /// - Note: Overwrites if the component type already exists
-    @objc public static func registerComponent(_ type: String, creator: @escaping (String, [String: Any]) -> Component) {
+    public static func registerComponent<T: Component>(_ type: String, creator: @escaping (String, [String: Any]) -> T) {
         Logger.shared.debug("registerComponent: \(type)")
         ComponentRegister.shared.register(type, creator: creator)
         Logger.shared.info("Custom component registered: \(type)")
+    }
+    
+    /// Register a custom component factory (Objective-C compatible)
+    ///
+    /// - Parameters:
+    ///   - type: Component type name
+    ///   - creator: Factory closure to create the component, returns a Component instance
+    /// - Note: Overwrites if the component type already exists
+    @objc(registerComponent:creator:)
+    public static func registerComponentObjC(_ type: String, creator: @escaping (String, [String: Any]) -> Component) {
+        Logger.shared.debug("registerComponent (ObjC): \(type)")
+        ComponentRegister.shared.register(type, creator: creator)
+        Logger.shared.info("Custom component registered (ObjC): \(type)")
+    }
+    
+    /// Register a custom component factory with explicit class name (Objective-C compatible)
+    ///
+    /// When called from ObjC, Swift generic T is erased to Component.
+    /// This method accepts an explicit class name string to resolve the actual
+    /// Component subclass for correct measurement dispatch.
+    ///
+    /// - Parameters:
+    ///   - type: Component type name
+    ///   - componentClassName: Fully qualified class name string for the Component subclass
+    ///   - creator: Factory closure to create the component
+    /// - Note: Overwrites if the component type already exists
+    @objc(registerComponent:componentClassName:creator:)
+    public static func registerComponentObjC(_ type: String, componentClassName: String, creator: @escaping (String, [String: Any]) -> Component) {
+        Logger.shared.debug("registerComponent (ObjC): \(type), class: \(componentClassName)")
+        ComponentRegister.shared.register(type, componentClassName: componentClassName, creator: creator)
+        Logger.shared.info("Custom component registered (ObjC): \(type)")
     }
     
     @objc public static func unRegisterComponent(_ type: String) {
@@ -132,13 +184,14 @@ import Foundation
         Logger.shared.debug("registerFunction - name: \(name)")
         
         // Create bridge callback that delegates to the function instance
-        let bridgeCallback: AGenUIFunctionCallCallback = { [weak function] argsJson in
+        let bridgeCallback: AGenUIFunctionCallCallback = { [weak function] instanceId, surfaceId, argsJson in
             
             guard let function = function else {
                 return "{\"status\":\"Error\",\"error\":\"Function deallocated\"}"
             }
             
-            let result = function.execute(argsJson)
+            let context = FunctionCallContext(instanceId: Int(instanceId), surfaceId: surfaceId ?? "")
+            let result = function.execute(context: context, params: argsJson)
             
             let resultDict: [String: Any] = [
                 "status": result.result ? "Success" : "Error",
@@ -152,6 +205,9 @@ import Foundation
             
             return resultJson
         }
+        
+        // Retain the function object to prevent deallocation
+        registeredFunctions[name] = function
         
         engineBridge.registerFunction(name, config: configJson, callback: bridgeCallback)
         Logger.shared.info("FunctionCall registered: \(name)")
@@ -167,8 +223,42 @@ import Foundation
             return
         }
         
+        registeredFunctions.removeValue(forKey: name)
         engineBridge.unregisterFunction(name)
         Logger.shared.info("FunctionCall unregistered: \(name)")
+    }
+    
+    // MARK: - Logging
+    
+    /// Custom Logger
+    ///
+    /// - Parameter customLogger: Custom Logger
+    /// - Note: By setting the delegate, other modules like can receive log output
+    @objc public static func setCustomLogger(_ customLogger: LoggerDelegate?) {
+        Logger.shared.delegate = customLogger
+        // Wire the C++ engine to route runtime logs through the bridge so the
+        // IRuntimeLogger extension (getMinLevel + delegate forwarding) actually takes effect.
+        engineBridge.setRuntimeLogEnabled(true)
+    }
+
+    /// Set the minimum log level for AGenUI SDK.
+    ///
+    /// Only logs with level >= the specified level will be output.
+    /// This controls both the Swift-side filtering and the C++ hot-path
+    /// early-exit (via `IRuntimeLogger.getMinLevel()`), so filtered-out
+    /// messages skip variadic formatting and cross-language bridging entirely.
+    ///
+    /// - Parameter level: The minimum log level to output.
+    ///   Possible values: `.debug`(0), `.info`(1), `.warning`(2), `.error`(3), `.fatal`(4), `.performance`(5)
+    @objc public static func setMinLogLevel(_ level: Logger.Level) {
+        Logger.shared.minimumLevel = level
+    }
+
+    /// Get the current minimum log level for AGenUI SDK.
+    ///
+    /// - Returns: The current minimum log level.
+    @objc public static func getMinLogLevel() -> Logger.Level {
+        return Logger.shared.minimumLevel
     }
 
     // MARK: - Version Info
@@ -177,7 +267,7 @@ import Foundation
     ///
     /// - Returns: Version string
     @objc public static func getVersion() -> String {
-        return "0.9.10"
+        return AGenUIEngineBridge.sdkVersion()
     }
 }
 

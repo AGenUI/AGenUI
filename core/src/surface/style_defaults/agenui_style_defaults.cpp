@@ -1,6 +1,6 @@
 #include "agenui_style_defaults.h"
 #include "agenui_style_defaults_config.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "nlohmann/json.hpp"
 
 namespace agenui {
@@ -11,12 +11,12 @@ const std::map<std::string, std::string>& StyleDefaults::getDefaults() {
 
         nlohmann::json jsonData = nlohmann::json::parse(kStyleDefaultsConfig, nullptr, false);
         if (jsonData.is_discarded()) {
-            AGENUI_LOG("failed: JSON parse error");
+            AGENUI_LOG("[StyleDefaults] getDefaults failed: JSON parse error");
             return result;
         }
 
         if (!jsonData.is_object()) {
-            AGENUI_LOG("failed: root is not an object");
+            AGENUI_LOG("[StyleDefaults] getDefaults failed: root is not an object");
             return result;
         }
 

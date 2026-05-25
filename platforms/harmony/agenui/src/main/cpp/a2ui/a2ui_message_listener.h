@@ -5,6 +5,7 @@
 #include "render/factory/a2ui_component_registry.h"
 #include "render/a2ui_surface_manager.h"
 #include <map>
+#include <memory>
 #include <vector>
 #include <mutex>
 #include <functional>
@@ -26,10 +27,13 @@ using MainThreadTask = std::function<void(napi_env)>;
  *
  * Data flow:
  * - onCreateSurface: create the surface with its own registry and component tree
- * - onUpdateComponents: run the JSON parse -> parent map -> topo sort -> component map pipeline
  * - onDeleteSurface: destroy the surface and recursively tear down the component tree
  */
-class A2UIMessageListener : public IAGenUIMessageListener {
+// Inherits enable_shared_from_this so worker-thread events can capture a
+// weak_ptr and safely no-op when the listener has already been destroyed
+// on the main thread (see postToMainThread call sites below).
+class A2UIMessageListener : public IAGenUIMessageListener,
+                            public std::enable_shared_from_this<A2UIMessageListener> {
 public:
     /**
      * @brief Constructor
@@ -56,13 +60,12 @@ public:
     // ==================== IAGenUIMessageListener Implementation ====================
 
     void onCreateSurface(const CreateSurfaceMessage& msg) override;
-    void onUpdateComponents(const UpdateComponentsMessage& msg) override;
     void onDeleteSurface(const DeleteSurfaceMessage& msg) override;
-    void onInteractionStatusEvent(int32_t eventType, const std::string &content) override;
     void onActionEventRouted(const std::string &content) override;
     void onComponentsUpdate(const std::string& surfaceId, const std::vector<ComponentsUpdateMessage>& msg) override;
     void onComponentsAdd(const std::string& surfaceId, const std::vector<ComponentsAddMessage>& msg) override;
     void onComponentsRemove(const std::string& surfaceId, const std::vector<ComponentsRemoveMessage>& msg) override;
+    void onError(const ErrorMessage& msg) override;
 
     // ==================== Render-layer Access ====================
 

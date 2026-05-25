@@ -2,7 +2,7 @@
 
 namespace agenui {
 
-FunctionCallConfig::FunctionCallConfig() : _sync(true) {
+FunctionCallConfig::FunctionCallConfig() {
 }
 
 FunctionCallConfig::~FunctionCallConfig() {
@@ -27,20 +27,6 @@ FunctionCallConfig FunctionCallConfig::fromJson(const nlohmann::json& json) {
         config._returnType = json["returnType"].get<std::string>();
     }
     
-    if (json.contains("parameters")) {
-        const nlohmann::json& parameters = json["parameters"];
-        if (parameters.is_object() || parameters.is_null()) {
-            config._parameters = parameters;
-        } else {
-            // Non-object/non-null parameters are invalid; reset to null so the validator skips validation
-            config._parameters = nlohmann::json(nullptr);
-        }
-    }
-    
-    if (json.contains("sync") && json["sync"].is_boolean()) {
-        config._sync = json["sync"].get<bool>();
-    }
-    
     return config;
 }
 
@@ -54,8 +40,6 @@ nlohmann::json FunctionCallConfig::toJson() const {
     json["name"] = _name;
     json["description"] = _description;
     json["returnType"] = _returnType;
-    json["parameters"] = _parameters;
-    json["sync"] = _sync;
     
     return json;
 }

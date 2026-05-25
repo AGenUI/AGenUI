@@ -4,65 +4,78 @@ namespace agenui {
 
 std::string getExeCodeString(AGenUIExeCode code) {
     switch (code) {
-        case ExeCode_Parse_success:
-            return "success";
-        case ExeCode_network_Error:
-            return "network_Error";
-        case ExeCode_ParseError_createSurface_no_keywords:
-            return "createSurface_no_keywords";
-        case ExeCode_ParseError_createSurface_no_surfaceId:
-            return "createSurface_no_surfaceId";
-        case ExeCode_ParseError_createSurface_empty_surfaceId:
-            return "createSurface_empty_surfaceId";
-        case ExeCode_ParseError_createSurface_jsonexception:
-            return "createSurface_jsonexception";
-        case ExeCode_ParseError_createSurface_duplicate_surfaceId:
-            return "createSurface_duplicate_surfaceId";
-        case ExeCode_ParseError_updateComponents_no_keywords:
-            return "updateComponents_no_keywords";
-        case ExeCode_ParseError_updateComponents_no_surfaceId:
-            return "updateComponents_no_surfaceId";
-        case ExeCode_ParseError_updateComponents_empty_surfaceId:
-            return "updateComponents_empty_surfaceId";
-        case ExeCode_ParseError_updateComponents_notfound_surfaceId:
-            return "updateComponents_notfound_surfaceId";
-        case ExeCode_ParseError_updateComponents_jsonexception:
-            return "updateComponents_jsonexception";
-        case ExeCode_ParseError_updateComponents_no_componentsField:
-            return "updateComponents_no_componentsField";
-        case ExeCode_ParseError_updateComponents_components_notarray:
-            return "updateComponents_components_notarray";
-        case ExeCode_ParseError_updateComponents_no_componentEntity:
-            return "updateComponents_no_componentEntity";
-        case ExeCode_ParseError_updateComponents_parseComponentTemplateFailed:
-            return "updateComponents_parseComponentTemplateFailed";
-        case ExeCode_ParseError_updateDataModel_no_keywords:
-            return "updateDataModel_no_keywords";
-        case ExeCode_ParseError_updateDataModel_no_surfaceId:
-            return "updateDataModel_no_surfaceId";
-        case ExeCode_ParseError_updateDataModel_empty_surfaceId:
-            return "updateDataModel_empty_surfaceId";
-        case ExeCode_ParseError_updateDataModel_notfound_surfaceId:
-            return "updateDataModel_notfound_surfaceId";
-        case ExeCode_ParseError_updateDataModel_jsonexception:
-            return "updateDataModel_jsonexception";
-        case ExeCode_ParseError_appendDataModel_no_keywords:
-            return "appendDataModel_no_keywords";
-        case ExeCode_ParseError_appendDataModel_no_surfaceId:
-            return "appendDataModel_no_surfaceId";
-        case ExeCode_ParseError_appendDataModel_empty_surfaceId:
-            return "appendDataModel_empty_surfaceId";
-        case ExeCode_ParseError_appendDataModel_notfound_surfaceId:
-            return "appendDataModel_notfound_surfaceId";
-        case ExeCode_ParseError_httpCallback_end_unmatch_data:
-            return "httpCallback_end_unmatch_data";
+        case Execute_Success:
+            return "execute success";
+
+        // CreateSurface
+        case CreateSurface_MissingKeyword:
+            return "missing createSurface keyword";
+        case CreateSurface_MissingSurfaceId:
+            return "missing surfaceId in createSurface";
+        case CreateSurface_EmptySurfaceId:
+            return "surfaceId is empty in createSurface";
+        case CreateSurface_JsonError:
+            return "JSON exception in createSurface";
+        case CreateSurface_DuplicateSurfaceId:
+            return "surfaceId already exists";
+
+        // UpdateComponents
+        case UpdateComponents_MissingKeyword:
+            return "missing updateComponents keyword";
+        case UpdateComponents_MissingSurfaceId:
+            return "missing surfaceId in updateComponents";
+        case UpdateComponents_EmptySurfaceId:
+            return "surfaceId is empty in updateComponents";
+        case UpdateComponents_SurfaceNotFound:
+            return "surface not found in updateComponents";
+        case UpdateComponents_JsonError:
+            return "JSON exception in updateComponents";
+        case UpdateComponents_MissingComponentsField:
+            return "missing components field in updateComponents";
+        case UpdateComponents_ComponentsNotArray:
+            return "components is not an array in updateComponents";
+        case UpdateComponents_MissingComponentEntity:
+            return "missing component entity in updateComponents";
+        case UpdateComponents_TemplateExpansionFailed:
+            return "template expansion failed in updateComponents";
+
+        // UpdateDataModel
+        case UpdateDataModel_MissingKeyword:
+            return "missing updateDataModel keyword";
+        case UpdateDataModel_MissingSurfaceId:
+            return "missing surfaceId in updateDataModel";
+        case UpdateDataModel_EmptySurfaceId:
+            return "surfaceId is empty in updateDataModel";
+        case UpdateDataModel_SurfaceNotFound:
+            return "surface not found in updateDataModel";
+        case UpdateDataModel_JsonError:
+            return "JSON exception in updateDataModel";
+
+        // AppendDataModel
+        case AppendDataModel_MissingKeyword:
+            return "missing appendDataModel keyword";
+        case AppendDataModel_MissingSurfaceId:
+            return "missing surfaceId in appendDataModel";
+        case AppendDataModel_EmptySurfaceId:
+            return "surfaceId is empty in appendDataModel";
+        case AppendDataModel_SurfaceNotFound:
+            return "surface not found in appendDataModel";
+        case AppendDataModel_JsonError:
+            return "JSON exception in appendDataModel";
+
+        // DeleteSurface
+        case DeleteSurface_MissingKeyword:
+            return "missing deleteSurface keyword";
+        case DeleteSurface_MissingSurfaceId:
+            return "missing surfaceId in deleteSurface";
+        case DeleteSurface_EmptySurfaceId:
+            return "surfaceId is empty in deleteSurface";
+        case DeleteSurface_JsonError:
+            return "JSON exception in deleteSurface";
+
         default:
             return "unknown";
     }
-}
-
-std::string formatErrorTips(AGenUIExeCode code) {
-    return std::string("#Error: " + getExeCodeString(code));
 }
 
 } // namespace agenui

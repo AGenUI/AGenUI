@@ -1,10 +1,10 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+    ],
     "products": [
       {
         "name": "default",
-        "signingConfig": "default",
         "compatibleSdkVersion": "5.0.5(17)",
         "targetSdkVersion": "6.0.0(20)",
         "runtimeOS": "HarmonyOS",

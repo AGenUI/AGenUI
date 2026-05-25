@@ -60,7 +60,14 @@ public class DiskImageCache {
     ///   - url: Image URL (used as cache key)
     public func store(_ image: UIImage, for url: URL) {
         guard let data = image.pngData() ?? image.jpegData(compressionQuality: 0.8) else { return }
-        
+        store(data, for: url)
+    }
+    
+    /// Store raw image data to disk
+    /// - Parameters:
+    ///   - data: Raw image data (JPEG/PNG/etc.)
+    ///   - url: Image URL (used as cache key)
+    public func store(_ data: Data, for url: URL) {
         let fileURL = cacheFileURL(for: url)
         let metaURL = metaFileURL(for: url)
         
@@ -87,6 +94,29 @@ public class DiskImageCache {
             // Clean up the image file since metadata is missing
             try? fileManager.removeItem(at: fileURL)
         }
+    }
+    
+    /// Read raw image data from disk
+    /// - Parameter url: Image URL
+    /// - Returns: Raw cached data, or nil if not found or expired
+    public func data(for url: URL) -> Data? {
+        let fileURL = cacheFileURL(for: url)
+        let metaURL = metaFileURL(for: url)
+        
+        lock.lock()
+        defer { lock.unlock() }
+        
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            return nil
+        }
+        
+        if isExpired(metaURL: metaURL) {
+            try? fileManager.removeItem(at: fileURL)
+            try? fileManager.removeItem(at: metaURL)
+            return nil
+        }
+        
+        return try? Data(contentsOf: fileURL)
     }
     
     /// Read image from disk

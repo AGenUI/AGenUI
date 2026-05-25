@@ -1,36 +1,31 @@
 #include "agenui_functioncall_manager.h"
-#include "agenui_functioncall_validator.h"
 #include "agenui_platform_function.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 #include <fstream>
 #include <sstream>
 
 namespace agenui {
 
-FunctionCallManager::FunctionCallManager() : _validator(nullptr), _asyncManager(nullptr), _requestIdCounter(0) {
-    _validator = new FunctionCallValidator();
-    _asyncManager = new AsyncRequestManager();
+FunctionCallManager::FunctionCallManager() {
 }
 
 FunctionCallManager::~FunctionCallManager() {
     // NOTE: IPlatformFunction* pointers stored in _functionCalls are owned by the caller (platform/JNI layer).
-    // FunctionCallManager does not release them. The caller must ensure all registered functions
+    // FunctionCallManager doe∂s not release them. The caller must ensure all registered functions
     // are either unregistered or still alive before FunctionCallManager is destroyed,
     // otherwise executeFunctionCallSync may access a dangling pointer.
     _functionCalls.clear();
     _cppFunctionCalls.clear();
-    SAFELY_DELETE(_validator);
-    SAFELY_DELETE(_asyncManager);
 }
 
 bool FunctionCallManager::registerFunctionCall(const FunctionCallConfig& config, IPlatformFunction* function) {
     if (!config.isValid()) {
-        AGENUI_LOG("failed: invalid config");
+        AGENUI_LOG("invalid config");
         return false;
     }
     if (!function) {
-        AGENUI_LOG("failed: function is null");
+        AGENUI_LOG("function is null");
         return false;
     }
 
@@ -45,8 +40,6 @@ bool FunctionCallManager::registerFunctionCall(const FunctionCallConfig& config,
     std::string fullName = config.getFullName();
     _functionCalls[name] = entry;
 
-    AGENUI_LOG("success: name:%s, fullName:%s", name.c_str(), fullName.c_str());
-
     return true;
 }
 
@@ -54,17 +47,16 @@ bool FunctionCallManager::unregisterFunctionCall(const std::string& name) {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _functionCalls.find(name);
     if (it == _functionCalls.end()) {
-        AGENUI_LOG("failed: name:%s not found", name.c_str());
+        AGENUI_LOG("name:%s not found", name.c_str());
         return false;
     }
     _functionCalls.erase(it);
-    AGENUI_LOG("success: name:%s", name.c_str());
     return true;
 }
 
 bool FunctionCallManager::registerFunctionCall(FunctionCallPtr functionCall) {
     if (!functionCall) {
-        AGENUI_LOG("failed: functionCall is null");
+        AGENUI_LOG("functionCall is null");
         return false;
     }
 
@@ -73,13 +65,10 @@ bool FunctionCallManager::registerFunctionCall(FunctionCallPtr functionCall) {
     std::string name = functionCall->getName();
     _cppFunctionCalls[name] = functionCall;
 
-    AGENUI_LOG("success: %s", name.c_str());
     return true;
 }
 
-FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::string& name, const nlohmann::json& args) {
-    AGENUI_LOG("name:%s, args:%s, %zu, %zu", name.c_str(), args.dump().c_str(), _functionCalls.size(), _cppFunctionCalls.size());
-    
+FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::string& name, const FunctionCallContext& context, const nlohmann::json& args) {
     // While holding the lock: find the functionCall and copy the required data
     FunctionCallPtr cppFunctionCall;
     FunctionCallConfig platformConfig;
@@ -95,7 +84,6 @@ FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::s
             // 2. Fall back to platform functionCall
             FunctionCallEntry* entry = findFunctionCall(name);
             if (entry) {
-                AGENUI_LOG("Found platform functionCall");
                 platformConfig = entry->config;
                 function = entry->function;
                 foundPlatform = true;
@@ -106,11 +94,6 @@ FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::s
 
     // Execute C++ functionCall
     if (cppFunctionCall) {
-        AGENUI_LOG("Found C++ functionCall");
-        ValidationResult validationResult;
-        if (!cppFunctionCall->validate(args, validationResult)) {
-            return FunctionCallResolution::createError(validationResult.getSummary());
-        }
         return cppFunctionCall->execute(args);
     }
 
@@ -119,12 +102,6 @@ FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::s
         AGENUI_LOG("Platform functionCall not found: %s", name.c_str());
         return FunctionCallResolution::createError("FunctionCall not found: " + name);
     }
-    
-    // Validate arguments
-    ValidationResult validationResult;
-    if (!_validator->validate(platformConfig.getParameters(), args, validationResult)) {
-        return FunctionCallResolution::createError(validationResult.getSummary());
-    }
 
     // Execute platform functionCall synchronously
     if (function == nullptr) {
@@ -132,7 +109,7 @@ FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::s
         return FunctionCallResolution::createError("Platform function is null: " + name);
     }
 
-    FunctionCallResult callResult = function->callSync(args.dump());
+    FunctionCallResult callResult = function->callSync(context, args.dump());
     FunctionCallResolution resolution = FunctionCallResolution::fromPlatformResult(callResult);
     if (resolution.getStatus() == FunctionCallStatus::Pending) {
         // callSync should never return Pending; treat as a platform implementation error
@@ -145,10 +122,6 @@ FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::s
     return resolution;
 }
 
-
-bool FunctionCallManager::cancelAsyncRequest(const std::string& requestId) {
-    return _asyncManager->cancelRequest(requestId);
-}
 
 std::vector<FunctionCallConfig> FunctionCallManager::getAllFunctionCalls() const {
     std::lock_guard<std::mutex> lock(_mutex);
@@ -195,11 +168,6 @@ FunctionCallEntry* FunctionCallManager::findFunctionCall(const std::string& name
         return &(it->second);
     }
     return nullptr;
-}
-
-std::string FunctionCallManager::generateRequestId() {
-    _requestIdCounter++;
-    return "req_" + std::to_string(_requestIdCounter);
 }
 
 FunctionCallPtr FunctionCallManager::findCppFunctionCall(const std::string& name) {

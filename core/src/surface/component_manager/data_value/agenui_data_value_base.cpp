@@ -89,26 +89,10 @@ std::string normalizePath(const std::string& path) {
     return result;
 }
 
-DataValue::DataValue(IDataModel* dataModel) : _dataModel(dataModel) {
+DataValue::DataValue(IDataValueContext* context) : _context(context) {
 }
 
-DataValue::DataValue() : _dataModel(nullptr) {
-}
-
-void DataValue::setExtension(const std::string& key, const std::string& value) {
-    _extensions[key] = value;
-}
-
-std::map<std::string, std::string> DataValue::getExtensions() const {
-    return _extensions;
-}
-
-std::string DataValue::getExtension(const std::string& key) const {
-    auto it = _extensions.find(key);
-    if (it != _extensions.end()) {
-        return it->second;
-    }
-    return "";
+DataValue::DataValue() : _context(nullptr) {
 }
 
 }  // namespace agenui

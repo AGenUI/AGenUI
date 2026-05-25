@@ -24,7 +24,12 @@ public enum CSSPropertyValue: Equatable {
     
     /// Shadow type, used for filter and box-shadow
     case shadow(CSSShadow)
-        
+
+    /// Gradient type, produced when CSS color value is `linear-gradient(...)`,
+    /// `radial-gradient(...)`, `conic-gradient(...)` (or their `repeating-` variants).
+    /// The payload is parsed by the shared C++ ColorParser via `AGenUIColorBridge`.
+    case gradient(AGUIGradientInfo)
+
     /// URL type, stores parsed URL string
     /// url("https://example.com/image.png") -> .url("https://example.com/image.png")
     case url(String)
@@ -89,6 +94,14 @@ public enum CSSPropertyValue: Equatable {
         }
         return nil
     }
+
+    /// Gets gradient value (if gradient type)
+    var gradientValue: AGUIGradientInfo? {
+        if case .gradient(let value) = self {
+            return value
+        }
+        return nil
+    }
     
     // MARK: - Equatable
     
@@ -104,6 +117,9 @@ public enum CSSPropertyValue: Equatable {
             return lKeyword == rKeyword
         case (.shadow(let lShadow), .shadow(let rShadow)):
             return lShadow == rShadow
+        case (.gradient(let lInfo), .gradient(let rInfo)):
+            // AGUIGradientInfo is an immutable snapshot; reference equality is sufficient.
+            return lInfo === rInfo
         case (.url(let lUrl), .url(let rUrl)):
             return lUrl == rUrl
         case (.invalid, .invalid):

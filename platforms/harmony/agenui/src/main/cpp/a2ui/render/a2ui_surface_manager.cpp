@@ -6,11 +6,41 @@ namespace a2ui {
 
 A2UISurfaceManager::A2UISurfaceManager(ComponentRegistry* globalRegistry)
     : globalRegistry_(globalRegistry) {
+    // Register self as the sole listener on internal observables. C++ render-layer
+    // components (Tabs/Video/Image) publish render-finish events to these observables;
+    // this class forwards them to the cross-platform ISurfaceManager set via
+    // setCoreSurfaceManager().
+    componentRenderObservable_.addComponentRenderListener(this);
+    surfaceLayoutObservable_.addSurfaceLayoutListener(this);
+
     HM_LOGI("Created with %d factories", globalRegistry_->getRegisteredFactoryCount());
 }
 
 A2UISurfaceManager::~A2UISurfaceManager() {
+    componentRenderObservable_.removeComponentRenderListener(this);
+    surfaceLayoutObservable_.removeSurfaceLayoutListener(this);
+    coreSurfaceManager_ = nullptr;
     clearAll();
+}
+
+void A2UISurfaceManager::setCoreSurfaceManager(agenui::ISurfaceManager* coreSurfaceManager) {
+    coreSurfaceManager_ = coreSurfaceManager;
+}
+
+void A2UISurfaceManager::onRenderFinish(const agenui::ComponentRenderInfo& info) {
+    if (coreSurfaceManager_) {
+        coreSurfaceManager_->onRenderFinish(info);
+    } else {
+        HM_LOGW("onRenderFinish dropped: coreSurfaceManager_ is null");
+    }
+}
+
+void A2UISurfaceManager::onSurfaceSizeChanged(const agenui::SurfaceLayoutInfo& info) {
+    if (coreSurfaceManager_) {
+        coreSurfaceManager_->onSurfaceSizeChanged(info);
+    } else {
+        HM_LOGW("onSurfaceSizeChanged dropped: coreSurfaceManager_ is null");
+    }
 }
 
 A2UISurface* A2UISurfaceManager::createSurface(const std::string& surfaceId, bool animated) {

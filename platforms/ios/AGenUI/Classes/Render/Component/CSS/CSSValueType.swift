@@ -22,9 +22,6 @@ enum CSSValueType {
     /// Example: "#FF0000", "rgb(255, 0, 0)", "rgba(255, 0, 0, 0.5)"
     case color
     
-    /// Alignment type
-    /// Example: "start", "center", "end", "stretch"
-    case alignment
     
     /// Opacity type, numeric range 0-1
     /// Example: "0.5", "1.0"

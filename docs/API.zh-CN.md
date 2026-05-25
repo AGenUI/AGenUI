@@ -91,6 +91,29 @@ if (!success) {
 }
 ```
 
+#### setPathConfig
+
+设置引擎路径配置。
+
+| 平台 | 方法签名 | 返回值 |
+|---|---|---|
+| Android | `boolean setPathConfig(String configJson)` | `boolean` |
+| iOS | `static func setPathConfig(_ configJson: String) -> AGenUIError` | `AGenUIError` |
+| HarmonyOS | `static setPathConfig(configJson: string): boolean` | `boolean` |
+
+`configJson` 示例：`{"templateDir": "/absolute/path/to/templates"}`
+
+#### 日志系统
+
+| 平台 | 设置自定义日志 | 设置最小日志级别 | 获取日志级别 | 获取 SDK 版本 |
+|---|---|---|---|---|
+| Android | `void setCustomLogger(IAGenUILogger customLogger)` | `void setMinLogLevel(int level)` | `int getMinLogLevel()` | `static String getVersion()` |
+| iOS | `static func setCustomLogger(_ customLogger: LoggerDelegate?)` | `static func setMinLogLevel(_ level: Logger.Level)` | `static func getMinLogLevel() -> Logger.Level` | `static func getVersion() -> String` |
+| HarmonyOS | `static setCustomLogger(logger: IAGenUILogger): void` | `static setMinLogLevel(level: number): void` | `static getMinLogLevel(): number` | `static getVersion(): string` |
+
+- `level` 取值：`0=DEBUG`, `1=INFO`, `2=WARNING`, `3=ERROR`, `4=FATAL`, `5=PERFORMANCE`。
+- Android 的 `setCustomLogger` 建议在 `initialize()` 之前调用，以确保捕获全部引擎日志。
+
 ---
 
 ### SurfaceManager
@@ -137,6 +160,18 @@ const surfaceManager = new SurfaceManager(context);
 - `receiveTextChunk()` 支持分片传输，也可一次性传入完整 JSON
 - `endTextStream()` 结束本轮流式会话。SSE 流关闭、HTTP 响应结束、用户取消或网络断开时均需调用
 
+#### invalidateFunctionCallValues
+
+重新计算所有 Surface 上每个组件的属性和样式，仅将实际发生变化的字段以 diff 形式推送到 Native 渲染器。
+
+当宿主外部状态（主题、语言、屏幕方向等）发生变化，且已注册的 FunctionCall 需要重新执行时调用。
+
+| 平台 | 方法签名 |
+|---|---|
+| Android | `void invalidateFunctionCallValues()` |
+| iOS | `func invalidateFunctionCallValues()` |
+| HarmonyOS | — |
+
 #### addListener / removeListener
 
 添加/移除 Surface 生命周期监听器，所有平台均支持同时注册多个监听器。
@@ -159,6 +194,26 @@ const surfaceManager = new SurfaceManager(context);
 | iOS | — |
 | HarmonyOS | `getSurface(surfaceId: string): Surface \| null` |
 
+#### getInstanceId
+
+返回引擎创建时分配的原生 instanceId。
+
+| 平台 | 方法签名 |
+|---|---|
+| Android | `int getInstanceId()` |
+| iOS | `func getInstanceId() -> Int` |
+| HarmonyOS | `getInstanceId(): number` |
+
+#### presetSurfaceSize（iOS）
+
+在 `createSurface` JSON 到达引擎**之前**预设 Surface 尺寸，消除首帧窄宽闪烁。
+
+```swift
+surfaceManager.presetSurfaceSize(surfaceId: "main", width: view.bounds.width, height: .infinity)
+```
+
+多次调用安全；后续 `surface.updateSize(...)` 仍为最终权威值，相同值时为 no-op。
+
 #### destroy
 
 | 平台 | 方法签名 | 说明 |
@@ -180,6 +235,8 @@ public interface ISurfaceManagerListener {
     void onCreateSurface(Surface surface);
     void onDeleteSurface(Surface surface);
     default void onReceiveActionEvent(String event) {}
+    default void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+    default void onError(String type, int code, String message, String surfaceId) {}
 }
 ```
 
@@ -190,6 +247,9 @@ public interface ISurfaceManagerListener {
     @objc optional func onCreateSurface(_ surface: Surface)
     @objc optional func onDeleteSurface(_ surface: Surface)  // iOS 传 Surface 对象
     @objc optional func onReceiveActionEvent(_ event: String)
+    @objc optional func onRootComponentUpdate(_ surface: Surface, props: [String: Any])
+    @objc optional func onError(_ surface: Surface?, code: Int, message: String)
+    @objc optional func onBlankCheckResult(_ surface: Surface, isBlank: Bool)
 }
 ```
 
@@ -269,6 +329,9 @@ surfaceManager.addListener(listener);
 | Surface ID | `getSurfaceId(): String` | `surfaceId: String` | `surfaceId: string` |
 | 根容器 | `getContainer(): ViewGroup` | `view: UIView` | 通过 `AGenUIContainer` 渲染，无 View 属性 |
 | 动画开关 | `setAnimationEnabled(boolean)` / `isAnimationEnabled(): boolean` | `animationEnabled: Bool`（默认 `true`） | `animationEnabled: boolean`（默认 `true`） |
+| 原始协议内容 | `getRawProtocolContent(): String` / `setRawProtocolContent(String)` | `rawProtocolContent: String` | `rawProtocolContent: string` |
+| 尺寸更新 | — | `updateSize(width: CGFloat, height: CGFloat)` | — |
+| 白屏检测 | `startBlankCheck(long delayMs, int validComponentCount)` / `cancelBlankCheck()` | `startBlankCheck(checkDelayMs: Int, validComponentCount: Int)` | — |
 
 **HarmonyOS — 渲染容器**
 
@@ -290,6 +353,8 @@ AGenUIContainer({ surfaceId: this.surfaceId })
 |---|---|
 | Android | `AGenUI.getInstance().registerComponent(String type, IComponentFactory creator)` |
 | iOS | `AGenUISDK.registerComponent(_ type: String, creator: (String, [String: Any]) -> Component)` |
+| iOS (ObjC) | `AGenUISDK.registerComponentObjC(_ type: String, creator: (String, [String: Any]) -> Component)` |
+| iOS (ObjC + className) | `AGenUISDK.registerComponentObjC(_ type: String, componentClassName: String, creator: (String, [String: Any]) -> Component)` |
 | HarmonyOS | `AGenUI.registerComponent(type: string, creator: IComponentFactory)` |
 
 #### IComponentFactory 接口定义
@@ -440,8 +505,13 @@ export abstract class A2UIComponent {
 
 ```java
 public interface IFunction {
-    FunctionResult execute(String jsonString);
+    FunctionResult execute(FunctionCallContext context, String jsonString);
     FunctionConfig getConfig();
+}
+
+public class FunctionCallContext {
+    public final int instanceId;
+    public final String surfaceId;
 }
 
 public class FunctionConfig {
@@ -452,8 +522,9 @@ public class FunctionConfig {
 
 public class FunctionResult {
     public static FunctionResult createSuccess(Object value)
-    public static FunctionResult createError(Object value)
-    public JSONObject toJson()       // {"result": true/false, "value": ...}
+    public static FunctionResult createError(String error)
+    public static FunctionResult createPending(String requestId)
+    public JSONObject toJson()
     public String toJsonString()
 }
 ```
@@ -463,7 +534,13 @@ public class FunctionResult {
 ```swift
 @objc public protocol Function: AnyObject {
     @objc var functionConfig: FunctionConfig { get }
-    @objc func execute(_ params: String) -> FunctionResult
+    @objc func execute(context: FunctionCallContext, params: String) -> FunctionResult
+}
+
+@objc public class FunctionCallContext: NSObject {
+    @objc public let instanceId: Int
+    @objc public let surfaceId: String
+    @objc public init(instanceId: Int, surfaceId: String)
 }
 
 @objc public class FunctionConfig: NSObject {
@@ -474,17 +551,22 @@ public class FunctionResult {
 
 @objc public class FunctionResult: NSObject {
     @objc public let result: Bool
-    @objc public let value: [String: Any]
-    @objc public static func success(value: [String: Any]) -> FunctionResult
-    @objc public static func failure(value: [String: Any]) -> FunctionResult
+    @objc public let value: String
+    @objc public static func success(value: String) -> FunctionResult
+    @objc public static func failure(value: String) -> FunctionResult
 }
 ```
 
 **HarmonyOS — `IFunctionCall`**
 
 ```typescript
+export interface FunctionCallContext {
+    instanceId: number;
+    surfaceId: string;
+}
+
 export interface IFunctionCall {
-    execute(paramsJson: string): FunctionResult;
+    execute(context: FunctionCallContext, paramsJson: string): FunctionResult;
     getConfig(): FunctionConfig;
 }
 
@@ -508,7 +590,7 @@ export class FunctionResult {
 ```java
 AGenUI.getInstance().registerFunction(new IFunction() {
     @Override
-    public FunctionResult execute(String jsonString) {
+    public FunctionResult execute(FunctionCallContext context, String jsonString) {
         return FunctionResult.createSuccess("success");
     }
 
@@ -525,8 +607,8 @@ AGenUI.getInstance().registerFunction(new IFunction() {
 class OpenPageFunction: NSObject, Function {
     let functionConfig = FunctionConfig(name: "openPage")
 
-    func execute(_ params: String) -> FunctionResult {
-        return FunctionResult.success(value: [:])
+    func execute(context: FunctionCallContext, params: String) -> FunctionResult {
+        return FunctionResult.success(value: "{}")
     }
 }
 
@@ -537,7 +619,7 @@ AGenUISDK.registerFunction(OpenPageFunction())
 
 ```typescript
 const openPageFunc: IFunctionCall = {
-    execute(paramsJson: string): FunctionResult {
+    execute(context: FunctionCallContext, paramsJson: string): FunctionResult {
         return FunctionResult.createSuccess({ status: 'ok' });
     },
     getConfig(): FunctionConfig {
@@ -764,7 +846,8 @@ if (!success) {
 | 监听器接口 | `ISurfaceManagerListener`（抽象方法，需全部实现） | `SurfaceManagerListener`（`@objc optional`，可选实现） | `ISurfaceManagerListener`（属性均可选） |
 | `onDeleteSurface` 参数 | `Surface surface` | `Surface surface` | `Surface surface` |
 | Function 接口名 | `IFunction` | `Function`（Swift protocol） | `IFunctionCall` |
-| FunctionResult 工厂 | `createSuccess(Object)` / `createError(Object)` | `success(value: [String: Any])` / `failure(value: [String: Any])` | `createSuccess(object)` / `createError(string)` |
+| Function.execute 签名 | `execute(FunctionCallContext, String)` | `execute(context:params:)` | `execute(context, paramsJson)` |
+| FunctionResult 工厂 | `createSuccess(Object)` / `createError(String)` / `createPending(String)` | `success(value: String)` / `failure(value: String)` | `createSuccess(object)` / `createError(string)` |
 | 图片加载器接口名 | `ImageLoader` | `ImageLoader`（`@objc protocol`） | `IImageLoader` |
 | 图片回调方式 | `ImageCallback` 接口（主线程回调） | `(UIImage?, Bool, Error?) -> Void` | `(requestId, result?, error?) -> void` |
 | 图片数据类型 | `Drawable` | `UIImage` | `PixelData`（Uint8Array 字节数组） |

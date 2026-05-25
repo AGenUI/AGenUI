@@ -1,21 +1,22 @@
 package com.amap.agenui.render.surface;
 
 import android.content.Context;
+import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.FrameLayout;
 
 import com.amap.agenui.render.component.A2UIComponent;
+import com.amap.agenui.render.component.A2UILayoutComponent;
 import com.amap.agenui.render.component.ComponentEventDispatcher;
-import com.amap.agenui.render.component.impl.ModalComponent;
+import com.amap.agenui.render.component.impl.ImageComponent;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,9 +44,21 @@ public class Surface {
      */
 
     private final String surfaceId;
+
+    // ---- Blank Screen Detection ----
+    /** Handler for blank-screen detection (lazy-init) */
+    private Handler mBlankCheckHandler;
+    /** Pending blank-check task (for cancellation) */
+    private Runnable mBlankCheckRunnable;
+
+    /**
+     * Original raw protocol content (the full JSON string that was parsed to create this surface)
+     */
+    private String rawProtocolContent;
     private ViewGroup container;  // Internally created root container; always non-null
     private final Context context;
     private final ComponentEventDispatcher componentEventDispatcher;
+    private final SurfaceLayoutDispatcher surfaceLayoutDispatcher;
 
     private boolean destroyed = false;
     private A2UIComponent rootComponent;
@@ -63,18 +76,35 @@ public class Surface {
     public Surface(
             String surfaceId,
             Context context,
-            ComponentEventDispatcher componentEventDispatcher) {
+            ComponentEventDispatcher componentEventDispatcher,
+            SurfaceLayoutDispatcher surfaceLayoutDispatcher) {
         this.surfaceId = surfaceId;
         this.context = context;
         this.componentEventDispatcher = componentEventDispatcher;
+        this.surfaceLayoutDispatcher = surfaceLayoutDispatcher;
 
         // If a container is provided at construction time, enter the BOUND state immediately
         this.container = new FrameLayout(context);
         this.container.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT));
+        this.container.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (destroyed || this.surfaceLayoutDispatcher == null) {
+                return;
+            }
+            // Report the host container's available size back to native Yoga instead of the
+            // current root view size. The root view can be an auto-sized component such as a
+            // Button/Card/Text; feeding that intrinsic width back as the next root constraint
+            // causes the surface to collapse on itself (for example Button padding leaves
+            // maxWidth=0 for the inner Text on the next layout pass).
+            int width = right - left;
+            int height = bottom - top;
+            this.surfaceLayoutDispatcher.reportSurfaceSize(context, width, height);
+        });
 
-        Log.d(TAG, "Surface created: id=" + surfaceId);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Surface created: id=" + surfaceId);
+        }
     }
 
     /**
@@ -84,7 +114,6 @@ public class Surface {
      */
     public void setAnimationEnabled(boolean enabled) {
         this.animationEnabled = enabled;
-        Log.d(TAG, "Animation " + (enabled ? "enabled" : "disabled"));
     }
 
     /**
@@ -97,119 +126,95 @@ public class Surface {
     }
 
     /**
+     * Sets the raw protocol content
+     *
+     * @param rawProtocolContent Original raw protocol content
+     */
+    public void setRawProtocolContent(String rawProtocolContent) {
+        this.rawProtocolContent = rawProtocolContent;
+    }
+
+    /**
+     * Returns the raw protocol content
+     *
+     * @return Original raw protocol content
+     */
+    public String getRawProtocolContent() {
+        return rawProtocolContent;
+    }
+
+    /**
      * Adds a component
      *
      * @param parentId  Parent component ID (null for root component)
      * @param component Component instance
      */
     public void addComponent(String parentId, A2UIComponent component) {
-        Log.d(TAG, "========== addComponent START ==========");
-        Log.d(TAG, "componentId=" + component.getId() + ", parentId=" + (parentId != null ? parentId : "ROOT"));
-        Log.d(TAG, "componentType=" + component.getClass().getSimpleName());
-
         component.setSurfaceId(this.surfaceId);
         component.setComponentBridge(this.componentEventDispatcher);
-
-        if (component instanceof com.amap.agenui.render.component.impl.ImageComponent) {
-            ((com.amap.agenui.render.component.impl.ImageComponent) component).setAnimationEnabled(animationEnabled);
-        }
+        component.setSurfaceLayoutDispatcher(this.surfaceLayoutDispatcher);
+        component.setAnimationEnabledSupplier(this::isAnimationEnabled);
 
         componentTree.put(component.getId(), component);
-        Log.d(TAG, "✓ Component added to tree, total components=" + componentTree.size());
 
-        if (parentId == null) {
-            handleRootComponent(component);
-        } else {
-            handleChildComponent(parentId, component);
-        }
-        Log.d(TAG, "========== addComponent END ==========");
-    }
-
-    private void handleRootComponent(A2UIComponent component) {
-        Log.d(TAG, "→ Adding as ROOT component");
-
-        if (rootComponent != null && rootComponent != component) {
-            Log.w(TAG, "  ⚠ Root component already exists: " + rootComponent.getId());
-            if (!"root".equals(component.getId())) {
-                Log.w(TAG, "  ⚠ New component is NOT true root, keeping as orphaned");
+        if ("root".equals(component.getId())) {
+            if (rootComponent != null && rootComponent != component) {
+                AGenUILogger.w(TAG, "addComponent: rootComponent already set, ignoring component=" + component.getId());
                 return;
             }
-            Log.w(TAG, "  ✓ New component IS the true root, replacing fake root");
-            replaceFakeRoot(component);
-            return;
-        }
-
-        rootComponent = component;
-        attachRootView(component);
-    }
-
-    private void replaceFakeRoot(A2UIComponent newRoot) {
-        if (rootComponent.getView() != null) {
-            Log.d(TAG, "  → Removing fake root view from container");
-            container.removeView(rootComponent.getView());
-        }
-        rootComponent = newRoot;
-        if (newRoot.getView() == null) {
-            Log.d(TAG, "  → Creating view for TRUE root component");
-            createComponentTreeViews(newRoot, container);
-            Log.d(TAG, "  ✓ TRUE root component tree created");
+            rootComponent = component;
+            attachRootView(component);
+        } else {
+            handleChildComponent(parentId, component);
         }
     }
 
     private void attachRootView(A2UIComponent component) {
         View existing = component.getView();
         if (existing != null) {
-            Log.d(TAG, "  ⚠ Root component view already exists");
-            if (existing.getParent() != container) {
-                Log.d(TAG, "  → Adding existing view to container");
-                container.addView(existing);
-                Log.d(TAG, "  ✓ View added to container");
-            } else {
-                Log.d(TAG, "  ✓ View already in container, skipping add");
+            ViewParent parent = existing.getParent();
+            // Skip if already attached to the target container
+            if (parent != container) {
+                if (parent instanceof ViewGroup) {
+                    ((ViewGroup) parent).removeView(existing);
+                }
+                container.addView(existing); // Always add regardless of original parent
             }
             return;
         }
-        Log.d(TAG, "  Creating view for root component...");
         View view = component.createView(context, container);
         if (view != null) {
             container.addView(view);
-            Log.d(TAG, "  ✓ View created and added to container, childCount=" + container.getChildCount());
         } else {
-            Log.e(TAG, "  ❌ createView returned null!");
+            AGenUILogger.e(TAG, "createView returned null for root component!");
         }
     }
 
     private void handleChildComponent(String parentId, A2UIComponent component) {
-        Log.d(TAG, "→ Adding as CHILD component, parent=" + parentId);
         A2UIComponent parent = componentTree.get(parentId);
         if (parent == null) {
-            Log.e(TAG, "  ❌ Parent component not found: " + parentId);
+            AGenUILogger.e(TAG, "Parent component not found: " + parentId);
             return;
         }
-        Log.d(TAG, "  ✓ Parent found: " + parent.getClass().getSimpleName());
         parent.addChild(component);
-        Log.d(TAG, "  ✓ Child added to parent's children list");
 
         ViewGroup parentContainer = getComponentChildContainer(parent);
         if (parentContainer == null) {
-            Log.w(TAG, "  ⚠ Parent childContainer is null, child view not created yet");
+            AGenUILogger.w(TAG, "Parent childContainer is null, child view not created yet");
             return;
         }
-        Log.d(TAG, "  Parent childContainer exists: " + parentContainer.getClass().getSimpleName());
 
         View childView = component.createView(context, parentContainer);
         if (childView == null) {
-            Log.e(TAG, "  ❌ createView returned null for child!");
+            AGenUILogger.e(TAG, "createView returned null for child: " + component.getId());
             return;
         }
-        Log.d(TAG, "  ✓ Child view created: " + childView.getClass().getSimpleName());
         attachChildView(parent, component, childView, parentContainer);
     }
 
     private void attachChildView(A2UIComponent parent, A2UIComponent child,
                                  View childView, ViewGroup parentContainer) {
         if (!parent.shouldAutoAddChildView()) {
-            Log.d(TAG, "  ⚠ Parent manages child views internally, not auto-adding");
             notifyParentChildViewCreated(parent, child);
             return;
         }
@@ -226,11 +231,9 @@ public class Surface {
             childView.setAlpha(0f);
             childView.animate().alpha(targetAlpha).setDuration(500).start();
         }
-        Log.d(TAG, "  ✓ Child view added, parentChildCount=" + parentContainer.getChildCount());
 
         ViewGroup childContainer = getComponentChildContainer(child);
-        if (childContainer != null && child.getChildren() != null && !child.getChildren().isEmpty()) {
-            Log.d(TAG, "  → Component has children, creating their views recursively...");
+        if (childContainer != null && !child.getChildren().isEmpty()) {
             createChildrenViews(child, childContainer);
         }
     }
@@ -268,25 +271,41 @@ public class Surface {
      * @param componentId Component ID
      */
     public void removeComponent(String componentId) {
-        Log.d(TAG, "removeComponent: componentId=" + componentId);
-
-        A2UIComponent component = componentTree.remove(componentId);
-        if (component != null) {
-            A2UIComponent parent = component.getParent();
-            if (parent != null) {
-                parent.removeChildById(componentId);
-                // Remove from parent View
-                if (parent.getView() instanceof ViewGroup && component.getView() != null) {
-                    ((ViewGroup) parent.getView()).removeView(component.getView());
-                }
-            } else if (component == rootComponent) {
-                // Remove root component
-                if (component.getView() != null) {
-                    container.removeView(component.getView());
-                }
-                rootComponent = null;
+        A2UIComponent component = componentTree.get(componentId);
+        if (component == null) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Component not found: " + componentId);
             }
-            component.destroy();
+            return;
+        }
+
+        if (component == rootComponent) {
+            AGenUILogger.e(TAG, "removeComponent: attempted to remove root component incrementally, ignored");
+            return;
+        }
+
+        A2UIComponent parent = component.getParent();
+        if (parent != null) {
+            parent.removeChild(component);
+        }
+
+        List<String> subtreeIds = new ArrayList<>();
+        collectSubtreeIds(component, subtreeIds);
+        for (String subtreeId : subtreeIds) {
+            componentTree.remove(subtreeId);
+        }
+
+        component.destroy();
+    }
+
+    private void collectSubtreeIds(A2UIComponent component, List<String> subtreeIds) {
+        if (component == null) {
+            return;
+        }
+
+        subtreeIds.add(component.getId());
+        for (A2UIComponent child : component.getChildren()) {
+            collectSubtreeIds(child, subtreeIds);
         }
     }
 
@@ -297,13 +316,13 @@ public class Surface {
      * @param properties  Properties Map
      */
     public void updateComponent(String componentId, Map<String, Object> properties) {
-        Log.d(TAG, "updateComponent: componentId=" + componentId);
-
         A2UIComponent component = componentTree.get(componentId);
         if (component != null) {
             component.updateProperties(properties);
         } else {
-            Log.w(TAG, "Component not found: " + componentId);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Component not found: " + componentId);
+            }
         }
     }
 
@@ -314,13 +333,13 @@ public class Surface {
 //     * @param styles      Styles Map
 //     */
 //    public void updateComponentStyle(String componentId, Map<String, Object> styles) {
-//        Log.d(TAG, "updateComponentStyle: componentId=" + componentId);
+//        AGenUILogger.d(TAG, "updateComponentStyle: componentId=" + componentId);
 //
 //        A2UIComponent component = componentTree.get(componentId);
 //        if (component != null) {
 //            component.updateStyle(styles);
 //        } else {
-//            Log.w(TAG, "Component not found: " + componentId);
+//            AGenUILogger.w(TAG, "Component not found: " + componentId);
 //        }
 //    }
 
@@ -342,282 +361,98 @@ public class Surface {
      * @param parentContainer Parent container ViewGroup
      */
     private void createChildrenViews(A2UIComponent parentComponent, ViewGroup parentContainer) {
-        Log.d(TAG, "  createChildrenViews for: " + parentComponent.getId());
-
         for (A2UIComponent child : parentComponent.getChildren()) {
             if (child.getView() == null) {
-                Log.d(TAG, "    → Creating view for child: " + child.getId() + " (" + child.getClass().getSimpleName() + ")");
-
                 View childView = child.createView(context, parentContainer);
                 if (childView != null) {
-                    Log.d(TAG, "      ✓ Child view created: " + childView.getClass().getSimpleName());
-
                     if (parentComponent.shouldAutoAddChildView()) {
                         parentContainer.addView(childView);
-                        Log.d(TAG, "      ✓ Child view added to parent");
-
                         ViewGroup childContainer = getComponentChildContainer(child);
-                        if (childContainer != null && child.getChildren() != null && !child.getChildren().isEmpty()) {
-                            Log.d(TAG, "      → Child has children, recursing...");
+                        if (childContainer != null && !child.getChildren().isEmpty()) {
                             createChildrenViews(child, childContainer);
                         }
                     } else {
-                        Log.d(TAG, "      ⚠ Parent manages child views internally");
                         notifyParentChildViewCreated(parentComponent, child);
                     }
                 } else {
-                    Log.e(TAG, "      ❌ Failed to create child view: " + child.getId());
+                    AGenUILogger.e(TAG, "Failed to create child view: " + child.getId());
                 }
-            } else {
-                Log.d(TAG, "    ⚠ Child view already exists: " + child.getId());
             }
         }
     }
 
-
     /**
-     * Recursively creates Views for the component tree.
-     * Used in pre-rendering scenarios where components have been created but Views have not.
+     * Start blank-screen detection for this Surface's component tree.
+     * <p>
+     * After {@code delayMs} milliseconds, traverses the component tree and
+     * counts components with both width and height &gt; 0 (lcpX). Reports via
+     * {@code ComponentEventDispatcher.onSurfaceError} if below threshold.
+     * </p>
      *
-     * Critical fix: supports streaming rendering scenarios where the root component arrives last.
-     * - When the root arrives last, child components may already be in the componentTree.
-     * - Child components must be found in the componentTree and have their Views created recursively.
-     *
-     * @param component  Component instance
-     * @param parentView Parent container
+     * @param delayMs             delay before detection (ms)
+     * @param validComponentCount minimum lcpX count to pass
      */
-    private void createComponentTreeViews(A2UIComponent component, ViewGroup parentView) {
-        Log.d(TAG, "  Creating view for component: " + component.getId() + " (" + component.getClass().getSimpleName() + ")");
-
-        View view = component.createView(context, parentView);
-        if (view == null) {
-            Log.e(TAG, "  ❌ Failed to create view for component: " + component.getId());
+    public void startBlankCheck(long delayMs, int validComponentCount) {
+        if (validComponentCount <= 0) {
             return;
         }
-
-        Log.d(TAG, "  ✓ View created: " + view.getClass().getSimpleName());
-
-        if (view.getParent() != null) {
-            Log.d(TAG, "  ⚠ View already has parent, removing from old parent first");
-            ViewGroup oldParent = (ViewGroup) view.getParent();
-            oldParent.removeView(view);
-            Log.d(TAG, "  ✓ View removed from old parent");
+        cancelBlankCheck();
+        if (destroyed) {
+            return;
         }
-
-        parentView.addView(view);
-        Log.d(TAG, "  ✓ View added to parent container");
-
-        Log.d(TAG, "  → Searching for children in componentTree...");
-        List<A2UIComponent> childrenFromTree = findChildrenInComponentTree(component);
-        Log.d(TAG, "  → Found " + childrenFromTree.size() + " children in componentTree");
-
-        Map<String, A2UIComponent> allChildrenMap = new LinkedHashMap<>();
-
-        for (A2UIComponent child : childrenFromTree) {
-            allChildrenMap.put(child.getId(), child);
-        }
-
-        if (component.getChildren() != null) {
-            for (A2UIComponent child : component.getChildren()) {
-                if (!allChildrenMap.containsKey(child.getId())) {
-                    allChildrenMap.put(child.getId(), child);
+        final int minCount = validComponentCount;
+        mBlankCheckRunnable = () -> {
+            if (destroyed) {
+                return;
+            }
+            int[] count = {0};
+            traverseForLcpX(rootComponent, count, minCount);
+            if (count[0] < minCount) {
+                AGenUILogger.w(TAG, "BlankCheck: componentCount=" + count[0]
+                        + " < minCount=" + minCount + ", surfaceId=" + surfaceId);
+                componentEventDispatcher.onSurfaceError("BlankScreen", "componentCountInsufficient, real count: " + count[0], surfaceId);
+            } else {
+                if (AGenUILogger.isLoggingEnabled()) {
+                    AGenUILogger.d(TAG, "BlankCheck: pass, componentCount=" + count[0]
+                            + ", surfaceId=" + surfaceId);
                 }
             }
+        };
+        if (mBlankCheckHandler == null) {
+            mBlankCheckHandler = new Handler(Looper.getMainLooper());
         }
-
-        Log.d(TAG, "  → Total unique children: " + allChildrenMap.size());
-
-        ViewGroup childContainer = getComponentChildContainer(component);
-        if (childContainer != null && !allChildrenMap.isEmpty()) {
-            for (A2UIComponent child : allChildrenMap.values()) {
-                if (child.getView() == null) {
-                    Log.d(TAG, "  → Creating child view: " + child.getId() + " (" + child.getClass().getSimpleName() + ")");
-
-                    View childView = child.createView(context, childContainer);
-                    if (childView != null) {
-                        Log.d(TAG, "    ✓ Child view created: " + childView.getClass().getSimpleName());
-
-                        if (childView.getParent() != null) {
-                            Log.d(TAG, "    ⚠ Child view already has parent, removing from old parent first");
-                            ViewGroup oldParent = (ViewGroup) childView.getParent();
-                            oldParent.removeView(childView);
-                            Log.d(TAG, "    ✓ Child view removed from old parent");
-                        }
-
-                        if (component.shouldAutoAddChildView()) {
-                            childContainer.addView(childView);
-                            Log.d(TAG, "    ✓ Child view added to parent childContainer");
-                        } else {
-                            Log.d(TAG, "    ⚠ Parent manages child views internally");
-                            notifyParentChildViewCreated(component, child);
-                        }
-
-                        ViewGroup grandChildContainer = getComponentChildContainer(child);
-                        if (grandChildContainer != null) {
-                            List<A2UIComponent> grandChildren = findChildrenInComponentTree(child);
-
-                            int unrenderedCount = 0;
-                            for (A2UIComponent grandChild : grandChildren) {
-                                if (grandChild.getView() == null) {
-                                    unrenderedCount++;
-                                }
-                            }
-
-                            if (unrenderedCount > 0) {
-                                Log.d(TAG, "    → Child has " + unrenderedCount + " unrendered children, processing...");
-                                for (A2UIComponent grandChild : grandChildren) {
-                                    if (grandChild.getView() == null) {
-                                        createComponentTreeViews(grandChild, grandChildContainer);
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        Log.e(TAG, "    ❌ Failed to create child view: " + child.getId());
-                    }
-                } else {
-                    Log.d(TAG, "  ⚠ Child view already exists: " + child.getId());
-
-                    View existingChildView = child.getView();
-                    ViewGroup oldParent = (ViewGroup) existingChildView.getParent();
-
-                    if (oldParent != null && oldParent != childContainer) {
-                        Log.d(TAG, "    → Child view is in wrong parent, moving to correct parent...");
-                        oldParent.removeView(existingChildView);
-                        Log.d(TAG, "    ✓ Child view removed from old parent");
-
-                        if (component.shouldAutoAddChildView()) {
-                            childContainer.addView(existingChildView);
-                            Log.d(TAG, "    ✓ Child view added to correct parent");
-                        } else {
-                            Log.d(TAG, "    ⚠ Parent manages child views internally");
-                            notifyParentChildViewCreated(component, child);
-                        }
-                    } else if (oldParent == null) {
-                        Log.d(TAG, "    → Child view has no parent, adding to parent...");
-
-                        if (component.shouldAutoAddChildView()) {
-                            childContainer.addView(existingChildView);
-                            Log.d(TAG, "    ✓ Child view added to parent");
-                        } else {
-                            Log.d(TAG, "    ⚠ Parent manages child views internally");
-                            notifyParentChildViewCreated(component, child);
-                        }
-                    } else {
-                        Log.d(TAG, "    ✓ Child view already in correct parent");
-                    }
-
-                    ViewGroup grandChildContainer = getComponentChildContainer(child);
-                    if (grandChildContainer != null) {
-                        List<A2UIComponent> grandChildren = findChildrenInComponentTree(child);
-
-                        int unrenderedCount = 0;
-                        for (A2UIComponent grandChild : grandChildren) {
-                            if (grandChild.getView() == null) {
-                                unrenderedCount++;
-                            }
-                        }
-
-                        if (unrenderedCount > 0) {
-                            Log.d(TAG, "    → Child has " + unrenderedCount + " unrendered children, processing...");
-                            for (A2UIComponent grandChild : grandChildren) {
-                                if (grandChild.getView() == null) {
-                                    createComponentTreeViews(grandChild, grandChildContainer);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        mBlankCheckHandler.postDelayed(mBlankCheckRunnable, delayMs);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "BlankCheck scheduled: delay=" + delayMs
+                    + "ms, minCount=" + minCount + ", surfaceId=" + surfaceId);
         }
     }
 
     /**
-     * Finds all child components of the given parent in the componentTree.
-     *
-     * Use case: during streaming rendering, child components arrive first and are registered
-     * in the componentTree. When the parent arrives, this method retrieves all its children.
-     *
-     * @param parent Parent component instance
-     * @return List of child components
+     * Cancel pending blank-screen detection. Called automatically on destroy.
      */
-    private List<A2UIComponent> findChildrenInComponentTree(A2UIComponent parent) {
-        List<A2UIComponent> children = new ArrayList<>();
-
-        // Get the parent component's properties
-        Map<String, Object> properties = parent.getProperties();
-        if (properties == null) {
-            return children;
+    public void cancelBlankCheck() {
+        if (mBlankCheckHandler != null && mBlankCheckRunnable != null) {
+            mBlankCheckHandler.removeCallbacks(mBlankCheckRunnable);
         }
+        mBlankCheckRunnable = null;
+    }
 
-        // Check children array
-        Object childrenObj = properties.get("children");
-        if (childrenObj instanceof List) {
-            List<?> childrenIds = (List<?>) childrenObj;
-            Log.d(TAG, "    Parent has children property: " + childrenIds);
-
-            for (Object childIdObj : childrenIds) {
-                String childId = String.valueOf(childIdObj);
-                A2UIComponent child = componentTree.get(childId);
-                if (child != null) {
-                    Log.d(TAG, "      ✓ Found child in componentTree: " + childId);
-                    children.add(child);
-                } else {
-                    Log.w(TAG, "      ⚠ Child not found in componentTree: " + childId);
-                }
-            }
+    /**
+     * Traverse the component tree, counting components with width and height &gt; 0.
+     * Returns early once count[0] &gt;= minCount.
+     */
+    private void traverseForLcpX(A2UIComponent component, int[] count, int minCount) {
+        if (component == null || count[0] >= minCount) {
+            return;
         }
-
-        // Check child single reference
-        Object childObj = properties.get("child");
-        if (childObj != null) {
-            String childId = String.valueOf(childObj);
-            A2UIComponent child = componentTree.get(childId);
-            if (child != null) {
-                Log.d(TAG, "    ✓ Found child (single) in componentTree: " + childId);
-                children.add(child);
-            }
+        View view = component.getView();
+        if (view != null && view.getWidth() > 0 && view.getHeight() > 0) {
+            count[0]++;
         }
-
-        // Check tabs array (Tabs component)
-        Object tabsObj = properties.get("tabs");
-        if (tabsObj instanceof List) {
-            List<?> tabsList = (List<?>) tabsObj;
-            for (Object tabObj : tabsList) {
-                if (tabObj instanceof Map) {
-                    Map<String, Object> tab = (Map<String, Object>) tabObj;
-                    Object tabChildObj = tab.get("child");
-                    if (tabChildObj != null) {
-                        String childId = String.valueOf(tabChildObj);
-                        A2UIComponent child = componentTree.get(childId);
-                        if (child != null) {
-                            children.add(child);
-                        }
-                    }
-                }
-            }
+        for (A2UIComponent child : component.getChildren()) {
+            traverseForLcpX(child, count, minCount);
         }
-
-        // Check trigger and content (Modal component)
-        Object triggerObj = properties.get("trigger");
-        if (triggerObj != null) {
-            String childId = String.valueOf(triggerObj);
-            A2UIComponent child = componentTree.get(childId);
-            if (child != null) {
-                children.add(child);
-            }
-        }
-
-        Object contentObj = properties.get("content");
-        if (contentObj != null) {
-            String childId = String.valueOf(contentObj);
-            A2UIComponent child = componentTree.get(childId);
-            if (child != null) {
-                children.add(child);
-            }
-        }
-
-        return children;
     }
 
     /**
@@ -626,11 +461,16 @@ public class Surface {
      */
     public void destroy() {
         if (destroyed) {
-            Log.w(TAG, "destroy: already destroyed, surfaceId=" + surfaceId);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "destroy: already destroyed, surfaceId=" + surfaceId);
+            }
             return;
         }
-        Log.d(TAG, "destroy: surfaceId=" + surfaceId);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "destroy: surfaceId=" + surfaceId);
+        }
         destroyed = true;
+        cancelBlankCheck();
 
         if (rootComponent != null) {
             rootComponent.destroy();
@@ -643,7 +483,6 @@ public class Surface {
         } else {
             container.post(container::removeAllViews);
         }
-        Log.d(TAG, "✓ Surface destroyed");
     }
 
 
@@ -682,19 +521,6 @@ public class Surface {
         return destroyed;
     }
 
-    /**
-     * Sets the root component.
-     * Used to set the root component during progressive rendering.
-     *
-     * @param component Root component instance
-     */
-    public void setRootComponent(A2UIComponent component) {
-        this.rootComponent = component;
-        // Also add to the component tree
-        if (component != null) {
-            componentTree.put(component.getId(), component);
-        }
-    }
 
     public int getComponentCount() {
         return componentTree.size();
@@ -712,126 +538,27 @@ public class Surface {
     }
 
     /**
-     * Handles the special logic for all Modal components.
-     * Called after all components have been added to ensure that trigger and content components
-     * are already in the componentTree.
+     * Starts a surface-level layout transaction so a batch of native component updates can share
+     * one final layout flush.
      */
-    public void linkModalComponents() {
-        Log.d(TAG, "========== linkModalComponents START ==========");
-        int linkedCount = 0;
-
-        for (A2UIComponent component : componentTree.values()) {
-            if (component instanceof ModalComponent) {
-                Log.d(TAG, "Processing Modal component: " + component.getId());
-
-                Map<String, Object> properties = component.getProperties();
-                if (properties == null) {
-                    Log.w(TAG, "  Modal has no properties");
-                    continue;
-                }
-
-                // Handle trigger component
-                if (properties.containsKey("trigger")) {
-                    String triggerId = String.valueOf(properties.get("trigger"));
-                    A2UIComponent triggerComp = componentTree.get(triggerId);
-                    if (triggerComp != null) {
-                        Log.d(TAG, "  ✓ Linking trigger: " + triggerId);
-                        component.addChild(triggerComp);
-                        linkedCount++;
-                    } else {
-                        Log.e(TAG, "  ❌ Trigger component not found: " + triggerId);
-                    }
-                }
-
-                // Handle content component
-                if (properties.containsKey("content")) {
-                    String contentId = String.valueOf(properties.get("content"));
-                    A2UIComponent contentComp = componentTree.get(contentId);
-                    if (contentComp != null) {
-                        Log.d(TAG, "  ✓ Linking content: " + contentId);
-                        component.addChild(contentComp);
-                        linkedCount++;
-                    } else {
-                        Log.w(TAG, "  ❌ Content component not found: " + contentId);
-                    }
-                }
-            }
+    public void beginLayoutTransaction() {
+        if (surfaceLayoutDispatcher != null) {
+            surfaceLayoutDispatcher.beginTransaction();
         }
-
-        Log.d(TAG, "linkModalComponents complete: " + linkedCount + " links established");
-        Log.d(TAG, "========== linkModalComponents END ==========");
     }
 
-
-    // TODO temporary workaround for scroll jank; overall renderer optimization to follow
-
     /**
-     * Pre-builds the View tree off-screen.
-     *
-     * Notes:
-     * - Does not change the Surface's final bind semantics
-     * - Only pre-creates the Views for rootComponent and child components ahead of time
-     * - When bindContainer is actually called later, if rootView already exists, it will not
-     *   re-enter createComponentTreeViews
-     *
-     * @param preloadHost Off-screen pre-build container
+     * Ends the current surface-level layout transaction and flushes batched Yoga frames once.
      */
-    public void preloadViews(ViewGroup preloadHost) {
-        if (isDestroyed()) {
-            Log.w(TAG, "preloadViews ignored: surface destroyed, surfaceId=" + surfaceId);
-            return;
+    public void endLayoutTransaction() {
+        if (surfaceLayoutDispatcher != null) {
+            surfaceLayoutDispatcher.endTransaction();
         }
-
-        if (preloadHost == null) {
-            Log.w(TAG, "preloadViews ignored: preloadHost is null, surfaceId=" + surfaceId);
-            return;
-        }
-
-        if (rootComponent == null) {
-            Log.w(TAG, "preloadViews ignored: rootComponent is null, surfaceId=" + surfaceId);
-            return;
-        }
-
-        if (rootComponent.getView() != null) {
-            Log.d(TAG, "preloadViews skipped: root view already exists, surfaceId=" + surfaceId);
-            return;
-        }
-
-        long start = SystemClock.elapsedRealtime();
-
-        Log.d(TAG, "========== preloadViews START ==========");
-        Log.d(TAG, "surfaceId=" + surfaceId
-                + ", preloadHostHash=" + System.identityHashCode(preloadHost)
-                + ", preloadHostChildCountBefore=" + preloadHost.getChildCount()
-                + ", componentCount=" + componentTree.size()
-                + ", rootComponentId=" + rootComponent.getId());
-
-        ViewGroup oldContainer = this.container;
-//        State oldState = this.state;
-
-        try {
-            // Temporarily borrow preloadHost to build the view tree
-            this.container = preloadHost;
-            createComponentTreeViews(rootComponent, preloadHost);
-
-            Log.d(TAG, "preloadViews success"
-                    + ", preloadHostChildCountAfter=" + preloadHost.getChildCount()
-                    + ", rootViewExists=" + (rootComponent.getView() != null)
-                    + ", cost=" + (SystemClock.elapsedRealtime() - start));
-        } catch (Throwable t) {
-            Log.e(TAG, "preloadViews failed, surfaceId=" + surfaceId, t);
-        } finally {
-            // Restore the original container/state semantics
-            this.container = oldContainer;
-//            this.state = oldState;
-        }
-
-        Log.d(TAG, "========== preloadViews END ==========");
     }
 
     private ViewGroup getComponentChildContainer(A2UIComponent component) {
-        if (component instanceof com.amap.agenui.render.component.A2UILayoutComponent) {
-            return ((com.amap.agenui.render.component.A2UILayoutComponent) component).getChildContainer();
+        if (component instanceof A2UILayoutComponent) {
+            return ((A2UILayoutComponent) component).getChildContainer();
         }
 
         View view = component.getView();

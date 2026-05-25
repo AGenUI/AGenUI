@@ -20,7 +20,7 @@ class IDataChangedObserver;
  */
 class EventActionDataValue : public DataValue {
 public:
-    EventActionDataValue(IDataModel* dataModel, const std::string& eventName, const std::map<std::string, std::shared_ptr<DataValue>>& context);
+    EventActionDataValue(IDataValueContext* context, const std::string& eventName, const std::map<std::string, std::shared_ptr<DataValue>>& context_data);
     virtual ~EventActionDataValue();
 
     DataType getDataType() const override;
@@ -28,10 +28,10 @@ public:
     SerializableData getValueData() const override;
     void bind(IDataChangedObserver* observer) override;
     void unbind() override;
-    std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const override;
+    std::shared_ptr<DataValue> cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const override;
 
     std::string getEventName() const;
-    std::map<std::string, std::shared_ptr<DataValue>> getContext() const;
+    std::map<std::string, std::shared_ptr<DataValue>> getContextData() const;
 
     /**
      * @brief Execute the event action
@@ -43,7 +43,7 @@ public:
 
 private:
     std::string _eventName;
-    std::map<std::string, std::shared_ptr<DataValue>> _context;
+    std::map<std::string, std::shared_ptr<DataValue>> _contextData;
 };
 
 }  // namespace agenui

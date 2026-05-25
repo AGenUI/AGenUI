@@ -4,6 +4,8 @@
 #include "../../utils/a2ui_color_palette.h"
 #include "log/a2ui_capi_log.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
+#include "a2ui/utils/a2ui_unit_utils.h"
+#include <nlohmann/json.hpp>
 
 #include <cstdlib>
 
@@ -19,23 +21,29 @@ constexpr float kDefaultTextSize = 32.0f;
 constexpr float kDefaultChoiceGap = 40.0f;
 
 constexpr float kDefaultChipPaddingHorizontal = 28.0f;
-constexpr float kDefaultChipPaddingVertical = 12.0f;
-constexpr float kDefaultChipGap = 54.0f;
+constexpr float kDefaultChipPaddingVertical = 16.0f;
+constexpr float kDefaultChipGap = 24.0f;
 constexpr float kDefaultChipRadius = 999.0f;
 constexpr float kDefaultChipBorderWidth = 2.0f;
+constexpr float kDefaultChipIndicatorGap = 16.0f;
 
-constexpr float kDefaultSearchHeight = 62.0f;
+constexpr float kDefaultSearchHeight = 96.0f;
 constexpr float kDefaultSearchPaddingHorizontal = 24.0f;
-constexpr float kDefaultSearchPaddingVertical = 10.0f;
+constexpr float kDefaultSearchPaddingVertical = 16.0f;
 constexpr float kDefaultSearchBorderWidth = 2.0f;
-constexpr float kDefaultSearchRadius = 40.0f;
-constexpr float kDefaultSearchMarginBottom = 20.0f;
+// Use a very large radius so ArkUI clamps to half of the search-input height,
+// producing a capsule shape (matches iOS / Android visual).
+constexpr float kDefaultSearchRadius = 999.0f;
+constexpr float kDefaultSearchMarginBottom = 24.0f;
+// Horizontal inset between the search input and the surrounding ChoicePicker
+// edges; keeps the input from spanning the full screen width.
+constexpr float kDefaultSearchMarginHorizontal = 24.0f;
 constexpr float kDefaultSearchTextSize = 28.0f;
 
 constexpr uint32_t kDefaultSelectedBlue = 0xFF2E82FF;
 constexpr uint32_t kDefaultChipUnselectedBackground = 0xFFF0F1F3;
 constexpr uint32_t kDefaultChipUnselectedBorder = 0xFFE0E3E8;
-constexpr uint32_t kDefaultChipUnselectedText = 0xFF000000;
+constexpr uint32_t kDefaultChipUnselectedText = 0xFF666666;
 constexpr uint32_t kDefaultSearchBackground = 0xFFFFFFFF;
 constexpr uint32_t kDefaultSearchBorder = 0x1A000000;
 constexpr uint32_t kDefaultPlaceholderColor = 0x66000000;
@@ -54,8 +62,16 @@ void disposeNodeIfNeeded(ArkUI_NodeHandle& nodeHandle) {
 ChoicePickerComponent::ChoicePickerComponent(const std::string& id, const nlohmann::json& properties)
     : A2UIComponent(id, "ChoicePicker") {
 
+    // Root is always a vertical column so the optional search input can sit on top
+    // of the options container. Variant / displayStyle / orientation only influence
+    // the inner option container, created later in rebuildContent().
+    //
+    // align-items=START (rather than STRETCH) keeps the inner content wrapper at
+    // its natural width (the widest option), instead of forcing it to span the
+    // full ChoicePicker width. This is what visually keeps the search input the
+    // same width as the longest option below it.
     m_nodeHandle = g_nodeAPI->createNode(ARKUI_NODE_COLUMN);
-    A2UIColumnNode(m_nodeHandle).setAlignItems(ARKUI_ITEM_ALIGNMENT_STRETCH);
+    A2UIColumnNode(m_nodeHandle).setAlignItems(ARKUI_ITEM_ALIGNMENT_START);
 
     if (!properties.is_null() && properties.is_object()) {
         for (auto it = properties.begin(); it != properties.end(); ++it) {
@@ -82,9 +98,6 @@ void ChoicePickerComponent::onUpdateProperties(const nlohmann::json& properties)
     m_config = parseChoicePickerConfig(m_properties);
     m_styleConfig = getComponentStylesFor("ChoicePicker");
     m_options = parseChoicePickerOptions(m_properties);
-    if (m_properties.contains("value")) {
-        m_properties["value"] = normalizeChoicePickerValue(m_properties["value"], m_config);
-    }
 
     if (!m_config.filterable) {
         m_filterKeyword.clear();
@@ -99,11 +112,24 @@ void ChoicePickerComponent::onUpdateProperties(const nlohmann::json& properties)
 void ChoicePickerComponent::rebuildContent() {
     clearContent();
 
+    // Create the inner content wrapper. With align-items=STRETCH on the wrapper
+    // and no fixed width, ArkUI auto-sizes the wrapper to its widest child. Both
+    // search input and options-container then stretch to that width, ensuring
+    // the search input visually matches the longest option's width.
+    m_contentWrapperHandle = g_nodeAPI->createNode(ARKUI_NODE_COLUMN);
+    if (m_contentWrapperHandle) {
+        A2UIColumnNode(m_contentWrapperHandle).setAlignItems(ARKUI_ITEM_ALIGNMENT_STRETCH);
+        g_nodeAPI->addChild(m_nodeHandle, m_contentWrapperHandle);
+    }
+
+    // Create options container first so createSearchInput / rebuildOptions can
+    // anchor against the wrapper. Order in the wrapper is set explicitly below.
+    createOptionsContainer();
+
     if (m_config.filterable) {
         createSearchInput();
     }
 
-    createOptionsContainer();
     rebuildOptions();
 
     const bool disabled = isInteractionDisabled();
@@ -137,13 +163,20 @@ void ChoicePickerComponent::createSearchInput() {
     A2UINode node(m_searchInputHandle);
     A2UITextInputNode input(m_searchInputHandle);
 
-    node.setPercentWidth(1.0f);
+    // No setPercentWidth: the parent contentWrapper has align-items=STRETCH and
+    // auto-sizes to the widest sibling (typically the longest option), so the
+    // search input gets stretched to exactly that width. This is what matches
+    // the search input width to "the longest option" visually.
     node.setHeight(getStyleDimension("search-height", kDefaultSearchHeight));
     node.setPadding(getStyleDimension("search-padding-vertical", kDefaultSearchPaddingVertical),
                     getStyleDimension("search-padding-horizontal", kDefaultSearchPaddingHorizontal),
                     getStyleDimension("search-padding-vertical", kDefaultSearchPaddingVertical),
                     getStyleDimension("search-padding-horizontal", kDefaultSearchPaddingHorizontal));
-    node.setMargin(0.0f, 0.0f, getStyleDimension("search-margin-bottom", kDefaultSearchMarginBottom), 0.0f);
+    // Bottom margin only — left/right are 0 because the search input now lives
+    // inside the auto-sized contentWrapper and shares its edges with options.
+    node.setMargin(0.0f, 0.0f,
+                   getStyleDimension("search-margin-bottom", kDefaultSearchMarginBottom),
+                   0.0f);
     node.setBackgroundColor(getStyleColor("search-background-color", kDefaultSearchBackground));
     node.setBorderRadius(getStyleDimension("search-border-radius", kDefaultSearchRadius));
     const float borderWidth = getStyleDimension("search-border-width", kDefaultSearchBorderWidth);
@@ -151,6 +184,7 @@ void ChoicePickerComponent::createSearchInput() {
     node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
     node.setBorderColor(getStyleColor("search-border-color", kDefaultSearchBorder));
 
+    // Hide the underline that ArkUI TEXT_INPUT shows by default.
     ArkUI_NumberValue underlineValue[] = {{.i32 = 0}};
     ArkUI_AttributeItem underlineItem = {underlineValue, 1};
     g_nodeAPI->setAttribute(m_searchInputHandle, NODE_TEXT_INPUT_SHOW_UNDERLINE, &underlineItem);
@@ -167,21 +201,24 @@ void ChoicePickerComponent::createSearchInput() {
 
     g_nodeAPI->addNodeEventReceiver(m_searchInputHandle, onSearchInputChangeCallback);
     g_nodeAPI->registerNodeEvent(m_searchInputHandle, NODE_TEXT_INPUT_ON_CHANGE, 0, this);
-    g_nodeAPI->addChild(m_nodeHandle, m_searchInputHandle);
+
+    // Insert before options-container so the search input sits at the top of
+    // the wrapper. createOptionsContainer is called before createSearchInput in
+    // rebuildContent(), so m_optionsContainerHandle already exists here.
+    if (m_contentWrapperHandle && m_optionsContainerHandle) {
+        g_nodeAPI->insertChildBefore(m_contentWrapperHandle, m_searchInputHandle, m_optionsContainerHandle);
+    } else if (m_contentWrapperHandle) {
+        g_nodeAPI->addChild(m_contentWrapperHandle, m_searchInputHandle);
+    } else {
+        g_nodeAPI->addChild(m_nodeHandle, m_searchInputHandle);
+    }
 }
 
 void ChoicePickerComponent::createOptionsContainer() {
-    if (m_config.displayStyle == "chips") {
-        m_optionsContainerHandle = g_nodeAPI->createNode(ARKUI_NODE_FLEX);
-        if (m_optionsContainerHandle) {
-            A2UIFlexNode(m_optionsContainerHandle).setOptions(
-                ARKUI_FLEX_DIRECTION_ROW,
-                ARKUI_FLEX_WRAP_WRAP,
-                ARKUI_FLEX_ALIGNMENT_START,
-                ARKUI_ITEM_ALIGNMENT_CENTER,
-                ARKUI_FLEX_ALIGNMENT_START);
-        }
-    } else if (m_config.orientation == "horizontal") {
+    // chips and vertical-checkbox both use a COLUMN container; horizontal-checkbox uses a ROW.
+    // chips on Harmony stack vertically (one per row) since the project does not
+    // introduce ARKUI_NODE_FLEX (matching iOS/Android approaches).
+    if (m_config.displayStyle != "chips" && m_config.orientation == "horizontal") {
         m_optionsContainerHandle = g_nodeAPI->createNode(ARKUI_NODE_ROW);
         if (m_optionsContainerHandle) {
             A2UIRowNode(m_optionsContainerHandle).setAlignItems(ARKUI_VERTICAL_ALIGNMENT_CENTER);
@@ -189,7 +226,10 @@ void ChoicePickerComponent::createOptionsContainer() {
     } else {
         m_optionsContainerHandle = g_nodeAPI->createNode(ARKUI_NODE_COLUMN);
         if (m_optionsContainerHandle) {
-            A2UIColumnNode(m_optionsContainerHandle).setAlignItems(ARKUI_ITEM_ALIGNMENT_STRETCH);
+            A2UIColumnNode(m_optionsContainerHandle).setAlignItems(
+                m_config.displayStyle == "chips"
+                    ? ARKUI_ITEM_ALIGNMENT_START
+                    : ARKUI_ITEM_ALIGNMENT_STRETCH);
         }
     }
 
@@ -197,8 +237,14 @@ void ChoicePickerComponent::createOptionsContainer() {
         return;
     }
 
-    A2UINode(m_optionsContainerHandle).setPercentWidth(1.0f);
-    g_nodeAPI->addChild(m_nodeHandle, m_optionsContainerHandle);
+    // No percentWidth: options-container auto-sizes to its widest option. Then
+    // the parent contentWrapper picks up that width and stretches the search
+    // input to match it.
+    if (m_contentWrapperHandle) {
+        g_nodeAPI->addChild(m_contentWrapperHandle, m_optionsContainerHandle);
+    } else {
+        g_nodeAPI->addChild(m_nodeHandle, m_optionsContainerHandle);
+    }
 }
 
 void ChoicePickerComponent::buildCheckboxOptions(const std::vector<size_t>& visibleIndices) {
@@ -232,9 +278,10 @@ void ChoicePickerComponent::buildCheckboxOptions(const std::vector<size_t>& visi
 
         A2UIRowNode(item.containerHandle).setAlignItems(ARKUI_VERTICAL_ALIGNMENT_CENTER);
         A2UINode(item.containerHandle).setPadding(itemPadding);
-        if (m_config.orientation != "horizontal") {
-            A2UINode(item.containerHandle).setPercentWidth(1.0f);
-        }
+        // Each option uses content-width (no percentWidth). Within the COLUMN
+        // options-container with align-items=STRETCH, all options visually
+        // stretch to the widest option's width — and the search input above
+        // (sibling in the contentWrapper) also stretches to that same width.
         if (visiblePosition > 0) {
             if (m_config.orientation == "horizontal") {
                 A2UINode(item.containerHandle).setMargin(0.0f, 0.0f, 0.0f, choiceGap);
@@ -250,9 +297,12 @@ void ChoicePickerComponent::buildCheckboxOptions(const std::vector<size_t>& visi
         A2UINode(item.indicatorHandle).setHeight(checkboxSize);
         A2UINode(item.indicatorHandle).setMargin(checkboxMargin, checkboxMargin,
                                                  checkboxMargin, checkboxMargin);
-        // Keep the native checkbox as a visual indicator only.
-        // The row container owns selection state so single-select rows cannot
-        // diverge from ArkUI's internal checkbox toggling behavior.
+        // ArkUI Checkbox has a built-in tap-to-toggle handler that bypasses the
+        // parent's NODE_ON_CLICK. Use HitTestMode.None so the checkbox does not
+        // respond to touches at all; the parent row handles the click and the
+        // checked state is driven programmatically via setChecked() in
+        // applyOptionSelectedState. This keeps mutuallyExclusive variant working
+        // when the user taps directly on the checkbox.
         A2UINode(item.indicatorHandle).setHitTestBehavior(ARKUI_HIT_TEST_MODE_NONE);
 
         A2UITextNode(item.labelHandle).setTextContent(item.label);
@@ -281,8 +331,10 @@ void ChoicePickerComponent::buildChipOptions(const std::vector<size_t>& visibleI
     const float chipGap = getStyleDimension("chip-gap", kDefaultChipGap);
     const float chipRadius = getStyleDimension("chip-border-radius", kDefaultChipRadius);
     const float chipBorderWidth = getStyleDimension("chip-border-width", kDefaultChipBorderWidth);
+    const float chipIndicatorGap = getStyleDimension("chip-indicator-gap", kDefaultChipIndicatorGap);
     const float textSize = getStyleDimension("text-size", kDefaultTextSize);
 
+    size_t visiblePosition = 0;
     for (size_t optionIndex : visibleIndices) {
         const ChoicePickerOptionData& option = m_options[optionIndex];
         ChoicePickerOptionItem item;
@@ -291,9 +343,11 @@ void ChoicePickerComponent::buildChipOptions(const std::vector<size_t>& visibleI
         item.value = option.value;
 
         item.containerHandle = g_nodeAPI->createNode(ARKUI_NODE_ROW);
+        item.indicatorHandle = g_nodeAPI->createNode(ARKUI_NODE_TEXT);
         item.labelHandle = g_nodeAPI->createNode(ARKUI_NODE_TEXT);
-        if (!item.containerHandle || !item.labelHandle) {
+        if (!item.containerHandle || !item.indicatorHandle || !item.labelHandle) {
             disposeNodeIfNeeded(item.labelHandle);
+            disposeNodeIfNeeded(item.indicatorHandle);
             disposeNodeIfNeeded(item.containerHandle);
             continue;
         }
@@ -305,18 +359,28 @@ void ChoicePickerComponent::buildChipOptions(const std::vector<size_t>& visibleI
         A2UINode(item.containerHandle).setBorderWidth(chipBorderWidth, chipBorderWidth,
                                                       chipBorderWidth, chipBorderWidth);
         A2UINode(item.containerHandle).setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
-        A2UINode(item.containerHandle).setMargin(0.0f, chipGap, chipGap, 0.0f);
+        if (visiblePosition > 0) {
+            // Vertical gap between chips since chips stack one per row on Harmony.
+            A2UINode(item.containerHandle).setMargin(chipGap, 0.0f, 0.0f, 0.0f);
+        }
 
         A2UITextNode(item.labelHandle).setTextContent(item.label);
         A2UITextNode(item.labelHandle).setFontSize(textSize);
         A2UINode(item.labelHandle).setHitTestBehavior(ARKUI_HIT_TEST_MODE_TRANSPARENT);
 
+        A2UITextNode(item.indicatorHandle).setTextContent("+");
+        A2UITextNode(item.indicatorHandle).setFontSize(textSize);
+        A2UINode(item.indicatorHandle).setMargin(0.0f, 0.0f, 0.0f, chipIndicatorGap);
+        A2UINode(item.indicatorHandle).setHitTestBehavior(ARKUI_HIT_TEST_MODE_TRANSPARENT);
+
         g_nodeAPI->addChild(item.containerHandle, item.labelHandle);
+        g_nodeAPI->addChild(item.containerHandle, item.indicatorHandle);
         g_nodeAPI->addNodeEventReceiver(item.containerHandle, onOptionClickCallback);
         g_nodeAPI->registerNodeEvent(item.containerHandle, NODE_ON_CLICK, static_cast<int32_t>(optionIndex), this);
         g_nodeAPI->addChild(m_optionsContainerHandle, item.containerHandle);
 
         m_optionItems.push_back(item);
+        visiblePosition++;
     }
 }
 
@@ -349,7 +413,11 @@ void ChoicePickerComponent::clearContent() {
 
     if (m_searchInputHandle) {
         g_nodeAPI->unregisterNodeEvent(m_searchInputHandle, NODE_TEXT_INPUT_ON_CHANGE);
-        if (m_nodeHandle) {
+        // Search input now lives inside m_contentWrapperHandle (when it exists);
+        // fall back to m_nodeHandle for safety.
+        if (m_contentWrapperHandle) {
+            g_nodeAPI->removeChild(m_contentWrapperHandle, m_searchInputHandle);
+        } else if (m_nodeHandle) {
             g_nodeAPI->removeChild(m_nodeHandle, m_searchInputHandle);
         }
         g_nodeAPI->disposeNode(m_searchInputHandle);
@@ -357,23 +425,48 @@ void ChoicePickerComponent::clearContent() {
     }
 
     if (m_optionsContainerHandle) {
-        if (m_nodeHandle) {
+        if (m_contentWrapperHandle) {
+            g_nodeAPI->removeChild(m_contentWrapperHandle, m_optionsContainerHandle);
+        } else if (m_nodeHandle) {
             g_nodeAPI->removeChild(m_nodeHandle, m_optionsContainerHandle);
         }
         g_nodeAPI->disposeNode(m_optionsContainerHandle);
         m_optionsContainerHandle = nullptr;
     }
+
+    if (m_contentWrapperHandle) {
+        if (m_nodeHandle) {
+            g_nodeAPI->removeChild(m_nodeHandle, m_contentWrapperHandle);
+        }
+        g_nodeAPI->disposeNode(m_contentWrapperHandle);
+        m_contentWrapperHandle = nullptr;
+    }
 }
 
 void ChoicePickerComponent::applySelectedValues() {
-    const nlohmann::json currentValue = m_properties.contains("value")
-        ? normalizeChoicePickerValue(m_properties["value"], m_config)
-        : normalizeChoicePickerValue(
-            m_config.variant == "multipleSelection" ? nlohmann::json::array() : nlohmann::json(""),
-            m_config);
+    nlohmann::json currentValue = m_properties.contains("value")
+        ? m_properties["value"]
+        : (m_config.variant == "multipleSelection" ? nlohmann::json::array() : nlohmann::json(""));
+
+    // Coerce value to the type expected by the active variant. This mirrors iOS
+    // (`value as? String` / `value as? [String]`) and Android (`value instanceof String`
+    // / `instanceof List`) behaviour: when the host sends a value whose type does
+    // not match the variant (e.g. mutuallyExclusive + value=["a"]), treat it as
+    // "no selection" rather than coercing the array's first item into a default
+    // selection. Otherwise the picker would silently default-select the first
+    // matching option even though the variant cannot represent multi-values.
+    if (m_config.variant == "multipleSelection") {
+        if (!currentValue.is_array()) {
+            currentValue = nlohmann::json::array();
+        }
+    } else {
+        if (!currentValue.is_string()) {
+            currentValue = nlohmann::json("");
+        }
+    }
 
     for (auto& item : m_optionItems) {
-        applyOptionSelectedState(item, isChoicePickerValueSelected(currentValue, m_config, item.value));
+        applyOptionSelectedState(item, isChoicePickerValueSelected(currentValue, item.value));
     }
 }
 
@@ -392,6 +485,11 @@ void ChoicePickerComponent::applyOptionSelectedState(ChoicePickerOptionItem& ite
             selected
                 ? getStyleColor("chip-text-color-selected", 0xFFFFFFFF)
                 : getStyleColor("chip-text-color", kDefaultChipUnselectedText));
+        A2UITextNode(item.indicatorHandle).setTextContent(selected ? "x" : "+");
+        A2UITextNode(item.indicatorHandle).setFontColor(
+            selected
+                ? getStyleColor("chip-text-color-selected", 0xFFFFFFFF)
+                : getStyleColor("chip-text-color", kDefaultChipUnselectedText));
         return;
     }
 
@@ -404,13 +502,10 @@ void ChoicePickerComponent::handleOptionClick(size_t optionIndex) {
     }
 
     const nlohmann::json currentValue = m_properties.contains("value")
-        ? normalizeChoicePickerValue(m_properties["value"], m_config)
-        : normalizeChoicePickerValue(
-            m_config.variant == "multipleSelection" ? nlohmann::json::array() : nlohmann::json(""),
-            m_config);
+        ? m_properties["value"]
+        : (m_config.variant == "multipleSelection" ? nlohmann::json::array() : nlohmann::json(""));
 
-    const bool currentlySelected = isChoicePickerValueSelected(
-        currentValue, m_config, m_options[optionIndex].value);
+    const bool currentlySelected = isChoicePickerValueSelected(currentValue, m_options[optionIndex].value);
     const bool nextSelected = (m_config.variant == "multipleSelection") ? !currentlySelected : true;
 
     m_properties["value"] = updateChoicePickerValue(
@@ -455,10 +550,8 @@ bool ChoicePickerComponent::isInteractionDisabled() const {
 void ChoicePickerComponent::syncCurrentValue() {
     nlohmann::json changeJson;
     changeJson["value"] = m_properties.contains("value")
-        ? normalizeChoicePickerValue(m_properties["value"], m_config)
-        : normalizeChoicePickerValue(
-            m_config.variant == "multipleSelection" ? nlohmann::json::array() : nlohmann::json(""),
-            m_config);
+        ? m_properties["value"]
+        : (m_config.variant == "multipleSelection" ? nlohmann::json::array() : nlohmann::json(""));
     syncState(changeJson);
 }
 

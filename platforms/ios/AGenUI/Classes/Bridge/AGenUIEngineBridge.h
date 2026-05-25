@@ -12,9 +12,11 @@ NS_ASSUME_NONNULL_BEGIN
 // MARK: - FunctionCall Callback Type Definitions
 
 /// FunctionCall execution callback
+/// @param instanceId Instance unique identifier
+/// @param surfaceId Surface unique identifier
 /// @param args JSON string of arguments
 /// @return JSON string of execution result
-typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(NSString *args);
+typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(int instanceId, NSString *surfaceId, NSString *args);
 
 /// AGenUI Engine Bridge (Singleton)
 ///
@@ -29,12 +31,24 @@ typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(NSString *args);
 /// Shared singleton instance
 + (instancetype)sharedInstance;
 
+// MARK: - Version
+
+/// Get AGenUI SDK version (does not require engine initialization)
++ (NSString *)sdkVersion;
+
 // MARK: - Theme Configuration
 
 /// Load theme configuration
 /// @param themeConfigJson Theme configuration JSON string
 /// @return Whether loading succeeded
 - (BOOL)loadThemeConfig:(NSString *)themeConfigJson;
+
+// MARK: - Path Configuration
+
+/// Set path configuration
+/// @param configJson Path configuration JSON string, e.g. {"templateDir": "/path/to/templates"}
+/// @return Whether configuration was applied successfully
+- (BOOL)setPathConfig:(NSString *)configJson;
 
 // MARK: - DesignToken Configuration
 
@@ -80,6 +94,12 @@ typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(NSString *args);
 /// Destroy a C++ ISurfaceManager instance
 /// @param surfaceManager Opaque pointer returned by createCXXSurfaceManager
 - (void)destroySurfaceManager:(void *)surfaceManager;
+
+// MARK: - Logger
+
+/// Set logger for C++ modules
+/// @param enabled Whether to enable logging observer
+- (void)setRuntimeLogEnabled:(BOOL)enabled;
 
 @end
 

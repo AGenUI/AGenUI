@@ -1,10 +1,33 @@
 #pragma once
 
-#include "agenui_component_render_observable.h"
+#include "agenui_render_info_types.h"
 #include <vector>
 #include <mutex>
 
 namespace agenui {
+
+/**
+ * @brief Listener interface for component render completion events.
+ * @remark Harmony-internal type. Other platforms talk to ISurfaceManager directly.
+ */
+class ComponentRenderListener {
+public:
+    virtual ~ComponentRenderListener() {}
+    virtual void onRenderFinish(const ComponentRenderInfo& info) = 0;
+};
+
+/**
+ * @brief Observable interface for fanning out component render completion events.
+ * @remark Harmony-internal type. Used by C++ render-layer components (Tabs/Video/Image)
+ *         to publish render-finish events without holding an ISurfaceManager pointer.
+ */
+class IComponentRenderObservable {
+public:
+    virtual ~IComponentRenderObservable() {}
+    virtual void addComponentRenderListener(ComponentRenderListener* observer) = 0;
+    virtual void removeComponentRenderListener(ComponentRenderListener* observer) = 0;
+    virtual void notifyRenderFinish(const ComponentRenderInfo& info) = 0;
+};
 
 /**
  * @brief Observable implementation for component render completion events.

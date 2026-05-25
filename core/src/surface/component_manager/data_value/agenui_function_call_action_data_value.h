@@ -1,7 +1,7 @@
 #pragma once
 
 #include "agenui_data_value_base.h"
-#include "agenui_callable_data_value.h"
+#include "agenui_function_call_data_value.h"
 #include <memory>
 #include <string>
 
@@ -16,7 +16,7 @@ class IDataChangedObserver;
  */
 class FunctionCallActionDataValue : public DataValue {
 public:
-    FunctionCallActionDataValue(IDataModel* dataModel, std::shared_ptr<CallableDataValue> functionCall);
+    FunctionCallActionDataValue(IDataValueContext* context, std::shared_ptr<FunctionCallDataValue> functionCall);
     virtual ~FunctionCallActionDataValue();
 
     DataType getDataType() const override;
@@ -24,9 +24,9 @@ public:
     SerializableData getValueData() const override;
     void bind(IDataChangedObserver* observer) override;
     void unbind() override;
-    std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const override;
+    std::shared_ptr<DataValue> cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const override;
 
-    std::shared_ptr<CallableDataValue> getFunctionCall() const;
+    std::shared_ptr<FunctionCallDataValue> getFunctionCall() const;
 
     /**
      * @brief Execute the function-call action
@@ -35,7 +35,7 @@ public:
     SerializableData execute() const;
 
 private:
-    std::shared_ptr<CallableDataValue> _functionCall;
+    std::shared_ptr<FunctionCallDataValue> _functionCall;
 };
 
 }  // namespace agenui

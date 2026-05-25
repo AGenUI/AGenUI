@@ -14,19 +14,19 @@ class ToastFunction: NSObject, Function {
         return FunctionConfig(name: "toast")
     }
 
-    func execute(_ params: String) -> FunctionResult {
+    func execute(context: FunctionCallContext, params: String) -> FunctionResult {
         guard let data = params.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let value = json["value"] as? String,
               !value.isEmpty else {
-            return FunctionResult.failure(value: ["error": "Invalid or missing 'value' parameter"])
+            return FunctionResult.failure(value: "Invalid or missing 'value' parameter")
         }
 
         DispatchQueue.main.async {
             self.showToast(message: value)
         }
 
-        return FunctionResult.success(value: [:])
+        return FunctionResult.success(value: "")
     }
 
     private func showToast(message: String) {

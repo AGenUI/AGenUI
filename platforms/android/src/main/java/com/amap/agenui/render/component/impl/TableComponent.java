@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -18,6 +17,7 @@ import android.widget.TextView;
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,8 +92,10 @@ public class TableComponent extends A2UIComponent {
      * Load style configuration
      */
     private ComponentStyleConfig.StyleHashMap<String, String> loadStyleConfig(Context context) {
-        ComponentStyleConfig.StyleHashMap<String, String> styleConfig = ComponentStyleConfig.getInstance(context).getTableStyle();
-        Log.d(TAG, "Loaded style config: " + styleConfig);
+        ComponentStyleConfig.StyleHashMap<String, String> styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("Table");
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Loaded style config: " + styleConfig);
+        }
         return styleConfig;
     }
 
@@ -110,86 +112,84 @@ public class TableComponent extends A2UIComponent {
         // Parse header background color
         String headerBgColor = styleConfig.getOrDefault("header-bg-color", "#EEEFF2");
         config.headerBgColor = StyleHelper.parseColor(headerBgColor);
-        Log.d(TAG, "Parsed header-bg-color: " + headerBgColor);
 
         // Parse header font color
         String headerFontColor = styleConfig.getOrDefault("header-font-color", "#000000");
         config.headerFontColor = StyleHelper.parseColor(headerFontColor);
-        Log.d(TAG, "Parsed header-font-color: " + headerFontColor);
 
         // Parse header font size
         String headerFontSize = styleConfig.getOrDefault("header-font-size", "28px");
         config.headerFontSize = StyleHelper.parseDimension(headerFontSize, context);
-        Log.d(TAG, "Parsed header-font-size: " + headerFontSize + " -> " + config.headerFontSize + "px");
 
         // Parse header font weight
         String headerFontWeight = styleConfig.getOrDefault("header-font-weight", "bold");
-        config.headerFontBold = headerFontWeight.equalsIgnoreCase("bold");
-        Log.d(TAG, "Parsed header-font-weight: " + headerFontWeight);
+        config.headerFontBold = StyleHelper.isBoldWeight(headerFontWeight);
 
         // Parse data row background color array
         config.bodyBgColors = parseBodyBgColors(styleConfig, context);
-        Log.d(TAG, "Parsed body-bg-color: " + config.bodyBgColors.size() + " colors");
 
         // Parse data row font color
         String bodyFontColor = styleConfig.getOrDefault("body-font-color", "#000000");
         config.bodyFontColor = StyleHelper.parseColor(bodyFontColor);
-        Log.d(TAG, "Parsed body-font-color: " + bodyFontColor);
 
         // Parse data row font size
         String bodyFontSize = styleConfig.getOrDefault("body-font-size", "28px");
         config.bodyFontSize = StyleHelper.parseDimension(bodyFontSize, context);
-        Log.d(TAG, "Parsed body-font-size: " + bodyFontSize + " -> " + config.bodyFontSize + "px");
 
         // Parse data row font weight
         String bodyFontWeight = styleConfig.getOrDefault("body-font-weight", "normal");
-        config.bodyFontBold = bodyFontWeight.equalsIgnoreCase("bold");
-        Log.d(TAG, "Parsed body-font-weight: " + bodyFontWeight);
+        config.bodyFontBold = StyleHelper.isBoldWeight(bodyFontWeight);
 
         // Parse text alignment
         String textAlign = styleConfig.getOrDefault("text-align", "left");
         config.textAlign = parseTextAlign(textAlign);
-        Log.d(TAG, "Parsed text-align: " + textAlign);
 
         // Parse vertical alignment
         String verticalAlign = styleConfig.getOrDefault("vertical-align", "center");
         config.verticalAlign = parseVerticalAlign(verticalAlign);
-        Log.d(TAG, "Parsed vertical-align: " + verticalAlign);
 
         // Parse header vertical padding
         String headerPaddingVertical = styleConfig.getOrDefault("header-padding-vertical", "20px");
         config.headerPaddingVertical = StyleHelper.parseDimension(headerPaddingVertical, context);
-        Log.d(TAG, "Parsed header-padding-vertical: " + headerPaddingVertical + " -> " + config.headerPaddingVertical + "px");
 
         // Parse header horizontal padding
         String headerPaddingHorizontal = styleConfig.getOrDefault("header-padding-horizontal", "32px");
         config.headerPaddingHorizontal = StyleHelper.parseDimension(headerPaddingHorizontal, context);
-        Log.d(TAG, "Parsed header-padding-horizontal: " + headerPaddingHorizontal + " -> " + config.headerPaddingHorizontal + "px");
 
         // Parse data row vertical padding
         String bodyPaddingVertical = styleConfig.getOrDefault("body-padding-vertical", "20px");
         config.bodyPaddingVertical = StyleHelper.parseDimension(bodyPaddingVertical, context);
-        Log.d(TAG, "Parsed body-padding-vertical: " + bodyPaddingVertical + " -> " + config.bodyPaddingVertical + "px");
 
         // Parse data row horizontal padding
         String bodyPaddingHorizontal = styleConfig.getOrDefault("body-padding-horizontal", "32px");
         config.bodyPaddingHorizontal = StyleHelper.parseDimension(bodyPaddingHorizontal, context);
-        Log.d(TAG, "Parsed body-padding-horizontal: " + bodyPaddingHorizontal + " -> " + config.bodyPaddingHorizontal + "px");
 
         // Parse minimum column width
         String minColumnWidth = styleConfig.getOrDefault("min-column-width", "100px");
         config.minColumnWidth = StyleHelper.parseDimension(minColumnWidth, context);
-        Log.d(TAG, "Parsed min-column-width: " + minColumnWidth + " -> " + config.minColumnWidth + "px");
 
         // Parse maximum column width
         String maxColumnWidth = styleConfig.getOrDefault("max-column-width", "600px");
         config.maxColumnWidth = StyleHelper.parseDimension(maxColumnWidth, context);
-        Log.d(TAG, "Parsed max-column-width: " + maxColumnWidth + " -> " + config.maxColumnWidth + "px");
 
         // Parse horizontal scroll switch
         String horizontalScrollStr = styleConfig.getOrDefault("horizontal-scroll", "true");
         config.horizontalScroll = Boolean.parseBoolean(horizontalScrollStr);
-        Log.d(TAG, "Parsed horizontal-scroll: " + horizontalScrollStr + " -> " + config.horizontalScroll);
+
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Parsed table style: headerFontSize=" + config.headerFontSize
+                    + ", bodyFontSize=" + config.bodyFontSize
+                    + ", bodyBgColors=" + config.bodyBgColors.size()
+                    + ", textAlign=" + textAlign
+                    + ", verticalAlign=" + verticalAlign
+                    + ", headerPadV=" + config.headerPaddingVertical
+                    + ", headerPadH=" + config.headerPaddingHorizontal
+                    + ", bodyPadV=" + config.bodyPaddingVertical
+                    + ", bodyPadH=" + config.bodyPaddingHorizontal
+                    + ", minColWidth=" + config.minColumnWidth
+                    + ", maxColWidth=" + config.maxColumnWidth
+                    + ", hScroll=" + config.horizontalScroll);
+        }
 
         return config;
     }
@@ -396,7 +396,9 @@ public class TableComponent extends A2UIComponent {
             Object borderWidthValue = styles.get("border-width");
             String borderWidthStr = String.valueOf(borderWidthValue);
             tableStyle.borderWidth = StyleHelper.parseDimension(borderWidthStr, context);
-            Log.d(TAG, "Parsed border-width from styles: " + borderWidthStr + " -> " + tableStyle.borderWidth + "px");
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Parsed border-width from styles: " + borderWidthStr + " -> " + tableStyle.borderWidth + "px");
+            }
         }
 
         // border-color
@@ -404,7 +406,9 @@ public class TableComponent extends A2UIComponent {
             Object borderColorValue = styles.get("border-color");
             String borderColorStr = String.valueOf(borderColorValue);
             tableStyle.borderColor = StyleHelper.parseColor(borderColorStr);
-            Log.d(TAG, "Parsed border-color from styles: " + borderColorStr);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Parsed border-color from styles: " + borderColorStr);
+            }
         }
 
         // border-radius
@@ -412,7 +416,9 @@ public class TableComponent extends A2UIComponent {
             Object borderRadiusValue = styles.get("border-radius");
             String borderRadiusStr = String.valueOf(borderRadiusValue);
             tableStyle.borderRadius = StyleHelper.parseDimension(borderRadiusStr, context);
-            Log.d(TAG, "Parsed border-radius from styles: " + borderRadiusStr + " -> " + tableStyle.borderRadius + "px");
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Parsed border-radius from styles: " + borderRadiusStr + " -> " + tableStyle.borderRadius + "px");
+            }
         }
     }
 
@@ -667,7 +673,9 @@ public class TableComponent extends A2UIComponent {
             totalWidth += columnWidths[col];
         }
 
-        Log.d(TAG, "Column widths before scaling: totalWidth=" + totalWidth + ", availableWidth=" + availableWidth);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Column widths before scaling: totalWidth=" + totalWidth + ", availableWidth=" + availableWidth);
+        }
 
         // If total width is less than available width, scale proportionally
         if (totalWidth < availableWidth) {
@@ -679,7 +687,9 @@ public class TableComponent extends A2UIComponent {
                 columnWidths[col] = Math.max(minColumnWidth, scaledWidth);
                 totalWidth += columnWidths[col];
             }
-            Log.d(TAG, "Scaled column widths: scale=" + scale + ", newTotalWidth=" + totalWidth);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Scaled column widths: scale=" + scale + ", newTotalWidth=" + totalWidth);
+            }
         }
 
         // Apply computed column widths to all rows
@@ -696,6 +706,6 @@ public class TableComponent extends A2UIComponent {
             }
         }
 
-        Log.d(TAG, "Column widths adjusted successfully");
+        AGenUILogger.d(TAG, "Column widths adjusted successfully");
     }
 }

@@ -6,7 +6,6 @@ import android.graphics.Outline;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +22,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.utils.AGenUILogger;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -85,7 +85,9 @@ public class CarouselComponent extends A2UIComponent {
 
     public CarouselComponent(Context context, String id, Map<String, Object> properties) {
         super(id, "Carousel");
-        Log.d(TAG, "Constructor called - id: " + id);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Constructor called - id: " + id);
+        }
 
         this.context = context;
         if (properties != null) {
@@ -95,7 +97,9 @@ public class CarouselComponent extends A2UIComponent {
 
     @Override
     protected View onCreateView(Context context) {
-        Log.d(TAG, "onCreateView called - id: " + getId());
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "onCreateView called - id: " + getId());
+        }
 
         // Apply style configuration
         applyCarouselStyles();
@@ -155,10 +159,12 @@ public class CarouselComponent extends A2UIComponent {
 
     @Override
     protected void onUpdateProperties(Map<String, Object> properties) {
-        Log.d(TAG, "onUpdateProperties called - id: " + getId());
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "onUpdateProperties called - id: " + getId());
+        }
 
         if (viewPager == null) {
-            Log.w(TAG, "viewPager is NULL, skipping update");
+            AGenUILogger.w(TAG, "viewPager is NULL, skipping update");
             return;
         }
 
@@ -173,7 +179,9 @@ public class CarouselComponent extends A2UIComponent {
                         imageUrls.add((String) item);
                     }
                 }
-                Log.d(TAG, "Updated image URLs: " + imageUrls.size() + " images");
+                if (AGenUILogger.isLoggingEnabled()) {
+                    AGenUILogger.d(TAG, "Updated image URLs: " + imageUrls.size() + " images");
+                }
 
                 // Update adapter
                 updateAdapter();
@@ -191,7 +199,9 @@ public class CarouselComponent extends A2UIComponent {
             } else if (autoplayObj instanceof String) {
                 autoplay = Boolean.parseBoolean((String) autoplayObj);
             }
-            Log.d(TAG, "autoplay: " + autoplay);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "autoplay: " + autoplay);
+            }
 
             // Start or stop auto-play based on configuration
             if (autoplay) {
@@ -210,10 +220,14 @@ public class CarouselComponent extends A2UIComponent {
                 try {
                     autoplaySpeed = Integer.parseInt((String) speedObj);
                 } catch (NumberFormatException e) {
-                    Log.w(TAG, "Invalid autoplaySpeed: " + speedObj);
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.w(TAG, "Invalid autoplaySpeed: " + speedObj);
+                    }
                 }
             }
-            Log.d(TAG, "autoplaySpeed: " + autoplaySpeed);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "autoplaySpeed: " + autoplaySpeed);
+            }
 
             // If auto-play is running, restart it to apply the new speed
             if (autoplay) {
@@ -231,7 +245,9 @@ public class CarouselComponent extends A2UIComponent {
                 draggable = Boolean.parseBoolean((String) draggableObj);
             }
             viewPager.setUserInputEnabled(draggable);
-            Log.d(TAG, "draggable: " + draggable);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "draggable: " + draggable);
+            }
         }
     }
 
@@ -391,7 +407,9 @@ public class CarouselComponent extends A2UIComponent {
         };
 
         autoPlayHandler.postDelayed(autoPlayRunnable, autoplaySpeed);
-        Log.d(TAG, "Auto-play started with interval: " + autoplaySpeed + "ms");
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Auto-play started with interval: " + autoplaySpeed + "ms");
+        }
     }
 
     /**
@@ -401,7 +419,7 @@ public class CarouselComponent extends A2UIComponent {
         if (autoPlayRunnable != null) {
             autoPlayHandler.removeCallbacks(autoPlayRunnable);
             autoPlayRunnable = null;
-            Log.d(TAG, "Auto-play stopped");
+            AGenUILogger.d(TAG, "Auto-play stopped");
         }
     }
 
@@ -425,7 +443,7 @@ public class CarouselComponent extends A2UIComponent {
      */
     private void applyCarouselStyles() {
         ComponentStyleConfig config = ComponentStyleConfig.getInstance(context);
-        ComponentStyleConfig.StyleHashMap<String, String> styles = config.getCarouselStyles();
+        ComponentStyleConfig.StyleHashMap<String, String> styles = config.getComponentStyle("Carousel");
 
         // Indicator dot spacing
         indicatorDotSpacing = StyleHelper.parseDimension(
@@ -470,18 +488,20 @@ public class CarouselComponent extends A2UIComponent {
         imagePlaceholderColor = StyleHelper.parseColor(
                 styles.getOrDefault("image-placeholder-color", "#F2F2F7"));
 
-        Log.d(TAG, "Applied Carousel styles - " +
-                "dotSpacing: " + indicatorDotSpacing + "px, " +
-                "inactiveDotWidth: " + indicatorInactiveDotWidth + "px, " +
-                "activeDotWidth: " + indicatorActiveDotWidth + "px, " +
-                "containerHeight: " + indicatorContainerHeight + "px, " +
-                "bottomOffset: " + indicatorBottomOffset + "px, " +
-                "bgColor: #" + Integer.toHexString(indicatorBackgroundColor) + ", " +
-                "activeDotColor: #" + Integer.toHexString(indicatorActiveDotColor) + ", " +
-                "inactiveDotColor: #" + Integer.toHexString(indicatorInactiveDotColor) + ", " +
-                "cornerRadius: " + indicatorActiveCornerRadius + "px, " +
-                "indicatorAnimDuration: " + indicatorAnimationDuration + "ms, " +
-                "placeholderColor: #" + Integer.toHexString(imagePlaceholderColor));
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Applied Carousel styles - " +
+                    "dotSpacing: " + indicatorDotSpacing + "px, " +
+                    "inactiveDotWidth: " + indicatorInactiveDotWidth + "px, " +
+                    "activeDotWidth: " + indicatorActiveDotWidth + "px, " +
+                    "containerHeight: " + indicatorContainerHeight + "px, " +
+                    "bottomOffset: " + indicatorBottomOffset + "px, " +
+                    "bgColor: #" + Integer.toHexString(indicatorBackgroundColor) + ", " +
+                    "activeDotColor: #" + Integer.toHexString(indicatorActiveDotColor) + ", " +
+                    "inactiveDotColor: #" + Integer.toHexString(indicatorInactiveDotColor) + ", " +
+                    "cornerRadius: " + indicatorActiveCornerRadius + "px, " +
+                    "indicatorAnimDuration: " + indicatorAnimationDuration + "ms, " +
+                    "placeholderColor: #" + Integer.toHexString(imagePlaceholderColor));
+        }
     }
 
     /**
@@ -538,7 +558,6 @@ public class CarouselComponent extends A2UIComponent {
                     .fit()
                     .centerCrop()
                     .placeholder(placeholder)
-                    .error(StyleHelper.getErrorDrawable())
                     .into(holder.imageView);
         }
 

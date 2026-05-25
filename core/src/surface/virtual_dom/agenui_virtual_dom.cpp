@@ -1,88 +1,86 @@
 #include "surface/virtual_dom/agenui_virtual_dom.h"
-#include "agenui_component_render_observable.h"
-#include "agenui_surface_layout_observable.h"
-#include "agenui_log.h"
+#include "agenui_render_info_types.h"
+#include "agenui_logger_internal.h"
 #include <functional>
-#if defined(__OHOS__)
 #include <yoga/Yoga.h>
 #include "surface/virtual_dom/agenui_ivirtual_define.h"
-#endif
+#include "surface/yoga_node/agenui_yoga_node_manager.h"
 
 namespace agenui {
 
-VirtualDOM::VirtualDOM(IVirtualDOMObserver* observer) : _root(std::make_shared<VirtualDOMNode>("root", observer, this)), _observer(observer) {
-#if defined(__OHOS__)
-    _defaultRoot = YGNodeNew();
+VirtualDOM::VirtualDOM(IVirtualDOMObserver* observer,
+                       ::agenui::IMeasurementManager* measurementManager)
+    : _root(nullptr)
+    , _observer(observer)
+    , _measurementManager(measurementManager)
+    , _batchGuard([this] {
+          if (_layoutEngine) {
+              _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
+              checkAndNotifyLayoutChanges();
+          }
+      }) {
+    _layoutEngine = std::make_unique<YogaLayoutEngine>(measurementManager);
     YGSize screenSize = AGenUIVirtualDefine::getDeviceScreenSize();
     _surfaceWidth  = screenSize.width;
     _surfaceHeight = screenSize.height;
-    YGNodeStyleSetFlexDirection(_defaultRoot, YGFlexDirectionColumn);
-    YGNodeStyleSetWidth(_defaultRoot, YGUndefined);
-    YGNodeStyleSetHeight(_defaultRoot, YGUndefined);
-#endif
+    _root = std::make_shared<VirtualDOMNode>("root", observer, this, measurementManager
+        , _layoutEngine.get()
+    );
 }
 
 VirtualDOM::~VirtualDOM() {
-#if defined(__OHOS__)
-    if (_defaultRoot) {
-        YGNodeFree(_defaultRoot);
-        _defaultRoot = nullptr;
-    }
-#endif
+    // CRITICAL: _root must be torn down BEFORE _layoutEngine.
+    // Each VirtualDOMNode dtor touches its YogaNode (clearMeasureFunc) and
+    // YogaNodeManager (removeNode); if _layoutEngine (which owns the
+    // YogaNodeManager) destructs first, those raw pointers become dangling.
+    // Default member-dtor order is reverse-of-declaration, which would
+    // otherwise tear down _layoutEngine before _root — so we release _root
+    // explicitly here before the implicit destruction of remaining members.
+    _root.reset();
+    // _layoutEngine, orphan maps, etc. are released automatically afterwards.
 }
 
 void VirtualDOM::updateNode(const ComponentSnapshot& snapshot) {
     if (snapshot.id == "root") {
         _root->setSnapshot(snapshot, "");
-#if defined(__OHOS__)
-        if (_root && _root->getYogaNode() && _defaultRoot) {
-            YGNodeRef rootYoga = _root->getYogaNode();
-            // Insert root's Yoga node into defaultRoot only once
-            if (YGNodeGetOwner(rootYoga) == nullptr) {
-                YGNodeInsertChild(_defaultRoot, rootYoga, 0);
-            }
-            YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
-            checkAndNotifyLayoutChanges();
-        }
-#endif
-        // Non-OHOS: checkAndNotifyLayoutChanges is called directly inside setSnapshot
-        return;
-    }
-
-    std::string parentId;
-    auto node = findNodeByIdRecursive(_root, snapshot.id, parentId);
-    if (node && checkCanDisplay(snapshot)) {
-        node->setSnapshot(snapshot, parentId);
     } else {
-        // Node not found: save as an orphan snapshot
-        if (snapshot.displayRule == DisplayRule::Always) {
-            _directOrphanSnapshots[snapshot.id] = snapshot;
+        std::string parentId;
+        auto node = findNodeByIdRecursive(_root, snapshot.id, parentId);
+        if (node && checkCanDisplay(snapshot)) {
+            node->setSnapshot(snapshot, parentId);
         } else {
-            _dataDependentOrphanSnapshots[snapshot.id] = snapshot;
+            // Node not found: save as an orphan snapshot
+            if (snapshot.displayRule == DisplayRule::Always) {
+                _directOrphanSnapshots[snapshot.id] = snapshot;
+            } else {
+                _dataDependentOrphanSnapshots[snapshot.id] = snapshot;
+            }
+            // After adding a new orphan, check whether any are ready to attach
+            tryAttachReadyOrphans();
         }
-        // After adding a new orphan, check whether any are ready to attach
-        tryAttachReadyOrphans();
     }
 
-#if defined(__OHOS__)
-        if (_root && _root->getYogaNode() && _defaultRoot) {
-            YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
-            checkAndNotifyLayoutChanges();
-        }
-#endif
-        // Non-OHOS: checkAndNotifyLayoutChanges is called directly inside setSnapshot
+    // Request a layout+notify pass. If inside a batch window, the pass is
+    // deferred to the outermost endBatch() so N updateNode calls in the
+    // same window collapse into 1 layout + 1 notify. Otherwise it fires
+    // immediately.
+    _batchGuard.requestFlush();
 }
 
 void VirtualDOM::clear() {
-#if defined(__OHOS__)
-    // Remove root's Yoga node from defaultRoot before releasing _root
-    if (_defaultRoot && _root && _root->getYogaNode()) {
-        YGNodeRemoveChild(_defaultRoot, _root->getYogaNode());
-    }
-#endif
-    _root = std::make_shared<VirtualDOMNode>("root", _observer, this);
+    // Correct clear order:
+    // 1. First release old tree: _root.reset() recursively destructs from leaves to root.
+    //    Each VirtualDOMNode destructor only nulls out, and YogaNode::~YogaNode handles _hasOwner detach.
+    // 2. Then clearAll: detaches all YG parent-child relationships in _nodes, then frees in batch.
     _directOrphanSnapshots.clear();
     _dataDependentOrphanSnapshots.clear();
+    _root.reset();
+    if (_layoutEngine) {
+        _layoutEngine->clearAll();
+    }
+    _root = std::make_shared<VirtualDOMNode>("root", _observer, this, _measurementManager
+        , _layoutEngine.get()
+    );
 }
 
 bool VirtualDOM::takeOrphanSnapshot(const std::string& id, ComponentSnapshot& outSnapshot) {
@@ -243,23 +241,32 @@ void VirtualDOM::checkAndNotifyLayoutChanges() {
     }
 }
 
+
 void VirtualDOM::updateSurfaceSize(const SurfaceLayoutInfo& info) {
-    AGENUI_LOG("updateSurfaceSize: surfaceId:%s, width:%.1f, height:%.1f",
+    AGENUI_LOG("updateSurfaceSize: surfaceId=%s, width=%.1f, height=%.1f",
                info.surfaceId.c_str(), info.width, info.height);
-#if defined(__OHOS__)
     if (info.width > 0.0f)  _surfaceWidth  = info.width;
     if (info.height > 0.0f) _surfaceHeight = info.height;
-    if (_root && _root->getYogaNode()) {
-        if (info.width > 0.0f) {
-            YGNodeStyleSetMinWidth(_root->getYogaNode(), info.width);
-        }
-        if (info.height > 0.0f) {
-            YGNodeStyleSetMinHeight(_root->getYogaNode(), info.height);
-        }
+
+    resetPlatformSizeRecursive(_root);
+
+    // Single-shot external event: bypass the batch path and fire
+    // immediately. (Batching is exclusive to updateNode bursts driven by
+    // ComponentManager flush.)
+    if (_layoutEngine) {
+        _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
     }
-    YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
     checkAndNotifyLayoutChanges();
-#endif
+}
+
+void VirtualDOM::resetPlatformSizeRecursive(std::shared_ptr<VirtualDOMNode>& node) {
+    if (!node) return;
+    node->resetPlatformSize();
+    const auto& children = node->getChildren();
+    for (const auto& child : children) {
+        auto mutableChild = child;
+        resetPlatformSizeRecursive(mutableChild);
+    }
 }
 
 
@@ -269,13 +276,21 @@ void VirtualDOM::updateComponentSize(const ComponentRenderInfo& info) {
         return;
     }
 
-#if defined(__OHOS__)
     node->setYogaNodeSize(info.width, info.height);
-    if (_defaultRoot) {
-        YGNodeCalculateLayout(_defaultRoot, _surfaceWidth, YGUndefined, YGDirectionLTR);
+    // Single-shot renderer callback: fire layout pass immediately.
+    if (_layoutEngine) {
+        _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
         checkAndNotifyLayoutChanges();
     }
-#endif
+}
+
+void VirtualDOM::updateTabsSelectedIndex(const std::string& tabsId, int selectedIndex) {
+    AGENUI_LOG("[Tabs] updateTabsSelectedIndex id=%s index=%d", tabsId.c_str(), selectedIndex);
+    if (!_layoutEngine) return;
+    _layoutEngine->updateTabsSelectedIndex(tabsId, selectedIndex);
+    // Single-shot user action: fire layout pass immediately.
+    _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
+    checkAndNotifyLayoutChanges();
 }
 
 std::shared_ptr<VirtualDOMNode> VirtualDOM::findNodeByComponentIdAndTypeRecursive(

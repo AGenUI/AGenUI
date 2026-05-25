@@ -1,7 +1,8 @@
 package com.amap.agenui.render.component;
 
 import android.content.Context;
-import android.util.Log;
+
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,7 +36,9 @@ public class ComponentRegistry {
      * @param factory       Component factory instance
      */
     public static void registerComponent(String componentType, IComponentFactory factory) {
-        Log.d(TAG, "registerComponent: componentType=" + componentType);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "registerComponent: componentType=" + componentType);
+        }
         factories.put(componentType, factory);
     }
 
@@ -45,7 +48,9 @@ public class ComponentRegistry {
      * @param componentType Component type
      */
     public static void unregisterComponent(String componentType) {
-        Log.d(TAG, "unregisterComponent: componentType=" + componentType);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "unregisterComponent: componentType=" + componentType);
+        }
         factories.remove(componentType);
     }
 
@@ -73,23 +78,15 @@ public class ComponentRegistry {
             String componentType,
             String id,
             Map<String, Object> properties) {
-        Log.d(TAG, "========== createComponent ==========");
-        Log.d(TAG, "type=" + componentType + ", id=" + id);
-        Log.d(TAG, "properties=" + (properties != null ? properties.keySet() : "null"));
-
         IComponentFactory factory = factories.get(componentType);
         if (factory != null) {
-            Log.d(TAG, "✓ Factory found: " + factory.getClass().getSimpleName());
             A2UIComponent component = factory.createComponent(context, id, properties);
-            if (component != null) {
-                Log.d(TAG, "✓ Component created: " + component.getClass().getSimpleName());
-            } else {
-                Log.e(TAG, "❌ Factory returned null component!");
+            if (component == null) {
+                AGenUILogger.e(TAG, "Factory returned null for: " + componentType);
             }
             return component;
         }
-        Log.e(TAG, "❌ No factory found for componentType: " + componentType);
-        Log.d(TAG, "Available factories: " + factories.keySet());
+        AGenUILogger.e(TAG, "No factory found for componentType: " + componentType);
         return null;
     }
 
@@ -99,11 +96,11 @@ public class ComponentRegistry {
      */
     public static synchronized void registerBuiltInComponents() {
         if (initialized) {
-            Log.d(TAG, "registerBuiltInComponents: already initialized, skip");
+            AGenUILogger.d(TAG, "registerBuiltInComponents: already initialized, skip");
             return;
         }
         initialized = true;
-        Log.d(TAG, "registerBuiltInComponents");
+        AGenUILogger.d(TAG, "registerBuiltInComponents");
 
         registerComponent("Text", new com.amap.agenui.render.component.factory.TextComponentFactory());
         registerComponent("Image", new com.amap.agenui.render.component.factory.ImageComponentFactory());
@@ -131,7 +128,9 @@ public class ComponentRegistry {
         registerComponent("Web", new com.amap.agenui.render.component.factory.WebComponentFactory());
         registerComponent("RichText", new com.amap.agenui.render.component.factory.RichTextComponentFactory());
 
-        Log.d(TAG, "Built-in components registered: " + factories.size() + "/22 ✅ All done");
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Built-in components registered: " + factories.size() + "/22 ✅ All done");
+        }
     }
 
     /**

@@ -8,11 +8,14 @@ material = "1.12.0"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
 gson = "2.10.1"
-flexbox = "3.0.0"
 picasso = "2.8"
 markwon = "4.6.2"
 lottie = "6.3.0"
 mpAndroidChart = "v3.1.0"
+orchestrator = "1.5.1"
+cardview = "1.0.0"
+viewpager2 = "1.0.0"
+recyclerview = "1.3.2"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -23,15 +26,17 @@ material = { group = "com.google.android.material", name = "material", version.r
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
-flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
 picasso = { group = "com.squareup.picasso", name = "picasso", version.ref = "picasso" }
 markwon-core = { group = "io.noties.markwon", name = "core", version.ref = "markwon" }
 markwon-ext-tables = { group = "io.noties.markwon", name = "ext-tables", version.ref = "markwon" }
 markwon-html = { group = "io.noties.markwon", name = "html", version.ref = "markwon" }
 lottie = { group = "com.airbnb.android", name = "lottie", version.ref = "lottie" }
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpAndroidChart" }
+test-orchestrator = { group = "androidx.test", name = "orchestrator", version.ref = "orchestrator" }
+cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+viewpager2 = { group = "androidx.viewpager2", name = "viewpager2", version.ref = "viewpager2" }
+recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-

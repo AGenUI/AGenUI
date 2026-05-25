@@ -7,6 +7,7 @@
 #include "a2ui/utils/a2ui_unit_utils.h"
 #include "a2ui/utils/a2ui_color_palette.h"
 #include "a2ui/utils/a2ui_animate_utils.h"
+#include "a2ui/utils/a2ui_padding_utils.h"
 #include "a2ui/bridge/image_loader_bridge.h"
 
 namespace a2ui {
@@ -269,23 +270,10 @@ void ImageComponent::onUpdateProperties(const nlohmann::json& properties) {
         return;
     }
 
-    if (properties.contains("variant") && properties["variant"].is_string()) {
-        std::string variant = properties["variant"].get<std::string>();
-        float aspectRatio = getAspectRatioByVariant(variant);
-        
-        HM_LOGI( "variant: %s, aspect-ratio: %f",
-                    variant.c_str(), aspectRatio);
-        
-        if (aspectRatio > 0.0f) {
-            m_aspectRatio = aspectRatio;
-            HM_LOGI( "Applied aspect ratio from variant: %f",
-                        aspectRatio);
-        }
-    }
-
     applyUrl(properties);
     applyFit(properties);
     applyStyles(properties);
+    applyBackgroundColor(properties);
 
     HM_LOGI( "Applied properties, id=%s", m_id.c_str());
 }
@@ -298,27 +286,6 @@ void ImageComponent::applyUrl(const nlohmann::json& properties) {
             HM_LOGI("no url in props but m_currentUrl exists, reapplying src, id=%s", m_id.c_str());
             m_lastAnimatedUrl.clear();
             A2UIImageNode(m_nodeHandle).setSrc(m_currentUrl);
-            if (m_imageWidth > 0.0f && m_imageHeight > 0.0f) {
-                float w = 0.0f, h = 0.0f;
-                applyAspectRatio(getWidth(), getHeight(), w, h);
-                if (w <= 0.0f) w = m_imageWidth;
-                if (h <= 0.0f) h = m_imageHeight;
-                
-                // Get the component render completion observer
-                agenui::IComponentRenderObservable* componentRenderObservable = getComponentRenderObservable();
-                if (componentRenderObservable && w > 0.0f && h > 0.0f) {
-                    agenui::ComponentRenderInfo info;
-                    info.surfaceId = getSurfaceId();
-                    info.componentId = getId();
-                    info.type = getComponentType();
-                    info.width = w;
-                    info.height = h;
-                    
-                    HM_LOGI("renotify notifyRenderFinish (no-url reapply): surfaceId=%s id=%s w=%f h=%f",
-                        info.surfaceId.c_str(), info.componentId.c_str(), info.width, info.height);
-                    componentRenderObservable->notifyRenderFinish(info);
-                }
-            }
         }
         return;
     }
@@ -357,9 +324,6 @@ void ImageComponent::applyUrl(const nlohmann::json& properties) {
         m_currentUrl = url;
         m_lastAnimatedUrl.clear();
 
-        if (isImageFadeInEnabled() && m_surfaceAnimated) {
-            showPlaceholder();
-        }
 
         float hintW = getWidth();
         float hintH = getHeight();
@@ -422,28 +386,6 @@ void ImageComponent::applyUrl(const nlohmann::json& properties) {
     m_currentUrl = url;
     if (urlChanged) {
         m_lastAnimatedUrl.clear();
-    } else if (m_imageWidth > 0.0f && m_imageHeight > 0.0f) {
-        HM_LOGI("url unchanged, renotify height, id=%s, w=%f h=%f",
-            m_id.c_str(), m_imageWidth, m_imageHeight);
-        float w = 0.0f, h = 0.0f;
-        applyAspectRatio(getWidth(), getHeight(), w, h);
-        if (w <= 0.0f) w = m_imageWidth;
-        if (h <= 0.0f) h = m_imageHeight;
-        
-        // Get the component render completion observer
-        agenui::IComponentRenderObservable* componentRenderObservable = getComponentRenderObservable();
-        if (componentRenderObservable && w > 0.0f && h > 0.0f) {
-            agenui::ComponentRenderInfo info;
-            info.surfaceId = getSurfaceId();
-            info.componentId = getId();
-            info.type = getComponentType();
-            info.width = w;
-            info.height = h;
-            
-            HM_LOGI("renotify notifyRenderFinish: surfaceId=%s id=%s w=%f h=%f",
-                info.surfaceId.c_str(), info.componentId.c_str(), info.width, info.height);
-            componentRenderObservable->notifyRenderFinish(info);
-        }
     }
 
     HM_LOGI( "Set image src: %s", url.c_str());
@@ -453,8 +395,6 @@ void ImageComponent::applyUrl(const nlohmann::json& properties) {
             isImageFadeInEnabled() ? "true" : "false", m_surfaceAnimated ? "true" : "false", m_id.c_str());
         return;
     }
-
-    showPlaceholder();
 }
 
 void ImageComponent::prepareFadeInForUrl(const std::string& url) {
@@ -928,6 +868,26 @@ void ImageComponent::applyStyles(const nlohmann::json& properties) {
         node.setBorderColor(color);
         HM_LOGI( "Set border-color: 0x%X", color);
     }
+
+    // CSS padding -> ArkUI Image node setPadding
+    //
+    // ARKUI_NODE_IMAGE is a leaf node. Yoga has already accounted for padding
+    // when computing the leaf's borderBox layout, but the underlying image
+    // bitmap is drawn across the whole frame regardless. Translating CSS
+    // padding to NODE_PADDING shrinks the bitmap's draw area to the
+    // contentBox, mirroring Android `ImageView.setPadding(...)` and iOS
+    // anchor-based insets. Per W3C, `<img>` is a replaced element that
+    // honours `padding`. This is NOT a double-count with Yoga.
+    {
+        float pt = 0.0f, pr = 0.0f, pb = 0.0f, pl = 0.0f;
+        ::a2ui::padding_utils::resolveUserPadding(styles, pt, pr, pb, pl);
+        A2UINode imgBase(m_nodeHandle);
+        if (::a2ui::padding_utils::hasAnyPadding(pt, pr, pb, pl)) {
+            imgBase.setPadding(pt, pr, pb, pl);
+        } else {
+            imgBase.resetPadding();
+        }
+    }
 }
 
 // ---- Enum Mappings ----
@@ -942,9 +902,11 @@ int32_t ImageComponent::mapObjectFit(const std::string& fit) {
     } else if (fit == "fill") {
         return ARKUI_OBJECT_FIT_FILL;
     } else if (fit == "none") {
-        return ARKUI_OBJECT_FIT_NONE;
+        // none maps to fill: stretch to fill container
+        return ARKUI_OBJECT_FIT_FILL;
     }
-    return ARKUI_OBJECT_FIT_COVER;
+    // Default matches Android: FIT_CENTER (contain)
+    return ARKUI_OBJECT_FIT_CONTAIN;
 }
 
 
@@ -958,58 +920,6 @@ std::string ImageComponent::extractStringValue(const nlohmann::json& value) {
     }
 
     return "";
-}
-
-
-float ImageComponent::getAspectRatioByVariant(const std::string& variant) {
-    if (variant.empty()) {
-        return 0.0f;
-    }
-
-    if (variant == "smallFeature") {
-        return 4.0f / 3.0f; // 4:3
-    } else if (variant == "mediumFeature") {
-        return 3.0f / 2.0f; // 3:2
-    } else if (variant == "largeFeature") {
-        return 16.0f / 9.0f; // 16:9
-    } else if (variant == "header") {
-        return 16.0f / 9.0f; // 16:9
-    } else if (variant == "icon") {
-        return 1.0f;
-    } else if (variant == "avatar") {
-        return 1.0f;
-    }
-
-    return 0.0f;
-}
-
-
-void ImageComponent::applyAspectRatio(float inputWidth, float inputHeight, float& outputWidth, float& outputHeight) {
-    if (m_aspectRatio <= 0.0f) {
-        outputWidth = inputWidth;
-        outputHeight = inputHeight;
-        return;
-    }
-
-    HM_LOGI( "Input size: width=%f, height=%f, aspectRatio=%f",
-                inputWidth, inputHeight, m_aspectRatio);
-
-    if (inputWidth > 0 && inputHeight <= 0) {
-        outputWidth = inputWidth;
-        outputHeight = inputWidth / m_aspectRatio;
-        HM_LOGI( "Calculated height based on width: %f", outputHeight);
-    } else if (inputHeight > 0 && inputWidth <= 0) {
-        outputWidth = inputHeight * m_aspectRatio;
-        outputHeight = inputHeight;
-        HM_LOGI( "Calculated width based on height: %f", outputWidth);
-    } else if (inputWidth > 0 && inputHeight > 0) {
-        outputWidth = inputWidth;
-        outputHeight = inputWidth / m_aspectRatio;
-        HM_LOGI( "Adjusted height to maintain aspect ratio: %f", outputHeight);
-    } else {
-        outputWidth = inputWidth;
-        outputHeight = inputHeight;
-    }
 }
 
 
@@ -1059,132 +969,6 @@ void ImageComponent::onImageCompleteCallback(ArkUI_NodeEvent* event) {
         data[2].f32,
         data[3].f32,
         data[4].f32);
-    auto doLayoutAndNotify = [&]() {
-        float nodeWidth = component->getWidth();
-        float nodeHeight = component->getHeight();
-
-        std::string styleWidth2, styleHeight2;
-        std::string styleInfo2 = component->getStyleInfo();
-        if (!styleInfo2.empty()) {
-            try {
-                auto styleJson = nlohmann::json::parse(styleInfo2);
-                if (styleJson.contains("width")) {
-                    styleWidth2 = styleJson["width"].get<std::string>();
-                }
-                if (styleJson.contains("height")) {
-                    styleHeight2 = styleJson["height"].get<std::string>();
-                }
-            } catch (...) {
-                HM_LOGW("ImageComponent layout: failed to parse styleInfo JSON, ignoring style width/height");
-            }
-        }
-
-        auto isAuto2 = [](const std::string& val) -> bool {
-            return val.empty() || val == "auto";
-        };
-        auto isPercent2 = [](const std::string& val) -> bool {
-            return !val.empty() && val.back() == '%';
-        };
-        auto isPixel2 = [&isAuto2, &isPercent2](const std::string& val) -> bool {
-            return !isAuto2(val) && !isPercent2(val) && !val.empty();
-        };
-
-        float width2 = 0.0f;
-        float height2 = 0.0f;
-
-        bool wIsAuto    = isAuto2(styleWidth2);
-        bool hIsAuto    = isAuto2(styleHeight2);
-        bool wIsPercent = isPercent2(styleWidth2);
-        bool hIsPercent = isPercent2(styleHeight2);
-        bool wIsPixel   = isPixel2(styleWidth2);
-        bool hIsPixel   = isPixel2(styleHeight2);
-
-        if (wIsAuto)    { width2  = nodeWidth; }
-        if (hIsAuto)    { height2 = nodeHeight; }
-        if (wIsPercent) {
-            A2UIComponent* parent = component->getParent();
-            float parentW = parent ? parent->getWidth() : nodeWidth;
-            float pct = 0.0f;
-            try { pct = std::stof(styleWidth2) / 100.0f; }
-            catch (...) { HM_LOGW("ImageComponent: invalid percent width '%s', using 100%%", styleWidth2.c_str()); pct = 1.0f; }
-            width2 = parentW * pct;
-        }
-        if (hIsPercent) {
-            A2UIComponent* parent = component->getParent();
-            float parentH = parent ? parent->getHeight() : nodeHeight;
-            float pct = 0.0f;
-            try { pct = std::stof(styleHeight2) / 100.0f; }
-            catch (...) { HM_LOGW("ImageComponent: invalid percent height '%s', using 100%%", styleHeight2.c_str()); pct = 1.0f; }
-            height2 = parentH * pct;
-        }
-        if (wIsPixel) {
-            try { width2  = std::stof(styleWidth2);  }
-            catch (...) { HM_LOGW("ImageComponent: invalid pixel width '%s', using node width", styleWidth2.c_str()); width2  = nodeWidth;  }
-        }
-        if (hIsPixel) {
-            try { height2 = std::stof(styleHeight2); }
-            catch (...) { HM_LOGW("ImageComponent: invalid pixel height '%s', using node height", styleHeight2.c_str()); height2 = nodeHeight; }
-        }
-
-        if (!wIsAuto && !wIsPercent && !wIsPixel && !hIsAuto && !hIsPercent && !hIsPixel) {
-            component->applyAspectRatio(
-                nodeWidth  > 0.0f ? nodeWidth  : component->m_imageWidth,
-                nodeHeight > 0.0f ? nodeHeight : component->m_imageHeight,
-                width2, height2);
-        }
-        if ((width2 > 0.0f && height2 <= 0.0f) || (width2 <= 0.0f && height2 > 0.0f)) {
-            component->applyAspectRatio(width2, height2, width2, height2);
-        }
-        if (width2 > 0.0f && height2 > 0.0f && component->m_aspectRatio > 0.0f) {
-            float expectedH = width2 / component->m_aspectRatio;
-            if (expectedH > 0.0f && height2 < expectedH * 0.2f) {
-                HM_LOGW("height(%.1f) abnormally small vs expected(%.1f), correcting, id=%s",
-                    height2, expectedH, component->m_id.c_str());
-                height2 = expectedH;
-            }
-        }
-
-        float borderTop2 = 0.0f, borderRight2 = 0.0f, borderBottom2 = 0.0f, borderLeft2 = 0.0f;
-        float marginTop2 = 0.0f, marginRight2 = 0.0f, marginBottom2 = 0.0f, marginLeft2 = 0.0f;
-        float paddingTop2 = 0.0f, paddingRight2 = 0.0f, paddingBottom2 = 0.0f, paddingLeft2 = 0.0f;
-        node.getBorderWidth(borderTop2, borderRight2, borderBottom2, borderLeft2);
-        node.getMargin(marginTop2, marginRight2, marginBottom2, marginLeft2);
-        node.getPadding(paddingTop2, paddingRight2, paddingBottom2, paddingLeft2);
-
-        float totalBorderW2  = borderTop2 + borderRight2 + borderBottom2 + borderLeft2;
-        float totalMarginW2  = marginLeft2 + marginRight2;
-        float totalMarginH2  = marginTop2  + marginBottom2;
-        float totalPaddingW2 = paddingLeft2 + paddingRight2;
-        float totalPaddingH2 = paddingTop2  + paddingBottom2;
-        float finalWidth2  = width2  + totalMarginW2  + totalPaddingW2;
-        float finalHeight2 = height2 + totalMarginH2 + totalPaddingH2;
-
-        HM_LOGI("Final size: w=%f h=%f finalW=%f finalH=%f, id=%s",
-            width2, height2, finalWidth2, finalHeight2, component->m_id.c_str());
-
-        if (width2 > finalWidth2 && height2 > finalHeight2) { return; }
-
-        if (width2 > 0.0f && height2 > 0.0f) {
-            node.setWidth(width2);
-            node.setHeight(height2);
-            node.setObjectFitFill();
-        }
-
-        // Get the component render completion observer
-        agenui::IComponentRenderObservable* componentRenderObservable = component->getComponentRenderObservable();
-        if (componentRenderObservable) {
-            agenui::ComponentRenderInfo info2;
-            info2.surfaceId = component->getSurfaceId();
-            info2.componentId = component->getId();
-            info2.type = component->getComponentType();
-            info2.width = width2;
-            info2.height = height2;
-            
-            HM_LOGI("notifyRenderFinish: surfaceId=%s id=%s w=%f h=%f",
-                info2.surfaceId.c_str(), info2.componentId.c_str(), info2.width, info2.height);
-            componentRenderObservable->notifyRenderFinish(info2);
-        }
-    };
 
     if (loadingStatus != 0) {
         HM_LOGW("loadingStatus=%d (non-zero), id=%s, imageWidth=%f, imageHeight=%f",
@@ -1200,14 +984,6 @@ void ImageComponent::onImageCompleteCallback(ArkUI_NodeEvent* event) {
                 return;
             }
             component->m_lastAnimatedUrl = component->m_currentUrl;
-            component->m_imageWidth  = data[1].f32;
-            component->m_imageHeight = data[2].f32;
-            if (component->m_aspectRatio == 0.0f && component->m_imageHeight > 0.0f) {
-                component->m_aspectRatio = component->m_imageWidth / component->m_imageHeight;
-                HM_LOGI("status=1: aspectRatio=%f, id=%s",
-                    component->m_aspectRatio, component->m_id.c_str());
-            }
-            doLayoutAndNotify();
             return;
         }
 
@@ -1229,18 +1005,14 @@ void ImageComponent::onImageCompleteCallback(ArkUI_NodeEvent* event) {
     component->m_lastAnimatedUrl = component->m_currentUrl;
 
     component->stopShimmer();
-    A2UIImageNode(component->m_nodeHandle).resetBackgroundColor();
 
-    component->m_imageWidth  = data[1].f32;
-    component->m_imageHeight = data[2].f32;
     HM_LOGI("Image loaded successfully, id=%s, imageWidth=%f, imageHeight=%f",
-        component->m_id.c_str(), component->m_imageWidth, component->m_imageHeight);
-    if (component->m_aspectRatio == 0.0f && component->m_imageHeight > 0.0f) {
-        component->m_aspectRatio = component->m_imageWidth / component->m_imageHeight;
-        HM_LOGI("Calculated aspect ratio from image: %f", component->m_aspectRatio);
-    }
+        component->m_id.c_str(), data[1].f32, data[2].f32);
 
-    doLayoutAndNotify();
+    // Yoga already handles aspect-ratio + width% layout via YGNodeStyleSetAspectRatio.
+    // Calling notifyRenderFinish here would overwrite Yoga's correct result with ArkUI
+    // node sizes that differ by 1-2px (border-radius rendering), causing oscillation loops.
+    // Size reporting is intentionally omitted; Yoga owns the layout for Image components.
 
     if (isImageFadeInEnabled() && component->m_surfaceAnimated) {
         float pw = component->getWidth();
@@ -1254,19 +1026,6 @@ void ImageComponent::onImageCompleteCallback(ArkUI_NodeEvent* event) {
     }
 }
 
-
-void ImageComponent::showPlaceholder() {
-    if (!m_nodeHandle) {
-        return;
-    }
-    
-    A2UIImageNode node(m_nodeHandle);
-    node.setBackgroundColor(0xFFE5E5EA);
-    
-    startShimmer();
-    
-    HM_LOGI("id=%s", m_id.c_str());
-}
 
 void ImageComponent::stopShimmer() {
     if (m_shimmerAnimator) {

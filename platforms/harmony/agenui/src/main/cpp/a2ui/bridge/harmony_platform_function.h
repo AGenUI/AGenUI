@@ -31,7 +31,7 @@ public:
     /**
      * @brief Constructor
      * @param env NAPI environment on the main thread
-     * @param callback ArkTS callback with signature (paramsJson: string) => string
+     * @param callback ArkTS callback with signature (context: object, paramsJson: string) => string
      * @param tsfn Main-thread threadsafe function used to dispatch NAPI work
      * @param mainThreadId Main thread ID used for thread checks
      */
@@ -47,25 +47,19 @@ public:
 
     /**
      * @brief Synchronous, thread-safe invocation.
+     * @param context Function call context containing engineId and surfaceId
      * @param params Parameter JSON string
      * @return Function result
      */
-    FunctionCallResult callSync(const std::string& params) override;
-
-    /**
-     * @brief Asynchronous invocation.
-     * @param params Parameter JSON string
-     * @param callback Completion callback
-     * @return Function result, typically a pending state
-     */
-    FunctionCallResult callAsync(const std::string& params,
-                                  const FunctionCallCallback& callback) override;
+    FunctionCallResult callSync(const FunctionCallContext& context,
+                                 const std::string& params) override;
 
 private:
     /**
      * @brief Execute the NAPI callback directly on the main thread.
      */
     FunctionCallResult callSyncOnMainThread(napi_env env, napi_ref callbackRef,
+                                             const FunctionCallContext& context,
                                              const std::string& params);
 
     napi_env env_ = nullptr;

@@ -18,6 +18,14 @@ namespace a2ui {
  *       - line-clamp: maximum number of lines
  *       - line-height: line height in fp
  *       - text-overflow: ellipsis / clip
+ *       - border-width: border width (kebab-case or camelCase borderWidth)
+ *       - border-color: border color (kebab-case or camelCase borderColor)
+ *       - border-radius: border corner radius (kebab-case or camelCase borderRadius)
+ *       - padding: inner spacing, supports CSS shorthand (e.g. "10px" or "10px 20px")
+ *       - background-color: background fill color
+ *       - text-decoration-line: underline / overline / line-through
+ *       - text-decoration-color: decoration color
+ *       - filter: drop-shadow(offsetX offsetY blur color)
  */
 class TextComponent : public A2UIComponent {
 public:
@@ -33,6 +41,10 @@ private:
 
     /** Parse styles and apply native attributes. */
     void applyStyles(const nlohmann::json& properties);
+
+    /** Parse filter: drop-shadow(offsetX offsetY blur color) for text shadow. */
+    bool parseDropShadowFilter(const std::string& filterValue, float& offsetX, float& offsetY,
+                               float& blur, uint32_t& color) const;
 
     /** Map font weight to the ArkUI enum value. */
     static int32_t mapFontWeight(const nlohmann::json& weight);

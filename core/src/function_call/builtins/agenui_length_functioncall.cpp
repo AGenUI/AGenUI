@@ -38,17 +38,6 @@ FunctionCallConfig LengthFunctionCall::getConfig() const {
     config.setName("length");
     config.setDescription("Checks string length constraints.");
     config.setReturnType("boolean");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"type", "string"}}},
-            {"min", {{"type", "integer"}, {"minimum", 0}}},
-            {"max", {{"type", "integer"}, {"minimum", 0}}}
-        }},
-        {"required", nlohmann::json::array({"value"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

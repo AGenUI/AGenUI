@@ -1,7 +1,8 @@
 package com.amap.agenui.render.style;
 
 import android.content.Context;
-import android.util.Log;
+
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,7 +27,7 @@ public class ComponentStyleConfig {
     private static final String TAG = "ComponentStyleConfig";
     private static final String CONFIG_FILE = "component_styles.json";
 
-    private static ComponentStyleConfig instance;
+    private static volatile ComponentStyleConfig instance;
     private Map<String, StyleHashMap<String, String>> styles;
 
     /**
@@ -82,15 +83,17 @@ public class ComponentStyleConfig {
                 parseJsonObject(componentConfig, "", styleMap);
 
                 styles.put(componentName, styleMap);
-                Log.d(TAG, "Loaded config for component: " + componentName + ", styles: " + styleMap.size());
+                if (AGenUILogger.isLoggingEnabled()) {
+                    AGenUILogger.d(TAG, "Loaded config for component: " + componentName + ", styles: " + styleMap.size());
+                }
             }
 
-            Log.d(TAG, "Successfully loaded component styles config");
+            AGenUILogger.d(TAG, "Successfully loaded component styles config");
 
         } catch (IOException e) {
-            Log.e(TAG, "Failed to load config file: " + CONFIG_FILE, e);
+            AGenUILogger.e(TAG, "Failed to load config file: " + CONFIG_FILE, e);
         } catch (JSONException e) {
-            Log.e(TAG, "Failed to parse config file: " + CONFIG_FILE, e);
+            AGenUILogger.e(TAG, "Failed to parse config file: " + CONFIG_FILE, e);
         }
     }
 
@@ -120,107 +123,25 @@ public class ComponentStyleConfig {
                 }
             }
         } catch (JSONException e) {
-            Log.e(TAG, "Failed to parse JSON object with prefix: " + prefix, e);
+            AGenUILogger.e(TAG, "Failed to parse JSON object with prefix: " + prefix, e);
         }
-    }
-
-    /**
-     * Returns the style configuration for the Tabs component.
-     *
-     * @return Tabs style configuration map, or an empty map if not found
-     */
-    public ComponentStyleConfig.StyleHashMap<String, String> getTabsStyle() {
-        ComponentStyleConfig.StyleHashMap<String, String> tabsStyle = styles.get("Tabs");
-        if (tabsStyle == null) {
-            Log.w(TAG, "Tabs style config not found, returning empty map");
-            return new StyleHashMap<>();
-        }
-        return tabsStyle;
-    }
-
-    /**
-     * Returns the style configuration for the Modal component.
-     *
-     * @return Modal style configuration map, or an empty map if not found
-     */
-    public Map<String, String> getModalStyle() {
-        Map<String, String> modalStyle = styles.get("Modal");
-        if (modalStyle == null) {
-            Log.w(TAG, "Modal style config not found, returning empty map");
-            return new StyleHashMap<>();
-        }
-        return modalStyle;
-    }
-
-    /**
-     * Returns the style configuration for the CheckBox component.
-     *
-     * @return CheckBox style configuration map, or an empty map if not found
-     */
-    public Map<String, String> getCheckBoxStyle() {
-        Map<String, String> checkBoxStyle = styles.get("CheckBox");
-        if (checkBoxStyle == null) {
-            Log.w(TAG, "CheckBox style config not found, returning empty map");
-            return new StyleHashMap<>();
-        }
-        return checkBoxStyle;
-    }
-
-    /**
-     * Returns the style configuration for the Carousel component.
-     *
-     * @return Carousel style configuration map, or an empty map if not found
-     */
-    public StyleHashMap<String, String> getCarouselStyles() {
-        StyleHashMap<String, String> carouselStyle = styles.get("Carousel");
-        if (carouselStyle == null) {
-            Log.w(TAG, "Carousel style config not found, returning empty map");
-            return new StyleHashMap<>();
-        }
-        return carouselStyle;
     }
 
     /**
      * Returns the style configuration for the specified component.
      *
      * @param componentName Component name
-     * @return Component style configuration map, or an empty map if not found
+     * @return Component style configuration map (StyleHashMap), or an empty map if not found
      */
-    public Map<String, String> getComponentStyle(String componentName) {
-        Map<String, String> componentStyle = styles.get(componentName);
+    public StyleHashMap<String, String> getComponentStyle(String componentName) {
+        StyleHashMap<String, String> componentStyle = styles.get(componentName);
         if (componentStyle == null) {
-            Log.w(TAG, "Component style config not found for: " + componentName + ", returning empty map");
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Component style config not found for: " + componentName + ", returning empty map");
+            }
             return new StyleHashMap<>();
         }
         return componentStyle;
-    }
-
-    /**
-     * Returns the style configuration for the DateTimeInput component.
-     *
-     * @return DateTimeInput style configuration map, or an empty map if not found
-     */
-    public StyleHashMap<String, String> getDateTimeInputStyle() {
-        StyleHashMap<String, String> dateTimeInputStyle = styles.get("DateTimeInput");
-        if (dateTimeInputStyle == null) {
-            Log.w(TAG, "DateTimeInput style config not found, returning empty map");
-            return new StyleHashMap<>();
-        }
-        return dateTimeInputStyle;
-    }
-
-    /**
-     * Returns the style configuration for the Table component.
-     *
-     * @return Table style configuration map, or an empty map if not found
-     */
-    public ComponentStyleConfig.StyleHashMap<String, String> getTableStyle() {
-        ComponentStyleConfig.StyleHashMap<String, String> tableStyle = styles.get("Table");
-        if (tableStyle == null) {
-            Log.w(TAG, "Table style config not found, returning empty map");
-            return new StyleHashMap<>();
-        }
-        return tableStyle;
     }
 
     /**

@@ -27,19 +27,6 @@ FunctionCallConfig AndFunctionCall::getConfig() const {
     config.setName("and");
     config.setDescription("Returns true if all values are true; short-circuits on first false.");
     config.setReturnType("boolean");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"values", {
-                {"type", "array"},
-                {"items", {{"type", "DynamicBoolean"}}},
-                {"description", "Array of boolean values to evaluate."}
-            }}
-        }},
-        {"required", nlohmann::json::array({"values"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

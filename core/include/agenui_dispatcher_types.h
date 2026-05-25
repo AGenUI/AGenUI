@@ -28,16 +28,7 @@ struct CreateSurfaceMessage {
     std::map<std::string, std::string> theme;  // Theme parameters (extensible map)
     bool sendDataModel = false;                // Whether to send back the data model
     bool animated = true;                      // Whether to enable animation
-};
-
-/**
- * @brief UpdateComponents message - Updates the component list
- */
-struct UpdateComponentsMessage {
-    static const char* kVersion;  // "v0.9"
-    
-    std::string surfaceId;                // Surface identifier
-    std::vector<std::string> components;  // Component list (array of JSON strings)
+    std::string rawProtocolContent;            // Original raw protocol content (the full JSON string that was parsed to create this message)
 };
 
 /**
@@ -61,15 +52,14 @@ struct ActionMessage {
 };
 
 /**
- * @brief Error message - Client error report
+ * @brief Error message - Execution error report from C++ core
  */
 struct ErrorMessage {
     static const char* kVersion;  // "v0.9"
     
-    std::string code;      // Error code
-    std::string surfaceId;  // Surface identifier
-    std::string path;      // Error path (when validation fails)
-    std::string message;   // Error description
+    int32_t code = 0;       // Error code (AGenUIExeCode enum value)
+    std::string surfaceId;  // Surface identifier (empty if not yet parsed)
+    std::string message;    // Error description (human-readable)
 };
 
 /**

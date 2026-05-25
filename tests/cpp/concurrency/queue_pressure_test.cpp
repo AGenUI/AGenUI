@@ -95,9 +95,32 @@ TEST_F(QueuePressureTest, QP003_MultiProducerBurst_NoCrash) {
     ASSERT_TRUE(::agenui::testing::WaitForWorkerIdle(30000));
 }
 
-// QP004: action burst on a real surface; coordinator must process each
+// QP004: producer thread keeps posting while main destroys. Producer
+// must not crash even if the SM transitions to non-running mid-post.
+TEST_F(QueuePressureTest, QP004_ProducerVsDestroy_GracefulShutdown) {
+    auto* sm = engine_->createSurfaceManager();
+    ::agenui::testing::WaitForWorkerIdle();
+
+    std::atomic<bool> stop{false};
+    std::thread producer([&]() {
+        while (!stop.load()) {
+            sm->beginTextStream();
+            sm->receiveTextChunk("p");
+            sm->endTextStream();
+        }
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    engine_->destroySurfaceManager(sm);
+    // Producer thread now sees _isRunning=false on next post; APIs gate.
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    stop.store(true);
+    producer.join();
+    ::agenui::testing::WaitForWorkerIdle(15000);
+}
+
+// QP005: action burst on a real surface; coordinator must process each
 // without dropping or duplicating callbacks.
-TEST_F(QueuePressureTest, QP004_ActionBurstOnLiveSurface_AllProcessed) {
+TEST_F(QueuePressureTest, QP005_ActionBurstOnLiveSurface_AllProcessed) {
     auto proto = ::agenui::testing::LoadFixtureOrEmpty(
         "protocol/create_surface.json");
     ASSERT_FALSE(proto.empty());
@@ -125,10 +148,10 @@ TEST_F(QueuePressureTest, QP004_ActionBurstOnLiveSurface_AllProcessed) {
     sm->removeSurfaceEventListener(&listener);
 }
 
-// QP005: 50 concurrent SM lifecycles, each doing a small burst. Only the
+// QP006: 50 concurrent SM lifecycles, each doing a small burst. Only the
 // engine-level operations (create/destroy) are run from the main thread;
 // per-SM operations are split across threads — that respects the docs.
-TEST_F(QueuePressureTest, QP005_ParallelSMLifecycles_StableUnderPressure) {
+TEST_F(QueuePressureTest, QP006_ParallelSMLifecycles_StableUnderPressure) {
     constexpr int N = 50;
     std::vector<::agenui::ISurfaceManager*> sms;
     std::vector<std::unique_ptr<::agenui::testing::MockMessageListener>> listeners;
@@ -143,7 +166,7 @@ TEST_F(QueuePressureTest, QP005_ParallelSMLifecycles_StableUnderPressure) {
         threads.emplace_back([&, i]() {
             for (int k = 0; k < 5; ++k) {
                 std::string proto =
-                    R"({"version":"v0.9","createSurface":{"surfaceId":"qp005-)"
+                    R"({"version":"v0.9","createSurface":{"surfaceId":"qp006-)"
                     + std::to_string(i) + "-"
                     + std::to_string(k) + R"(","catalogId":"x"}})";
                 sms[i]->beginTextStream();

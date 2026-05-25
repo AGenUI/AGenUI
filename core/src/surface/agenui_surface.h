@@ -10,10 +10,10 @@
 #include "nlohmann/json.hpp"
 
 // Project headers
+#include "agenui_batch_guard.h"
 #include "agenui_dispatcher_types.h"
-#include "agenui_expression_parser.h"
-#include "agenui_component_render_observable.h"
-#include "agenui_surface_layout_observable.h"
+#include "agenui_render_info_types.h"
+#include "agenui_isurface_context.h"
 #include "component_manager/agenui_icomponent_manager.h"
 #include "virtual_dom/agenui_virtual_dom_observer.h"
 #include "virtual_dom/agenui_ivirtual_dom.h"
@@ -25,18 +25,22 @@ namespace agenui {
 class SurfaceManager;
 
 // Represents a UI surface that manages component tree and data model
-class Surface : public IVirtualDOMObserver {
+class Surface : public IVirtualDOMObserver, public ISurfaceContext {
 public:
     // Lifecycle
     Surface(const std::string& surfaceId, const std::string& theme, SurfaceManager* surfaceManager);
     ~Surface();
     
     // Getters
-    const std::string& getSurfaceId() const;
-    IDataModel* getDataModel() const;
+    int getInstanceId() const override;
+    std::string getSurfaceId() const override;
+    IDataModel* getDataModel() const override;
     
-    // Markdown size update
+    // Component size update
     void updateComponentSize(const ComponentRenderInfo& info);
+
+    // Tabs selected index update
+    void updateTabsSelectedIndex(const ComponentRenderInfo& info);
     
     // Surface size update
     void updateSurfaceSize(const SurfaceLayoutInfo& info);
@@ -55,20 +59,32 @@ public:
     // User interaction
     void handleUserAction(const std::string& sourceComponentId);
     
-    // Style management
-    void refreshStyleTokens();
+    // FunctionCall value invalidation
+    void invalidateFunctionCallValues();
+
+    // Batch guard access — callers use BatchScope(surface->batchGuard())
+    // to open a cascading batch window (dispatch → VDOM → CM).
+    BatchGuard* batchGuard() { return &_dispatchGuard; }
 
 private:
-    void sendCachedComponentMessages();
-    
+    void flushPendingDispatches();
+
     std::string _surfaceId;
     std::string _theme;
     IDataModel* _dataModel;
     IVirtualDOM* _virtualDom;
     IComponentManager* _componentManager;
     SurfaceManager* _surfaceManager = nullptr;
-    std::map<std::string, std::string> _cachedComponentMessages;
-    bool _isDestroying = false;  // Destruction guard: prevents VirtualDOMNode callbacks from triggering triggerLayoutUpdate during destruction
+    bool _isDestroying = false;
+
+    // ---- Batched dispatch bookkeeping ----
+    // _dispatchGuard: defers platform dispatch calls (onNodeUpdate/Add/Remove)
+    //                 until the outermost batch window closes, so the platform
+    //                 receives all changes in a single burst per operation type.
+    BatchGuard _dispatchGuard;
+    std::vector<ComponentsUpdateMessage> _pendingUpdates;
+    std::vector<ComponentsAddMessage> _pendingAdds;
+    std::vector<ComponentsRemoveMessage> _pendingRemoves;
 };
 
 }  // namespace agenui

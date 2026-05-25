@@ -6,7 +6,9 @@ namespace agenui {
 
 class FunctionCallManager;
 class IPlatformLayoutBridge;
+class TemplateRegistry;
 class IComponentPropertySpecManager;
+class PathConfig;
 
 /**
  * @brief Engine context interface
@@ -24,8 +26,10 @@ public:
     virtual ~IEngineContext() = default;
 
     virtual FunctionCallManager* getFunctionCallManager() = 0;
+    virtual TemplateRegistry* getTemplateRegistry() = 0;
     virtual IComponentPropertySpecManager* getComponentPropertySpecManager() = 0;
     virtual IPlatformLayoutBridge* getPlatformLayoutBridge() = 0;
+    virtual PathConfig* getPathConfig() = 0;
 };
 
 /**

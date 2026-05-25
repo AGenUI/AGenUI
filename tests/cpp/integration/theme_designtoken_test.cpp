@@ -60,6 +60,6 @@ TEST_F(ThemeDesignTokenTest, TD004_SetSameDayNightMode_NoOp_Safe) {
 // destroyAGenUIEngine() runs, initAGenUIEngine() can never bring it back
 // (entry uses std::call_once). The original TD005 tried to simulate an
 // "engine down" state mid-suite, which permanently nulled the global
-// engine and poisoned every subsequent test.
+// engine and poisoned every subsequent test. See DESIGN.md.
 
 }  // namespace

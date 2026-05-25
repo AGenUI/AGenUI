@@ -11,12 +11,15 @@
 import { AGenUIEngineBridge } from './bridge/AGenUIEngineBridge';
 import { AGenUIEngineSurfaceManagerBridge } from './bridge/AGenUIEngineSurfaceManagerBridge';
 import { FunctionManager } from './function/FunctionManager';
-import type { IFunctionCall } from './function/IFunctionCall';
+import type { IFunctionCall, FunctionCallContext } from './function/IFunctionCall';
 import { FunctionResult, FunctionConfig } from './function/IFunctionCall';
 import { IImageLoader } from './ImageLoader';
 import { IComponentFactory } from './custom/A2UIComponent';
 import { HybridViewManager } from './hybrid/HybridViewManager';
+import { AGenUILogger } from './logger/AGenUILogger';
+import type { IAGenUILogger } from './logger/IAGenUILogger';
 import type { ISurfaceListener } from 'liba2ui-capi.so';
+import { getVersion as nativeGetVersion } from 'liba2ui-capi.so';
 import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
@@ -108,6 +111,8 @@ export class Surface {
    * Whether component enter animations are enabled
    */
   public animationEnabled: boolean = true;
+  /** Original raw protocol content (the full JSON string that was parsed to create this surface) */
+  public rawProtocolContent: string = '';
   /** Associated SurfaceManager (weak reference semantics)*/
   public surfaceManager: SurfaceManager | null = null;
   /** Component tree (componentId -> Component) */
@@ -155,12 +160,12 @@ export class Surface {
  * Internal adapter that bridges ISurfaceManagerListener to the native ISurfaceListener interface.
  */
 class NativeSurfaceListenerWrapper implements ISurfaceListener {
-  onCreateSurface: (surfaceId: string, messageId: string) => void;
+  onCreateSurface: (surfaceId: string, messageId: string, rawProtocolContent: string) => void;
   onDeleteSurface: (surfaceId: string) => void;
   onActionEventRouted?: (content: string) => void;
 
   constructor(
-    onCreate: (surfaceId: string, messageId: string) => void,
+    onCreate: (surfaceId: string, messageId: string, rawProtocolContent: string) => void,
     onDelete: (surfaceId: string) => void,
     onAction?: (content: string) => void
   ) {
@@ -233,10 +238,11 @@ export class SurfaceManager {
     this._listeners.push(listener);
 
     const nativeWrapper = new NativeSurfaceListenerWrapper(
-      (surfaceId: string, messageId: string) => {
+      (surfaceId: string, messageId: string, rawProtocolContent: string) => {
         if (!this._surfaces.has(surfaceId)) {
           const surface = new Surface(this._surfaceBridge.instanceId, surfaceId);
           surface.messageId = messageId;
+          surface.rawProtocolContent = rawProtocolContent;
           surface.surfaceManager = this;
           this._surfaces.set(surfaceId, surface);
         }
@@ -405,10 +411,12 @@ export class AGenUI {
   }
 
   /**
-   * Sets the working directory
+   * Sets path configuration
+   * @param configJson JSON string, e.g. {"templateDir": "/path/to/templates"}
+   * @returns true if configuration was applied successfully
    */
-  static setWorkingDir(dir: string): void {
-    AGenUIEngineBridge.getInstance().setWorkingDir(dir);
+  static setPathConfig(configJson: string): boolean {
+    return AGenUIEngineBridge.getInstance().setPathConfig(configJson);
   }
 
   // MARK: - Skill / FunctionCall
@@ -426,16 +434,46 @@ export class AGenUI {
     FunctionManager.getInstance().unregisterFunction(name);
   }
 
+  // MARK: - Custom Logger
+
+  /**
+   * Sets a custom logger to receive log callbacks from the native engine.
+   *
+   * @param logger Custom logger implementation conforming to IAGenUILogger
+   */
+  static setCustomLogger(logger: IAGenUILogger): void {
+    AGenUILogger.getInstance().setCustomLogger(logger);
+  }
+
+  /**
+   * Set the minimum log level. Messages below this threshold are filtered out on
+   * both the ArkTS side and the C++ engine side (via IRuntimeLogger::getMinLevel(),
+   * which is checked by the LOG_LEVEL macro before any vsnprintf), so filtered
+   * levels skip variadic formatting entirely.
+   *
+   * @param level One of AGenUILogger.LEVEL_DEBUG(0) ... LEVEL_PERFORMANCE(5).
+   */
+  static setMinLogLevel(level: number): void {
+    AGenUILogger.getInstance().setMinLogLevel(level);
+  }
+
+  /**
+   * @returns The currently configured minimum log level.
+   */
+  static getMinLogLevel(): number {
+    return AGenUILogger.getInstance().getMinLogLevel();
+  }
+
   // MARK: - Version Information
 
   /**
    * Returns the AGenUI SDK version
    */
   static getVersion(): string {
-    return '0.9.10';
+    return nativeGetVersion();
   }
 }
 
 // ==================== Function Type Re-export ====================
 export { FunctionResult, FunctionConfig } from './function/IFunctionCall';
-export type { IFunctionCall } from './function/IFunctionCall';
+export type { IFunctionCall, FunctionCallContext } from './function/IFunctionCall';

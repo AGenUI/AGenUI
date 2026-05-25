@@ -18,10 +18,12 @@ public:
 
     // IAGenUIMessageListener interface
     void onCreateSurface(const CreateSurfaceMessage& msg) override;
-    void onUpdateComponents(const UpdateComponentsMessage& msg) override;
+    void onComponentsUpdate(const std::string& surfaceId, const std::vector<ComponentsUpdateMessage>& msg) override;
+    void onComponentsAdd(const std::string& surfaceId, const std::vector<ComponentsAddMessage>& msg) override;
+    void onComponentsRemove(const std::string& surfaceId, const std::vector<ComponentsRemoveMessage>& msg) override;
     void onDeleteSurface(const DeleteSurfaceMessage& msg) override;
-    void onInteractionStatusEvent(int32_t eventType, const std::string &content) override;
     void onActionEventRouted(const std::string &content) override;
+    void onError(const ErrorMessage& msg) override;
 
     jobject getJavaListener() const { return _javaListener; }
 
@@ -33,10 +35,12 @@ private:
     JavaVM* _jvm;
     jobject _javaListener;  // global ref
     jmethodID _onCreateSurfaceMethod;
-    jmethodID _onUpdateComponentsMethod;
+    jmethodID _onComponentsUpdateMethod;
+    jmethodID _onComponentsAddMethod;
+    jmethodID _onComponentsRemoveMethod;
     jmethodID _onDeleteSurfaceMethod;
-    jmethodID _onInteractionStatusEvent;
     jmethodID _onActionEventRouted;
+    jmethodID _onErrorMethod;
 };
 
 /**

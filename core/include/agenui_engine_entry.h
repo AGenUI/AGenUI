@@ -1,8 +1,17 @@
 #pragma once
 
 #include "agenui_engine.h"
+#include "agenui_version.h"
 
 namespace agenui {
+
+/**
+ * @brief Gets the AGenUI SDK version string
+ * @return Version string
+ */
+inline const char* getAGenUIVersion() {
+    return AGENUI_VERSION;
+}
 
 /**
  * @brief Creates and initializes an AGenUI Engine instance

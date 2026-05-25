@@ -6,9 +6,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import com.airbnb.lottie.LottieComposition;
 import com.airbnb.lottie.LottieAnimationView;
 import com.airbnb.lottie.LottieDrawable;
+import com.airbnb.lottie.LottieListener;
+import com.airbnb.lottie.LottieOnCompositionLoadedListener;
 import com.amap.agenui.render.component.A2UIComponent;
+import com.amap.agenui.render.style.StyleHelper;
 
 import java.util.Map;
 
@@ -40,13 +44,28 @@ import java.util.Map;
 public class LottieComponent extends A2UIComponent {
 
     private static final String TAG = "LottieComponent";
+    private static final float DEFAULT_SIZE_A2UI = 200f;
 
     private Context context;
     private LottieAnimationView lottieView;
+    private final AsyncRenderSizeReporter asyncRenderSizeReporter;
+    private boolean compositionLoaded;
+    private final LottieOnCompositionLoadedListener compositionLoadedListener = new LottieOnCompositionLoadedListener() {
+        @Override
+        public void onCompositionLoaded(LottieComposition composition) {
+            compositionLoaded = true;
+            asyncRenderSizeReporter.setEnabled(true);
+            Log.d(TAG, "🎬 [COMPOSITION_LOADED] Lottie " + getId()
+                    + " bounds=" + composition.getBounds().width()
+                    + "x" + composition.getBounds().height());
+            asyncRenderSizeReporter.request();
+        }
+    };
 
     public LottieComponent(Context context, String id, Map<String, Object> properties) {
         super(id, "Lottie");
         this.context = context;
+        this.asyncRenderSizeReporter = createAsyncRenderSizeReporter("Lottie", TAG, this::resolveLottieRenderSize);
         if (properties != null) {
             this.properties.putAll(properties);
         }
@@ -65,12 +84,22 @@ public class LottieComponent extends A2UIComponent {
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
+        lottieView.setFailureListener(new LottieListener<Throwable>() {
+            @Override
+            public void onResult(Throwable result) {
+                Log.e(TAG, "❌ [FAILURE] Lottie " + getId() + " - failed to load animation: " + result.getMessage());
+            }
+        });
+
         int width = context.getResources().getDisplayMetrics().widthPixels;
         int height = context.getResources().getDisplayMetrics().heightPixels;
         lottieView.setMaxWidth(width);
         lottieView.setMaxHeight(height);
         lottieView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         lottieView.setAdjustViewBounds(true);
+        lottieView.addLottieOnCompositionLoadedListener(compositionLoadedListener);
+        asyncRenderSizeReporter.bind(lottieView);
+        asyncRenderSizeReporter.setEnabled(false);
 
         // Default settings
         lottieView.setRepeatCount(LottieDrawable.INFINITE); // Loop by default
@@ -138,6 +167,8 @@ public class LottieComponent extends A2UIComponent {
         }
 
         try {
+            compositionLoaded = false;
+            asyncRenderSizeReporter.setEnabled(false);
             if (url.startsWith("http://") || url.startsWith("https://")) {
                 // Network URL - use setAnimationFromUrl
                 Log.d(TAG, "🌐 [LOAD_ANIM] Lottie " + getId() + " loading from network: " + url);
@@ -177,6 +208,24 @@ public class LottieComponent extends A2UIComponent {
             Log.e(TAG, "❌ [LOAD_ANIM] Lottie " + getId() + " - failed to load animation: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private int[] resolveLottieRenderSize(View targetView, int constrainedWidthPx) {
+        int widthSpec = View.MeasureSpec.makeMeasureSpec(constrainedWidthPx, View.MeasureSpec.EXACTLY);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        targetView.measure(widthSpec, heightSpec);
+
+        int measuredWidth = targetView.getMeasuredWidth() > 0
+                ? targetView.getMeasuredWidth()
+                : constrainedWidthPx;
+        int measuredHeight = targetView.getMeasuredHeight();
+        if (measuredHeight <= 0) {
+            measuredHeight = targetView.getHeight();
+        }
+        if (measuredHeight <= 0) {
+            measuredHeight = Math.round(StyleHelper.standardUnitToPx(context, DEFAULT_SIZE_A2UI));
+        }
+        return new int[]{measuredWidth, measuredHeight};
     }
 
     /**
@@ -234,9 +283,11 @@ public class LottieComponent extends A2UIComponent {
     @Override
     protected void onDestroy() {
         if (lottieView != null) {
+            lottieView.removeLottieOnCompositionLoadedListener(compositionLoadedListener);
             lottieView.cancelAnimation();
             lottieView = null;
         }
+        asyncRenderSizeReporter.unbind();
         Log.d(TAG, "🗑️ [DESTROY] Lottie " + getId() + " destroyed");
     }
 }

@@ -1,14 +1,13 @@
 # AGenUI C++ test suite
 
 Standalone gtest-based test suite for the platform-agnostic C++ core in
-`core/`. Licensed under the same terms as the main project
-([Apache 2.0](../../LICENSE)). Tests cover:
+`core/`. Tests cover:
 
 - **integration** — end-to-end through the public engine + SurfaceManager API
 - **unit** — white-box tests for individual modules (parsers, dispatchers, …)
 - **concurrency** — thread-safety + lifecycle race tests
 - **stress** — short in-process pressure tests (~minutes)
-- **sanitizer** — tests purpose-built to surface ASan / UBSan findings
+- **sanitizer** — tests purpose-built to surface ASan / UBSan / TSan findings
 
 The suite is **standalone**: it pulls gtest 1.14 and yoga 2.0 via
 `FetchContent` and compiles `core/src/**` as a static library. It does
@@ -17,19 +16,21 @@ tree.
 
 ## Quick start (host)
 
-By default the convenience script runs a **plain build without sanitizers**.
-Sanitizer builds can be enabled explicitly via flags:
+By default the convenience script runs **both ASan and TSan** suites in two
+separate build trees:
 
 ```bash
-./tests/cpp/ci/run_tests.sh                       # plain build (default)
-./tests/cpp/ci/run_tests.sh --asan-only           # ASan + UBSan
-./tests/cpp/ci/run_tests.sh --no-san              # plain build (explicit)
+./tests/cpp/ci/run_tests.sh                       # ASan + TSan (default)
+./tests/cpp/ci/run_tests.sh --asan-only           # only ASan + UBSan
+./tests/cpp/ci/run_tests.sh --tsan-only           # only TSan
+./tests/cpp/ci/run_tests.sh --no-san              # plain build
+./tests/cpp/ci/run_tests.sh --strict-tsan         # TSan failures gate the script
 ```
 
 Or invoke CMake directly for finer control:
 
 ```bash
-cmake -S tests/cpp -B tests/cpp/build/host        # default: no sanitizer
+cmake -S tests/cpp -B tests/cpp/build/host        # default ASan + UBSan
 cmake --build tests/cpp/build/host -j 4
 ctest --test-dir tests/cpp/build/host --output-on-failure
 ```
@@ -38,7 +39,8 @@ ctest --test-dir tests/cpp/build/host --output-on-failure
 
 | CMake option | Default | Notes |
 |---|---|---|
-| `AGENUI_TESTS_ENABLE_ASAN` | `OFF` | ASan + UBSan |
+| `AGENUI_TESTS_ENABLE_ASAN` | `ON` | ASan + UBSan; mutex with TSAN |
+| `AGENUI_TESTS_ENABLE_TSAN` | `OFF` | ThreadSanitizer; mutex with ASAN |
 | `AGENUI_TESTS_ENABLE_COVERAGE` | `OFF` | gcov instrumentation |
 | `AGENUI_TESTS_USE_LOCAL_YOGA` | `OFF` | Skip GitHub fetch; supply `AGENUI_TESTS_LOCAL_YOGA_DIR` |
 
@@ -49,25 +51,25 @@ and coverage report generation.
 
 | Suite | Files | Tests |
 |---|---|---|
-| `integration/` | 8 | 58 |
-| `unit/` | 17 | 157 |
-| `concurrency/` | 6 | 26 |
+| `integration/` | 9 | 85+ |
+| `unit/` | 7 | 60+ |
+| `concurrency/` | 3 | 11 |
 | `stress/` | 1 | 2 |
-| `sanitizer/memory_safety_test.cpp` | 1 | 3 |
+| `sanitizer/memory_safety_test.cpp` | 1 | 4 |
+| `sanitizer/thread_sanitizer_test.cpp` (TSan only) | 1 | 2 |
 
-Total: **~246 tests**, all green under the default host (plain) build.
+Total: **~165 tests**, all green under host build with ASan + UBSan
+enabled. (See [DESIGN.md](./DESIGN.md) Appendix A for the complete
+case list.)
 
-The executables split as follows:
+### Known TSan findings
 
-| Executable | Sources | Tests |
-|---|---|---|
-| `agenui_unit_tests` | `integration/` + `unit/` + `stress/` + `sanitizer/memory_safety_test.cpp` | 220 |
-| `agenui_stream_tests` | `unit/stream/**/*.cpp` | 114 |
-| `agenui_concurrency_tests` | `concurrency/` + `sanitizer/thread_sanitizer_test.cpp` | 28 |
-
-> `sanitizer/thread_sanitizer_test.cpp` is compiled into `agenui_concurrency_tests`
-> and passes under the plain build. ThreadSanitizer (`-DAGENUI_TESTS_ENABLE_TSAN=ON`)
-> is not enabled by default and is not supported in CI.
+The dedicated TSan target reports **11 data races** in the engine,
+all on the path between main thread and the shared worker thread. They
+respect the documented "all engine APIs are called on the main thread"
+contract but make multi-threaded callers fragile. These are diagnostic
+output, not test failures — see [DESIGN.md §5](./DESIGN.md#5--known-tsan-findings)
+for the proposed fixes.
 
 ## IDE debugging
 
@@ -78,10 +80,12 @@ The executables split as follows:
 Quick recipe:
 
 ```bash
-# Xcode (Debug = ASan, Release = plain):
+# Xcode (defaults to BOTH ASan and TSan projects):
 ./tests/cpp/ide/xcode/generate.sh
-open tests/cpp/build/xcode/agenui_cpp_tests.xcodeproj
+open tests/cpp/build/xcode/agenui_cpp_tests.xcodeproj        # ASan + UBSan
+open tests/cpp/build/xcode-tsan/agenui_cpp_tests.xcodeproj   # TSan
 # pick scheme `agenui_unit_tests`, ⌘R to run, set breakpoints in core/src/**.
+
 ```
 
 ## Adding a new test
@@ -108,15 +112,13 @@ tests/cpp/
 ├── main.cpp                # gtest entry + global engine env
 ├── support/                # mocks, helpers, fixture loader
 ├── fixtures/               # protocol/json fixtures
-├── integration/            # 8 files, 58 tests
-├── unit/
-│   ├── module/             # message thread, dispatcher, thread manager
-│   ├── stream/             # parsers, plugins, extractors
-│   └── function_call/      # builtin function registry
-├── concurrency/            # 6 files, 26 tests
+├── integration/            # 9 files, 85+ tests
+├── unit/{module,stream,style_parser,function_call}/
+├── concurrency/            # 3 files, 11 tests
 ├── stress/                 # in-process stress
-├── sanitizer/              # ASan + UBSan dedicated
+├── sanitizer/              # ASan + TSan dedicated
 ├── ide/                    # Xcode
 ├── ci/                     # run_tests.sh + GitHub Actions template
+├── DESIGN.md               # reviewed design with full case list
 └── BUILD.md                # build / sanitizer / coverage details
 ```

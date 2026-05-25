@@ -23,14 +23,11 @@ public:
     void removeAllEventListeners();
 
     void dispatchCreateSurface(const CreateSurfaceMessage& msg);
-    void dispatchUpdateComponents(const UpdateComponentsMessage& msg);
     void dispatchDeleteSurface(const DeleteSurfaceMessage& msg);
 
     void dispatchComponentsUpdate(const std::string& surfaceId, const std::vector<ComponentsUpdateMessage>& messages);
     void dispatchComponentsAdd(const std::string& surfaceId, const std::vector<ComponentsAddMessage>& messages);
     void dispatchComponentsRemove(const std::string& surfaceId, const std::vector<ComponentsRemoveMessage>& messages);
-
-    void dispatchInteractionStatusEvent(int32_t eventType, const std::string &content);
 
     /**
      * @brief Forwards action events from the renderer to all observers.
@@ -38,8 +35,14 @@ public:
      */
     void dispatchActionEventRouted(const std::string &content);
 
+    /**
+     * @brief Dispatches execution error events to all listeners.
+     * @param msg Error message containing code, surfaceId, and description
+     */
+    void dispatchError(const ErrorMessage& msg);
+
 private:
-    std::recursive_mutex _mutex;
+    std::mutex _mutex;
     std::vector<IAGenUIMessageListener*> _listeners;
 };
 

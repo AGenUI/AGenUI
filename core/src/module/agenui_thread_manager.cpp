@@ -1,6 +1,6 @@
 #include "agenui_thread_manager.h"
 #include "agenui_message_thread.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include "agenui_type_define.h"
 
 namespace agenui {
@@ -19,7 +19,7 @@ ThreadManager::~ThreadManager() {
 }
 
 bool ThreadManager::createThread(int threadId) {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    std::lock_guard<std::mutex> lock(_mutex);
 
     if (_threads.find(threadId) != _threads.end()) {
         AGENUI_LOG("%d already exists", threadId);
@@ -31,7 +31,7 @@ bool ThreadManager::createThread(int threadId) {
     IThread *newThread = new MessageThread(name);
     newThread->start();
     _threads[threadId] = newThread;
-    AGENUI_LOG("created thread %d", threadId);
+    AGENUI_LOG("created thread '%s'", name.c_str());
     return true;
 }
 
@@ -40,7 +40,7 @@ void ThreadManager::destroyThread(int threadId) {
     IThread* thread = nullptr;
     // Order: remove → stop → delete (exact reverse of createThread)
     {
-        std::lock_guard<std::recursive_mutex> lock(_mutex);
+        std::lock_guard<std::mutex> lock(_mutex);
         auto it = _threads.find(threadId);
         if (it == _threads.end()) {
             return;
@@ -55,7 +55,7 @@ void ThreadManager::destroyThread(int threadId) {
 }
 
 IThread* ThreadManager::getMessageThread(int threadId) {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    std::lock_guard<std::mutex> lock(_mutex);
     auto it = _threads.find(threadId);
     if (it == _threads.end()) {
         return nullptr;

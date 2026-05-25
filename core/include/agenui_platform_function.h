@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <functional>
 
 namespace agenui {
 
@@ -28,10 +27,14 @@ struct FunctionCallResult {
 };
 
 /**
- * @brief Callback type for asynchronous function calls
- * @param result The function call result
+ * @brief Context information for a function call
+ * 
+ * Provides the engine and surface context in which the function call is invoked.
  */
-using FunctionCallCallback = std::function<void(const FunctionCallResult&)>;
+struct FunctionCallContext {
+    int instanceId;              // Instance unique identifier
+    std::string surfaceId;       // Surface unique identifier
+};
 
 /**
  * @brief Platform function interface
@@ -39,7 +42,6 @@ using FunctionCallCallback = std::function<void(const FunctionCallResult&)>;
  * Defines a unified interface for invoking platform-side functions.
  * Platform layer (iOS/Android/Harmony) should implement this interface to:
  * 1. Handle synchronous function calls
- * 2. Handle asynchronous function calls with callback
  */
 class IPlatformFunction {
 public:
@@ -53,22 +55,8 @@ public:
      * 
      * @note This method blocks until the function call completes.
      */
-    virtual FunctionCallResult callSync(const std::string& params) = 0;
-    
-    /**
-     * @brief Invoke the function asynchronously
-     * 
-     * @param params Parameters as a JSON string
-     * @param callback Callback to receive the result when execution completes
-     * @return FunctionCallResult typically returns immediately with a pending or initial status
-     * 
-     * @note Async call flow:
-     *       1. Returns immediately
-     *       2. Executes the function in the background
-     *       3. Invokes the callback with the result upon completion
-     */
-    virtual FunctionCallResult callAsync(const std::string& params,
-                                         const FunctionCallCallback& callback) = 0;
+    virtual FunctionCallResult callSync(const FunctionCallContext& context,
+                                         const std::string& params) = 0;
 };
 
 } // namespace agenui

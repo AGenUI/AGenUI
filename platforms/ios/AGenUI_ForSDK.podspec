@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'AGenUI'
-  s.version          = '0.9.10'
+  s.version          = '1.0.0'
   s.summary          = 'A Native Renderer for A2UI.'
   s.description      = 'A Native Renderer for A2UI.'
   s.homepage         = 'https://genui.amap.com'
@@ -10,17 +10,17 @@ Pod::Spec.new do |s|
   s.swift_version         = '5.0'
   s.ios.deployment_target = '13.0'
 
-  # Force building as a static framework
+  # Force static framework build
   s.static_framework = true
 
-  s.source_files = 'AGenUI/Classes/**/*'
-  
-  # Only expose pure Objective-C headers to Swift, excluding C++ headers
-  s.public_header_files = 'AGenUI/Classes/**/*.h'
-     
   # C++ dependency config - core/ directory in monorepo is linked via prepare_command hard-link tree; symlinks are not recognized by the project
   s.prepare_command = <<-CMD.gsub(/^\s{4}/, '')
     set -e
+    if [ ! -d "vendor/yoga" ]; then
+      mkdir -p vendor
+      curl -L https://github.com/facebook/yoga/archive/refs/tags/v2.0.0.tar.gz | tar xz -C vendor
+      mv vendor/yoga-2.0.0 vendor/yoga
+    fi
     ENGINE_REL="../../core"
     if [ ! -d "$ENGINE_REL" ]; then
       echo "[AGenUI.podspec] ERROR: core directory not found: $(pwd)/$ENGINE_REL" >&2
@@ -34,51 +34,62 @@ Pod::Spec.new do |s|
       echo "[AGenUI.podspec] WARN: cp -al failed, fell back to regular copy"
     fi
   CMD
+
+  s.source_files = 'AGenUI/Classes/**/*'
+  
+  # Only expose pure Objective-C headers to Swift, exclude C++ headers
+  s.public_header_files = 'AGenUI/Classes/**/*.h'
      
-  # C++ dependency config - fetched from remote git repository
-  s.subspec 'CPP' do |cpp|
-    # C++ source files - headers excluded from source_files to avoid entering umbrella header
+  # C++ dependency config - fetch from remote git repository
+  s.subspec 'core' do |cpp|
+    # C++ source files - exclude headers from source_files to avoid umbrella header inclusion
     cpp.source_files = [
-      'core/src/**/*.{cpp,cc,c}'
+      'core/src/**/*.{cpp,cc,c}',
+      'vendor/yoga/yoga/**/*.{cpp,cc,c}'
     ]
       
-    # Preserve header paths only, not as public headers
+    # Only preserve header paths, not as public headers
     cpp.preserve_paths = 'core/**/*'
       
-    # Header search paths - using correct CocoaPods paths
-    # Must include src directory and its subdirectories, as C++ code uses relative paths like #include "core/subscriber.h"
+    # Header search paths - use correct CocoaPods paths
+    # Must include src directory and subdirectories, as C++ code uses relative paths like #include "core/subscriber.h"
+    # Only keep subspec-specific settings; Debug/Release optimization settings live in s.pod_target_xcconfig to avoid duplication that triggers CocoaPods merge conflicts
     cpp.xcconfig = {
-      'HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/core/include" "${PODS_TARGET_SRCROOT}/core/src" "${PODS_TARGET_SRCROOT}/core/src/**"',
+      'HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/core/include" "${PODS_TARGET_SRCROOT}/core/src" "${PODS_TARGET_SRCROOT}/core/src/**" "${PODS_TARGET_SRCROOT}/vendor/yoga"',
       'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17',
       'CLANG_CXX_LIBRARY' => 'libc++',
       'GCC_PREPROCESSOR_DEFINITIONS' => '$(inherited) COCOAPODS=1',
 
-      # Binary size optimization config
-      'GCC_OPTIMIZATION_LEVEL' => 'z',
-      'SWIFT_OPTIMIZATION_LEVEL' => '-Osize',
-      'SWIFT_COMPILATION_MODE' => 'wholemodule',
-      'LLVM_LTO' => 'YES',
-      'DEAD_CODE_STRIPPING' => 'YES',
-      'STRIP_INSTALLED_PRODUCT' => 'YES',
-      'STRIP_STYLE' => 'all',
-      'GCC_SYMBOLS_PRIVATE_EXTERN' => 'YES',
-      'DEPLOYMENT_POSTPROCESSING' => 'YES',
-
-      # Disable C++ RTTI (Runtime Type Information)
+      # Disable C++ RTTI (Run-Time Type Information)
       'GCC_ENABLE_CPP_RTTI' => 'NO'
     }
     
     # Exclude JNI-related files (Android only)
     cpp.exclude_files = [
-      'core/src/third_party/ik/**/*',
       'core/src/jni/**/*',
+      'core/src/third_party/ik/**/*',
       'core/src/third_party/sax/**/*',
-      'core/src/third_party/yoga/**/*'
+      'core/src/third_party/Html.cpp',
+      'core/src/third_party/key_define.cpp'
     ]
   end
 
-  # Release binary size optimization (applies to Release configuration only)
+  # Build configuration specific compile config
   s.pod_target_xcconfig = {
+    # Mark ForSDK build for conditional compilation to retain full components
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => '$(inherited) AGENUI_SDK_BUILD',
+    # Debug config: no optimization, preserve debug info, no strip
+    'GCC_OPTIMIZATION_LEVEL[config=Debug]' => '0',
+    'SWIFT_OPTIMIZATION_LEVEL[config=Debug]' => '-Onone',
+    'SWIFT_COMPILATION_MODE[config=Debug]' => 'singlefile',
+    'LLVM_LTO[config=Debug]' => 'YES',
+    'DEAD_CODE_STRIPPING[config=Debug]' => 'YES',
+    'STRIP_INSTALLED_PRODUCT[config=Debug]' => 'NO',
+    'STRIP_STYLE[config=Debug]' => 'debugging',
+    'GCC_SYMBOLS_PRIVATE_EXTERN[config=Debug]' => 'NO',
+    'DEPLOYMENT_POSTPROCESSING[config=Debug]' => 'NO',
+
+    # Release config: binary size optimization
     'GCC_OPTIMIZATION_LEVEL[config=Release]' => 'z',
     'SWIFT_OPTIMIZATION_LEVEL[config=Release]' => '-Osize',
     'SWIFT_COMPILATION_MODE[config=Release]' => 'wholemodule',
@@ -91,11 +102,9 @@ Pod::Spec.new do |s|
   }
   
   # Include C++ subspec by default
-  s.default_subspecs = 'CPP'
+  s.default_subspecs = 'core'
   
   # Resource config - include the entire bundle directly
   s.resources = 'AGenUI/Assets/AGenUI.bundle'
 
-  # s.frameworks = 'UIKit', 'Foundation'
-  s.dependency 'FlexLayout'
 end

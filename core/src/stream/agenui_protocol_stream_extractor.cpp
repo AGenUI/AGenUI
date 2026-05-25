@@ -1,6 +1,6 @@
 #include "agenui_protocol_stream_extractor.h"
 #include "agenui_stream_plugin_interface.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 
@@ -12,7 +12,7 @@ static constexpr size_t MAX_BUFFER_BYTES = 10 * 1024 * 1024; // 10 MB
 
 void ProtocolStreamExtractor::appendData(const std::string& data) {
     if (_dataBuffer.size() + data.size() > MAX_BUFFER_BYTES) {
-        AGENUI_LOG("buffer overflow, dropping data (buffer:%zu + incoming:%zu > limit:%zu)",
+        AGENUI_LOG("buffer overflow, dropping data (buffer=%zu + incoming=%zu > limit=%zu)",
             _dataBuffer.size(), data.size(), MAX_BUFFER_BYTES);
         return;
     }

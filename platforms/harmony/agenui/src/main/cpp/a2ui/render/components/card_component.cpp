@@ -63,7 +63,9 @@ void CardComponent::onUpdateProperties(const nlohmann::json& properties) {
                                    : properties;
 
     applyRadius(styles);
-    applyBackgroundColor(styles);
+    applyBackgroundColor(properties);
+    applyBorderWidth(styles);
+    applyBorderColor(styles);
     applyFilter(styles);
     applyElevation(properties);  // Legacy elevation remains a top-level property.
 
@@ -102,18 +104,33 @@ void CardComponent::applyRadius(const nlohmann::json& properties) {
     }
 }
 
-// ---- Background Color ----
+// ---- Border Width ----
 
-void CardComponent::applyBackgroundColor(const nlohmann::json& properties) {
-    // Prefer background-color, with backgroundColor kept for compatibility.
+void CardComponent::applyBorderWidth(const nlohmann::json& properties) {
+    float bw = -1.0f;
+    if (properties.contains("border-width")) {
+        bw = parseCssLength(properties["border-width"], -1.0f);
+    } else if (properties.contains("borderWidth")) {
+        bw = parseCssLength(properties["borderWidth"], -1.0f);
+    }
+    if (bw >= 0.0f) {
+        A2UINode node(m_nodeHandle);
+        node.setBorderWidth(bw, bw, bw, bw);
+        node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+    }
+}
+
+// ---- Border Color ----
+
+void CardComponent::applyBorderColor(const nlohmann::json& properties) {
     std::string colorStr;
-    if (properties.contains("background-color") && properties["background-color"].is_string()) {
-        colorStr = properties["background-color"].get<std::string>();
-    } else if (properties.contains("backgroundColor") && properties["backgroundColor"].is_string()) {
-        colorStr = properties["backgroundColor"].get<std::string>();
+    if (properties.contains("border-color") && properties["border-color"].is_string()) {
+        colorStr = properties["border-color"].get<std::string>();
+    } else if (properties.contains("borderColor") && properties["borderColor"].is_string()) {
+        colorStr = properties["borderColor"].get<std::string>();
     }
     if (!colorStr.empty()) {
-        A2UINode(m_nodeHandle).setBackgroundColor(parseColor(colorStr));
+        A2UINode(m_nodeHandle).setBorderColor(parseColor(colorStr));
     }
 }
 

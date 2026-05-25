@@ -2,8 +2,6 @@ package com.amap.agenui.render.surface;
 
 import android.app.Activity;
 import android.content.Context;
-import android.os.SystemClock;
-import android.util.Log;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -12,6 +10,7 @@ import androidx.annotation.RestrictTo;
 import com.amap.agenui.AGenUI;
 import com.amap.agenui.IAGenUIMessageListener;
 import com.amap.agenui.render.component.ComponentEventDispatcher;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -57,7 +56,9 @@ public class SurfaceManager {
         this.instanceId = AGenUI.getInstance().createSurfaceManager();
         this.nativeEventBridge = new NativeEventBridge(this, instanceId);
         addMessageListener(nativeEventBridge);
-        Log.i(TAG, "SurfaceManager created with instanceId=" + instanceId);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.i(TAG, "SurfaceManager created with instanceId=" + instanceId);
+        }
     }
 
     /**
@@ -70,7 +71,7 @@ public class SurfaceManager {
         try {
             nativeBeginTextStream(instanceId);
         } catch (RuntimeException e) {
-            Log.e(TAG, "Failed to beginTextStream", e);
+            AGenUILogger.e(TAG, "Failed to beginTextStream", e);
         }
     }
 
@@ -88,7 +89,7 @@ public class SurfaceManager {
         try {
             nativeReceiveTextChunk(instanceId, dataString);
         } catch (RuntimeException e) {
-            Log.e(TAG, "Failed to receiveTextChunk", e);
+            AGenUILogger.e(TAG, "Failed to receiveTextChunk", e);
         }
     }
 
@@ -103,7 +104,24 @@ public class SurfaceManager {
         try {
             nativeEndTextStream(instanceId);
         } catch (RuntimeException e) {
-            Log.e(TAG, "Failed to endTextStream", e);
+            AGenUILogger.e(TAG, "Failed to endTextStream", e);
+        }
+    }
+
+    /**
+     * Re-evaluates every component's attributes and styles across all surfaces managed by
+     * this SurfaceManager, then emits field-level diffs to the native renderer for any value
+     * that actually changed.
+     * <p>
+     * Call this when host-owned external state has changed in ways the SDK cannot observe
+     * (theme, locale, orientation, etc.) and registered FunctionCalls that read from that
+     * state need to be re-run. Action handlers are not in scope.
+     */
+    public void invalidateFunctionCallValues() {
+        try {
+            nativeInvalidateFunctionCallValues(instanceId);
+        } catch (RuntimeException e) {
+            AGenUILogger.e(TAG, "Failed to invalidateFunctionCallValues", e);
         }
     }
 
@@ -115,7 +133,9 @@ public class SurfaceManager {
     public void addListener(ISurfaceManagerListener listener) {
         if (listener != null && !listeners.contains(listener)) {
             listeners.add(listener);
-            Log.d(TAG, "Listener added: " + listener.getClass().getSimpleName());
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Listener added: " + listener.getClass().getSimpleName());
+            }
         }
     }
 
@@ -127,7 +147,9 @@ public class SurfaceManager {
     public void removeListener(ISurfaceManagerListener listener) {
         if (listener != null) {
             listeners.remove(listener);
-            Log.d(TAG, "Listener removed: " + listener.getClass().getSimpleName());
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(TAG, "Listener removed: " + listener.getClass().getSimpleName());
+            }
         }
     }
 
@@ -139,14 +161,16 @@ public class SurfaceManager {
      */
     void addMessageListener(IAGenUIMessageListener listener) {
         if (listener == null) {
-            Log.e(TAG, "addMessageListener: listener is null");
+            AGenUILogger.e(TAG, "addMessageListener: listener is null");
             return;
         }
         try {
             nativeAddEventListener(instanceId, listener);
-            Log.i(TAG, "UIMessage listener registered: instanceId=" + instanceId);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.i(TAG, "UIMessage listener registered: instanceId=" + instanceId);
+            }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to register UIMessage listener", e);
+            AGenUILogger.e(TAG, "Failed to register UIMessage listener", e);
         }
     }
 
@@ -157,14 +181,16 @@ public class SurfaceManager {
      */
     void removeMessageListener(IAGenUIMessageListener listener) {
         if (listener == null) {
-            Log.w(TAG, "removeMessageListener: listener is null");
+            AGenUILogger.w(TAG, "removeMessageListener: listener is null");
             return;
         }
         try {
             nativeRemoveEventListener(instanceId, listener);
-            Log.i(TAG, "UIMessage listener unregistered: instanceId=" + instanceId);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.i(TAG, "UIMessage listener unregistered: instanceId=" + instanceId);
+            }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to unregister UIMessage listener", e);
+            AGenUILogger.e(TAG, "Failed to unregister UIMessage listener", e);
         }
     }
 
@@ -175,14 +201,22 @@ public class SurfaceManager {
      * Destroys all Surfaces, removes all listeners, and cleans up NativeEventBridge.
      */
     public void destroy() {
-        Log.i(TAG, "Destroying SurfaceManager...");
         clearAll();
         listeners.clear();
         removeMessageListener(nativeEventBridge);
         AGenUI.getInstance().destroySurfaceManager(instanceId);
-        Log.i(TAG, "✓ SurfaceManager destroyed, instanceId=" + instanceId);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.i(TAG, "SurfaceManager destroyed, instanceId=" + instanceId);
+        }
     }
 
+
+    /**
+     * Returns the native instance id assigned by the engine on creation.
+     */
+    public int getInstanceId() {
+        return instanceId;
+    }
 
     /**
      * Returns the Activity Context (weak reference; may return null after the Activity is destroyed).
@@ -191,7 +225,7 @@ public class SurfaceManager {
     Context getContext() {
         Context ctx = contextRef.get();
         if (ctx == null) {
-            Log.w(TAG, "getContext: Activity has been GC'd; release() may have been missed");
+            AGenUILogger.w(TAG, "getContext: Activity has been GC'd; release() may have been missed");
         }
         return ctx;
     }
@@ -202,17 +236,21 @@ public class SurfaceManager {
      * Called by NativeEventBridge.onCreateSurface().
      * The Surface internally creates a root container; callers obtain it via surface.getContainer().
      *
-     * @param surfaceId Unique Surface identifier
+     * @param surfaceId          Unique Surface identifier
+     * @param rawProtocolContent Original raw protocol content
+     * @param animated           Initial animation toggle from the native protocol; applied before
+     *                           listeners are notified so listener overrides take final effect.
      * @return Created Surface instance
      * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public Surface createSurface(String surfaceId) {
-        Log.d(TAG, "createSurface: surfaceId=" + surfaceId);
-
+    public Surface createSurface(String surfaceId, String rawProtocolContent, boolean animated) {
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "createSurface: surfaceId=" + surfaceId);
+        }
         Context context = getContext();
         if (context == null) {
-            Log.e(TAG, "createSurface: Cannot create surface, Activity context is null (Activity may have been destroyed)");
+            AGenUILogger.e(TAG, "createSurface: Cannot create surface, Activity context is null (Activity may have been destroyed)");
             return null;
         }
 
@@ -225,7 +263,7 @@ public class SurfaceManager {
                         try {
                             nativeSubmitUIAction(instanceId, sid, componentId, contextJson);
                         } catch (Exception e) {
-                            Log.e(TAG, "Failed to submitUIAction", e);
+                            AGenUILogger.e(TAG, "Failed to submitUIAction", e);
                         }
                     }
 
@@ -234,18 +272,54 @@ public class SurfaceManager {
                         try {
                             nativeSubmitUIDataModel(instanceId, sid, componentId, changeData);
                         } catch (Exception e) {
-                            Log.e(TAG, "Failed to submitUIDataModel", e);
+                            AGenUILogger.e(TAG, "Failed to submitUIDataModel", e);
                         }
                     }
-                }
+
+                    @Override
+                    public void onSurfaceError(String type, String message, String sid) {
+                        notifyError(type, -1, message, sid);
+                    }
+                },
+                new SurfaceLayoutDispatcher(
+                        surfaceId,
+                        new SurfaceLayoutDispatcher.Callback() {
+                            @Override
+                            public void onRenderFinish(String callbackSurfaceId,
+                                                       String componentId,
+                                                       String type,
+                                                       float width,
+                                                       float height,
+                                                       int selectedIndex) {
+                                notifyRenderFinish(
+                                        callbackSurfaceId,
+                                        componentId,
+                                        type,
+                                        width,
+                                        height,
+                                        selectedIndex);
+                            }
+
+                            @Override
+                            public void onSurfaceSizeChanged(String callbackSurfaceId,
+                                                             float width,
+                                                             float height) {
+                                notifySurfaceSizeChanged(callbackSurfaceId, width, height);
+                            }
+                        })
         );
 
         surfaces.put(surfaceId, surface);
 
+        surface.setRawProtocolContent(rawProtocolContent);
+        surface.setAnimationEnabled(animated);
+
         // Notify listeners
         notifyListenersOnCreate(surface);
 
-        Log.d(TAG, "✓ Surface created: " + surfaceId);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "✓ Surface created: " + surfaceId);
+        }
         return surface;
     }
 
@@ -267,7 +341,9 @@ public class SurfaceManager {
      * @hide
      */
     void destroySurface(String surfaceId) {
-        Log.d(TAG, "destroySurface: surfaceId=" + surfaceId);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "destroySurface: surfaceId=" + surfaceId);
+        }
 
         Surface surface = surfaces.remove(surfaceId);
         if (surface != null) {
@@ -279,7 +355,7 @@ public class SurfaceManager {
                 try {
                     listener.onDeleteSurface(surface);
                 } catch (Exception e) {
-                    Log.e(TAG, "destroySurface: listener threw exception", e);
+                    AGenUILogger.e(TAG, "destroySurface: listener threw exception", e);
                 }
             }
         }
@@ -289,7 +365,9 @@ public class SurfaceManager {
      * Clears all Surfaces
      */
     private void clearAll() {
-        Log.d(TAG, "clearAll: clearing " + surfaces.size() + " surfaces");
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "clearAll: clearing " + surfaces.size() + " surfaces");
+        }
 
         List<String> surfaceIds = new ArrayList<>(surfaces.keySet());
         for (String surfaceId : surfaceIds) {
@@ -305,7 +383,7 @@ public class SurfaceManager {
             try {
                 listener.onCreateSurface(surface);
             } catch (Exception e) {
-                Log.e(TAG, "notifyListenersOnCreate: listener threw exception", e);
+                AGenUILogger.e(TAG, "notifyListenersOnCreate: listener threw exception", e);
             }
         }
     }
@@ -322,32 +400,58 @@ public class SurfaceManager {
             try {
                 listener.onReceiveActionEvent(event);
             } catch (Exception e) {
-                Log.e(TAG, "notifyActionEvent: listener threw exception", e);
+                AGenUILogger.e(TAG, "notifyActionEvent: listener threw exception", e);
             }
         }
     }
 
+    void notifyRootComponentUpdate(Surface surface, Map<String, String> props) {
+        for (ISurfaceManagerListener listener : listeners) {
+            try {
+                listener.onRootComponentUpdate(surface, props);
+            } catch (Exception e) {
+                AGenUILogger.e(TAG, "notifyRootComponentUpdate: listener threw exception", e);
+            }
+        }
+    }
 
-    // TODO temporary workaround for scroll jank; overall renderer optimization to follow
+    void notifyError(String type, int code, String message, String surfaceId) {
+        for (ISurfaceManagerListener listener : listeners) {
+            try {
+                listener.onError(type, code, message, surfaceId);
+            } catch (Exception e) {
+                AGenUILogger.e(TAG, "notifyError: listener threw exception", e);
+            }
+        }
+    }
 
     /**
-     * Pre-builds the View tree for the specified Surface
-     *
-     * @param surfaceId   Unique Surface identifier
-     * @param preloadHost Off-screen pre-build container
+     * Bridges one async component render-finish notification back into native Yoga.
      */
-    /**
-     * Submits a UI data model synchronization
-     *
-     * @param surfaceId   Surface ID
-     * @param componentId Component ID
-     * @param change      Changed content (JSON format)
-     */
-    public void submitUIDataModel(String surfaceId, String componentId, String change) {
+    void notifyRenderFinish(String surfaceId, String componentId, String type,
+                            float width, float height, int selectedIndex) {
         try {
-            nativeSubmitUIDataModel(instanceId, surfaceId, componentId, change);
+            nativeNotifyRenderFinish(
+                    instanceId,
+                    surfaceId,
+                    componentId,
+                    type,
+                    width,
+                    height,
+                    selectedIndex);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to submitUIDataModel", e);
+            AGenUILogger.e(TAG, "Failed to notifyRenderFinish", e);
+        }
+    }
+
+    /**
+     * Reports the latest stable surface size to native so Yoga can use it as the canvas width.
+     */
+    void notifySurfaceSizeChanged(String surfaceId, float width, float height) {
+        try {
+            nativeNotifySurfaceSizeChanged(instanceId, surfaceId, width, height);
+        } catch (Exception e) {
+            AGenUILogger.e(TAG, "Failed to notifySurfaceSizeChanged", e);
         }
     }
 
@@ -361,33 +465,15 @@ public class SurfaceManager {
     private static native void nativeBeginTextStream(int instanceId);
     private static native void nativeReceiveTextChunk(int instanceId, String content);
     private static native void nativeEndTextStream(int instanceId);
+    private static native void nativeNotifyRenderFinish(int instanceId,
+                                                        String surfaceId,
+                                                        String componentId,
+                                                        String type,
+                                                        float width,
+                                                        float height,
+                                                        int selectedIndex);
+    private static native void nativeNotifySurfaceSizeChanged(int instanceId, String surfaceId, float width, float height);
 
-    public void preloadSurface(String surfaceId, ViewGroup preloadHost) {
-        Surface surface = surfaces.get(surfaceId);
-        if (surface == null) {
-            Log.w(TAG, "preloadSurface: surface not found, surfaceId=" + surfaceId);
-            return;
-        }
+    private static native void nativeInvalidateFunctionCallValues(int engineId);
 
-        if (preloadHost == null) {
-            Log.w(TAG, "preloadSurface: preloadHost is null, surfaceId=" + surfaceId);
-            return;
-        }
-
-        long start = SystemClock.elapsedRealtime();
-        Log.d(TAG, "preloadSurface start"
-                + ", surfaceId=" + surfaceId
-                + ", preloadHostHash=" + System.identityHashCode(preloadHost)
-                + ", childCountBefore=" + preloadHost.getChildCount());
-
-        // Important: clear the host before each preload to avoid cross-surface contamination
-        preloadHost.removeAllViews();
-
-        surface.preloadViews(preloadHost);
-
-        Log.d(TAG, "preloadSurface end"
-                + ", surfaceId=" + surfaceId
-                + ", childCountAfter=" + preloadHost.getChildCount()
-                + ", cost=" + (SystemClock.elapsedRealtime() - start));
-    }
 }

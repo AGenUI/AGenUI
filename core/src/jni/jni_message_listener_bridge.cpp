@@ -1,10 +1,32 @@
 #include "jni_message_listener_bridge.h"
 #include "jni_scoped_local_ref.h"
 #include "jni_scoped_utf_chars.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 #include <sstream>
 
 namespace agenui {
+
+namespace {
+
+jobjectArray createJavaStringArray(JNIEnv* env, const std::vector<std::string>& values) {
+    ScopedLocalRef<jclass> stringClass(env, env->FindClass("java/lang/String"));
+    if (stringClass.get() == nullptr) {
+        return nullptr;
+    }
+
+    jobjectArray array = env->NewObjectArray(static_cast<jsize>(values.size()), stringClass.get(), nullptr);
+    if (array == nullptr) {
+        return nullptr;
+    }
+
+    for (size_t i = 0; i < values.size(); ++i) {
+        ScopedLocalRef<jstring> item(env, env->NewStringUTF(values[i].c_str()));
+        env->SetObjectArrayElement(array, static_cast<jsize>(i), item.get());
+    }
+    return array;
+}
+
+}  // namespace
 
 class JNIEnvGuard {
 public:
@@ -15,15 +37,15 @@ public:
             return;
         }
         if (result == JNI_EDETACHED) {
-            AGENUI_LOG("Thread not attached, attaching...");
+            AGENUI_LOG("[JNIEnvGuard] Thread not attached, attaching...");
             if (_jvm->AttachCurrentThread(&_env, nullptr) == JNI_OK) {
                 _needsDetach = true;
             } else {
-                AGENUI_LOG("AttachCurrentThread failed");
+                AGENUI_LOG("[JNIEnvGuard] AttachCurrentThread failed");
                 _env = nullptr;
             }
         } else {
-            AGENUI_LOG("GetEnv failed with result: %d", result);
+            AGENUI_LOG("[JNIEnvGuard] GetEnv failed with result: %d", result);
         }
     }
     ~JNIEnvGuard() {
@@ -42,7 +64,9 @@ private:
 
 JNIMessageListenerBridge::JNIMessageListenerBridge(JNIEnv* env, jobject javaListener)
     : _jvm(nullptr), _javaListener(nullptr), _onCreateSurfaceMethod(nullptr),
-      _onUpdateComponentsMethod(nullptr), _onDeleteSurfaceMethod(nullptr) {
+      _onComponentsUpdateMethod(nullptr),
+      _onComponentsAddMethod(nullptr), _onComponentsRemoveMethod(nullptr),
+      _onDeleteSurfaceMethod(nullptr), _onErrorMethod(nullptr) {
 
     env->GetJavaVM(&_jvm);
 
@@ -50,19 +74,25 @@ JNIMessageListenerBridge::JNIMessageListenerBridge(JNIEnv* env, jobject javaList
 
     ScopedLocalRef<jclass> listenerClass(env, env->GetObjectClass(javaListener));
     if (listenerClass.get() == nullptr) {
-        AGENUI_LOG("failed to get listener class");
+        AGENUI_LOG("JNIMessageListenerBridge: failed to get listener class");
         return;
     }
 
     // Cache method IDs
-    _onCreateSurfaceMethod = env->GetMethodID(listenerClass.get(), "onCreateSurface", "(Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ZZ)V");
-    _onUpdateComponentsMethod = env->GetMethodID(listenerClass.get(), "onUpdateComponents", "(Ljava/lang/String;[Ljava/lang/String;)V");
+    _onCreateSurfaceMethod = env->GetMethodID(listenerClass.get(), "onCreateSurface", "(Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ZZLjava/lang/String;)V");
+    _onComponentsUpdateMethod = env->GetMethodID(listenerClass.get(), "onComponentsUpdate", "(Ljava/lang/String;[Ljava/lang/String;)V");
+    _onComponentsAddMethod = env->GetMethodID(listenerClass.get(), "onComponentsAdd", "(Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V");
+    _onComponentsRemoveMethod = env->GetMethodID(listenerClass.get(), "onComponentsRemove", "(Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V");
     _onDeleteSurfaceMethod = env->GetMethodID(listenerClass.get(), "onDeleteSurface", "(Ljava/lang/String;)V");
-    _onInteractionStatusEvent = env->GetMethodID(listenerClass.get(), "onInteractionStatusEvent", "(ILjava/lang/String;)V");
     _onActionEventRouted = env->GetMethodID(listenerClass.get(), "onActionEventRouted", "(Ljava/lang/String;)V");
+    _onErrorMethod = env->GetMethodID(listenerClass.get(), "onError", "(ILjava/lang/String;Ljava/lang/String;)V");
     
-    if (_onCreateSurfaceMethod == nullptr || _onUpdateComponentsMethod == nullptr || _onDeleteSurfaceMethod == nullptr || _onInteractionStatusEvent == nullptr || _onActionEventRouted == nullptr) {
-        AGENUI_LOG("failed to get method IDs");
+    if (_onCreateSurfaceMethod == nullptr ||
+        _onComponentsUpdateMethod == nullptr || _onComponentsAddMethod == nullptr ||
+        _onComponentsRemoveMethod == nullptr || _onDeleteSurfaceMethod == nullptr ||
+            _onActionEventRouted == nullptr ||
+        _onErrorMethod == nullptr) {
+        AGENUI_LOG("JNIMessageListenerBridge: failed to get method IDs");
     }
 }
 
@@ -84,7 +114,7 @@ void JNIMessageListenerBridge::onCreateSurface(const CreateSurfaceMessage& msg) 
     JNIEnvGuard envGuard(_jvm);
     JNIEnv* env = envGuard.env();
     if (env == nullptr) {
-        AGENUI_LOG("failed to acquire JNIEnv");
+        AGENUI_LOG("[JNI] onCreateSurface: failed to acquire JNIEnv");
         return;
     }
     
@@ -93,40 +123,114 @@ void JNIMessageListenerBridge::onCreateSurface(const CreateSurfaceMessage& msg) 
     ScopedLocalRef<jobject> jTheme(env, createJavaHashMap(env, msg.theme));
     jboolean jSendDataModel = msg.sendDataModel ? JNI_TRUE : JNI_FALSE;
     jboolean jAnimated = msg.animated ? JNI_TRUE : JNI_FALSE;
+    ScopedLocalRef<jstring> jRawProtocolContent(env, env->NewStringUTF(msg.rawProtocolContent.c_str()));
 
-    env->CallVoidMethod(_javaListener, _onCreateSurfaceMethod, jSurfaceId.get(), jCatalogId.get(), jTheme.get(), jSendDataModel, jAnimated);
+    env->CallVoidMethod(_javaListener, _onCreateSurfaceMethod, jSurfaceId.get(), jCatalogId.get(), jTheme.get(), jSendDataModel, jAnimated, jRawProtocolContent.get());
 }
 
-void JNIMessageListenerBridge::onUpdateComponents(const UpdateComponentsMessage& msg) {
-    if (_jvm == nullptr || _javaListener == nullptr || _onUpdateComponentsMethod == nullptr) {
+void JNIMessageListenerBridge::onComponentsUpdate(
+        const std::string& surfaceId,
+        const std::vector<ComponentsUpdateMessage>& msg) {
+    if (_jvm == nullptr || _javaListener == nullptr || _onComponentsUpdateMethod == nullptr) {
         return;
     }
-    
+
     JNIEnvGuard envGuard(_jvm);
     JNIEnv* env = envGuard.env();
     if (env == nullptr) {
-        AGENUI_LOG("failed to acquire JNIEnv");
+        AGENUI_LOG("[JNI] onComponentsUpdate: failed to acquire JNIEnv");
         return;
     }
-    
-    ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(msg.surfaceId.c_str()));
 
-    ScopedLocalRef<jclass> stringClass(env, env->FindClass("java/lang/String"));
-    if (stringClass.get() == nullptr) {
-        return;
+    std::vector<std::string> components;
+    components.reserve(msg.size());
+    for (const auto& item : msg) {
+        components.emplace_back(item.component);
     }
-    
-    ScopedLocalRef<jobjectArray> jComponentsArray(env, env->NewObjectArray(static_cast<jsize>(msg.components.size()), stringClass.get(), nullptr));
+
+    ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(surfaceId.c_str()));
+    ScopedLocalRef<jobjectArray> jComponentsArray(env, createJavaStringArray(env, components));
     if (jComponentsArray.get() == nullptr) {
         return;
     }
-    
-    for (size_t i = 0; i < msg.components.size(); ++i) {
-        ScopedLocalRef<jstring> jComponent(env, env->NewStringUTF(msg.components[i].c_str()));
-        env->SetObjectArrayElement(jComponentsArray.get(), static_cast<jsize>(i), jComponent.get());
+
+    env->CallVoidMethod(_javaListener, _onComponentsUpdateMethod, jSurfaceId.get(), jComponentsArray.get());
+}
+
+void JNIMessageListenerBridge::onComponentsAdd(
+        const std::string& surfaceId,
+        const std::vector<ComponentsAddMessage>& msg) {
+    if (_jvm == nullptr || _javaListener == nullptr || _onComponentsAddMethod == nullptr) {
+        return;
     }
-    
-    env->CallVoidMethod(_javaListener, _onUpdateComponentsMethod, jSurfaceId.get(), jComponentsArray.get());
+
+    JNIEnvGuard envGuard(_jvm);
+    JNIEnv* env = envGuard.env();
+    if (env == nullptr) {
+        AGENUI_LOG("[JNI] onComponentsAdd: failed to acquire JNIEnv");
+        return;
+    }
+
+    std::vector<std::string> parentIds;
+    std::vector<std::string> components;
+    parentIds.reserve(msg.size());
+    components.reserve(msg.size());
+    for (const auto& item : msg) {
+        parentIds.emplace_back(item.parentId);
+        components.emplace_back(item.component);
+    }
+
+    ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(surfaceId.c_str()));
+    ScopedLocalRef<jobjectArray> jParentIdsArray(env, createJavaStringArray(env, parentIds));
+    ScopedLocalRef<jobjectArray> jComponentsArray(env, createJavaStringArray(env, components));
+    if (jParentIdsArray.get() == nullptr || jComponentsArray.get() == nullptr) {
+        return;
+    }
+
+    env->CallVoidMethod(
+            _javaListener,
+            _onComponentsAddMethod,
+            jSurfaceId.get(),
+            jParentIdsArray.get(),
+            jComponentsArray.get());
+}
+
+void JNIMessageListenerBridge::onComponentsRemove(
+        const std::string& surfaceId,
+        const std::vector<ComponentsRemoveMessage>& msg) {
+    if (_jvm == nullptr || _javaListener == nullptr || _onComponentsRemoveMethod == nullptr) {
+        return;
+    }
+
+    JNIEnvGuard envGuard(_jvm);
+    JNIEnv* env = envGuard.env();
+    if (env == nullptr) {
+        AGENUI_LOG("[JNI] onComponentsRemove: failed to acquire JNIEnv");
+        return;
+    }
+
+    std::vector<std::string> parentIds;
+    std::vector<std::string> componentIds;
+    parentIds.reserve(msg.size());
+    componentIds.reserve(msg.size());
+    for (const auto& item : msg) {
+        parentIds.emplace_back(item.parentId);
+        componentIds.emplace_back(item.componentId);
+    }
+
+    ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(surfaceId.c_str()));
+    ScopedLocalRef<jobjectArray> jParentIdsArray(env, createJavaStringArray(env, parentIds));
+    ScopedLocalRef<jobjectArray> jComponentIdsArray(env, createJavaStringArray(env, componentIds));
+    if (jParentIdsArray.get() == nullptr || jComponentIdsArray.get() == nullptr) {
+        return;
+    }
+
+    env->CallVoidMethod(
+            _javaListener,
+            _onComponentsRemoveMethod,
+            jSurfaceId.get(),
+            jParentIdsArray.get(),
+            jComponentIdsArray.get());
 }
 
 void JNIMessageListenerBridge::onDeleteSurface(const DeleteSurfaceMessage& msg) {
@@ -137,30 +241,13 @@ void JNIMessageListenerBridge::onDeleteSurface(const DeleteSurfaceMessage& msg) 
     JNIEnvGuard envGuard(_jvm);
     JNIEnv* env = envGuard.env();
     if (env == nullptr) {
-        AGENUI_LOG("failed to acquire JNIEnv");
+        AGENUI_LOG("[JNI] onDeleteSurface: failed to acquire JNIEnv");
         return;
     }
 
     ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(msg.surfaceId.c_str()));
 
     env->CallVoidMethod(_javaListener, _onDeleteSurfaceMethod, jSurfaceId.get());
-}
-
-void JNIMessageListenerBridge::onInteractionStatusEvent(int32_t eventType, const std::string &content) {
-    if (_jvm == nullptr || _javaListener == nullptr || _onInteractionStatusEvent == nullptr) {
-        return;
-    }
-
-    JNIEnvGuard envGuard(_jvm);
-    JNIEnv* env = envGuard.env();
-    if (env == nullptr) {
-        AGENUI_LOG("failed to acquire JNIEnv");
-        return;
-    }
-
-    ScopedLocalRef<jstring> jContent(env, env->NewStringUTF(content.c_str()));
-
-    env->CallVoidMethod(_javaListener, _onInteractionStatusEvent, eventType, jContent.get());
 }
 
 void JNIMessageListenerBridge::onActionEventRouted(const std::string &content) {
@@ -171,13 +258,31 @@ void JNIMessageListenerBridge::onActionEventRouted(const std::string &content) {
     JNIEnvGuard envGuard(_jvm);
     JNIEnv* env = envGuard.env();
     if (env == nullptr) {
-        AGENUI_LOG("failed to acquire JNIEnv");
+        AGENUI_LOG("[JNI] onActionEventRouted: failed to acquire JNIEnv");
         return;
     }
 
     ScopedLocalRef<jstring> jContent(env, env->NewStringUTF(content.c_str()));
 
     env->CallVoidMethod(_javaListener, _onActionEventRouted, jContent.get());
+}
+
+void JNIMessageListenerBridge::onError(const ErrorMessage& msg) {
+    if (_jvm == nullptr || _javaListener == nullptr || _onErrorMethod == nullptr) {
+        return;
+    }
+
+    JNIEnvGuard envGuard(_jvm);
+    JNIEnv* env = envGuard.env();
+    if (env == nullptr) {
+        AGENUI_LOG("[JNI] onError: failed to acquire JNIEnv");
+        return;
+    }
+
+    ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(msg.surfaceId.c_str()));
+    ScopedLocalRef<jstring> jMessage(env, env->NewStringUTF(msg.message.c_str()));
+
+    env->CallVoidMethod(_javaListener, _onErrorMethod, static_cast<jint>(msg.code), jSurfaceId.get(), jMessage.get());
 }
 
 jobject JNIMessageListenerBridge::createJavaHashMap(JNIEnv* env, const std::map<std::string, std::string>& map) {

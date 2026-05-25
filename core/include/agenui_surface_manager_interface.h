@@ -1,12 +1,11 @@
 #pragma once
 
 #include <string>
+#include "agenui_render_info_types.h"
 
 namespace agenui {
 
 class IAGenUIMessageListener;
-class IComponentRenderObservable;
-class ISurfaceLayoutObservable;
 struct ActionMessage;
 struct SyncUIToDataMessage;
 
@@ -103,16 +102,28 @@ public:
     virtual void receiveTextChunk(const std::string& data) = 0;
 
     /**
-     * @brief Sets the Markdown service
-     * @param componentRenderObservable Markdown service interface pointer
+     * @brief Receives a component render-finish callback from platform code.
      */
-    virtual void setComponentRenderObservable(IComponentRenderObservable* componentRenderObservable) = 0;
+    virtual void onRenderFinish(const ComponentRenderInfo& info) = 0;
 
     /**
-     * @brief Sets the Surface service
-     * @param surfaceLayoutObservable Surface service interface pointer
+     * @brief Receives a surface size change callback from platform code.
      */
-    virtual void setSurfaceLayoutObservable(ISurfaceLayoutObservable* surfaceLayoutObservable) = 0;
+    virtual void onSurfaceSizeChanged(const SurfaceLayoutInfo& info) = 0;
+    
+    /**
+     * @brief Re-evaluate every component's attributes and styles, then emit
+     *        field-level diffs to the native renderer for any value that
+     *        actually changed.
+     *
+     * Call this when external state owned by the host application has changed
+     * in ways the SDK cannot observe (theme, locale, orientation, etc.) and
+     * registered FunctionCalls that read from that state need to be re-run.
+     *
+     * Action handlers (Action.event / Action.functionCall) are not in scope:
+     * they are evaluated lazily on event firing, not pre-computed.
+     */
+    virtual void invalidateFunctionCallValues() = 0;
 };
 
 } // namespace agenui

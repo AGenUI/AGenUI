@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../a2ui_component.h"
-#include "agenui_choicepicker_component_utils.h"
+#include "choicepicker_component_utils.h"
 #include <vector>
 
 namespace a2ui {
@@ -9,7 +9,7 @@ namespace a2ui {
 /** Native handles and metadata for a single visible option item. */
 struct ChoicePickerOptionItem {
     ArkUI_NodeHandle containerHandle = nullptr; // Clickable container
-    ArkUI_NodeHandle indicatorHandle = nullptr; // Optional CheckBox indicator
+    ArkUI_NodeHandle indicatorHandle = nullptr; // CheckBox or +/- text
     ArkUI_NodeHandle labelHandle = nullptr;     // Label text
     size_t optionIndex = 0;                     // Original option index
     std::string label;                          // Option label
@@ -21,12 +21,16 @@ struct ChoicePickerOptionItem {
  *
  * Layout structure (composite layout):
  *   ARKUI_NODE_COLUMN (root node)
- *     ├── ARKUI_NODE_TEXT_INPUT (optional search input)
- *     └── option container (COLUMN / ROW / FLEX, decided by config)
+ *     ├── ARKUI_NODE_TEXT_INPUT (optional search input when filterable=true)
+ *     └── option container (COLUMN / ROW, decided by config)
  *           ├── ARKUI_NODE_ROW (checkbox row or chip item)
- *           │     ├── ARKUI_NODE_CHECKBOX (checkbox only)
+ *           │     ├── ARKUI_NODE_CHECKBOX / ARKUI_NODE_TEXT (indicator)
  *           │     └── ARKUI_NODE_TEXT (label)
- *     ├── ...
+ *           ├── ...
+ *
+ * Note: chips display style stacks chips vertically (one per row) on Harmony
+ * because the Harmony render layer here does not introduce ARKUI_NODE_FLEX,
+ * matching the iOS / Android implementations that also avoid Flex.
  *
  * Supported properties:
  *   - variant: "mutuallyExclusive" for single-select or "multipleSelection" for multi-select
@@ -106,6 +110,10 @@ private:
     nlohmann::json m_styleConfig;
     std::vector<ChoicePickerOptionData> m_options;
     std::vector<ChoicePickerOptionItem> m_optionItems;
+    // Inner wrapper used to keep search input + options container the same width.
+    // Wrapper auto-sizes to the widest child; search + options-container then
+    // stretch to wrapper width. See rebuildContent() for details.
+    ArkUI_NodeHandle m_contentWrapperHandle = nullptr;
     ArkUI_NodeHandle m_searchInputHandle = nullptr;
     ArkUI_NodeHandle m_optionsContainerHandle = nullptr;
     std::string m_filterKeyword;

@@ -236,8 +236,11 @@ void TableComponent::buildTable(const nlohmann::json& properties) {
     cleanCellNodes();
 
     std::vector<std::string> columns;
-    if (properties.find("columns") != properties.end() && properties["columns"].is_array()) {
-        for (const auto& col : properties["columns"]) {
+    // Support both "columns" and "headers" field names
+    const char* colKey = properties.contains("columns") ? "columns"
+                       : (properties.contains("headers") ? "headers" : nullptr);
+    if (colKey && properties[colKey].is_array()) {
+        for (const auto& col : properties[colKey]) {
             if (col.is_string()) {
                 columns.push_back(col.get<std::string>());
             }
@@ -501,19 +504,7 @@ float TableComponent::parseSizeValue(const std::string& sizeStr, float defaultVa
 }
 
 int32_t TableComponent::parseFontWeight(const std::string& weightStr) {
-    if (weightStr.empty()) return ARKUI_FONT_WEIGHT_NORMAL;
-    if (weightStr == "bold") return ARKUI_FONT_WEIGHT_BOLD;
-    if (weightStr == "normal") return ARKUI_FONT_WEIGHT_NORMAL;
-    if (weightStr == "medium") return ARKUI_FONT_WEIGHT_MEDIUM;
-    if (weightStr == "regular") return ARKUI_FONT_WEIGHT_REGULAR;
-    if (weightStr == "bolder") return ARKUI_FONT_WEIGHT_BOLDER;
-    if (weightStr == "lighter") return ARKUI_FONT_WEIGHT_LIGHTER;
-    try {
-        return font_weight::mapNumericToArkUIFontWeight(std::stoi(weightStr));
-    } catch (...) {
-        HM_LOGW("parseFontWeight: invalid numeric weight '%s', falling back to NORMAL", weightStr.c_str());
-    }
-    return ARKUI_FONT_WEIGHT_NORMAL;
+    return font_weight::mapStringToArkUIFontWeight(weightStr);
 }
 
 

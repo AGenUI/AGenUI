@@ -33,4 +33,13 @@ public interface ComponentEventDispatcher {
      * @param changeData  Changed content (JSON format)
      */
     void submitUIDataModel(String surfaceId, String componentId, String changeData);
+
+    /**
+     * Reports a Surface-level error (e.g. blank-screen detection) to the Native / manager layer.
+     *
+     * @param type      Error type, e.g. "BlankScreen"
+     * @param message    Error message, e.g. "componentCountInsufficient"
+     * @param surfaceId Surface ID
+     */
+    void onSurfaceError(String type, String message, String surfaceId);
 }

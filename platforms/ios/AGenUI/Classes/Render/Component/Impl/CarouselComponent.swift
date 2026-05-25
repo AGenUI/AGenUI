@@ -5,11 +5,8 @@
 // Created on 2026/3/1.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// CarouselComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -108,8 +105,15 @@ class CarouselComponent: Component {
         scrollView.bounces = scrollBounces
         scrollView.isScrollEnabled = draggable
         
-        // Add scrollView using FlexLayout, fills entire container
-        flex.addItem(scrollView).grow(1).shrink(1)
+        // Add scrollView using AutoLayout, fills entire container
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(scrollView)
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
         self.scrollView = scrollView
         
         // Set scrollView delegate
@@ -121,12 +125,14 @@ class CarouselComponent: Component {
         indicatorContainer.layer.cornerRadius = indicatorContainerHeight / 2
         indicatorContainer.clipsToBounds = true
         
-        // Use FlexLayout absolute positioning to overlay indicator at bottom
-        flex.addItem(indicatorContainer)
-            .position(.absolute)
-            .bottom(indicatorBottomOffset)
-            .height(indicatorContainerHeight)
-            .alignSelf(.center)
+        // Add indicator using AutoLayout, overlay at bottom center
+        indicatorContainer.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(indicatorContainer)
+        NSLayoutConstraint.activate([
+            indicatorContainer.centerXAnchor.constraint(equalTo: centerXAnchor),
+            indicatorContainer.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -indicatorBottomOffset),
+            indicatorContainer.heightAnchor.constraint(equalToConstant: indicatorContainerHeight)
+        ])
         
         self.customPageIndicatorView = indicatorContainer
         
@@ -186,6 +192,13 @@ class CarouselComponent: Component {
         
         // Layout image views
         layoutImageViews()
+    }
+    
+    override func setBorderRadius(_ radius: CGFloat) {
+        super.setBorderRadius(radius)
+        // Mirror corner radius to scrollView so image content is clipped to rounded corners.
+        scrollView?.layer.cornerRadius = radius
+        scrollView?.clipsToBounds = radius > 0
     }
 
     override func destroy() {
@@ -505,11 +518,7 @@ class CarouselComponent: Component {
         
         // Update container width
         let totalWidth = calculateIndicatorContainerWidth()
-        indicatorContainer.flex.width(totalWidth)
-        
-        // Key fix: do not call layout() at component level
-        // Let Surface trigger layout uniformly
-        // self.flex.layout() removed (self is the container)
+        indicatorContainer.frame.size.width = totalWidth
     }
     
     /// Layout indicator dots
@@ -607,3 +616,5 @@ extension CarouselComponent: UIScrollViewDelegate {
         }
     }
 }
+
+#endif // AGENUI_SDK_BUILD

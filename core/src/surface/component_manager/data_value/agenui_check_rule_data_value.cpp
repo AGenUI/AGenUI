@@ -3,10 +3,10 @@
 
 namespace agenui {
 
-CheckRuleDataValue::CheckRuleDataValue(IDataModel* dataModel,
+CheckRuleDataValue::CheckRuleDataValue(IDataValueContext* context,
                                        std::shared_ptr<DataValue> condition,
                                        const std::string& message)
-    : DataValue(dataModel), _condition(std::move(condition)), _message(message) {
+    : DataValue(context), _condition(std::move(condition)), _message(message) {
 }
 
 DataType CheckRuleDataValue::getDataType() const {
@@ -45,15 +45,13 @@ void CheckRuleDataValue::unbind() {
     }
 }
 
-std::shared_ptr<DataValue> CheckRuleDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
+std::shared_ptr<DataValue> CheckRuleDataValue::cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const {
     std::shared_ptr<DataValue> clonedCondition;
     if (_condition) {
-        clonedCondition = _condition->cloneAsTemplate(rootDataPath);
+        clonedCondition = _condition->cloneAsTemplate(context, rootDataPath);
     }
 
-    auto cloned = std::make_shared<CheckRuleDataValue>(_dataModel, clonedCondition, _message);
-    cloned->_extensions = _extensions;
-    return cloned;
+    return std::make_shared<CheckRuleDataValue>(context, clonedCondition, _message);
 }
 
 const std::string& CheckRuleDataValue::getMessage() const {

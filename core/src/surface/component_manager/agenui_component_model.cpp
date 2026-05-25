@@ -1,8 +1,9 @@
 #include "agenui_component_model.h"
 #include "data_value/agenui_data_value_parser.h"
 #include "surface/datamodel/agenui_idata_model.h"
+#include "surface/agenui_isurface_context.h"
 #include "surface/agenui_serializable_data.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 
@@ -20,7 +21,7 @@ void ComponentModel::AttributeDataBinder::onDataChanged(const std::string& path,
     _observer->onComponentAttributeDataChanged(_attributeName, appendMode);
 }
 
-ComponentModel::ComponentModel(const std::string& id, const std::string& rawId, const std::string& component, IDataModel* dataModel, IComponentChangedObserver* observer, ITemplateComponentGenerator* generator) : _id(id), _rawId(rawId), _component(component), _dataModel(dataModel), _observer(observer), _templateComponentGenerator(generator) {
+ComponentModel::ComponentModel(const std::string& id, const std::string& rawId, const std::string& component, ISurfaceContext* surfaceContext, IComponentChangedObserver* observer, ITemplateComponentGenerator* generator) : _id(id), _rawId(rawId), _component(component), _surfaceContext(surfaceContext), _observer(observer), _templateComponentGenerator(generator) {
 }
 
 ComponentModel::~ComponentModel() {
@@ -48,7 +49,7 @@ std::string ComponentModel::getComponent() const {
 
 void ComponentModel::setAttribute(const std::string& key, std::shared_ptr<DataValue> value) {
     _attributes[key] = value;
-    if (value && _dataModel) {
+    if (value && _surfaceContext && _surfaceContext->getDataModel()) {
         auto binderIt = _attributeBinders.find(key);
         if (binderIt == _attributeBinders.end()) {
             _attributeBinders.emplace(key, AttributeDataBinder(_id, key, this));
@@ -76,14 +77,14 @@ void ComponentModel::syncValue(const std::string& attributeName, const std::stri
         return;
     }
 
-    // Only BindableData attributes need synchronization
-    if (it->second->getDataType() != DataType::BindableData) {
+    // Only DataBindingData attributes need synchronization
+    if (it->second->getDataType() != DataType::DataBindingData) {
         return;
     }
 
-    auto bindableData = std::static_pointer_cast<BindableDataValue>(it->second);
-    if (bindableData) {
-        bindableData->syncBindingValue(value);
+    auto dataBindingData = std::static_pointer_cast<DataBindingDataValue>(it->second);
+    if (dataBindingData) {
+        dataBindingData->syncBindingValue(value);
     }
 }
 
@@ -98,15 +99,15 @@ const std::vector<std::string>& ComponentModel::getChildren() const {
 void ComponentModel::setListChildrenData(std::shared_ptr<DataValue> data) {
     _listChildrenData = data;
     if (_listChildrenData) {
-        if (_listChildrenData->getDataType() == DataType::BindableData) {
-            auto bindableData = std::static_pointer_cast<BindableDataValue>(_listChildrenData);
-            if (bindableData) {
+        if (_listChildrenData->getDataType() == DataType::DataBindingData) {
+            auto dataBindingData = std::static_pointer_cast<DataBindingDataValue>(_listChildrenData);
+            if (dataBindingData) {
                 auto binderIt = _attributeBinders.find("children");
                 if (binderIt == _attributeBinders.end()) {
                     _attributeBinders.emplace("children", AttributeDataBinder(_id, "children", this));
                     binderIt = _attributeBinders.find("children");
                 }
-                bindableData->bind(&(binderIt->second));
+                dataBindingData->bind(&(binderIt->second));
             }
         }
     }
@@ -130,10 +131,10 @@ void ComponentModel::generateListChildren() {
     }
 
     std::string rootDataPath = "";
-    if (_listChildrenData->getDataType() == DataType::BindableData) {
-        auto bindableData = std::static_pointer_cast<BindableDataValue>(_listChildrenData);
-        if (bindableData) {
-            rootDataPath = bindableData->getBindingPath();
+    if (_listChildrenData->getDataType() == DataType::DataBindingData) {
+        auto dataBindingData = std::static_pointer_cast<DataBindingDataValue>(_listChildrenData);
+        if (dataBindingData) {
+            rootDataPath = dataBindingData->getBindingPath();
         }
     }
 
@@ -148,7 +149,7 @@ void ComponentModel::generateListChildren() {
 
     for (size_t index = _children.size(); index < childrenData.size(); ++index) {
         std::string itemPath = rootDataPath + "/" + std::to_string(index);
-        auto itemData = std::make_shared<BindableDataValue>(_dataModel, itemPath);
+        auto itemData = std::make_shared<DataBindingDataValue>(this, itemPath);
         auto entity = _templateComponentGenerator->generateComponentWithTemplate(_listChildrenTemplateId, itemData);
         if (entity) {
             _children.emplace_back(entity->getId());
@@ -317,17 +318,72 @@ void ComponentModel::onComponentAttributeDataChanged(const std::string& attribut
     if (attributeName == "children") {
         generateListChildren();
     } else {
-        _currentSnapshot.appendMode = appendMode;
-        notifyComponentChange(attributeName);
-        _currentSnapshot.resetMode();
+        // appendMode is now carried through the dirty-mark path and applied
+        // on the snapshot at flush time; do not mutate _currentSnapshot here
+        // since multiple sibling updates within the same batch would otherwise
+        // race on the shared flag.
+        notifyComponentChange(attributeName, appendMode);
     }
 }
 
-void ComponentModel::notifyComponentChange(const std::string& attributeName) {
+void ComponentModel::notifyComponentChange(const std::string& attributeName, bool appendMode) {
     if (!_observer) {
         return;
     }
-    _observer->onComponentAttributeChanged(_id, attributeName);
+    markDirty(attributeName, appendMode);
+    _observer->onComponentChanged(_id);
+}
+
+void ComponentModel::markDirty(const std::string& attributeName, bool appendMode) {
+    _isDirty = true;
+    if (appendMode) {
+        _dirtyAppendMode = true;
+    }
+
+    if (attributeName.empty()) {
+        // Full-snapshot mark supersedes any previously recorded per-attribute
+        // marks; future per-attribute marks within the same batch are also
+        // absorbed by the full rebuild.
+        _isFullDirty = true;
+        _dirtyAttributes.clear();
+        return;
+    }
+
+    if (_isFullDirty) {
+        return;
+    }
+    _dirtyAttributes.insert(attributeName);
+}
+
+const ComponentSnapshot& ComponentModel::flushDirty() {
+    if (!_isDirty) {
+        // Defensive: caller should have checked hasDirty(); still return a
+        // valid snapshot so the call chain stays well-defined.
+        return _currentSnapshot;
+    }
+
+    const bool appendMode = _dirtyAppendMode;
+
+    if (_isFullDirty) {
+        updateSnapshot("");
+    } else {
+        for (const auto& attr : _dirtyAttributes) {
+            updateSnapshot(attr);
+        }
+    }
+
+    _currentSnapshot.appendMode = appendMode;
+
+    clearDirty();
+    return _currentSnapshot;
+}
+
+void ComponentModel::clearDirty() {
+    _isDirty = false;
+    _isFullDirty = false;
+    _dirtyAppendMode = false;
+    _dirtyAttributes.clear();
+    _currentSnapshot.resetMode();
 }
 
 void ComponentModel::notifyChildComponentDelete(const std::string& childComponentId) {
@@ -373,11 +429,11 @@ void ComponentModel::setStyleValue(const std::string& styleName, const std::stri
     if (it != _attributes.end() && it->second && it->second->getDataType() == DataType::StylesData) {
         stylesData = std::static_pointer_cast<StylesDataValue>(it->second);
     } else {
-        stylesData = std::make_shared<StylesDataValue>(_dataModel);
+        stylesData = std::make_shared<StylesDataValue>(this);
         setAttribute("styles", std::static_pointer_cast<DataValue>(stylesData));
     }
     
-    stylesData->setStyle(styleName, DataValueParser::parseDataValue(_dataModel, value));
+    stylesData->setStyle(styleName, DataValueParser::parseDataValue(this, value));
 }
 
 void ComponentModel::executeAction(const std::string& surfaceId, agenui::EventDispatcher* dispatcher) {
@@ -404,6 +460,27 @@ void ComponentModel::executeAction(const std::string& surfaceId, agenui::EventDi
     }
     
     return;
+}
+
+int ComponentModel::getInstanceId() const {
+    if (_surfaceContext) {
+        return _surfaceContext->getInstanceId();
+    }
+    return -1;
+}
+
+std::string ComponentModel::getSurfaceId() const {
+    if (_surfaceContext) {
+        return _surfaceContext->getSurfaceId();
+    }
+    return "";
+}
+
+IDataModel* ComponentModel::getDataModel() const {
+    if (_surfaceContext) {
+        return _surfaceContext->getDataModel();
+    }
+    return nullptr;
 }
 
 }  // namespace agenui

@@ -15,6 +15,10 @@
 //       must still degrade safely without crashing or returning
 //       different pointers).
 //     * Hammering engine-level config APIs in tight loops.
+//
+// The historical destroy/reinit-based chaos cases (EC001-EC005,
+// EC007-EC009) were intentionally removed when the engine contract
+// was clarified to "init/destroy at most once per process".
 
 #include <atomic>
 #include <thread>
@@ -32,8 +36,8 @@ class EngineChaosTest : public ::testing::Test {
     // No SetUp/TearDown: the global Environment owns engine lifecycle.
 };
 
-// EC001: init is idempotent — repeated calls return the same instance.
-TEST_F(EngineChaosTest, EC001_InitMultipleTimes_SameInstance) {
+// EC006: init is idempotent — repeated calls return the same instance.
+TEST_F(EngineChaosTest, EC006_InitMultipleTimes_SameInstance) {
     auto* a = ::agenui::initAGenUIEngine();
     auto* b = ::agenui::initAGenUIEngine();
     auto* c = ::agenui::initAGenUIEngine();
@@ -45,10 +49,10 @@ TEST_F(EngineChaosTest, EC001_InitMultipleTimes_SameInstance) {
     EXPECT_EQ(::agenui::getAGenUIEngine(), a);
 }
 
-// EC002: hammer engine-level config APIs in a tight loop without ever
+// EC007: hammer engine-level config APIs in a tight loop without ever
 // destroying the engine. Validates that repeated re-configuration is
 // stable (no crash, no corruption visible to subsequent tests).
-TEST_F(EngineChaosTest, EC002_RepeatedConfigCalls_Safe) {
+TEST_F(EngineChaosTest, EC007_RepeatedConfigCalls_Safe) {
     auto* engine = ::agenui::getAGenUIEngine();
     ASSERT_NE(engine, nullptr);
 
@@ -65,11 +69,13 @@ TEST_F(EngineChaosTest, EC002_RepeatedConfigCalls_Safe) {
     }
 }
 
-// EC003: contract-violating concurrent init from multiple threads. The
+// EC010: contract-violating concurrent init from multiple threads. The
 // SDK contract says all engine APIs run on the main thread; this test
 // asserts the entry layer doesn't crash and always hands back the
-// SAME (already-running) instance even under racy callers.
-TEST_F(EngineChaosTest, EC003_InitFromMultipleThreads_SameInstance) {
+// SAME (already-running) instance even under racy callers. (TSan may
+// still report races on the entry-layer mutex / atomic — those are
+// expected and informational.)
+TEST_F(EngineChaosTest, EC010_InitFromMultipleThreads_SameInstance) {
     auto* expected = ::agenui::getAGenUIEngine();
     ASSERT_NE(expected, nullptr) << "engine must already be running";
 

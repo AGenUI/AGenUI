@@ -1,39 +1,44 @@
 package com.amap.agenui.render.style;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Outline;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
+import android.text.Layout;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
-import android.util.Log;
+import android.text.style.LineHeightSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
 import com.amap.a2ui_sdk.R;
+import com.amap.agenui.AGenUI;
+import com.amap.agenui.ColorValue;
+import com.amap.agenui.EdgeInsetsValue;
 import com.amap.agenui.render.image.ImageCallback;
 import com.amap.agenui.render.image.ImageLoadOptionsKey;
 import com.amap.agenui.render.image.ImageLoadResult;
 import com.amap.agenui.render.image.ImageLoaderConfig;
 import com.amap.agenui.render.image.ImageLoaderError;
-import com.amap.agenui.render.layout.FlexContainerLayout;
-import com.google.android.flexbox.AlignItems;
-import com.google.android.flexbox.AlignSelf;
-import com.google.android.flexbox.FlexWrap;
-import com.google.android.flexbox.FlexboxLayout;
-import com.google.android.flexbox.JustifyContent;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,418 +53,139 @@ public class StyleHelper {
 
     private static final String TAG = "StyleHelper";
 
+    /**
+     * {@link LineHeightSpan} implementation that redistributes the extra space evenly between
+     * ascent and descent, so every line's glyph content-area is vertically centered inside the
+     * target line box. This matches the W3C `line-height` semantics and the behavior of
+     * Harmony ArkUI (`NODE_TEXT_LINE_HEIGHT`) and iOS (`paragraphStyle` with baseline offset).
+     */
+    public static final class CenteredLineHeightSpan implements LineHeightSpan {
+        private final int lineHeightPx;
+
+        public CenteredLineHeightSpan(int lineHeightPx) {
+            this.lineHeightPx = lineHeightPx;
+        }
+
+        public int getLineHeightPx() {
+            return lineHeightPx;
+        }
+
+        @Override
+        public void chooseHeight(CharSequence text, int start, int end,
+                                 int spanstartv, int lineHeight,
+                                 Paint.FontMetricsInt fm) {
+            int originHeight = fm.descent - fm.ascent;
+            if (originHeight <= 0 || lineHeightPx <= 0) {
+                return;
+            }
+            int extra = lineHeightPx - originHeight;
+            int halfBefore = extra / 2;
+            int halfAfter = extra - halfBefore;
+            fm.ascent  -= halfBefore;
+            fm.top     -= halfBefore;
+            fm.descent += halfAfter;
+            fm.bottom  += halfAfter;
+        }
+    }
 
     /**
-     * Applies dimension styles (with parent container parameter).
-     * Supports: width, height, max-width, max-height, min-width, min-height.
-     *
-     * @param view       View to apply styles to
-     * @param properties Style properties
-     * @param parent     Parent container (optional, used to determine whether FlexboxLayout.LayoutParams is needed)
+     * Wrap the TextView's current text in a {@link SpannableString} and apply a
+     * {@link CenteredLineHeightSpan} sized to {@code targetLineHeightPx}. Any previously
+     * applied {@link CenteredLineHeightSpan} is removed first so repeated style updates are
+     * idempotent. Keep this in sync with the equivalent logic in {@code TextMeasurer} so the
+     * Yoga-measured height matches the rendered height exactly.
      */
-    public static void applyDimensions(View view, Map<String, Object> properties, ViewGroup parent) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applyDimensions: view or properties is null");
+    public static void applyCenteredLineHeight(TextView textView, int targetLineHeightPx) {
+        if (textView == null || targetLineHeightPx <= 0) {
             return;
         }
-
-        Log.d(TAG, "applyDimensions: view=" + view.getClass().getSimpleName() + ", properties=" + properties);
-        Context context = view.getContext();
-
-        // If parent is not provided, try to get it from the view
-        if (parent == null && view.getParent() instanceof ViewGroup) {
-            parent = (ViewGroup) view.getParent();
+        CharSequence current = textView.getText();
+        if (current == null || current.length() == 0) {
+            return;
         }
-
-        // Only create and set LayoutParams when width or height has a value
-        boolean hasWidth = properties.containsKey("width");
-        boolean hasHeight = properties.containsKey("height");
-
-        if (hasWidth || hasHeight) {
-            ViewGroup.LayoutParams params = view.getLayoutParams();
-            boolean isFlexboxParent = parent instanceof FlexContainerLayout;
-
-            // Create or convert to the correct LayoutParams type based on the parent container type
-            if (params == null) {
-                params = isFlexboxParent
-                        ? new FlexboxLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                        : new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                Log.d(TAG, "applyDimensions: created " + (isFlexboxParent ? "FlexboxLayout" : "ViewGroup") + ".LayoutParams");
-            } else if (isFlexboxParent) {
-                params = ensureFlexLayoutParams(params);
-            }
-
-            // width
-            if (hasWidth) {
-                int width = parseDimension(properties.get("width"), context);
-                Log.d(TAG, "applyDimensions: width=" + properties.get("width") + " -> " + width + "px");
-
-                // If the parent is a FlexboxLayout and a fixed width is set, special handling is required
-                if (isFlexboxParent && width > 0) {
-                    // Ensure LayoutParams is of type FlexboxLayout.LayoutParams
-                    if (!(params instanceof FlexboxLayout.LayoutParams)) {
-                        FlexboxLayout.LayoutParams flexParams = new FlexboxLayout.LayoutParams(
-                            width,
-                            params.height
-                        );
-                        params = flexParams;
-                        Log.d(TAG, "applyDimensions: converted to FlexboxLayout.LayoutParams for fixed width");
-                    } else {
-                        params.width = width;
-                        ((FlexboxLayout.LayoutParams) params).setMaxWidth(width);
-                    }
-
-                    // Fix: a fixed size semantically means "non-stretchable", so enforce flexShrink=0 and flexGrow=0.
-                    // Even if the user sets flex-grow/flex-shrink, a fixed size should take priority
-                    // because fixed size and stretchability are semantically contradictory.
-                    FlexboxLayout.LayoutParams flexParams = (FlexboxLayout.LayoutParams) params;
-                    flexParams.setFlexShrink(0.0f);
-                    flexParams.setFlexGrow(0.0f);
-                    Log.d(TAG, "applyDimensions: fixed width set, enforcing flexShrink=0, flexGrow=0");
-                } else {
-                    params.width = width;
-                }
-            }
-
-            // height
-            if (hasHeight) {
-                int height = parseDimension(properties.get("height"), context);
-                Log.d(TAG, "applyDimensions: height=" + properties.get("height") + " -> " + height + "px");
-
-                // If the parent is a FlexboxLayout and a fixed height is set, special handling is required
-                if (isFlexboxParent && height > 0) {
-                    // Ensure LayoutParams is of type FlexboxLayout.LayoutParams
-                    if (!(params instanceof FlexboxLayout.LayoutParams)) {
-                        FlexboxLayout.LayoutParams flexParams = new FlexboxLayout.LayoutParams(
-                            params.width,
-                            height
-                        );
-                        params = flexParams;
-                        Log.d(TAG, "applyDimensions: converted to FlexboxLayout.LayoutParams for fixed height");
-                    } else {
-                        params.height = height;
-                    }
-
-                    // Fix: a fixed size semantically means "non-stretchable", so enforce flexShrink=0 and flexGrow=0.
-                    // Even if the user sets flex-grow/flex-shrink, a fixed size should take priority
-                    // because fixed size and stretchability are semantically contradictory.
-                    FlexboxLayout.LayoutParams flexParams = (FlexboxLayout.LayoutParams) params;
-                    flexParams.setFlexShrink(0.0f);
-                    flexParams.setFlexGrow(0.0f);
-                    Log.d(TAG, "applyDimensions: fixed height set, enforcing flexShrink=0, flexGrow=0");
-                } else {
-                    params.height = height;
-                }
-            }
-
-            view.setLayoutParams(params);
+        SpannableString ss = (current instanceof SpannableString)
+                ? (SpannableString) current
+                : new SpannableString(current);
+        // Remove any stale centered-line-height span before re-applying.
+        CenteredLineHeightSpan[] existing = ss.getSpans(0, ss.length(), CenteredLineHeightSpan.class);
+        for (CenteredLineHeightSpan span : existing) {
+            ss.removeSpan(span);
         }
-
-        // min/max dimensions (requires API 16+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            boolean isFlexboxParent = parent instanceof FlexContainerLayout;
-
-            // When the parent is a FlexboxParent, min/max dimensions are set via FlexboxLayout.LayoutParams methods
-            if (isFlexboxParent) {
-                FlexboxLayout.LayoutParams flexParams = ensureFlexLayoutParams(view.getLayoutParams());
-
-                // min-width mapped to FlexboxLayout.LayoutParams.setMinWidth
-                if (properties.containsKey("min-width")) {
-                    int minWidth = parseDimension(properties.get("min-width"), context);
-                    if (minWidth > 0) {
-                        flexParams.setMinWidth(minWidth);
-                        Log.d(TAG, "applyDimensions: min-width=" + properties.get("min-width") + " -> " + minWidth + "px (FlexboxLayout.LayoutParams)");
-                    }
-                }
-
-                // min-height mapped to FlexboxLayout.LayoutParams.setMinHeight
-                if (properties.containsKey("min-height")) {
-                    int minHeight = parseDimension(properties.get("min-height"), context);
-                    if (minHeight > 0) {
-                        flexParams.setMinHeight(minHeight);
-                        Log.d(TAG, "applyDimensions: min-height=" + properties.get("min-height") + " -> " + minHeight + "px (FlexboxLayout.LayoutParams)");
-                    }
-                }
-
-                // max-width and max-height handling
-                if (properties.containsKey("max-width")) {
-                    int maxWidth = parseDimension(properties.get("max-width"), context);
-                    if (maxWidth > 0) {
-                        flexParams.setMaxWidth(maxWidth);
-                        Log.d(TAG, "applyDimensions: max-width=" + properties.get("max-width") + " -> " + maxWidth + "px");
-                    }
-                }
-
-                if (properties.containsKey("max-height")) {
-                    int maxHeight = parseDimension(properties.get("max-height"), context);
-                    if (maxHeight > 0) {
-                        flexParams.setMaxHeight(maxHeight);
-                        Log.d(TAG, "applyDimensions: max-height=" + properties.get("max-height") + " -> " + maxHeight + "px");
-                    }
-                }
-
-                view.setLayoutParams(flexParams);
-            } else {
-                // When the parent is not a FlexboxParent, use View.setMinimumWidth/Height
-                if (properties.containsKey("min-width")) {
-                    int minWidth = parseDimension(properties.get("min-width"), context);
-                    if (minWidth > 0) {
-                        view.setMinimumWidth(minWidth);
-                        Log.d(TAG, "applyDimensions: min-width=" + properties.get("min-width") + " -> " + minWidth + "px");
-                    }
-                }
-
-                if (properties.containsKey("min-height")) {
-                    int minHeight = parseDimension(properties.get("min-height"), context);
-                    if (minHeight > 0) {
-                        view.setMinimumHeight(minHeight);
-                        Log.d(TAG, "applyDimensions: min-height=" + properties.get("min-height") + " -> " + minHeight + "px");
-                    }
-                }
-            }
-        }
+        ss.setSpan(new CenteredLineHeightSpan(targetLineHeightPx),
+                0, ss.length(),
+                Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        textView.setText(ss);
     }
 
     /**
      * Parses a dimension value.
      * Supports: px, %, auto, match_parent, wrap_content.
      * Note: the px unit is converted following dp conversion rules.
+     *
+     * Cached by (density, normalized-string) so that repeated values like "0px" / "16px"
+     * are parsed only once and only emit one debug log per unique input.
      */
+    private static final ConcurrentHashMap<String, Integer> sDimensionCache = new ConcurrentHashMap<>();
+
+    /**
+     * Determine if font-weight value means bold.
+     * Supports "bold", "normal", or numeric string (>=500 is bold).
+     *
+     * @param fontWeight font-weight value string
+     * @return true if bold
+     */
+    public static boolean isBoldWeight(String fontWeight) {
+        if (fontWeight == null) return false;
+        String value = fontWeight.trim().toLowerCase();
+        if ("bold".equals(value)) return true;
+        if ("normal".equals(value)) return false;
+        try {
+            return Integer.parseInt(value) >= 500;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+    }
+
     public static int parseDimension(Object value, Context context) {
         if (value == null) {
-            Log.d(TAG, "parseDimension: value is null, returning WRAP_CONTENT");
             return ViewGroup.LayoutParams.WRAP_CONTENT;
         }
 
         String strValue = String.valueOf(value).trim().toLowerCase();
-        Log.d(TAG, "parseDimension: parsing '" + strValue + "'");
 
-        // Special values
+        // Cache key includes density to avoid cross-device hits when context changes.
+        float density = (context != null && context.getResources() != null)
+                ? context.getResources().getDisplayMetrics().density
+                : 1f;
+        String cacheKey = density + ":" + strValue;
+        Integer cached = sDimensionCache.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        int result;
         if (strValue.equals("auto") || strValue.equals("wrap_content")) {
-            Log.d(TAG, "parseDimension: '" + strValue + "' -> WRAP_CONTENT");
-            return ViewGroup.LayoutParams.WRAP_CONTENT;
-        }
-        if (strValue.equals("match_parent") || strValue.equals("100%")) {
-            Log.d(TAG, "parseDimension: '" + strValue + "' -> MATCH_PARENT");
-            return ViewGroup.LayoutParams.MATCH_PARENT;
-        }
-
-        // Numeric parsing
-        try {
-            if (strValue.endsWith("px")) {
-                // px unit is converted following dp conversion rules
-                float value_num = Float.parseFloat(strValue.replace("px", ""));
-                int px = standardUnitToPx(context, value_num);
-                Log.d(TAG, "parseDimension: '" + strValue + "' -> " + px + "px (converted as dp)");
-                return px;
-            } else {
-                // Treat as standard unit by default
-                float value_num = Float.parseFloat(strValue);
-                int px = standardUnitToPx(context, value_num);
-                Log.d(TAG, "parseDimension: '" + strValue + "' (as standard unit) -> " + px + "px");
-                return px;
-            }
-        } catch (NumberFormatException e) {
-            Log.w(TAG, "Failed to parse dimension: " + value, e);
-            return ViewGroup.LayoutParams.WRAP_CONTENT;
-        }
-    }
-
-
-    /**
-     * Applies spacing styles.
-     * Supports: margin, padding (and their inline/block variants).
-     * Supports CSS multi-value format:
-     * - 1 value:  applies to all sides (top right bottom left)
-     * - 2 values: first applies to top/bottom, second applies to left/right
-     * - 3 values: first applies to top, second applies to left/right, third applies to bottom
-     * - 4 values: applied in order to top right bottom left
-     */
-    public static void applySpacing(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applySpacing: view or properties is null");
-            return;
-        }
-
-        Log.d(TAG, "applySpacing: view=" + view.getClass().getSimpleName() + ", properties=" + properties);
-        Context context = view.getContext();
-
-        // Padding
-        int paddingLeft = view.getPaddingLeft();
-        int paddingTop = view.getPaddingTop();
-        int paddingRight = view.getPaddingRight();
-        int paddingBottom = view.getPaddingBottom();
-
-        if (properties.containsKey("padding")) {
-            int[] paddings = parseSpacingValues(properties.get("padding"), context);
-            paddingTop = paddings[0];
-            paddingRight = paddings[1];
-            paddingBottom = paddings[2];
-            paddingLeft = paddings[3];
-            Log.d(TAG, "applySpacing: padding=" + properties.get("padding") +
-                    " -> top=" + paddingTop + ", right=" + paddingRight +
-                ", bottom=" + paddingBottom + ", left=" + paddingLeft);
-        }
-
-        // Prefer CSS logical properties, fall back to traditional directional properties
-        if (properties.containsKey("padding-inline-start")) {
-            paddingLeft = parseDimension(properties.get("padding-inline-start"), context);
-        } else if (properties.containsKey("padding-left")) {
-            paddingLeft = parseDimension(properties.get("padding-left"), context);
-        }
-
-        if (properties.containsKey("padding-inline-end")) {
-            paddingRight = parseDimension(properties.get("padding-inline-end"), context);
-        } else if (properties.containsKey("padding-right")) {
-            paddingRight = parseDimension(properties.get("padding-right"), context);
-        }
-
-        if (properties.containsKey("padding-block-start")) {
-            paddingTop = parseDimension(properties.get("padding-block-start"), context);
-        } else if (properties.containsKey("padding-top")) {
-            paddingTop = parseDimension(properties.get("padding-top"), context);
-        }
-
-        if (properties.containsKey("padding-block-end")) {
-            paddingBottom = parseDimension(properties.get("padding-block-end"), context);
-        } else if (properties.containsKey("padding-bottom")) {
-            paddingBottom = parseDimension(properties.get("padding-bottom"), context);
-        }
-
-        view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom);
-
-        // Margin - check whether any margin-related properties are present
-        boolean hasMargin = properties.containsKey("margin")
-            || properties.containsKey("margin-inline-start")
-            || properties.containsKey("margin-inline-end")
-            || properties.containsKey("margin-block-start")
-                || properties.containsKey("margin-block-end")
-                || properties.containsKey("margin-left")
-                || properties.containsKey("margin-right")
-                || properties.containsKey("margin-top")
-                || properties.containsKey("margin-bottom");
-
-        if (hasMargin) {
-            ViewGroup.LayoutParams params = view.getLayoutParams();
-            ViewGroup.MarginLayoutParams marginParams;
-
-            // If the current LayoutParams is already a MarginLayoutParams, use it directly
-            if (params instanceof ViewGroup.MarginLayoutParams) {
-                marginParams = (ViewGroup.MarginLayoutParams) params;
-            } else {
-                // If it is not a MarginLayoutParams, create a new one
-                if (params != null) {
-                    marginParams = new ViewGroup.MarginLayoutParams(params);
+            result = ViewGroup.LayoutParams.WRAP_CONTENT;
+        } else if (strValue.equals("match_parent") || strValue.equals("100%")) {
+            result = ViewGroup.LayoutParams.MATCH_PARENT;
+        } else {
+            try {
+                float numeric;
+                if (strValue.endsWith("px")) {
+                    numeric = Float.parseFloat(strValue.replace("px", ""));
                 } else {
-                    marginParams = new ViewGroup.MarginLayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    );
+                    numeric = Float.parseFloat(strValue);
                 }
+                result = standardUnitToPx(context, numeric);
+            } catch (NumberFormatException e) {
+                AGenUILogger.w(TAG, "Failed to parse dimension: " + value, e);
+                return ViewGroup.LayoutParams.WRAP_CONTENT;  // do not cache failures
             }
-
-            if (properties.containsKey("margin")) {
-                int[] margins = parseSpacingValues(properties.get("margin"), context);
-                marginParams.topMargin = margins[0];
-                marginParams.rightMargin = margins[1];
-                marginParams.bottomMargin = margins[2];
-                marginParams.leftMargin = margins[3];
-                Log.d(TAG, "applySpacing: margin=" + properties.get("margin") +
-                        " -> top=" + margins[0] + ", right=" + margins[1] +
-                    ", bottom=" + margins[2] + ", left=" + margins[3]);
-            }
-
-            // Prefer CSS logical properties, fall back to traditional directional properties
-            if (properties.containsKey("margin-inline-start")) {
-                marginParams.leftMargin = parseDimension(properties.get("margin-inline-start"), context);
-            } else if (properties.containsKey("margin-left")) {
-                marginParams.leftMargin = parseDimension(properties.get("margin-left"), context);
-            }
-
-            if (properties.containsKey("margin-inline-end")) {
-                marginParams.rightMargin = parseDimension(properties.get("margin-inline-end"), context);
-            } else if (properties.containsKey("margin-right")) {
-                marginParams.rightMargin = parseDimension(properties.get("margin-right"), context);
-            }
-
-            if (properties.containsKey("margin-block-start")) {
-                marginParams.topMargin = parseDimension(properties.get("margin-block-start"), context);
-            } else if (properties.containsKey("margin-top")) {
-                marginParams.topMargin = parseDimension(properties.get("margin-top"), context);
-            }
-
-            if (properties.containsKey("margin-block-end")) {
-                marginParams.bottomMargin = parseDimension(properties.get("margin-block-end"), context);
-            } else if (properties.containsKey("margin-bottom")) {
-                marginParams.bottomMargin = parseDimension(properties.get("margin-bottom"), context);
-            }
-
-            view.setLayoutParams(marginParams);
-        }
-    }
-
-    /**
-     * Parses CSS multi-value spacing.
-     * Supported formats:
-     * - "10px"              -> [10, 10, 10, 10] (all sides)
-     * - "10px 20px"         -> [10, 20, 10, 20] (vertical horizontal)
-     * - "10px 20px 30px"    -> [10, 20, 30, 20] (top horizontal bottom)
-     * - "10px 20px 30px 40px" -> [10, 20, 30, 40] (top right bottom left)
-     *
-     * @param value   Spacing value (single value or space-separated multiple values)
-     * @param context Android Context
-     * @return int array [top, right, bottom, left]
-     */
-    private static int[] parseSpacingValues(Object value, Context context) {
-        if (value == null) {
-            return new int[]{0, 0, 0, 0};
         }
 
-        String strValue = String.valueOf(value).trim();
-        Log.d(TAG, "parseSpacingValues: parsing '" + strValue + "'");
-
-        // Split by whitespace
-        String[] parts = strValue.split("\\s+");
-        int[] result = new int[4]; // [top, right, bottom, left]
-
-        switch (parts.length) {
-            case 1:
-                // 1 value: applies to all sides
-                int all = parseDimension(parts[0], context);
-                result[0] = result[1] = result[2] = result[3] = all;
-                Log.d(TAG, "parseSpacingValues: 1 value -> all=" + all);
-                break;
-
-            case 2:
-                // 2 values: first applies to top/bottom, second applies to left/right
-                int vertical = parseDimension(parts[0], context);
-                int horizontal = parseDimension(parts[1], context);
-                result[0] = result[2] = vertical;   // top, bottom
-                result[1] = result[3] = horizontal; // right, left
-                Log.d(TAG, "parseSpacingValues: 2 values -> vertical=" + vertical + ", horizontal=" + horizontal);
-                break;
-
-            case 3:
-                // 3 values: top, horizontal, bottom
-                result[0] = parseDimension(parts[0], context); // top
-                result[1] = result[3] = parseDimension(parts[1], context); // right, left
-                result[2] = parseDimension(parts[2], context); // bottom
-                Log.d(TAG, "parseSpacingValues: 3 values -> top=" + result[0] +
-                    ", horizontal=" + result[1] + ", bottom=" + result[2]);
-                break;
-
-            case 4:
-            default:
-                // 4 values: top, right, bottom, left
-                result[0] = parseDimension(parts[0], context); // top
-                result[1] = parseDimension(parts[1], context); // right
-                result[2] = parseDimension(parts[2], context); // bottom
-                result[3] = parseDimension(parts[3], context); // left
-                Log.d(TAG, "parseSpacingValues: 4 values -> top=" + result[0] +
-                    ", right=" + result[1] + ", bottom=" + result[2] + ", left=" + result[3]);
-                break;
-        }
-
+        sDimensionCache.put(cacheKey, result);
+        // Emit a single debug log per unique input. Repeated values reuse the cache without logging.
+        AGenUILogger.d(TAG, "parseDimension '" + strValue + "' -> " + result + "px");
         return result;
     }
 
@@ -510,59 +236,91 @@ public class StyleHelper {
 
 
     /**
-     * Applies background styles.
-     * Supports: background-color, background (background-image not yet supported).
+     * Applies background fill: solid color, gradient, or async image. Goes into the View's single
+     * background slot ({@link View#setBackground}), drawn at the bottom of the View. Rounding is
+     * handled separately by {@link #applyBorder} via outline clip — both can be called in any
+     * order; clipping happens at draw time.
+     *
+     * <p>Supports: background-color, background, background-image. No-op when none are present.
      */
-    public static void applyBackground(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applyBackground: view or properties is null");
+    public static void applyBackground(View view, Map<String, Object> styles) {
+        if (view == null || styles == null) {
             return;
         }
-
-        Log.d(TAG, "applyBackground: view=" + view.getClass().getSimpleName() + ", properties=" + properties);
-
-        // background-color
-        if (properties.containsKey("background-color")) {
-            int color = parseColor(properties.get("background-color"));
-            Log.d(TAG, "applyBackground: background-color=" + properties.get("background-color") + " -> #" + Integer.toHexString(color));
-            view.setBackgroundColor(color);
-        } else if (properties.containsKey("background")) {
-            // Simplified handling: apply if the background value is a color
-            int color = parseColor(properties.get("background"));
-            if (color != 0) {
-                Log.d(TAG, "applyBackground: background=" + properties.get("background") + " -> #" + Integer.toHexString(color));
-                view.setBackgroundColor(color);
-            }
-        } else if (properties.containsKey("background-image")) {
-            String imgUrl = StyleHelper.extractUrlsFromCss(String.valueOf(properties.get("background-image")));
-            if (imgUrl == null) {
-                return;
-            }
-
-            view.post(() -> {
-                final int width = view.getWidth();
-                final int height = view.getHeight();
-
-                Log.d(TAG, "applyBackground background-image"
-                        + ", url=" + imgUrl
-                        + ", view=" + view.getClass().getSimpleName()
-                        + ", width=" + width
-                        + ", height=" + height);
-
-                ImageLoaderConfig.getInstance().getLoader().loadImage(imgUrl, buildOptions(width, height), new ImageCallback() {
-                    @Override
-                    public void onSuccess(@NonNull ImageLoadResult result) {
-                        view.setBackground(result.drawable);
-                    }
-
-                    @Override
-                    public void onFailure(@NonNull ImageLoaderError error) {
-                        Log.w(TAG, "background-image load failed, url=" + imgUrl, error);
-                        view.setBackground(getErrorDrawable());
-                    }
-                });
-            });
+        boolean hasSyncBg = styles.containsKey("background-color") || styles.containsKey("background");
+        boolean hasAsyncBg = styles.containsKey("background-image");
+        if (!hasSyncBg && !hasAsyncBg) {
+            return;
         }
+        Drawable syncBg = hasSyncBg ? parseSyncBackgroundDrawable(styles, view.getContext()) : null;
+        if (hasAsyncBg) {
+            if (syncBg != null) {
+                view.setBackground(syncBg);
+            }
+            loadBackgroundImageAsync(view, styles, syncBg);
+        } else {
+            view.setBackground(syncBg);
+        }
+    }
+
+    /**
+     * Returns a Drawable for the {@code background-color} / {@code background} value, a
+     * transparent {@link ColorDrawable} when the value is present but unparseable (matches the
+     * legacy parse-failure fallback), or {@code null} when neither key is present.
+     */
+    private static Drawable parseSyncBackgroundDrawable(Map<String, Object> styles, Context ctx) {
+        Object raw = styles.containsKey("background-color")
+                ? styles.get("background-color")
+                : (styles.containsKey("background") ? styles.get("background") : null);
+        if (raw == null) {
+            return null;
+        }
+        String css = String.valueOf(raw).trim();
+        if (css.isEmpty()) {
+            return null;
+        }
+        ColorValue cv = AGenUI.nativeParseColor(css);
+        if (cv == null) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "applyBackground: native parse failed for: " + raw);
+            }
+            return new ColorDrawable(Color.TRANSPARENT);
+        }
+        if (cv.type == ColorValue.TYPE_GRADIENT && cv.gradient != null) {
+            return GradientDrawableFactory.build(cv.gradient, ctx);
+        }
+        return new ColorDrawable(cv.solidColor);
+    }
+
+    private static void loadBackgroundImageAsync(View view, Map<String, Object> styles,
+                                                   Drawable colorBg) {
+        String imgUrl = extractUrlsFromCss(String.valueOf(styles.get("background-image")));
+        if (imgUrl == null) {
+            return;
+        }
+        view.post(() -> {
+            int width = view.getWidth();
+            int height = view.getHeight();
+            ImageLoaderConfig.getInstance().getLoader().loadImage(imgUrl, buildOptions(width, height),
+                    new ImageCallback() {
+                        @Override
+                        public void onSuccess(@NonNull ImageLoadResult result) {
+                            if (colorBg != null) {
+                                view.setBackground(new LayerDrawable(
+                                        new Drawable[]{colorBg, result.drawable}));
+                            } else {
+                                view.setBackground(result.drawable);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(@NonNull ImageLoaderError error) {
+                            if (AGenUILogger.isLoggingEnabled()) {
+                                AGenUILogger.w(TAG, "background-image load failed, url=" + imgUrl, error);
+                            }
+                        }
+                    });
+        });
     }
 
     /**
@@ -576,60 +334,163 @@ public class StyleHelper {
         return options;
     }
 
-
     /**
-     * Applies border styles.
-     * Supports: border-radius, border-color, border-width.
-     * Note: border-style is not yet supported (Android limitation).
+     * Applies border styles. Two independent sub-mechanisms triggered by different keys:
+     *
+     * <pre>
+     *   border-radius                         → outline + clipToOutline
+     *                                           (rounds the View; clips bg AND content drawing)
+     *   border-width (+ border-color)         → stroke-only Drawable in ViewOverlay
+     *                                           (drawn ABOVE content, stays visible over an
+     *                                           ImageView's bitmap)
+     * </pre>
+     *
+     * The two share only the radius value — when both are present the overlay stroke is rounded
+     * to the same shape as the outline. {@code border-radius} alone produces a rounded box with
+     * no stroke; {@code border-width} alone produces a rectangular stroke.
+     *
+     * <p>Supports: border-radius, border-width, border-color. No-op when none are present.
      */
-    public static void applyBorder(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applyBorder: view or properties is null");
+    public static void applyBorder(View view, Map<String, Object> styles) {
+        if (view == null || styles == null) {
+            return;
+        }
+        boolean hasRadius = styles.containsKey("border-radius");
+        boolean hasStroke = styles.containsKey("border-width") || styles.containsKey("border-color");
+        if (!hasRadius && !hasStroke) {
             return;
         }
 
-        Log.d(TAG, "applyBorder: view=" + view.getClass().getSimpleName() + ", properties=" + properties);
-        Context context = view.getContext();
+        Context ctx = view.getContext();
+        int radiusPx = parseDimensionOrZero(styles.get("border-radius"), ctx);
+        int borderWidth = parseDimensionOrZero(styles.get("border-width"), ctx);
+        int borderColor = styles.containsKey("border-color")
+                ? parseColor(styles.get("border-color")) : Color.BLACK;
 
-        // Create a GradientDrawable to implement border effects
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.RECTANGLE);
+        applyOutlineRadiusClip(view, radiusPx);
+        applyBorderOverlay(view, borderWidth, borderColor, radiusPx);
+    }
 
-        boolean hasBorder = false;
+    /**
+     * {@link #parseDimension} returns MATCH_PARENT/WRAP_CONTENT (negative) for non-numeric tokens
+     * and 0 for missing values. Callers that only care about a positive pixel count want both
+     * normalized to 0.
+     */
+    private static int parseDimensionOrZero(Object value, Context ctx) {
+        if (value == null) return 0;
+        return Math.max(0, parseDimension(value, ctx));
+    }
 
-        // border-radius
-        if (properties.containsKey("border-radius")) {
-            int radius = parseDimension(properties.get("border-radius"), context);
-            Log.d(TAG, "applyBorder: border-radius=" + properties.get("border-radius") + " -> " + radius + "px");
-            drawable.setCornerRadius(radius);
-            hasBorder = true;
+    /**
+     * Installs a {@link ViewOutlineProvider} that rounds the view to {@code radiusPx} and turns
+     * on outline clipping, so the background drawable AND any child views are masked to the
+     * rounded shape. Resets to the default provider when {@code radiusPx <= 0}, which is
+     * required when an update removes a previous border-radius — otherwise stale rounding
+     * persists.
+     */
+    private static void applyOutlineRadiusClip(View view, int radiusPx) {
+        if (radiusPx <= 0) {
+            view.setClipToOutline(false);
+            view.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
+            return;
+        }
+        final float r = radiusPx;
+        view.setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View v, Outline outline) {
+                outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(), r);
+            }
+        });
+        view.setClipToOutline(true);
+    }
+
+    /**
+     * Adds (or removes) a stroke-only Drawable to the View's overlay so the border draws on top
+     * of the View's content — including an ImageView's bitmap. The drawable's bounds are kept in
+     * sync with the View via an {@link View.OnLayoutChangeListener}; both the drawable and the
+     * listener are stored on the View as a tag so a subsequent update can dispose of them
+     * cleanly (idempotent).
+     *
+     * <p>Pairs with {@link #applyOutlineRadiusClip}: the outline clip is what actually rounds
+     * the corners of this overlay drawable.
+     */
+    private static void applyBorderOverlay(View view, int borderWidth, int borderColor, int radiusPx) {
+        BorderOverlayState prev = (BorderOverlayState) view.getTag(R.id.agenui_border_overlay);
+        if (prev != null) {
+            view.getOverlay().remove(prev.drawable);
+            view.removeOnLayoutChangeListener(prev.listener);
+            view.setTag(R.id.agenui_border_overlay, null);
+        }
+        if (borderWidth <= 0) {
+            return;
         }
 
-        // border-width and border-color
-        if (properties.containsKey("border-width")) {
-            int width = parseDimension(properties.get("border-width"), context);
-            int color = Color.BLACK; // Default: black
+        // Respect color override if set (e.g. error state)
+        Object overrideTag = view.getTag(R.id.agenui_border_color_override);
+        int effectiveColor = (overrideTag instanceof Integer) ? (int) overrideTag : borderColor;
 
-            if (properties.containsKey("border-color")) {
-                color = parseColor(properties.get("border-color"));
-                Log.d(TAG, "applyBorder: border-color=" + properties.get("border-color") + " -> #" + Integer.toHexString(color));
-            }
-
-            Log.d(TAG, "applyBorder: border-width=" + properties.get("border-width") + " -> " + width + "px");
-            drawable.setStroke(width, color);
-            hasBorder = true;
+        final GradientDrawable stroke = new GradientDrawable();
+        stroke.setShape(GradientDrawable.RECTANGLE);
+        stroke.setColor(Color.TRANSPARENT);
+        stroke.setStroke(borderWidth, effectiveColor);
+        if (radiusPx > 0) {
+            stroke.setCornerRadius(radiusPx);
         }
+        stroke.setBounds(0, 0, view.getWidth(), view.getHeight());
+        view.getOverlay().add(stroke);
 
-        // If border styles are present, apply them to the View
-        if (hasBorder) {
-            // Preserve the original background color
-            if (properties.containsKey("background-color")) {
-                int bgColor = parseColor(properties.get("background-color"));
-                Log.d(TAG, "applyBorder: setting background-color on drawable -> #" + Integer.toHexString(bgColor));
-                drawable.setColor(bgColor);
-            }
-            Log.d(TAG, "applyBorder: applying GradientDrawable to view");
-            view.setBackground(drawable);
+        View.OnLayoutChangeListener listener = (v, l, t, r, b, ol, ot, or, ob) ->
+                stroke.setBounds(0, 0, r - l, b - t);
+        view.addOnLayoutChangeListener(listener);
+
+        view.setTag(R.id.agenui_border_overlay, new BorderOverlayState(stroke, borderWidth, radiusPx, listener));
+    }
+
+    /**
+     * Sets a border color override on the view. The override takes precedence over the
+     * style-defined border-color whenever applyBorder is called, and also immediately
+     * updates the current overlay if one exists.
+     */
+    public static void setBorderColorOverride(View view, int color) {
+        if (view == null) return;
+        view.setTag(R.id.agenui_border_color_override, color);
+        // Immediately update existing overlay
+        BorderOverlayState state = (BorderOverlayState) view.getTag(R.id.agenui_border_overlay);
+        if (state != null && state.drawable instanceof GradientDrawable) {
+            ((GradientDrawable) state.drawable).setStroke(state.borderWidth, color);
+        }
+    }
+
+    /**
+     * Clears the border color override, restoring the style-defined border-color.
+     * Immediately updates the existing overlay if one exists.
+     */
+    public static void clearBorderColorOverride(View view) {
+        if (view == null) return;
+        view.setTag(R.id.agenui_border_color_override, null);
+        // Re-apply border from scratch to restore original color
+        BorderOverlayState state = (BorderOverlayState) view.getTag(R.id.agenui_border_overlay);
+        if (state != null && state.drawable instanceof GradientDrawable) {
+            // We don't store the original color here; trigger a full re-apply via the stored dimensions.
+            // The caller should call applyBorder after clearing if they want the original color back.
+            // For immediate visual feedback, we leave the overlay as-is; the next applyBorder cycle
+            // (from updateProperties) will restore it.
+        }
+    }
+
+    /** Pairs the overlay drawable with its layout listener for clean teardown on re-apply. */
+    private static final class BorderOverlayState {
+        final Drawable drawable;
+        final int borderWidth;
+        final int radiusPx;
+        final View.OnLayoutChangeListener listener;
+
+        BorderOverlayState(Drawable drawable, int borderWidth, int radiusPx,
+                           View.OnLayoutChangeListener listener) {
+            this.drawable = drawable;
+            this.borderWidth = borderWidth;
+            this.radiusPx = radiusPx;
+            this.listener = listener;
         }
     }
 
@@ -684,10 +545,11 @@ public class StyleHelper {
                                 parent.setClipToPadding(false);
                             }
 
-                            Log.d(TAG, "applyFilter: drop-shadow applied - dx=" + dx + ", dy=" + dy + ", radius=" + radius);
                         }
                     } catch (Exception e) {
-                        Log.w(TAG, "Failed to parse drop-shadow: " + filter, e);
+                        if (AGenUILogger.isLoggingEnabled()) {
+                            AGenUILogger.w(TAG, "Failed to parse drop-shadow: " + filter, e);
+                        }
                     }
                 }
             }
@@ -698,7 +560,7 @@ public class StyleHelper {
      * Parses a dimension value as a float (used for shadow offsets, etc.).
      * Note: the px unit is converted following dp conversion rules.
      */
-    private static float parseDimensionFloat(String value, Context context) {
+    public static float parseDimensionFloat(String value, Context context) {
         if (value == null || value.isEmpty()) return 0f;
 
         value = value.trim().toLowerCase();
@@ -712,273 +574,11 @@ public class StyleHelper {
                 return standardUnitToPx(context, Float.parseFloat(value));
             }
         } catch (NumberFormatException e) {
-            Log.w(TAG, "Failed to parse dimension float: " + value, e);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Failed to parse dimension float: " + value, e);
+            }
             return 0f;
         }
-    }
-
-
-    /**
-     * Applies aspect-ratio styles.
-     * Supports: aspect-ratio.
-     * Note: requires a custom View or ConstraintLayout.
-     */
-    public static void applyAspectRatio(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) return;
-
-        // Implementing aspect-ratio requires a custom View or ConstraintLayout;
-        // left unimplemented here for future extension.
-    }
-
-    /**
-     * Parses an aspect ratio value.
-     * Supported formats: "16:9", "16/9", "1.78", 1.78.
-     *
-     * @param value Aspect ratio value
-     * @return Ratio (width/height); returns 0 if parsing fails
-     */
-    public static float parseAspectRatio(Object value) {
-        if (value == null) {
-            Log.d(TAG, "parseAspectRatio: value is null, returning 0");
-            return 0f;
-        }
-
-        String strValue = String.valueOf(value).trim();
-        Log.d(TAG, "parseAspectRatio: parsing '" + strValue + "'");
-
-        try {
-            // Supports "16:9" format
-            if (strValue.contains(":")) {
-                String[] parts = strValue.split(":");
-                float width = Float.parseFloat(parts[0].trim());
-                float height = Float.parseFloat(parts[1].trim());
-                float ratio = width / height;
-                Log.d(TAG, "parseAspectRatio: '" + strValue + "' -> " + ratio);
-                return ratio;
-            }
-
-            // Supports "16/9" format
-            if (strValue.contains("/")) {
-                String[] parts = strValue.split("/");
-                float width = Float.parseFloat(parts[0].trim());
-                float height = Float.parseFloat(parts[1].trim());
-                float ratio = width / height;
-                Log.d(TAG, "parseAspectRatio: '" + strValue + "' -> " + ratio);
-                return ratio;
-            }
-
-            // Supports a direct numeric value such as "1.78" or 1.78
-            float ratio = Float.parseFloat(strValue);
-            Log.d(TAG, "parseAspectRatio: '" + strValue + "' (direct number) -> " + ratio);
-            return ratio;
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to parse aspect-ratio: " + value, e);
-            return 0f;
-        }
-    }
-
-
-    /**
-     * Applies Flexbox container styles.
-     * Supports: flex-direction, justify-content, align-items, flex-wrap, align-content.
-     */
-    public static void applyFlexContainer(ViewGroup viewGroup, Map<String, Object> properties) {
-        if (!(viewGroup instanceof FlexContainerLayout)) return;
-
-        Log.d(TAG, "applyFlexContainer: viewGroup=" + viewGroup.getClass().getSimpleName() + ", properties=" + properties);
-
-        FlexboxLayout flexbox = ((FlexContainerLayout) viewGroup).getFlexboxLayout();
-
-        // flex-wrap
-        if (properties.containsKey("flex-wrap")) {
-            String wrap = String.valueOf(properties.get("flex-wrap")).toLowerCase();
-            switch (wrap) {
-                case "nowrap":
-                    flexbox.setFlexWrap(FlexWrap.NOWRAP);
-                    break;
-                case "wrap":
-                    flexbox.setFlexWrap(FlexWrap.WRAP);
-                    break;
-                case "wrap-reverse":
-                    flexbox.setFlexWrap(FlexWrap.WRAP_REVERSE);
-                    break;
-            }
-        }
-
-        // align-content (multi-line alignment)
-        // todo: setting alignContent in FlexboxLayout is complex; not yet implemented
-    }
-
-    /**
-     * Applies Flexbox child element styles.
-     * Supports: align-self, flex-grow, flex-shrink, flex-basis.
-     */
-    public static void applyFlexChild(FlexboxLayout.LayoutParams params, Map<String, Object> properties) {
-        if (params == null || properties == null) {
-            Log.d(TAG, "applyFlexChild: params or properties is null");
-            return;
-        }
-
-        Log.d(TAG, "applyFlexChild: properties=" + properties);
-
-        // flex-grow
-        if (properties.containsKey("flex-grow")) {
-            float grow = parseFloat(properties.get("flex-grow"));
-            params.setFlexGrow(grow);
-            Log.d(TAG, "applyFlexChild: flex-grow=" + properties.get("flex-grow") + " -> " + grow);
-        }
-
-        // flex-shrink
-        if (properties.containsKey("flex-shrink")) {
-            float shrink = parseFloat(properties.get("flex-shrink"));
-            params.setFlexShrink(shrink);
-            Log.d(TAG, "applyFlexChild: flex-shrink=" + properties.get("flex-shrink") + " -> " + shrink);
-        }
-
-        // flex-basis
-        if (properties.containsKey("flex-basis")) {
-            // flex-basis can be a length value or a percentage.
-            // Simplified handling: use flexBasisPercent.
-            String basis = String.valueOf(properties.get("flex-basis"));
-            if (basis.endsWith("%")) {
-                float percent = Float.parseFloat(basis.replace("%", "")) / 100f;
-                params.setFlexBasisPercent(percent);
-                Log.d(TAG, "applyFlexChild: flex-basis=" + basis + " -> " + percent + " (percent)");
-            } else {
-                Log.d(TAG, "applyFlexChild: flex-basis=" + basis + " (not percentage, skipped)");
-            }
-        }
-
-        // align-self
-        if (properties.containsKey("align-self")) {
-            String alignSelf = String.valueOf(properties.get("align-self")).toLowerCase();
-            int alignSelfValue = parseAlignSelf(alignSelf);
-            params.setAlignSelf(alignSelfValue);
-            Log.d(TAG, "applyFlexChild: align-self=" + alignSelf + " -> " + alignSelfValue);
-        }
-
-        Log.d(TAG, "applyFlexChild: completed - flexGrow=" + params.getFlexGrow() +
-                ", flexShrink=" + params.getFlexShrink() +
-                ", flexBasisPercent=" + params.getFlexBasisPercent() +
-                          ", alignSelf=" + params.getAlignSelf());
-    }
-
-
-    /**
-     * Applies positioning styles.
-     * Supports: position: absolute, inset-inline-start/end, inset-block-start/end.
-     *
-     * Note:
-     * - Internally checks whether position is "absolute".
-     * - If absolute, automatically creates and sets ConstraintLayout.LayoutParams (overriding any previous LayoutParams).
-     * - Supports stretching when all four directions are set simultaneously.
-     * - If not absolute, no action is taken.
-     *
-     * @param view       View to apply positioning to
-     * @param properties Style properties
-     */
-    public static void applyPosition(View view, Map<String, Object> properties) {
-        if (view == null || properties == null) {
-            Log.d(TAG, "applyPosition: view or properties is null");
-            return;
-        }
-
-        // Internal check: only handle position: absolute
-        if (!properties.containsKey("position")) {
-            return;
-        }
-
-        String position = String.valueOf(properties.get("position")).toLowerCase();
-        if (!position.equals("absolute")) {
-            Log.d(TAG, "applyPosition: position=" + position + " (not absolute, skipped)");
-            return;
-        }
-
-        Log.d(TAG, "applyPosition: applying absolute positioning with ConstraintLayout");
-        Context context = view.getContext();
-
-        // Create ConstraintLayout.LayoutParams (overrides any previous LayoutParams)
-        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams params =
-                new androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
-                        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT,
-                        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT
-                );
-
-        // Parse offset values (prefer new properties, fall back to legacy ones)
-        Integer top = null;
-        if (properties.containsKey("inset-block-start")) {
-            top = parseDimension(properties.get("inset-block-start"), context);
-        } else if (properties.containsKey("top")) {
-            top = parseDimension(properties.get("top"), context);
-        }
-
-        Integer bottom = null;
-        if (properties.containsKey("inset-block-end")) {
-            bottom = parseDimension(properties.get("inset-block-end"), context);
-        } else if (properties.containsKey("bottom")) {
-            bottom = parseDimension(properties.get("bottom"), context);
-        }
-
-        Integer left = null;
-        if (properties.containsKey("inset-inline-start")) {
-            left = parseDimension(properties.get("inset-inline-start"), context);
-        } else if (properties.containsKey("left")) {
-            left = parseDimension(properties.get("left"), context);
-        }
-
-        Integer right = null;
-        if (properties.containsKey("inset-inline-end")) {
-            right = parseDimension(properties.get("inset-inline-end"), context);
-        } else if (properties.containsKey("right")) {
-            right = parseDimension(properties.get("right"), context);
-        }
-
-        // Default value: if no direction is set, default to top-left corner (0, 0)
-        boolean hasAnyPosition = (left != null || top != null || right != null || bottom != null);
-        if (!hasAnyPosition) {
-            left = 0;
-            top = 0;
-            Log.d(TAG, "applyPosition: no position set, using default left=0, top=0");
-        }
-
-        // Set constraints relative to the parent
-        if (left != null) {
-            params.leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.leftMargin = left;
-            Log.d(TAG, "applyPosition: leftToLeft=PARENT, leftMargin=" + left);
-        }
-        if (top != null) {
-            params.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.topMargin = top;
-            Log.d(TAG, "applyPosition: topToTop=PARENT, topMargin=" + top);
-        }
-        if (right != null) {
-            params.rightToRight = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.rightMargin = right;
-            Log.d(TAG, "applyPosition: rightToRight=PARENT, rightMargin=" + right);
-        }
-        if (bottom != null) {
-            params.bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
-            params.bottomMargin = bottom;
-            Log.d(TAG, "applyPosition: bottomToBottom=PARENT, bottomMargin=" + bottom);
-        }
-
-        // If both horizontal directions are set, use MATCH_CONSTRAINT to stretch
-        if (left != null && right != null) {
-            params.width = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.MATCH_CONSTRAINT;
-            Log.d(TAG, "applyPosition: both left and right set, width=MATCH_CONSTRAINT");
-        }
-
-        // If both vertical directions are set, use MATCH_CONSTRAINT to stretch
-        if (top != null && bottom != null) {
-            params.height = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.MATCH_CONSTRAINT;
-            Log.d(TAG, "applyPosition: both top and bottom set, height=MATCH_CONSTRAINT");
-        }
-
-        // Set LayoutParams (overrides any previous LayoutParams)
-        view.setLayoutParams(params);
-
-        Log.d(TAG, "applyPosition: absolute positioning applied with ConstraintLayout.LayoutParams");
     }
 
 
@@ -989,15 +589,25 @@ public class StyleHelper {
     public static void applyOverflow(ViewGroup viewGroup, Map<String, Object> properties) {
         if (viewGroup == null || properties == null) return;
 
-        Log.d(TAG, "applyOverflow: viewGroup=" + viewGroup.getClass().getSimpleName() + ", properties=" + properties);
-
         if (properties.containsKey("overflow")) {
             String overflow = String.valueOf(properties.get("overflow")).toLowerCase();
-            Log.d(TAG, "applyOverflow: overflow=" + overflow);
             switch (overflow) {
                 case "hidden":
                     viewGroup.setClipChildren(true);
                     viewGroup.setClipToPadding(true);
+                    if (properties.containsKey("border-radius")) {
+                        final int radiusPx = parseDimension(properties.get("border-radius"),
+                                viewGroup.getContext());
+                        if (radiusPx > 0) {
+                            viewGroup.setOutlineProvider(new ViewOutlineProvider() {
+                                @Override
+                                public void getOutline(View v, Outline outline) {
+                                    outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(), radiusPx);
+                                }
+                            });
+                            viewGroup.setClipToOutline(true);
+                        }
+                    }
                     break;
                 case "visible":
                     viewGroup.setClipChildren(false);
@@ -1013,18 +623,6 @@ public class StyleHelper {
 
 
     /**
-     * todo: Applies gap styles — not yet supported.
-     * Supports: gap (spacing between Flexbox children).
-     * Note: FlexboxLayout does not directly support gap; it must be simulated via margin.
-     */
-    public static void applyGap(ViewGroup viewGroup, Map<String, Object> properties) {
-        // FlexboxLayout does not directly support the gap property.
-        // It needs to be simulated by setting margin on child Views when they are added.
-        // Left unimplemented here for future extension.
-    }
-
-
-    /**
      * Applies text styles to a TextView.
      * Supports all style properties of TextComponent.
      *
@@ -1032,12 +630,11 @@ public class StyleHelper {
      * @param styles   Style property map
      * @param context  Android Context
      */
+    @SuppressLint("WrongConstant")
     public static void applyTextStyles(TextView textView, Map<String, Object> styles, Context context) {
         if (textView == null || styles == null || styles.isEmpty()) {
             return;
         }
-
-        Log.d(TAG, "applyTextStyles: applying styles to TextView");
 
         // 1. Handle font-related properties (Typeface must be composed together)
         Typeface currentTypeface = textView.getTypeface();
@@ -1049,16 +646,11 @@ public class StyleHelper {
             baseTypeface = parseFontFamily(fontFamilyValue, context);
         }
 
-        // font-weight: weight handling (only "bold" is supported)
+        // font-weight: supports "bold", "normal", or numeric (>=500 is bold)
         if (styles.containsKey("font-weight")) {
             Object fontWeightValue = styles.get("font-weight");
             String fontWeight = String.valueOf(fontWeightValue).trim().toLowerCase();
-
-            if (fontWeight.equals("bold")) {
-                textView.setTypeface(baseTypeface, Typeface.BOLD);
-            } else {
-                textView.setTypeface(baseTypeface, Typeface.NORMAL);
-            }
+            textView.setTypeface(baseTypeface, isBoldWeight(fontWeight) ? Typeface.BOLD : Typeface.NORMAL);
         } else if (styles.containsKey("font-family")) {
             // Only font-family is set, no weight
             textView.setTypeface(baseTypeface);
@@ -1093,24 +685,41 @@ public class StyleHelper {
         }
 
         // 4. line-height: line height (supports multiplier or pixel value)
+        //
+        // W3C semantics: the line box height equals `multiplier * font-size` (or the px value
+        // directly). The glyph "content area" is centered in the line box, so the first line
+        // has a half-leading gap above and the last line has a half-leading gap below.
+        //
+        // `TextView.setLineSpacing(add, mult)` does NOT match this semantics — `add` is piled
+        // on top of every non-first line, leaving the glyph flush with the line-box top and the
+        // first/last lines without any padding. Visually this makes Android's line gap look
+        // larger than Harmony (ArkUI's NODE_TEXT_LINE_HEIGHT is W3C-compliant) and iOS.
+        //
+        // Instead we apply a `LineHeightSpan` that redistributes the extra space evenly between
+        // ascent and descent on EVERY line, producing the same centered layout as Harmony/iOS.
         if (styles.containsKey("line-height")) {
             Object lineHeightValue = styles.get("line-height");
             String lineHeightStr = String.valueOf(lineHeightValue).trim().toLowerCase();
 
-            // Check first whether it is a plain number (multiplier)
+            int targetLineHeightPx = 0;
             if (lineHeightStr.matches("^\\d+(\\.\\d+)?$")) {
-                // Syntax 1: line-height:0.5; — 0.5x the normal line height
+                // Syntax 1: line-height:2.0; — multiplier of font-size
                 float multiplier = Float.parseFloat(lineHeightStr);
-                textView.setLineSpacing(0, multiplier);
+                if (multiplier > 0f) {
+                    targetLineHeightPx = Math.round(multiplier * textView.getTextSize());
+                }
             } else if (lineHeightStr.endsWith("px")) {
                 // Syntax 2: line-height:10px; — explicit line height value
-                // (Note: multi-line scenarios are not supported; a multiplier must be used instead)
-                int lineHeightPx = parseDimension(lineHeightValue, context);
-                if (lineHeightPx > 0) {
-                    float currentTextSize = textView.getTextSize();
-                    float extraSpacing = lineHeightPx - currentTextSize;
-                    textView.setLineSpacing(extraSpacing, 1.0f);
+                int parsedPx = parseDimension(lineHeightValue, context);
+                if (parsedPx > 0) {
+                    targetLineHeightPx = parsedPx;
                 }
+            }
+
+            if (targetLineHeightPx > 0) {
+                // Reset any legacy line-spacing tweaks so the span is the sole source of truth.
+                textView.setLineSpacing(0f, 1.0f);
+                applyCenteredLineHeight(textView, targetLineHeightPx);
             }
         }
 
@@ -1126,6 +735,13 @@ public class StyleHelper {
             }
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Keep Android wrapping closer to iOS/Harmony by using greedy line breaking
+            // instead of the platform's balanced/high-quality strategy.
+            textView.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
+            textView.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE);
+        }
+
         // 6. text-overflow: text overflow handling
         if (styles.containsKey("text-overflow")) {
             Object textOverflowValue = styles.get("text-overflow");
@@ -1136,8 +752,8 @@ public class StyleHelper {
 
             switch (textOverflow) {
                 case "ellipsis":
-                    // ellipsis is treated as clip if line-clamp=1 is not set
-                    if (currentMaxLines == 1) {
+                    // Android TextView supports TruncateAt.END for any maxLines > 0
+                    if (currentMaxLines > 0 && currentMaxLines < Integer.MAX_VALUE) {
                         textView.setEllipsize(TextUtils.TruncateAt.END);
                     } else {
                         textView.setEllipsize(null);
@@ -1174,6 +790,176 @@ public class StyleHelper {
 
         // 8. Text decoration properties (text-decoration series)
         applyTextDecoration(textView, styles, context);
+
+        // 8b. CSS padding -> TextView.setPadding
+        // Yoga has already accounted for `padding` in the leaf node's layout box
+        // (the TextView's final width/height is the borderBox), but TextView by
+        // default renders glyphs across the entire box. Translating the CSS
+        // padding to `TextView.setPadding(...)` lets the glyph area shrink to
+        // the contentBox so it lines up with what Yoga gave to the measureFunc.
+        // setPadding does NOT change the view's outer size, so this is not a
+        // double-count with Yoga's padding.
+        applyTextPadding(textView, styles, context);
+
+        // 9. filter: drop-shadow -> TextView.setShadowLayer
+        // setShadowLayer is the correct API for text shadow on Android;
+        // it requires a software layer to render properly.
+        if (styles.containsKey("filter")) {
+            String filter = String.valueOf(styles.get("filter")).trim();
+            if (filter.startsWith("drop-shadow(")) {
+                try {
+                    String params = filter.substring(12, filter.length() - 1).trim();
+                    // Split on whitespace but keep rgba(...) intact by using a smarter split.
+                    // Strategy: tokenise by spaces, then re-join rgba tokens.
+                    String[] rawParts = params.split("\\s+");
+                    // Collect numeric length tokens (offsetX, offsetY, blur) then color.
+                    java.util.List<String> lengthTokens = new java.util.ArrayList<>();
+                    StringBuilder colorBuilder = new StringBuilder();
+                    for (String part : rawParts) {
+                        if (part.endsWith("px") || part.matches("-?\\d+(\\.\\d+)?")) {
+                            lengthTokens.add(part);
+                        } else {
+                            if (colorBuilder.length() > 0) colorBuilder.append(' ');
+                            colorBuilder.append(part);
+                        }
+                    }
+                    if (lengthTokens.size() >= 3) {
+                        float dx = parseDimensionFloat(lengthTokens.get(0), context);
+                        float dy = parseDimensionFloat(lengthTokens.get(1), context);
+                        float radius = parseDimensionFloat(lengthTokens.get(2), context);
+                        String colorStr = colorBuilder.toString().trim();
+                        int shadowColor = colorStr.isEmpty() ? Color.BLACK : parseColor(colorStr);
+                        textView.setShadowLayer(radius, dx, dy, shadowColor);
+                        textView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+                    }
+                } catch (Exception e) {
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.w(TAG, "Failed to parse drop-shadow for TextView: " + filter, e);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Applies CSS `padding` (and the four physical sub-properties) to a TextView.
+     *
+     * Supports the same shorthand grammar as W3C CSS:
+     *   - 1 value : all four sides
+     *   - 2 values: vertical | horizontal
+     *   - 3 values: top | horizontal | bottom
+     *   - 4 values: top | right | bottom | left
+     *
+     * Per-side overrides (`padding-top` / `padding-right` / `padding-bottom` /
+     * `padding-left`) take precedence over the shorthand value.  Each token is
+     * parsed via {@link #parseDimension(Object, Context)} so dp conversion
+     * matches the rest of the engine.
+     *
+     * NOTE: Yoga's `padding` already shapes the leaf TextView's borderBox; this
+     * method only narrows the glyph area inside that borderBox so the rendered
+     * text stops at the contentBox.  See applyTextStyles step 8b for context.
+     *
+     * @param textView Target TextView
+     * @param styles   Style map
+     * @param context  Android Context (required for dp conversion)
+     */
+    private static void applyTextPadding(TextView textView, Map<String, Object> styles, Context context) {
+        applyCSSPadding(textView, styles, context);
+    }
+
+    /**
+     * Apply CSS `padding` (and `padding-top/right/bottom/left` overrides) to
+     * any leaf-style {@link View} via {@link View#setPadding(int, int, int, int)}.
+     *
+     * <p>Used by Text/Image/Button (and any other leaf component whose native
+     * draw area defaults to filling the entire frame). The C++ Yoga engine
+     * has already accounted for padding when sizing the leaf's borderBox, so
+     * this call is what actually shrinks the rendered content (glyph /
+     * bitmap / Stack-centered child) into the contentBox. setPadding does
+     * NOT change the view's outer size, so this is not a double-count with
+     * Yoga.
+     *
+     * <p>Supports W3C 1/2/3/4-component shorthand and the four single-edge
+     * overrides. When no padding key is present in {@code styles}, the
+     * existing padding on the view is left untouched.
+     */
+    public static void applyCSSPadding(View view, Map<String, Object> styles, Context context) {
+        if (view == null || styles == null || styles.isEmpty()) {
+            return;
+        }
+
+        // Defaults: keep whatever the view already has if no padding style
+        // is supplied at all (callers may have set per-side padding manually).
+        int topPx    = view.getPaddingTop();
+        int rightPx  = view.getPaddingRight();
+        int bottomPx = view.getPaddingBottom();
+        int leftPx   = view.getPaddingLeft();
+
+        boolean anyPaddingPresent = false;
+
+        if (styles.containsKey("padding")) {
+            String shorthand = String.valueOf(styles.get("padding")).trim();
+            if (!shorthand.isEmpty() && !shorthand.equalsIgnoreCase("null")) {
+                EdgeInsetsValue insets = AGenUI.nativeParseEdgeInsets(shorthand);
+                if (insets != null) {
+                    topPx    = resolveSidePx(insets.top,    context);
+                    rightPx  = resolveSidePx(insets.right,  context);
+                    bottomPx = resolveSidePx(insets.bottom, context);
+                    leftPx   = resolveSidePx(insets.left,   context);
+                    anyPaddingPresent = true;
+                }
+            }
+        }
+
+        if (styles.containsKey("padding-top")) {
+            topPx = parseDimension(styles.get("padding-top"), context);
+            anyPaddingPresent = true;
+        }
+        if (styles.containsKey("padding-right")) {
+            rightPx = parseDimension(styles.get("padding-right"), context);
+            anyPaddingPresent = true;
+        }
+        if (styles.containsKey("padding-bottom")) {
+            bottomPx = parseDimension(styles.get("padding-bottom"), context);
+            anyPaddingPresent = true;
+        }
+        if (styles.containsKey("padding-left")) {
+            leftPx = parseDimension(styles.get("padding-left"), context);
+            anyPaddingPresent = true;
+        }
+
+        if (!anyPaddingPresent) {
+            return;
+        }
+
+        // Guard against parseDimension returning negative sentinel values such as
+        // ViewGroup.LayoutParams.WRAP_CONTENT (-2) when the source value is
+        // "auto" or otherwise unparsable; treat those as zero to avoid setting
+        // a negative padding which Android silently clamps to 0 anyway.
+        if (topPx    < 0) topPx    = 0;
+        if (rightPx  < 0) rightPx  = 0;
+        if (bottomPx < 0) bottomPx = 0;
+        if (leftPx   < 0) leftPx   = 0;
+
+        view.setPadding(leftPx, topPx, rightPx, bottomPx);
+    }
+
+    /**
+     * Resolve a single edge value parsed by {@link AGenUI#nativeParseEdgeInsets}
+     * into absolute pixels. Only {@code px} (and unitless, which the C++ parser
+     * normalizes to px) is honored — every other unit collapses to 0. The
+     * cross-platform render layer intentionally only consumes px so that the
+     * three platforms stay byte-for-byte aligned without dragging viewport,
+     * font-size, or physical-unit machinery into platform code.
+     */
+    private static int resolveSidePx(EdgeInsetsValue.EdgeInsetSide side, Context ctx) {
+        if (side == null || side.isCalc) {
+            return 0;
+        }
+        if (side.unit == EdgeInsetsValue.EdgeInsetSide.UNIT_PX) {
+            return standardUnitToPx(ctx, side.value);
+        }
+        return 0;
     }
 
     /**
@@ -1228,7 +1014,9 @@ public class StyleHelper {
         }
 
         // 4. Parse decoration line parameters
-        int color = parseColor(decorationColor);
+        // When text-decoration-color is not specified, fall back to the text color so
+        // the decoration line is always visible (Color.TRANSPARENT would be invisible).
+        int color = (decorationColor != null) ? parseColor(decorationColor) : textView.getCurrentTextColor();
         int thickness = parseDimension(decorationThickness, context);
         if (thickness <= 0) {
             thickness = 1; // Default: 1px
@@ -1321,7 +1109,7 @@ public class StyleHelper {
      * @param context Android Context
      * @return Typeface
      */
-    private static Typeface parseFontFamily(Object value, Context context) {
+    public static Typeface parseFontFamily(Object value, Context context) {
         if (value == null) {
             return Typeface.DEFAULT;
         }
@@ -1420,66 +1208,48 @@ public class StyleHelper {
         return (int) dipValue;
     }
 
+    public static float pxToA2ui(Context context, float value) {
+        if (context == null) {
+            return value;
+        }
+        float density = context.getResources().getDisplayMetrics().density;
+        if (density <= 0f) {
+            return value;
+        }
+        return value / density * 2f;
+    }
+
     /**
-     * Parses a color value.
-     * Supports: #RRGGBB, #RRGGBBAA, rgba(r,g,b,a).
+     * Parses a CSS color string into an ARGB int. Delegates to the shared native
+     * ColorParser ({@link AGenUI#nativeParseColor}) so Android matches iOS / Harmony
+     * for the full CSS grammar (named colors, #RGB shorthand, hsl/hsla, etc.).
+     *
+     * <p>Returns {@link Color#TRANSPARENT} for null/empty input, parse failure,
+     * or values that can't be expressed as a single int (gradients, currentColor).
      */
     public static int parseColor(Object value) {
         if (value == null) {
-            Log.d(TAG, "parseColor: value is null, returning TRANSPARENT");
+            return Color.TRANSPARENT;
+        }
+        String css = String.valueOf(value).trim();
+        if (css.isEmpty()) {
             return Color.TRANSPARENT;
         }
 
-        String strValue = String.valueOf(value).trim();
-        Log.d(TAG, "parseColor: parsing '" + strValue + "'");
-
-        try {
-            // Hex color
-            if (strValue.startsWith("#")) {
-                // If it is an 8-digit hex (#RRGGBBAA), convert to Android's #AARRGGBB format
-                if (strValue.length() == 9) {
-                    // Extract RR GG BB AA
-                    String rr = strValue.substring(1, 3);
-                    String gg = strValue.substring(3, 5);
-                    String bb = strValue.substring(5, 7);
-                    String aa = strValue.substring(7, 9);
-                    // Reassemble as #AARRGGBB
-                    strValue = "#" + aa + rr + gg + bb;
-                    Log.d(TAG, "parseColor: converted #RRGGBBAA to #AARRGGBB: " + strValue);
-                }
-                int color = Color.parseColor(strValue);
-                Log.d(TAG, "parseColor: hex color '" + strValue + "' -> #" + Integer.toHexString(color));
-                return color;
+        ColorValue cv = AGenUI.nativeParseColor(css);
+        if (cv == null) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "parseColor: native parse failed for: " + css);
             }
-
-            // rgba color
-            if (strValue.startsWith("rgba(")) {
-                String[] parts = strValue.substring(5, strValue.length() - 1).split(",");
-                int r = Integer.parseInt(parts[0].trim());
-                int g = Integer.parseInt(parts[1].trim());
-                int b = Integer.parseInt(parts[2].trim());
-                float a = Float.parseFloat(parts[3].trim());
-                int color = Color.argb((int) (a * 255), r, g, b);
-                Log.d(TAG, "parseColor: rgba color -> #" + Integer.toHexString(color));
-                return color;
-            }
-
-            // rgb color
-            if (strValue.startsWith("rgb(")) {
-                String[] parts = strValue.substring(4, strValue.length() - 1).split(",");
-                int r = Integer.parseInt(parts[0].trim());
-                int g = Integer.parseInt(parts[1].trim());
-                int b = Integer.parseInt(parts[2].trim());
-                int color = Color.rgb(r, g, b);
-                Log.d(TAG, "parseColor: rgb color -> #" + Integer.toHexString(color));
-                return color;
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to parse color: " + value, e);
+            return Color.TRANSPARENT;
         }
-
-        Log.w(TAG, "parseColor: unrecognized format '" + strValue + "', returning TRANSPARENT");
-        return Color.TRANSPARENT;
+        if (cv.type == ColorValue.TYPE_GRADIENT) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "parseColor: gradient not representable as int: " + css);
+            }
+            return Color.TRANSPARENT;
+        }
+        return cv.solidColor;
     }
 
     /**
@@ -1494,270 +1264,251 @@ public class StyleHelper {
             }
             return Float.parseFloat(String.valueOf(value));
         } catch (NumberFormatException e) {
-            Log.w(TAG, "Failed to parse float: " + value, e);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Failed to parse float: " + value, e);
+            }
             return 0f;
         }
     }
 
-    /**
-     * Parses an align-self value.
-     */
-    private static int parseAlignSelf(String value) {
-        switch (value) {
-            case "center":
-                return AlignSelf.CENTER;
-            case "flex-end":
-            case "end":
-                return AlignSelf.FLEX_END;
-            case "stretch":
-                return AlignSelf.STRETCH;
-            case "baseline":
-                return AlignSelf.BASELINE;
-            case "flex-start":
-            case "start":
-            default:
-                return AlignSelf.FLEX_START;
-        }
-    }
+   /**
+    * Returns the resource ID for a standard icon.
+    * <p>
+    * Maps A2UI v0.9 standard icons to Lucide Icons (46 high-quality SVG icons),
+    * listed in the order defined by the A2UI catalog.
+    * <p>
+    * Note: the following 11 media control icons are not implemented:
+    * fastForward, pause, play, rewind, skipNext, skipPrevious, stop,
+    * volumeDown, volumeMute, volumeOff, volumeUp.
+    *
+    * @param iconName Icon name (case-insensitive)
+    * @return Icon resource ID; returns the default icon if not found
+    */
+   public static int getIconResourceId(String iconName) {
+       if (iconName == null) {
+           return R.drawable.ic_circle_question_mark;
+       }
 
-    /**
-     * Returns the resource ID for a standard icon.
-     * <p>
-     * Maps A2UI v0.9 standard icons to Lucide Icons (46 high-quality SVG icons),
-     * listed in the order defined by the A2UI catalog.
-     * <p>
-     * Note: the following 11 media control icons are not implemented:
-     * fastForward, pause, play, rewind, skipNext, skipPrevious, stop,
-     * volumeDown, volumeMute, volumeOff, volumeUp.
-     *
-     * @param iconName Icon name (case-insensitive)
-     * @return Icon resource ID; returns the default icon if not found
-     */
-    public static int getIconResourceId(String iconName) {
-        if (iconName == null) {
-            return R.drawable.ic_circle_question_mark;
-        }
+       switch (iconName.toLowerCase()) {
+           // 1. accountCircle
+           case "accountcircle":
+               return R.drawable.ic_circle_user;
 
-        switch (iconName.toLowerCase()) {
-            // 1. accountCircle
-            case "accountcircle":
-                return R.drawable.ic_circle_user;
+           // 2. add
+           case "add":
+               return R.drawable.ic_plus;
 
-            // 2. add
-            case "add":
-                return R.drawable.ic_plus;
+           // 3. arrowBack
+           case "arrowback":
+               return R.drawable.ic_arrow_left;
 
-            // 3. arrowBack
-            case "arrowback":
-                return R.drawable.ic_arrow_left;
+           // 4. arrowForward
+           case "arrowforward":
+               return R.drawable.ic_arrow_right;
 
-            // 4. arrowForward
-            case "arrowforward":
-                return R.drawable.ic_arrow_right;
+           // 5. attachFile
+           case "attachfile":
+               return R.drawable.ic_paperclip;
 
-            // 5. attachFile
-            case "attachfile":
-                return R.drawable.ic_paperclip;
+           // 6. calendarToday
+           case "calendartoday":
+               return R.drawable.ic_calendar;
 
-            // 6. calendarToday
-            case "calendartoday":
-                return R.drawable.ic_calendar;
+           // 7. call
+           case "call":
+               return R.drawable.ic_phone;
 
-            // 7. call
-            case "call":
-                return R.drawable.ic_phone;
+           // 8. camera
+           case "camera":
+               return R.drawable.ic_camera;
 
-            // 8. camera
-            case "camera":
-                return R.drawable.ic_camera;
+           // 9. check
+           case "check":
+               return R.drawable.ic_check;
 
-            // 9. check
-            case "check":
-                return R.drawable.ic_check;
+           // 10. close
+           case "close":
+               return R.drawable.ic_x;
 
-            // 10. close
-            case "close":
-                return R.drawable.ic_x;
+           // 11. delete
+           case "delete":
+               return R.drawable.ic_trash;
 
-            // 11. delete
-            case "delete":
-                return R.drawable.ic_trash;
+           // 12. download
+           case "download":
+               return R.drawable.ic_download;
 
-            // 12. download
-            case "download":
-                return R.drawable.ic_download;
+           // 13. edit
+           case "edit":
+               return R.drawable.ic_pencil;
 
-            // 13. edit
-            case "edit":
-                return R.drawable.ic_pencil;
+           // 14. event
+           case "event":
+               return R.drawable.ic_calendar;
 
-            // 14. event
-            case "event":
-                return R.drawable.ic_calendar;
+           // 15. error
+           case "error":
+               return R.drawable.ic_circle_alert;
 
-            // 15. error
-            case "error":
-                return R.drawable.ic_circle_alert;
+           // 16. fastForward - not implemented
 
-            // 16. fastForward - not implemented
+           // 17. favorite
+           case "favorite":
+               return R.drawable.ic_heart;
 
-            // 17. favorite
-            case "favorite":
-                return R.drawable.ic_heart;
+           // 18. favoriteOff
+           case "favoriteoff":
+               return R.drawable.ic_heart_off;
 
-            // 18. favoriteOff
-            case "favoriteoff":
-                return R.drawable.ic_heart_off;
+           // 19. folder
+           case "folder":
+               return R.drawable.ic_folder;
 
-            // 19. folder
-            case "folder":
-                return R.drawable.ic_folder;
+           // 20. help
+           case "help":
+               return R.drawable.ic_circle_question_mark;
 
-            // 20. help
-            case "help":
-                return R.drawable.ic_circle_question_mark;
+           // 21. home
+           case "home":
+               return R.drawable.ic_house;
 
-            // 21. home
-            case "home":
-                return R.drawable.ic_house;
+           // 22. info
+           case "info":
+               return R.drawable.ic_info;
 
-            // 22. info
-            case "info":
-                return R.drawable.ic_info;
+           // 23. locationOn
+           case "locationon":
+               return R.drawable.ic_map_pin;
 
-            // 23. locationOn
-            case "locationon":
-                return R.drawable.ic_map_pin;
+           // 24. lock
+           case "lock":
+               return R.drawable.ic_lock;
 
-            // 24. lock
-            case "lock":
-                return R.drawable.ic_lock;
+           // 25. lockOpen
+           case "lockopen":
+               return R.drawable.ic_lock_open;
 
-            // 25. lockOpen
-            case "lockopen":
-                return R.drawable.ic_lock_open;
+           // 26. mail
+           case "mail":
+               return R.drawable.ic_mail;
 
-            // 26. mail
-            case "mail":
-                return R.drawable.ic_mail;
+           // 27. menu
+           case "menu":
+               return R.drawable.ic_menu;
 
-            // 27. menu
-            case "menu":
-                return R.drawable.ic_menu;
+           // 28. moreVert
+           case "morevert":
+               return R.drawable.ic_ellipsis_vertical;
 
-            // 28. moreVert
-            case "morevert":
-                return R.drawable.ic_ellipsis_vertical;
+           // 29. moreHoriz
+           case "morehoriz":
+               return R.drawable.ic_ellipsis;
 
-            // 29. moreHoriz
-            case "morehoriz":
-                return R.drawable.ic_ellipsis;
+           // 30. notificationsOff
+           case "notificationsoff":
+               return R.drawable.ic_bell_off;
 
-            // 30. notificationsOff
-            case "notificationsoff":
-                return R.drawable.ic_bell_off;
+           // 31. notifications
+           case "notifications":
+               return R.drawable.ic_bell;
 
-            // 31. notifications
-            case "notifications":
-                return R.drawable.ic_bell;
+           // 32. pause - not implemented
 
-            // 32. pause - not implemented
+           // 33. payment
+           case "payment":
+               return R.drawable.ic_credit_card;
 
-            // 33. payment
-            case "payment":
-                return R.drawable.ic_credit_card;
+           // 34. person
+           case "person":
+               return R.drawable.ic_user;
 
-            // 34. person
-            case "person":
-                return R.drawable.ic_user;
+           // 35. phone
+           case "phone":
+               return R.drawable.ic_phone;
 
-            // 35. phone
-            case "phone":
-                return R.drawable.ic_phone;
+           // 36. photo
+           case "photo":
+               return R.drawable.ic_image;
 
-            // 36. photo
-            case "photo":
-                return R.drawable.ic_image;
+           // 37. play - not implemented
 
-            // 37. play - not implemented
+           // 38. print
+           case "print":
+               return R.drawable.ic_printer;
 
-            // 38. print
-            case "print":
-                return R.drawable.ic_printer;
+           // 39. refresh
+           case "refresh":
+               return R.drawable.ic_refresh_cw;
 
-            // 39. refresh
-            case "refresh":
-                return R.drawable.ic_refresh_cw;
+           // 40. rewind - not implemented
 
-            // 40. rewind - not implemented
+           // 41. search
+           case "search":
+               return R.drawable.ic_search;
 
-            // 41. search
-            case "search":
-                return R.drawable.ic_search;
+           // 42. send
+           case "send":
+               return R.drawable.ic_send;
 
-            // 42. send
-            case "send":
-                return R.drawable.ic_send;
+           // 43. settings
+           case "settings":
+               return R.drawable.ic_settings;
 
-            // 43. settings
-            case "settings":
-                return R.drawable.ic_settings;
+           // 44. share
+           case "share":
+               return R.drawable.ic_share;
 
-            // 44. share
-            case "share":
-                return R.drawable.ic_share;
+           // 45. shoppingCart
+           case "shoppingcart":
+               return R.drawable.ic_shopping_cart;
 
-            // 45. shoppingCart
-            case "shoppingcart":
-                return R.drawable.ic_shopping_cart;
+           // 46. skipNext - not implemented
 
-            // 46. skipNext - not implemented
+           // 47. skipPrevious - not implemented
 
-            // 47. skipPrevious - not implemented
+           // 48. star
+           case "star":
+               return R.drawable.ic_star;
 
-            // 48. star
-            case "star":
-                return R.drawable.ic_star;
+           // 49. starHalf
+           case "starhalf":
+               return R.drawable.ic_star_half;
 
-            // 49. starHalf
-            case "starhalf":
-                return R.drawable.ic_star_half;
+           // 50. starOff
+           case "staroff":
+               return R.drawable.ic_star_off;
 
-            // 50. starOff
-            case "staroff":
-                return R.drawable.ic_star_off;
+           // 51. stop - not implemented
 
-            // 51. stop - not implemented
+           // 52. upload
+           case "upload":
+               return R.drawable.ic_upload;
 
-            // 52. upload
-            case "upload":
-                return R.drawable.ic_upload;
+           // 53. visibility
+           case "visibility":
+               return R.drawable.ic_eye;
 
-            // 53. visibility
-            case "visibility":
-                return R.drawable.ic_eye;
+           // 54. visibilityOff
+           case "visibilityoff":
+               return R.drawable.ic_eye_off;
 
-            // 54. visibilityOff
-            case "visibilityoff":
-                return R.drawable.ic_eye_off;
+           // 55. volumeDown - not implemented
 
-            // 55. volumeDown - not implemented
+           // 56. volumeMute - not implemented
 
-            // 56. volumeMute - not implemented
+           // 57. volumeOff - not implemented
 
-            // 57. volumeOff - not implemented
+           // 58. volumeUp - not implemented
 
-            // 58. volumeUp - not implemented
+           // 59. warning
+           case "warning":
+               return R.drawable.ic_triangle_alert;
 
-            // 59. warning
-            case "warning":
-                return R.drawable.ic_triangle_alert;
-
-            default:
-                // Return the default icon (help)
-                return R.drawable.ic_circle_question_mark;
-        }
-    }
+           default:
+               // Return the default icon (help)
+               return R.drawable.ic_circle_question_mark;
+       }
+   }
 
     /**
      * Extracts all URLs from CSS url() functions in the given text.
@@ -1796,30 +1547,5 @@ public class StyleHelper {
         }
 
         return null;
-    }
-
-    public static Drawable getPlaceholderDrawable() {
-        return new ColorDrawable(Color.parseColor("#D9E9F6"));
-    }
-
-    public static Drawable getErrorDrawable() {
-        return new ColorDrawable(Color.parseColor("#D9E9F6"));
-    }
-
-    /**
-     * Ensures a FlexboxLayout.LayoutParams is returned:
-     * - If params is already a FlexboxLayout.LayoutParams, it is returned as-is.
-     * - Otherwise, a new one is created copying width/height (WRAP_CONTENT is used when params is null).
-     * <p>Note: when params is not a FlexboxLayout.LayoutParams, only width and height are copied.
-     * Other Flexbox-specific properties (e.g. flexGrow, flexShrink, flexBasis, alignSelf) will be lost.
-     * </p>
-     */
-    private static FlexboxLayout.LayoutParams ensureFlexLayoutParams(ViewGroup.LayoutParams params) {
-        if (params instanceof FlexboxLayout.LayoutParams) {
-            return (FlexboxLayout.LayoutParams) params;
-        }
-        int w = params != null ? params.width : ViewGroup.LayoutParams.WRAP_CONTENT;
-        int h = params != null ? params.height : ViewGroup.LayoutParams.WRAP_CONTENT;
-        return new FlexboxLayout.LayoutParams(w, h);
     }
 }

@@ -1,0 +1,9 @@
+# iOS Playground - extends platforms/ios common rules
+# Only playground-specific ignores listed here
+
+# CocoaPods
+Pods/
+
+# Xcode user data
+xcuserdata/
+*.xcuserdatad/

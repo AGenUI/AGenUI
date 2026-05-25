@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 #include "agenui_surface_manager_interface.h"
-#include "agenui_component_render_observable.h"
-#include "agenui_surface_layout_observable.h"
 
 namespace agenui {
 
@@ -34,8 +32,6 @@ class IThread;
  * - Internal logic is dispatched to the shared worker thread via post()
  */
 class SurfaceManager : public ISurfaceManager,
-                       public ComponentRenderListener,
-                       public SurfaceLayoutListener,
                        public std::enable_shared_from_this<SurfaceManager> {
 public:
     /**
@@ -100,8 +96,6 @@ public:
      */
     void endTextStream() override;
     void receiveTextChunk(const std::string& data) override;
-    void setComponentRenderObservable(IComponentRenderObservable* componentRenderObservable) override;
-    void setSurfaceLayoutObservable(ISurfaceLayoutObservable* surfaceLayoutObservable) override;
 
     /**
      * @brief Component render-complete callback (triggered on main thread, posted to worker thread).
@@ -114,16 +108,14 @@ public:
     void onSurfaceSizeChanged(const SurfaceLayoutInfo& info) override;
 
     /**
-     * @brief Sets day/night theme mode; executes on the worker thread.
-     * @note Called by AGenUIEngine::setDayNightMode on the main thread
+     * @brief Re-evaluates every component's attributes and styles across all
+     *        surfaces; executes on the worker thread.
      */
-    void setDayNightMode();
+    void invalidateFunctionCallValues() override;
 
     EventDispatcher* getEventDispatcher();
     StreamingContentParser* getStreamingContentParser();
     SurfaceCoordinator* getSurfaceCoordinator();
-    IComponentRenderObservable* getComponentRenderObservable();
-    ISurfaceLayoutObservable* getSurfaceLayoutObservable();
 
     IThread* getMessageThread();
 
@@ -140,14 +132,10 @@ private:
 
     // Multi-instance modules (owned)
     EventDispatcher* _dispatcher = nullptr;
-    std::recursive_mutex _cachedListenersMutex;
+    std::mutex _cachedListenersMutex;
     std::vector<IAGenUIMessageListener*> _cachedListeners;
     StreamingContentParser* _streamingContentParser = nullptr;
     SurfaceCoordinator* _surfaceCoordinator = nullptr;
-
-    // External dependencies (not owned)
-    IComponentRenderObservable* _componentRenderObservable = nullptr;
-    ISurfaceLayoutObservable* _surfaceLayoutObservable = nullptr;
 
     // Running state
     std::atomic_bool _isRunning{false};

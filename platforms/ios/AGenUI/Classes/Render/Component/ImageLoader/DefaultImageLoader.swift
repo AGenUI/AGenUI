@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import ImageIO
 
 /// Default image loader
 ///
@@ -20,6 +21,10 @@ public class DefaultImageLoader: ImageLoader {
     private let session: URLSession
     private let memoryCache = NSCache<NSString, UIImage>()
     private let diskCache: DiskImageCache
+    
+    /// Maximum pixel dimension for decoding. Images larger than this will be downsampled.
+    /// 2048px covers Retina displays (1024pt @2x) while keeping decoded bitmap under 16MB.
+    private static let maxDecodedPixelSize: CGFloat = 2048
     
     /// Task info (stores dataTask and completion)
     private struct TaskInfo {
@@ -67,18 +72,22 @@ public class DefaultImageLoader: ImageLoader {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             
-            // Read disk cache
-            guard let diskCachedImage = self.diskCache.image(for: url) else {
+            // Read raw data from disk cache for memory-efficient ImageIO downsampling
+            guard let diskData = self.diskCache.data(for: url) else {
                 // Disk cache miss, initiate network request
                 self.startNetworkTask(for: url, taskId: taskId, cacheKey: cacheKey, completion: completion)
                 return
             }
             
-            // Force decode image (disk stores compressed format, needs decoding)
-            let decodedImage = self.decodeImage(diskCachedImage)
+            // Downsample directly from data (avoids full-resolution bitmap allocation)
+            guard let decodedImage = self.downsampledImage(from: diskData) else {
+                self.startNetworkTask(for: url, taskId: taskId, cacheKey: cacheKey, completion: completion)
+                return
+            }
             
-            // Write to memory cache
-            self.memoryCache.setObject(decodedImage, forKey: cacheKey)
+            // Write to memory cache with cost for proper eviction
+            let cost = self.imageCost(decodedImage)
+            self.memoryCache.setObject(decodedImage, forKey: cacheKey, cost: cost)
             
             DispatchQueue.main.async {
                 completion(decodedImage, true, nil)
@@ -141,23 +150,22 @@ public class DefaultImageLoader: ImageLoader {
             
             // Decode image on background thread
             DispatchQueue.global(qos: .userInitiated).async {
-                guard let image = UIImage(data: data) else {
+                // Use ImageIO to downsample directly from data (memory-efficient for large images)
+                guard let image = self.downsampledImage(from: data) else {
                     DispatchQueue.main.async {
                         completion(nil, false, ImageLoaderError.invalidData)
                     }
                     return
                 }
                 
-                // Force decode image (avoid decoding on main thread)
-                let decodedImage = self.decodeImage(image)
-                
-                // Two-level cache
-                self.memoryCache.setObject(decodedImage, forKey: cacheKey)
-                self.diskCache.store(decodedImage, for: url)
+                // Two-level cache (store original data to disk, decoded+downsampled to memory)
+                let cost = self.imageCost(image)
+                self.memoryCache.setObject(image, forKey: cacheKey, cost: cost)
+                self.diskCache.store(data, for: url)
                 
                 // Callback
                 DispatchQueue.main.async {
-                    completion(decodedImage, false, nil)
+                    completion(image, false, nil)
                 }
             }
         }
@@ -169,41 +177,37 @@ public class DefaultImageLoader: ImageLoader {
         task.resume()
     }
     
-    // MARK: - Image Decoding
+    // MARK: - Image Decoding & Downsampling
     
-    /// Force decode image
-    /// Decode by drawing to CGContext to avoid decoding on main thread when displayed
-    private func decodeImage(_ image: UIImage) -> UIImage {
-        guard let cgImage = image.cgImage else {
-            return image
+    /// Downsample image from raw data using ImageIO.
+    /// This is the most memory-efficient path: ImageIO decodes at the target size
+    /// without ever allocating a full-resolution bitmap.
+    private func downsampledImage(from data: Data) -> UIImage? {
+        let options: [CFString: Any] = [kCGImageSourceShouldCache: false]
+        guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else {
+            return nil
         }
-        
-        let width = cgImage.width
-        let height = cgImage.height
-        
-        // Create bitmap context
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        guard let context = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: width * 4,
-            space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            return image
+        return createThumbnail(from: source)
+    }
+    
+    /// Create a downsampled and decoded thumbnail from a CGImageSource.
+    private func createThumbnail(from source: CGImageSource) -> UIImage? {
+        let thumbnailOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: Self.maxDecodedPixelSize,
+            kCGImageSourceShouldCacheImmediately: true  // Force decode at thumbnail size
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions as CFDictionary) else {
+            return nil
         }
-        
-        // Draw image to context (this triggers decoding)
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        
-        // Get decoded image from context
-        if let decodedCGImage = context.makeImage() {
-            return UIImage(cgImage: decodedCGImage, scale: image.scale, orientation: image.imageOrientation)
-        }
-        
-        return image
+        return UIImage(cgImage: cgImage)
+    }
+    
+    /// Calculate approximate decoded memory cost for NSCache eviction.
+    private func imageCost(_ image: UIImage) -> Int {
+        guard let cgImage = image.cgImage else { return 0 }
+        return cgImage.bytesPerRow * cgImage.height
     }
     
     // MARK: - Cache Management

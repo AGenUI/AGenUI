@@ -15,7 +15,7 @@ into the build directory. Subsequent configures reuse the cached download.
 ## Default build
 
 ```bash
-cmake -S tests/cpp -B tests/cpp/build           # no sanitizer by default
+cmake -S tests/cpp -B tests/cpp/build           # ASan + UBSan ON by default
 cmake --build tests/cpp/build -j 4
 ctest --test-dir tests/cpp/build --output-on-failure
 ```
@@ -27,12 +27,28 @@ in parallel.
 
 | Configuration | CMake flags | Notes |
 |---|---|---|
-| **Default (plain)** | (none) | Fastest; recommended for CI |
-| ASan + UBSan | `-DAGENUI_TESTS_ENABLE_ASAN=ON` | Memory + undefined-behavior checks |
+| **Default (ASan + UBSan)** | (none) | Recommended day-to-day |
+| Plain | `-DAGENUI_TESTS_ENABLE_ASAN=OFF` | Fastest; lowest signal |
+| ThreadSanitizer | `-DAGENUI_TESTS_ENABLE_ASAN=OFF -DAGENUI_TESTS_ENABLE_TSAN=ON` | Mutually exclusive with ASan; uses a different build dir |
 | Coverage | `-DAGENUI_TESTS_ENABLE_COVERAGE=ON` | Adds `--coverage`; combine with `--no-san` for clean reports |
 
-> ThreadSanitizer (`-DAGENUI_TESTS_ENABLE_TSAN=ON`) is available as a CMake
-> option but is not enabled by default and is not supported in CI.
+### TSan recipe
+
+```bash
+cmake -S tests/cpp -B tests/cpp/build/tsan \
+    -DAGENUI_TESTS_ENABLE_ASAN=OFF \
+    -DAGENUI_TESTS_ENABLE_TSAN=ON
+cmake --build tests/cpp/build/tsan -j 4
+./tests/cpp/build/tsan/agenui_tsan_tests
+```
+
+The TSan target builds an additional `agenui_tsan_tests` executable that
+includes the dedicated suite under `sanitizer/thread_sanitizer_test.cpp`.
+
+> **Heads up**: The current AGenUI engine has 11 known data races between
+> the main thread and the shared worker thread. They are documented in
+> `DESIGN.md` §5. Until those are resolved, treat TSan output as
+> diagnostic — failures here do not gate merges.
 
 ## Coverage report
 
@@ -62,10 +78,8 @@ The top-level CMake is cross-compile-friendly:
   `__android_log_print` references in agenui_core's default logger and
   in yoga.
 
-The `agenui_all_test_sources` OBJECT library (see `CMakeLists.txt` section
-8.5) contains every test `.cpp` without `main.cpp`, making it easy to
-embed the full test suite into platform-specific shared libraries
-(JNI / NAPI bridges) for on-device debugging.
+The Android Studio module (`ide/android-studio/`) is the canonical
+on-device build harness; see its README for details.
 
 ## Local yoga (skipping GitHub fetch)
 
@@ -91,11 +105,12 @@ cmake -S tests/cpp -B tests/cpp/build \
 
 Everything generated lives under `tests/cpp/build/<variant>/`:
 
-- `tests/cpp/build/host/`       — default (plain)
+- `tests/cpp/build/host/`       — default (ASan + UBSan)
+- `tests/cpp/build/tsan/`       — TSan
 - `tests/cpp/build/coverage/`   — coverage
 - `tests/cpp/build/xcode/`      — Xcode generator
 
-All are covered by `tests/cpp/.gitignore`.
+All are covered by the repository root `.gitignore` rule `build/`.
 
 **Source clones** (gtest, yoga) live in
 `~/.cache/agenui-tests-deps/` by default — outside any `build/` tree

@@ -1,6 +1,6 @@
 #include "agenui_parse_token_functioncall.h"
 #include "surface/token_parser/agenui_token_parser.h"
-#include "agenui_log.h"
+#include "agenui_logger_internal.h"
 
 namespace agenui {
 
@@ -27,20 +27,6 @@ FunctionCallConfig ParseTokenFunctionCall::getConfig() const {
     config.setName("token");
     config.setDescription("Parses a token reference and resolves it to its actual value.");
     config.setReturnType("string");
-    config.setSync(true);
-    
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"name", {
-                {"type", "string"},
-                {"description", "Token name to resolve"}
-            }}
-        }},
-        {"required", nlohmann::json::array({"name"})}
-    };
-    
-    config.setParameters(params);
     return config;
 }
 

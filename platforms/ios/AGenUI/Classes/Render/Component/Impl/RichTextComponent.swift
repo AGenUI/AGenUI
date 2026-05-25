@@ -5,11 +5,8 @@
 // Created on 2026/2/28.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// RichText component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -40,7 +37,7 @@ class RichTextComponent: Component {
         label.numberOfLines = 0  // Support multi-line
         label.isUserInteractionEnabled = true  // Default support interaction
         
-        flex.addItem(label).grow(1).shrink(1)
+        addSubview(label)
         self.label = label
         
         // Add tap gesture recognizer
@@ -55,7 +52,62 @@ class RichTextComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // MARK: - Component Override
+    // MARK: - Measurement Override
+    
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        guard let jsonData = paramJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return .zero
+        }
+        
+        // Extract text content
+        let contentString: String
+        if let literalString = json["literalString"] as? String {
+            contentString = literalString
+        } else if let text = json["text"] as? String {
+            contentString = text
+        } else {
+            return .zero
+        }
+        guard !contentString.isEmpty else { return .zero }
+        
+        let styles = json["styles"] as? [String: Any]
+        guard let attrStr = buildAttributedString(htmlString: contentString, styles: styles) else {
+            return .zero
+        }
+        
+        let constraintWidth: CGFloat = (widthMode == .undefined) ? .greatestFiniteMagnitude : CGFloat(maxWidth)
+        let boundingRect = attrStr.boundingRect(
+            with: CGSize(width: constraintWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            context: nil
+        )
+        
+        var measuredWidth = boundingRect.width
+        var measuredHeight = boundingRect.height
+        
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+        
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
+    // MARK: - Layout
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Sync label frame with component bounds
+        label?.frame = bounds
+    }
     
     override func updateProperties(_ properties: [String: Any]) {
         super.updateProperties(properties)
@@ -79,16 +131,13 @@ class RichTextComponent: Component {
         if !contentString.isEmpty {
             let attributedString = parseHTMLContentSync(contentString, styles: properties["styles"] as? [String: Any])
             label.attributedText = attributedString
+            
+            // Apply text alignment
+            if let styles = properties["styles"] as? [String: Any],
+               let textAlign = styles["text-align"] as? String {
+                label.textAlignment = parseTextAlignment(textAlign)
+            }
         }
-        
-        // Apply text alignment
-        if let styles = properties["styles"] as? [String: Any],
-           let textAlign = styles["text-align"] as? String {
-            label.textAlignment = parseTextAlignment(textAlign)
-        }
-        
-        // Mark need relayout
-        label.flex.markDirty()
     }
     
     // MARK: - Private Methods
@@ -108,11 +157,7 @@ class RichTextComponent: Component {
     }
     
     /// Preprocess HTML, add scaling styles for all img tags
-    /// - Parameters:
-    ///   - htmlString: Original HTML string
-    ///   - maxSize: Maximum width and height for images (pixels)
-    /// - Returns: Processed HTML string
-    private func preprocessHTML(_ htmlString: String, maxSize: CGFloat) -> String {
+    private static func preprocessHTMLStatic(_ htmlString: String, maxSize: CGFloat) -> String {
         let pattern = "<img([^>]*)>"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
             return htmlString
@@ -161,15 +206,18 @@ class RichTextComponent: Component {
     
     /// Sync parse HTML content to NSAttributedString (called in background thread)
     private func parseHTMLContentSync(_ htmlString: String, styles: [String: Any]?) -> NSAttributedString {
-        // Build complete HTML with base styles
-        var fontSize: CGFloat = 16
+        let attrStr = RichTextComponent.buildAttributedString(htmlString: htmlString, styles: styles)
+            ?? NSAttributedString(string: htmlString)
+        extractLinks(from: attrStr)
+        return attrStr
+    }
+    
+    /// Build NSAttributedString from HTML — shared by measure (class method) and parseHTMLContentSync (instance method)
+    private static func buildAttributedString(htmlString: String, styles: [String: Any]?) -> NSAttributedString? {
+        let fontSize: CGFloat = 16
         var textColor = "#333333"
         
         if let styles = styles {
-            if let fontSizeStr = styles["font-size"] as? String,
-               let size = Double(fontSizeStr) {
-                fontSize = CGFloat(size)
-            }
             if let color = styles["color"] as? String {
                 textColor = color
             }
@@ -179,7 +227,7 @@ class RichTextComponent: Component {
         let lineHeight = fontSize * 1.2
         
         // Preprocess HTML, add image scaling based on line height
-        let preprocessedHTML = preprocessHTML(htmlString, maxSize: lineHeight)
+        let preprocessedHTML = preprocessHTMLStatic(htmlString, maxSize: lineHeight)
         
         // Build HTML header, set default styles
         let htmlHead = """
@@ -204,30 +252,15 @@ class RichTextComponent: Component {
         <body>
         """
         
-        let htmlFoot = "</body></html>"
-        let fullHTML = htmlHead + preprocessedHTML + htmlFoot
+        let fullHTML = htmlHead + preprocessedHTML + "</body></html>"
         
-        // Parse HTML
-        guard let data = fullHTML.data(using: .utf8) else {
-            return NSAttributedString(string: htmlString)
-        }
+        guard let data = fullHTML.data(using: .utf8) else { return nil }
         
-        do {
-            // Disable auto loading images to avoid network request blocking
-            let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-                .documentType: NSAttributedString.DocumentType.html,
-                .characterEncoding: String.Encoding.utf8.rawValue
-            ]
-            
-            let attributedString = try NSAttributedString(data: data, options: options, documentAttributes: nil)
-            
-            // Extract link info
-            extractLinks(from: attributedString)
-            
-            return attributedString
-        } catch {
-            return NSAttributedString(string: htmlString)
-        }
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.html,
+            .characterEncoding: String.Encoding.utf8.rawValue
+        ]
+        return try? NSAttributedString(data: data, options: options, documentAttributes: nil)
     }
     
     /// Extract link info from NSAttributedString
@@ -316,3 +349,5 @@ class RichTextComponent: Component {
         }
     }
 }
+
+#endif // AGENUI_SDK_BUILD

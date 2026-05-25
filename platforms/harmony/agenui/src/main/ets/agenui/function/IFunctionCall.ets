@@ -1,4 +1,13 @@
 /**
+ * Context information for a function call.
+ * Provides the engine and surface context in which the function call is invoked.
+ */
+export interface FunctionCallContext {
+  instanceId: number;
+  surfaceId: string;
+}
+
+/**
  * Function configuration.
  */
 export class FunctionConfig {
@@ -33,6 +42,6 @@ export class FunctionResult {
  * Implemented by host code and registered through FunctionManager.
  */
 export interface IFunctionCall {
-  execute(paramsJson: string): FunctionResult;
+  execute(context: FunctionCallContext, paramsJson: string): FunctionResult;
   getConfig(): FunctionConfig;
 }

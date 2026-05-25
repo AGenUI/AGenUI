@@ -37,17 +37,6 @@ FunctionCallConfig NumericFunctionCall::getConfig() const {
     config.setName("numeric");
     config.setDescription("Checks numeric range constraints.");
     config.setReturnType("boolean");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"type", "number"}}},
-            {"min", {{"type", "number"}}},
-            {"max", {{"type", "number"}}}
-        }},
-        {"required", nlohmann::json::array({"value"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

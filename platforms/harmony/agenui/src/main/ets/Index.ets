@@ -17,10 +17,15 @@ export {
   FunctionResult,
   FunctionConfig,
 } from './agenui/AGenEngineUI';
-export type { IFunctionCall } from './agenui/AGenEngineUI';
+export type { IFunctionCall, FunctionCallContext } from './agenui/AGenEngineUI';
 
 // ============ SDK Interfaces ============
 export type { ISurfaceListener } from 'liba2ui-capi.so';
+export type { MeasureResult } from 'liba2ui-capi.so';
+
+// ============ Measurement Manager ============
+export { MeasurementManager } from './agenui/bridge/MeasurementManager';
+export type { MeasurementHandler } from './agenui/bridge/MeasurementManager';
 
 // ============ Image Loader Interfaces ============
 export type { IImageLoader, ImageLoadOptions, ImageLoadResult, ImageLoaderError } from './agenui/ImageLoader';
@@ -33,3 +38,6 @@ export { AGenUIContainer } from './agenui/AGenUIContainer';
 export { A2UIComponent } from './agenui/custom/A2UIComponent';
 export type { A2UIComponentProps, CustomView, IComponentFactory } from './agenui/custom/A2UIComponent';
 export { StyleHelper } from './agenui/custom/StyleHelper';
+
+// ============ Logger Interfaces ============
+export type { IAGenUILogger } from './agenui/logger/IAGenUILogger';

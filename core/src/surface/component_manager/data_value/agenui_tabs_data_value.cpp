@@ -6,7 +6,7 @@
 
 namespace agenui {
 
-TabsDataValue::TabsDataValue(IDataModel* dataModel, const std::vector<TabItem>& tabs) : DataValue(dataModel), _tabs(tabs) {
+TabsDataValue::TabsDataValue(IDataValueContext* context, const std::vector<TabItem>& tabs) : DataValue(context), _tabs(tabs) {
 }
 
 TabsDataValue::~TabsDataValue() {
@@ -64,14 +64,14 @@ void TabsDataValue::unbind() {
     }
 }
 
-std::shared_ptr<DataValue> TabsDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
+std::shared_ptr<DataValue> TabsDataValue::cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const {
     std::vector<TabItem> clonedTabs;
     clonedTabs.reserve(_tabs.size());
     
     for (const auto& tab : _tabs) {
         TabItem clonedTab;
         if (tab.title) {
-            clonedTab.title = tab.title->cloneAsTemplate(rootDataPath);
+            clonedTab.title = tab.title->cloneAsTemplate(context, rootDataPath);
         }
         
         if (!rootDataPath.empty()) {
@@ -83,10 +83,7 @@ std::shared_ptr<DataValue> TabsDataValue::cloneAsTemplate(const std::string& roo
         clonedTabs.emplace_back(clonedTab);
     }
     
-    auto cloned = std::make_shared<TabsDataValue>(_dataModel, clonedTabs);
-    cloned->_extensions = _extensions;
-    
-    return cloned;
+    return std::make_shared<TabsDataValue>(context, clonedTabs);
 }
 
 std::vector<std::string> TabsDataValue::getTabChildren() const {

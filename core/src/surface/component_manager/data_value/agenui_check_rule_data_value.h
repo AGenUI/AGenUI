@@ -15,7 +15,7 @@ class IDataChangedObserver;
  */
 class CheckRuleDataValue : public DataValue {
 public:
-    CheckRuleDataValue(IDataModel* dataModel,
+    CheckRuleDataValue(IDataValueContext* context,
                        std::shared_ptr<DataValue> condition,
                        const std::string& message);
 
@@ -24,7 +24,7 @@ public:
     SerializableData getValueData() const override;
     void bind(IDataChangedObserver* observer) override;
     void unbind() override;
-    std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const override;
+    std::shared_ptr<DataValue> cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const override;
 
     const std::string& getMessage() const;
 

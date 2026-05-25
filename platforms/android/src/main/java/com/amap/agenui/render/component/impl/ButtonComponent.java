@@ -4,18 +4,17 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
 
 import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * Button component implementation (compliant with A2UI v0.9 protocol)
@@ -37,7 +36,7 @@ public class ButtonComponent extends A2UIComponent {
     private static final String TAG = "ButtonComponent";
 
     private Context context;
-    private LinearLayout buttonContainer;
+    private FrameLayout buttonContainer;
     private String childComponentId;
 
     public ButtonComponent(Context context, String id, Map<String, Object> properties) {
@@ -51,14 +50,11 @@ public class ButtonComponent extends A2UIComponent {
     @Override
     protected View onCreateView(Context context) {
         // Use FrameLayout as the button container to support child components
-        buttonContainer = new LinearLayout(context);
-        buttonContainer.setOrientation(LinearLayout.VERTICAL);
-        buttonContainer.setGravity(Gravity.CENTER);
+        buttonContainer = new FrameLayout(context);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
-        lp.gravity = Gravity.CENTER;
         buttonContainer.setLayoutParams(lp);
 
         // Note: click listener is automatically set by the base class A2UIComponent
@@ -179,7 +175,7 @@ public class ButtonComponent extends A2UIComponent {
                 buttonContainer.setAlpha(opacity);
             } catch (NumberFormatException e) {
                 // Parse failed, use default value 0.5
-                Log.w(TAG, "Failed to parse disabled-opacity, using default 0.5");
+                AGenUILogger.w(TAG, "Failed to parse disabled-opacity, using default 0.5");
                 buttonContainer.setAlpha(0.5f);
             }
         } else {

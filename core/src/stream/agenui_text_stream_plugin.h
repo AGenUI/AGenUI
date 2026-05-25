@@ -91,7 +91,7 @@ private:
     void collectBindingPath(const std::string& componentJson);
 
     /// Extracts the string value for the given key from buffer (simple string search).
-    std::string extractStringValue(const std::string& buffer, const std::string& key) const;
+    std::string extractStringValue(const std::string& buffer, const std::string& key, bool strictScope = false) const;
 
     /// Finds the start position of the string value for the given key (after "key":").
     size_t findStringValueStart(const std::string& buffer, const std::string& key) const;

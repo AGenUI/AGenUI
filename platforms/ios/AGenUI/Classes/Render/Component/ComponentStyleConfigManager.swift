@@ -281,6 +281,22 @@ internal class ComponentStyleConfigManager {
         return Double(numericString).map { $0 / 1000.0 }
     }
     
+    /// Parses font-weight string to UIFont.Weight
+    /// Supports "bold", "normal", or numeric values (>=500 is bold)
+    static func parseFontWeight(_ value: String) -> UIFont.Weight {
+        let trimmed = value.lowercased()
+        if trimmed == "bold" {
+            return .bold
+        }
+        if trimmed == "normal" {
+            return .regular
+        }
+        if let numeric = Int(trimmed), numeric >= 500 {
+            return .bold
+        }
+        return .regular
+    }
+
     /// Parses content mode (e.g., "fill" -> .scaleAspectFill)
     static func parseContentMode(_ value: String) -> UIView.ContentMode {
         switch value.lowercased() {
@@ -294,7 +310,8 @@ internal class ComponentStyleConfigManager {
             return .scaleAspectFill
         }
     }
-    
+
+#if AGENUI_SDK_BUILD
     /// Loads SVG icons from AGenUIResource.bundle
     ///
     /// - Parameter name: Icon name (can include or exclude .svg suffix)
@@ -327,7 +344,7 @@ internal class ComponentStyleConfigManager {
         Logger.shared.warning("[loadIcon] ⚠️ Icon not found: \(name)")
         return nil
     }
-    
+
     /// Resizes image
     private static func resizeImage(_ image: UIImage, to size: CGSize) -> UIImage {
         if image.size == size {
@@ -339,4 +356,5 @@ internal class ComponentStyleConfigManager {
             image.draw(in: CGRect(origin: .zero, size: size))
         }
     }
+#endif
 }

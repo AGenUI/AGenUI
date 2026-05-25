@@ -8,8 +8,8 @@
 #include <arkui/native_node_napi.h>
 #include "factory/a2ui_component_registry.h"
 #include "agenui_dispatcher_types.h"
-#include "agenui_component_render_observable.h"
-#include "agenui_surface_layout_observable.h"
+#include "a2ui/a2ui_component_render_observable.h"
+#include "a2ui/a2ui_surface_layout_observable.h"
 
 namespace a2ui {
 

@@ -5,11 +5,8 @@
 // Created on 2026/3/1.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 // MARK: - TableStyleConfig
 
@@ -46,24 +43,24 @@ private class InnerTableView: UIView {
     // MARK: - Properties
     
     /// Header data
-    var columns: [String] = [] {
-        didSet {
-            needsRebuild = true
-            setNeedsLayout()
-        }
-    }
+    var columns: [String] = []
     
     /// Table data
-    var rows: [[String]] = [] {
-        didSet {
-            needsRebuild = true
-            setNeedsLayout()
-        }
-    }
+    var rows: [[String]] = []
     
     /// Style configuration
     var styleConfig: TableStyleConfig = TableStyleConfig() {
         didSet { setNeedsLayout() }
+    }
+    
+    /// Border radius - synced from TableComponent when border-radius is applied.
+    /// Enables clipsToBounds to clip inner subviews (header/rows) to rounded corners,
+    /// while keeping TableComponent itself unclipped so box-shadow remains visible.
+    var borderRadius: CGFloat = 0 {
+        didSet {
+            layer.cornerRadius = borderRadius
+            clipsToBounds = borderRadius > 0
+        }
     }
     
     /// Horizontal scroll view
@@ -75,21 +72,15 @@ private class InnerTableView: UIView {
     /// Width of each column
     private var columnWidths: [CGFloat] = []
     
-    /// Container width used in last build
-    private var lastContainerWidth: CGFloat = 0
-    
-    /// Whether table needs rebuild
-    private var needsRebuild = false
-    
     /// Header font
     private var headerFont: UIFont {
-        let weight: UIFont.Weight = styleConfig.headerFontWeight.lowercased() == "bold" ? .bold : .semibold
+        let weight: UIFont.Weight = ComponentStyleConfigManager.parseFontWeight(styleConfig.headerFontWeight)
         return UIFont.systemFont(ofSize: styleConfig.headerFontSize, weight: weight)
     }
     
     /// Data cell font
     private var cellFont: UIFont {
-        let weight: UIFont.Weight = styleConfig.bodyFontWeight.lowercased() == "bold" ? .bold : .regular
+        let weight: UIFont.Weight = ComponentStyleConfigManager.parseFontWeight(styleConfig.bodyFontWeight)
         return UIFont.systemFont(ofSize: styleConfig.bodyFontSize, weight: weight)
     }
     
@@ -107,38 +98,27 @@ private class InnerTableView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    // MARK: - Layout
+    /// Columns and rows assigned; rebuild immediately if width is already known,
+    /// otherwise defer until frame is set from outside.
+    func reloadData(columns: [String], rows: [[String]], styleConfig: TableStyleConfig) {
+        self.styleConfig = styleConfig
+        self.columns = columns
+        self.rows = rows
 
-    /// Cached calculated height
-    private var cachedHeight: CGFloat = 0
-
-    override func sizeThatFits(_ size: CGSize) -> CGSize {
-        // Return default height when width is invalid
-        guard size.width > 0 else {
-            return CGSize(width: size.width, height: minRowHeight)
+        let containerWidth = frame.width
+        if containerWidth > 0 {
+            buildTableContent(containerWidth: containerWidth)
         }
-
-        // Calculate table content height (no view creation, only size calculation)
-        let height = calculateTableHeight(containerWidth: size.width)
-        cachedHeight = height
-
-        return CGSize(width: size.width, height: height)
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
+    // MARK: - Layout
 
-        let containerWidth = bounds.width
-
-        // Skip when width is invalid
-        guard containerWidth > 0 else { return }
-
-        // Rebuild when width or data changes
-        guard containerWidth != lastContainerWidth || needsRebuild else { return }
-
-        lastContainerWidth = containerWidth
-        needsRebuild = false
-        buildTableContent(containerWidth: containerWidth)
+    override var frame: CGRect {
+        didSet {
+            let newWidth = frame.width
+            guard newWidth > 0 else { return }
+            buildTableContent(containerWidth: newWidth)
+        }
     }
     
     // MARK: - Private Methods
@@ -434,7 +414,7 @@ private class InnerTableView: UIView {
         
         // Font style
         let fontSize = isHeader ? styleConfig.headerFontSize : styleConfig.bodyFontSize
-        let fontWeight: UIFont.Weight = (isHeader ? styleConfig.headerFontWeight : styleConfig.bodyFontWeight).lowercased() == "bold" ? .bold : .regular
+        let fontWeight: UIFont.Weight = ComponentStyleConfigManager.parseFontWeight(isHeader ? styleConfig.headerFontWeight : styleConfig.bodyFontWeight)
         label.font = UIFont.systemFont(ofSize: fontSize, weight: fontWeight)
         label.textColor = isHeader ? styleConfig.headerFontColor : styleConfig.bodyFontColor
         label.textAlignment = styleConfig.configTextAlign
@@ -512,27 +492,162 @@ class TableComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - Measurement Override
+
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        guard let jsonData = paramJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return .zero
+        }
+
+        let columns = json["columns"] as? [String] ?? []
+        let rows    = json["rows"] as? [[String]] ?? []
+        guard !columns.isEmpty else { return .zero }
+
+        // measure is called on a background thread — must NOT create any UIView.
+        // All calculations use NSString text-measurement APIs which are thread-safe.
+        let constraintWidth: CGFloat = (widthMode == .undefined || maxWidth <= 0)
+            ? 375   // fallback when Yoga provides no width constraint
+            : CGFloat(maxWidth)
+
+        let measuredHeight = calculateTableHeight(
+            columns: columns, rows: rows,
+            tableWidth: constraintWidth
+        )
+
+        var measuredWidth  = constraintWidth
+        var finalHeight    = measuredHeight
+
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            finalHeight = heightMode == .atMost
+                ? min(finalHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+
+        return CGSize(width: measuredWidth, height: finalHeight)
+    }
+
+    // MARK: - Pure layout calculation (thread-safe, no UIView)
+
+    /// Calculate total table height without creating any views.
+    /// Safe to call from a background thread (used by the static measure method).
+    private static func calculateTableHeight(columns: [String], rows: [[String]], tableWidth: CGFloat) -> CGFloat {
+        let config = TableStyleConfig()
+        let minRowHeight: CGFloat = 44.0
+        let borderWidth = config.borderWidth
+        let paddingH = config.cellPaddingHorizontal
+        let paddingV = config.cellPaddingVertical
+        let minColW  = config.minColumnWidth
+        let maxColW  = config.maxColumnWidth
+        let enableHScroll = config.enableHorizontalScroll
+
+        let headerFontSize: CGFloat = config.headerFontSize
+        let headerFontWeight: UIFont.Weight = ComponentStyleConfigManager.parseFontWeight(config.headerFontWeight)
+        let headerFont = UIFont.systemFont(ofSize: headerFontSize, weight: headerFontWeight)
+
+        let cellFontSize: CGFloat = config.bodyFontSize
+        let cellFontWeight: UIFont.Weight = ComponentStyleConfigManager.parseFontWeight(config.bodyFontWeight)
+        let cellFont = UIFont.systemFont(ofSize: cellFontSize, weight: cellFontWeight)
+
+        // --- Column widths ---
+        let totalBorderWidth = borderWidth * CGFloat(columns.count + 1)
+        let availableWidth   = tableWidth - totalBorderWidth
+
+        var idealWidths: [CGFloat] = columns.indices.map { colIdx in
+            var best = minColW
+            // header
+            let hw = textWidth(columns[colIdx], font: headerFont) + paddingH * 2
+            best = max(best, hw)
+            // rows
+            for row in rows {
+                guard colIdx < row.count else { continue }
+                let cw = textWidth(row[colIdx], font: cellFont) + paddingH * 2
+                best = max(best, cw)
+            }
+            return min(best, maxColW)
+        }
+
+        let idealTotal = idealWidths.reduce(0, +)
+        let columnWidths: [CGFloat]
+        if idealTotal < availableWidth {
+            let even = availableWidth / CGFloat(columns.count)
+            columnWidths = Array(repeating: even, count: columns.count)
+        } else if enableHScroll {
+            columnWidths = idealWidths
+        } else {
+            let scale = availableWidth / idealTotal
+            columnWidths = idealWidths.map { $0 * scale }
+        }
+
+        // --- Row heights ---
+        func rowHeight(_ texts: [String], font: UIFont) -> CGFloat {
+            var h = minRowHeight
+            for (i, text) in texts.enumerated() {
+                guard i < columnWidths.count else { break }
+                let tw = columnWidths[i] - paddingH * 2
+                guard tw > 0 else { continue }
+                let rect = (text as NSString).boundingRect(
+                    with: CGSize(width: tw, height: .greatestFiniteMagnitude),
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    attributes: [.font: font], context: nil)
+                h = max(h, ceil(rect.height) + paddingV * 2)
+            }
+            return h
+        }
+
+        var total = rowHeight(columns, font: headerFont)
+        for row in rows { total += rowHeight(row, font: cellFont) }
+        return total
+    }
+
+    /// Thread-safe single-line text width measurement.
+    private static func textWidth(_ text: String, font: UIFont) -> CGFloat {
+        ceil((text as NSString).size(withAttributes: [.font: font]).width)
+    }
+
+    // MARK: - Layout
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        guard let innerTableView = innerTableView, bounds.width > 0 else { return }
+
+        // Setting frame triggers InnerTableView.frame.didSet, which calls buildTableContent
+        // when the width changes or needsRebuild is true.
+        if innerTableView.frame != bounds {
+            innerTableView.frame = bounds
+        }
+    }
+
     override func updateProperties(_ properties: [String: Any]) {
         // Call parent method to apply CSS properties to self
         super.updateProperties(properties)
         
-        // Get header and table data
         let columnsArray = properties["columns"] as? [String] ?? []
-        let rowsArray = properties["rows"] as? [[String]] ?? []
+        let rowsArray    = properties["rows"]    as? [[String]] ?? []
         
-        // Update or create inner table view
-        if let tableView = innerTableView {
-            tableView.styleConfig = styleConfig
-            tableView.columns = columnsArray
-            tableView.rows = rowsArray
-        } else {
-            let tableView = InnerTableView(frame: bounds)
-            tableView.styleConfig = styleConfig
-            tableView.columns = columnsArray
-            tableView.rows = rowsArray
-            self.flex.addItem(tableView)
+        if innerTableView == nil {
+            let tableView = InnerTableView(frame: .zero)
+            addSubview(tableView)
             innerTableView = tableView
         }
+        
+        if ((columnsArray.count != 0) && (rowsArray.count != 0)) {
+            // reloadData sets data and immediately builds if width is already known
+            innerTableView?.reloadData(columns: columnsArray, rows: rowsArray, styleConfig: styleConfig)
+        }
+    }
+    
+    override func setBorderRadius(_ radius: CGFloat) {
+        super.setBorderRadius(radius)
+        // Mirror corner radius to innerTableView so inner subviews (header/rows with background
+        // colors) are clipped to rounded corners. clipsToBounds is managed by innerTableView.borderRadius didSet.
+        innerTableView?.borderRadius = radius
     }
     
     // MARK: - Configuration Methods
@@ -665,3 +780,5 @@ class TableComponent: Component {
         }
     }
 }
+
+#endif // AGENUI_SDK_BUILD

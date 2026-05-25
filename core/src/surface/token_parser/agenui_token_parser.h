@@ -54,14 +54,10 @@ public:
     /**
      * @brief Set the theme mode
      * @param mode theme mode (Light or Dark)
+     * @return true if theme mode actually changed, false if same as current
      */
-    void setThemeMode(ThemeMode mode);
+    bool setThemeMode(ThemeMode mode);
 
-    /**
-     * @brief Get the current theme mode
-     * @return current theme mode
-     */
-    ThemeMode getThemeMode() const;
 
 private:
     TokenParser();

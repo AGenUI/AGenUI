@@ -11,21 +11,31 @@ and step through `core/src/**/*.cpp` with the LLDB debugger.
 open tests/cpp/build/xcode/agenui_cpp_tests.xcodeproj
 ```
 
-The generator produces **one** Xcode project with two build configurations:
+The generator produces **one** Xcode project that contains both sanitizer
+modes as build configurations:
 
 | Configuration | Sanitizer | When to use |
 |---|---|---|
 | **Debug** (default) | AddressSanitizer + UBSan | Day-to-day debugging |
+| **Tsan** | ThreadSanitizer | Race investigation |
 | **Release** | none | Performance work |
 
 ## Switching configuration in Xcode
 
 1. Top-left scheme drop-down: pick a scheme
-   - `agenui_unit_tests` — integration / unit / stress / sanitizer-asan (~220 cases)
-   - `agenui_concurrency_tests` — concurrency + chaos (~28 cases)
+   - `agenui_unit_tests` — integration / unit / stress / sanitizer-asan (~157 cases)
+   - `agenui_concurrency_tests` — concurrency + chaos (~48 cases)
+   - `agenui_tsan_tests` — TSan-dedicated suite (run under the `Tsan` config)
 2. **Product → Scheme → Edit Scheme...** (or hold `Option` while clicking ▶)
-3. **Run → Info → Build Configuration**: pick `Debug` (ASan) or `Release` (plain)
+3. **Run → Info → Build Configuration**: pick `Debug` (ASan) or `Tsan` (TSan)
 4. ⌘R runs with the selected configuration
+
+You can keep two windows open with the same project — one with each
+configuration — to compare side-by-side.
+
+Tip: duplicate a scheme via **Manage Schemes... → ⚙ → Duplicate**, rename
+to `agenui_unit_tests-tsan`, and pin its Build Configuration to `Tsan`.
+That gives you a one-click TSan run.
 
 ## Profiling
 

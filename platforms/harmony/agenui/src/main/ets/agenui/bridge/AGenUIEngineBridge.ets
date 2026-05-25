@@ -3,7 +3,7 @@
  *
  * Owns the global IAGenUIEngine lifecycle and engine-level configuration,
  * including theme, design tokens, day/night mode, skill and function
- * registration, the working directory, and device information.
+ * registration, and device information.
  *
  * Use AGenUIEngineSurfaceManagerBridge for per-instance data transport.
  */
@@ -11,7 +11,7 @@
 import display from '@ohos.display';
 import {
   start,
-  setWorkingDir as nativeSetWorkingDir,
+  setPathConfig as nativeSetPathConfig,
   setDeviceInfo,
   setThemeConfig,
   setDesignTokenConfig,
@@ -42,6 +42,7 @@ import {
   onInvokeHybridView,
   HybridViewManager,
 } from '../hybrid/HybridViewManager';
+import { AGenUILogger } from '../logger/AGenUILogger';
 
 // ==================== Internal Image Loader State ====================
 
@@ -86,8 +87,8 @@ export class AGenUIEngineBridge {
   /**
    * Initializes the SDK once.
    *
-   * Registers HybridView ETS callbacks, URL hooks, device information, and
-   * the working directory, then starts the engine.
+   * Registers HybridView ETS callbacks, URL hooks, and device information,
+   * then starts the engine.
    *
    * @param context UIAbilityContext
    */
@@ -119,15 +120,13 @@ export class AGenUIEngineBridge {
       }
     });
 
-    // Device information and working directory.
+    // Device information.
     const display_ = display.getDefaultDisplaySync();
     setDeviceInfo(display_.width, display_.height, display_.densityPixels);
 
-    // Start the engine.
-    start();
-
-    // set working dir to filesDir by default, which allows the engine to write temp files if needed.
-    nativeSetWorkingDir(context.filesDir);
+    // Start the engine with logger
+    const logger = AGenUILogger.getInstance();
+    start(logger);
   }
 
   // MARK: - C++ ISurfaceManager Factory
@@ -170,10 +169,10 @@ export class AGenUIEngineBridge {
   }
 
   /**
-   * Sets the working directory
+   * Sets path configuration
    */
-  setWorkingDir(dir: string): void {
-    nativeSetWorkingDir(dir);
+  setPathConfig(configJson: string): boolean {
+    return nativeSetPathConfig(configJson);
   }
 
   // MARK: - Image Loader

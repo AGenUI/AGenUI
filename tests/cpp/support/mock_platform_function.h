@@ -16,29 +16,28 @@ namespace testing {
 class MockPlatformFunction : public ::agenui::IPlatformFunction {
 public:
     struct CallRecord {
+        ::agenui::FunctionCallContext context;
         std::string params;
     };
 
-    using CallSyncHandler = std::function<::agenui::FunctionCallResult(const std::string&)>;
+    using CallSyncHandler = std::function<::agenui::FunctionCallResult(
+        const ::agenui::FunctionCallContext&, const std::string&)>;
 
-    ::agenui::FunctionCallResult callSync(const std::string& params) override {
+    ::agenui::FunctionCallResult callSync(
+        const ::agenui::FunctionCallContext& context,
+        const std::string& params) override {
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            calls_.push_back({params});
+            calls_.push_back({context, params});
         }
         ++callCount_;
         if (handler_) {
-            return handler_(params);
+            return handler_(context, params);
         }
         ::agenui::FunctionCallResult res;
         res.status = ::agenui::FunctionCallStatus::Success;
         res.data = "{}";
         return res;
-    }
-    
-    ::agenui::FunctionCallResult callAsync(const std::string& params,
-                                           const FunctionCallCallback& callback) override {
-        return ::agenui::FunctionCallResult();
     }
 
     void setHandler(CallSyncHandler handler) {

@@ -5,6 +5,7 @@
 // Created on 2026/3/22.
 //
 
+#if AGENUI_SDK_BUILD
 import Foundation
 import UIKit
 
@@ -683,3 +684,5 @@ class SVGXMLParser: NSObject, XMLParserDelegate {
         return tokens
     }
 }
+
+#endif // AGENUI_SDK_BUILD

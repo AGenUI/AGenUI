@@ -5,11 +5,8 @@
 // Created on 2026/3/1.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// CheckBoxButton control (compliant with A2UI v0.9 protocol)
 ///
@@ -31,7 +28,8 @@ class CheckBoxButton: UIControl {
     var label: String = "" {
         didSet {
             labelView.text = label
-            labelView.flex.markDirty()
+            labelView.invalidateIntrinsicContentSize()
+            invalidateIntrinsicContentSize()
             setNeedsLayout()
         }
     }
@@ -146,6 +144,13 @@ class CheckBoxButton: UIControl {
         }
     }
     
+    override func sizeThatFits(_ size: CGSize) -> CGSize {
+        let labelSize = labelView.sizeThatFits(CGSize(width: size.width - checkboxSize - textMargin, height: .greatestFiniteMagnitude))
+        let height = max(checkboxSize, labelSize.height)
+        let width = checkboxSize + textMargin + labelSize.width
+        return CGSize(width: min(width, size.width), height: height)
+    }
+    
     // MARK: - Private Properties
     
     private let labelView: UILabel = {
@@ -184,6 +189,24 @@ class CheckBoxButton: UIControl {
     
     // MARK: - Private Methods
     
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        let currentCheckboxSize = checkboxSize
+        let currentTextMargin = textMargin
+        
+        // Layout checkbox on the left
+        let checkBoxY = (bounds.height - currentCheckboxSize) / 2
+        checkBoxView.frame = CGRect(x: 0, y: checkBoxY, width: currentCheckboxSize, height: currentCheckboxSize)
+        
+        // Layout label to the right of checkbox
+        let labelX = currentCheckboxSize + currentTextMargin
+        let labelWidth = bounds.width - labelX
+        if labelWidth > 0 {
+            labelView.frame = CGRect(x: labelX, y: 0, width: labelWidth, height: bounds.height)
+        }
+    }
+    
     private func setupViews() {
         // Use FlexLayout for layout
         updateLayout()
@@ -191,29 +214,26 @@ class CheckBoxButton: UIControl {
     }
     
     private func updateLayout() {
-        // Clear old layout
-        flex.markDirty()
-        
-        // Re-layout using configured properties
-        flex.direction(.row).alignItems(.center).define { flex in
-            // Add checkbox container (left, using configured size)
-            checkBoxView.isUserInteractionEnabled = false
-            if checkBoxView.superview == nil {
-                checkBoxView.addSubview(checkMarkImageView)
-            }
-            
-            // Set checkmark icon frame (centered, dynamically calculated based on checkbox size)
-            let iconSize = checkboxSize * 0.75
-            let iconOffset = (checkboxSize - iconSize) / 2
-            checkMarkImageView.frame = CGRect(x: iconOffset, y: iconOffset, width: iconSize, height: iconSize)
-            checkMarkImageView.isUserInteractionEnabled = false
-            
-            flex.addItem(checkBoxView).width(checkboxSize).height(checkboxSize).marginRight(textMargin)
-            
-            // Add label (right, fills remaining space)
-            labelView.isUserInteractionEnabled = false
-            flex.addItem(labelView).grow(1).shrink(1)
+        // Ensure checkbox and label are added as subviews
+        checkBoxView.isUserInteractionEnabled = false
+        if checkBoxView.superview == nil {
+            checkBoxView.addSubview(checkMarkImageView)
+            addSubview(checkBoxView)
         }
+        
+        // Set checkmark icon frame (centered, dynamically calculated based on checkbox size)
+        let iconSize = checkboxSize * 0.75
+        let iconOffset = (checkboxSize - iconSize) / 2
+        checkMarkImageView.frame = CGRect(x: iconOffset, y: iconOffset, width: iconSize, height: iconSize)
+        checkMarkImageView.isUserInteractionEnabled = false
+        
+        // Add label if not already added
+        labelView.isUserInteractionEnabled = false
+        if labelView.superview == nil {
+            addSubview(labelView)
+        }
+        
+        setNeedsLayout()
     }
     
     private func updateAppearance() {
@@ -259,3 +279,5 @@ class CheckBoxButton: UIControl {
         }
     }
 }
+
+#endif // AGENUI_SDK_BUILD

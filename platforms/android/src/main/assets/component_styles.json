@@ -21,9 +21,6 @@
   "Button": {
     "disabled-opacity": "0.4"
   },
-  "TextField": {
-    "validation-error-message": "Invalid format"
-  },
   "CheckBox": {
     "checkbox-size": "32px",
     "checkbox-background-color-selected": "#2E82FF",

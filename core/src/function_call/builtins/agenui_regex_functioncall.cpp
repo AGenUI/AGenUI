@@ -25,16 +25,6 @@ FunctionCallConfig RegexFunctionCall::getConfig() const {
     config.setName("regex");
     config.setDescription("Checks that the value matches a regular expression string.");
     config.setReturnType("boolean");
-    config.setSync(true);
-    nlohmann::json params = {
-        {"type", "object"},
-        {"properties", {
-            {"value", {{"type", "string"}}},
-            {"pattern", {{"type", "string"}, {"description", "The regex pattern to match against."}}}
-        }},
-        {"required", nlohmann::json::array({"value", "pattern"})}
-    };
-    config.setParameters(params);
     return config;
 }
 

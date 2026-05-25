@@ -5,11 +5,8 @@
 // Created on 2026/2/27.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// IconComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -42,7 +39,7 @@ class IconComponent: Component {
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .label
         
-        flex.addItem(imageView).grow(1).shrink(1)
+        addSubview(imageView)
         
         self.iconImageView = imageView
         
@@ -53,6 +50,27 @@ class IconComponent: Component {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Measurement Override
+    
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        let defaultSize: CGFloat = 24
+        var measuredWidth = defaultSize
+        var measuredHeight = defaultSize
+
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
     }
     
     // MARK: - Component Override
@@ -80,6 +98,9 @@ class IconComponent: Component {
     
     override func layoutSubviews() {
         super.layoutSubviews()
+        
+        // Sync iconImageView frame with component bounds
+        iconImageView?.frame = bounds
         
         // Reload icon to match current size when layout is complete and size is valid
         let currentSize = bounds.size
@@ -219,3 +240,5 @@ class IconComponent: Component {
         return UIColor.from(hexString: colorString)
     }
 }
+
+#endif // AGENUI_SDK_BUILD

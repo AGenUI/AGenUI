@@ -145,12 +145,7 @@ export enum Keys {
   // font-weight & font-style property value
   NODE_PROPERTY_FONT_NORMAL,           // normal
   NODE_PROPERTY_FONT_BOLD,             // bold
-  NODE_PROPERTY_FONT_BOLDER,           // bolder
   NODE_PROPERTY_FONT_ITALIC,           // italic
-  NODE_PROPERTY_FONT_ULTRALIGHT,       // ultralight
-  NODE_PROPERTY_FONT_THIN,             // thin
-  NODE_PROPERTY_FONT_LIGHT,            // light
-  NODE_PROPERTY_FONT_MEDIUM,           // medium
 
   // orientation value
   NODE_PROPERTY_ORIENTATION_VERTICAL,         // vertical

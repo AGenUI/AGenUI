@@ -1,4 +1,4 @@
-import { IFunctionCall, FunctionConfig, FunctionResult } from '@agenui/agenui';
+import { IFunctionCall, FunctionCallContext, FunctionConfig, FunctionResult } from '@agenui/agenui';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { Want, common } from '@kit.AbilityKit';
 
@@ -17,7 +17,7 @@ export class OpenUrlFunction implements IFunctionCall {
     this.config.name = 'openUrl';
   }
 
-  execute(paramsJson: string): FunctionResult {
+  execute(_context: FunctionCallContext, paramsJson: string): FunctionResult {
     try {
       const args = JSON.parse(paramsJson) as Record<string, Object>;
 

@@ -76,9 +76,6 @@ The following libraries are included under the MIT License
   - nlohmann/json
     Copyright (c) 2013-2022 Niels Lohmann
 
-  - jschema_validator
-    Copyright (c) Patrick Boettcher
-
   - FlexLayout
     Copyright (c) 2017 Lucas Ortis
 

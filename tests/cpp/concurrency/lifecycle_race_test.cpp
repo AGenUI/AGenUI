@@ -16,11 +16,14 @@
 
 namespace {
 
-// LR001: serialized create/destroy from a single thread (the documented
+// LR003: serialized create/destroy from a single thread (the documented
 // contract). We do NOT call engine->createSurfaceManager from multiple
 // threads — engine-level multi-instance map is not protected by a mutex
 // and the contract states all engine APIs are called from the main thread.
-TEST(LifecycleRaceTest, LR001_SerialCreateDestroySurfaceManagers) {
+//
+// The thread-safety of a single SurfaceManager's APIs is exercised by
+// the tests in thread_safety_test.cpp.
+TEST(LifecycleRaceTest, LR003_SerialCreateDestroySurfaceManagers) {
     auto* engine = ::agenui::testing::GetEngine();
     ASSERT_NE(engine, nullptr);
 
@@ -33,8 +36,8 @@ TEST(LifecycleRaceTest, LR001_SerialCreateDestroySurfaceManagers) {
     ::agenui::testing::WaitForWorkerIdle();
 }
 
-// LR002: addListener while init() is in flight on the worker thread.
-TEST(LifecycleRaceTest, LR002_AddListener_DuringInit) {
+// LR006: addListener while init() is in flight on the worker thread.
+TEST(LifecycleRaceTest, LR006_AddListener_DuringInit) {
     auto* engine = ::agenui::testing::GetEngine();
     constexpr int kRounds = 20;
     for (int i = 0; i < kRounds; ++i) {

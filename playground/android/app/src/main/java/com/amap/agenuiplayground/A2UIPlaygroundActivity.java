@@ -129,6 +129,9 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
     private TextView tvMemory;
     private TextView tvAvgFps;
     private boolean performanceMonitorEnabled = false;
+    
+    // Custom Logger
+    private PlaygroundRuntimeLogger runtimeLogger;
 
     // Day/Night Mode
     private boolean isDarkMode = false;
@@ -186,6 +189,16 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
 
         // Automatically show the performance monitor overlay on startup
         togglePerformanceMonitor();
+
+        // Support --autoGallery intent extra: auto-navigate to Gallery on launch
+        // Usage: adb shell am start -S -n <package>/.A2UIPlaygroundActivity --ez autoGallery true
+        boolean autoGallery = getIntent().getBooleanExtra("autoGallery", false);
+        if (autoGallery) {
+            // Delay to ensure framework is fully initialized, then render Gallery directly
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                renderGalleryFromAsset();
+            }, 500);
+        }
     }
 
     /**
@@ -646,56 +659,54 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
      * Initialize A2UI Framework
      */
     private void initAGenUI() {
-        try {
-            // 1. Initialize AGenUI engine (idempotent)
-            aGenUI = AGenUI.getInstance();
-            aGenUI.initialize(getApplicationContext());
-            addLog("AGenUI initialized");
+        // 1. Initialize AGenUI engine (idempotent)
+        aGenUI = AGenUI.getInstance();
+        aGenUI.initialize(getApplicationContext());
+        addLog("AGenUI initialized");
 
-            // 2. Create SurfaceManager
-            surfaceManager = new SurfaceManager(this);
-            addLog("SurfaceManager created: " + surfaceManager);
+        // 2. Create custom logger
+        runtimeLogger = new PlaygroundRuntimeLogger(getApplicationContext());
+        aGenUI.setCustomLogger(runtimeLogger);
+        addLog("Custom RuntimeLogger initialized");
 
-            // 3. Register Surface listener
-            surfaceManager.addListener(new ISurfaceManagerListener() {
-                @Override
-                public void onCreateSurface(Surface surface) {
-                    runOnUiThread(() -> {
-                        String surfaceId = surface.getSurfaceId();
-                        currentSurfaceId = surfaceId;
-                        addLog("✓ Surface created: " + surfaceId);
+        // 3. Create SurfaceManager
+        surfaceManager = new SurfaceManager(this);
+        addLog("SurfaceManager created: " + surfaceManager);
 
-                        // Clear previous content
-                        renderContent.removeAllViews();
+        // 4. Register Surface listener
+        surfaceManager.addListener(new ISurfaceManagerListener() {
+            @Override
+            public void onCreateSurface(Surface surface) {
+                runOnUiThread(() -> {
+                    String surfaceId = surface.getSurfaceId();
+                    currentSurfaceId = surfaceId;
+                    addLog("✓ Surface created: " + surfaceId);
 
-                        // Add Surface's internal container to our ViewTree
-                        renderContent.addView(surface.getContainer());
-                        addLog("✓ Surface container added to ViewTree");
-                    });
-                }
+                    // Clear previous content
+                    renderContent.removeAllViews();
 
-                @Override
-                public void onDeleteSurface(Surface surface) {
-                    runOnUiThread(() -> {
-                        addLog("Surface deleted: " + surface.getSurfaceId());
-                    });
-                }
-            });
+                    // Add Surface's internal container to our ViewTree
+                    renderContent.addView(surface.getContainer());
+                    addLog("✓ Surface container added to ViewTree");
+                });
+            }
 
-            // 4. Register Components and Functions
-            AGenUI.getInstance().registerFunction(new ToastFunction(this));
+            @Override
+            public void onDeleteSurface(Surface surface) {
+                runOnUiThread(() -> {
+                    addLog("Surface deleted: " + surface.getSurfaceId());
+                });
+            }
+        });
 
-            AGenUI.getInstance().registerComponent("Markdown", new MarkdownComponentFactory());
-            AGenUI.getInstance().registerComponent("Lottie", new LottieComponentFactory());
-            AGenUI.getInstance().registerComponent("Chart", new ChartComponentFactory());
+        // 5. Register Components and Functions
+        AGenUI.getInstance().registerFunction(new ToastFunction(this));
 
-            addLog("A2UI Framework initialized successfully");
+        AGenUI.getInstance().registerComponent("Markdown", new MarkdownComponentFactory());
+        AGenUI.getInstance().registerComponent("Lottie", new LottieComponentFactory());
+        AGenUI.getInstance().registerComponent("Chart", new ChartComponentFactory());
 
-        } catch (Exception e) {
-            addLog("A2UI Framework initialization failed: " + e.getMessage());
-            Log.e(TAG, "Failed to initialize AGenUI", e);
-            e.printStackTrace();
-        }
+        addLog("A2UI Framework initialized successfully");
     }
 
     /**
@@ -1151,6 +1162,68 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
                "    ]\n" +
                "  }\n" +
                "}";
+    }
+
+    /**
+     * Render Gallery directly from asset file: stories/A2UI Show/Gallery/updateComponents.json.
+     * Used by autoGallery intent extra to bypass StoryLoader.
+     */
+    private void renderGalleryFromAsset() {
+        if (aGenUI == null || surfaceManager == null) {
+            addLog("Error: A2UI Framework not initialized");
+            return;
+        }
+
+        try {
+            addLog("Loading Gallery from asset...");
+
+            // Read updateComponents.json directly from assets
+            String assetPath = "stories/A2UI Show/Gallery/updateComponents.json";
+            java.io.InputStream is = getAssets().open(assetPath);
+            java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(is, "UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            reader.close();
+            String componentsJson = sb.toString();
+
+            // Update title
+            updateToolbarTitle("Gallery");
+
+            // Clear current content and reset surface
+            renderContent.removeAllViews();
+            if (currentSurfaceId != null) {
+                surfaceManager.destroy();
+                surfaceManager = new SurfaceManager(this);
+                currentSurfaceId = null;
+            }
+
+            // Generate unique surfaceId and replace in JSON
+            String newSurfaceId = "surface_" + System.currentTimeMillis();
+            String updatedJson = replaceSurfaceIdInJson(componentsJson, newSurfaceId);
+
+            // Send createSurface
+            JSONObject createSurfaceJson = new JSONObject();
+            createSurfaceJson.put("version", "v0.9");
+            JSONObject createSurfaceData = new JSONObject();
+            createSurfaceData.put("surfaceId", newSurfaceId);
+            createSurfaceData.put("catalogId", "https://a2ui.org/specification/v0_9/standard_catalog.json");
+            createSurfaceJson.put("createSurface", createSurfaceData);
+            surfaceManager.receiveTextChunk(createSurfaceJson.toString());
+
+            // Send updateComponents
+            surfaceManager.receiveTextChunk(updatedJson);
+
+            currentSurfaceId = newSurfaceId;
+            addLog("Gallery loaded from asset: " + assetPath);
+
+        } catch (Exception e) {
+            addLog("Failed to load Gallery from asset: " + e.getMessage());
+            Log.e(TAG, "Failed to render Gallery from asset", e);
+        }
     }
 
     /**

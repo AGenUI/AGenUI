@@ -64,7 +64,7 @@ public class CheckBoxComponent extends A2UIComponent {
     protected View onCreateView(Context context) {
         this.context = context;
         // Load default style configuration
-        Map<String, String> defaultStyles = ComponentStyleConfig.getInstance(context).getCheckBoxStyle();
+        Map<String, String> defaultStyles = ComponentStyleConfig.getInstance(context).getComponentStyle("CheckBox");
         
         // Create outer vertical layout container
         outerContainer = new LinearLayout(context);
@@ -287,7 +287,7 @@ public class CheckBoxComponent extends A2UIComponent {
                     checkBoxContainer.setEnabled(false);
 
                     // Apply disabled state text color
-                    Map<String, String> defaultStyles = ComponentStyleConfig.getInstance(context).getCheckBoxStyle();
+                    Map<String, String> defaultStyles = ComponentStyleConfig.getInstance(context).getComponentStyle("CheckBox");
                     String textColorDisabledStr = defaultStyles.get("text-color-disabled");
                     if (textColorDisabledStr != null) {
                         int textColorDisabled = StyleHelper.parseColor(textColorDisabledStr);
@@ -300,7 +300,7 @@ public class CheckBoxComponent extends A2UIComponent {
                     checkBoxContainer.setEnabled(true);
 
                     // Restore normal state text color
-                    Map<String, String> defaultStyles = ComponentStyleConfig.getInstance(context).getCheckBoxStyle();
+                    Map<String, String> defaultStyles = ComponentStyleConfig.getInstance(context).getComponentStyle("CheckBox");
                     String textColorStr = defaultStyles.get("text-color");
                     if (textColorStr != null) {
                         int textColor = StyleHelper.parseColor(textColorStr);

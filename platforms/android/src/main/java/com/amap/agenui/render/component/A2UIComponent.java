@@ -1,21 +1,21 @@
 package com.amap.agenui.render.component;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.RestrictTo;
 
-import com.amap.agenui.render.layout.FlexContainerLayout;
+import com.amap.agenui.render.layout.YogaAbsoluteLayout;
 import com.amap.agenui.render.style.StyleHelper;
-import com.google.android.flexbox.FlexDirection;
-import com.google.android.flexbox.FlexboxLayout;
+import com.amap.agenui.render.surface.SurfaceLayoutDispatcher;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -55,6 +55,100 @@ public abstract class A2UIComponent {
      *
      */
     private ComponentEventDispatcher componentEventDispatcher;
+    private SurfaceLayoutDispatcher surfaceLayoutDispatcher;
+    private YogaAbsoluteLayout.LayoutState appliedYogaLayout;
+
+    /**
+     * Pulls the current animation toggle from the owning Surface on demand.
+     * Why: Surface.setAnimationEnabled may be called at any time after components are
+     * registered; a pushed cache would go stale. Reading via supplier keeps a single
+     * source of truth and is correct even inside async callbacks fired after the toggle changed.
+     * Custom interface (not java.util.function.BooleanSupplier) because the latter requires API 24.
+     */
+    public interface BoolSupplier {
+        boolean get();
+    }
+
+    private BoolSupplier animationEnabledSupplier;
+
+    protected static final class RenderSizeReportState {
+        private float lastReportedWidth = Float.NaN;
+        private float lastReportedHeight = Float.NaN;
+
+        public RenderSizeReportState() {
+        }
+    }
+
+    @FunctionalInterface
+    protected interface RenderSizeResolver {
+        int[] resolve(View targetView, int constrainedWidthPx);
+    }
+
+    /**
+     * Shared helper for components whose final size is only known after async content has rendered
+     * (for example Markdown / RichText images / Lottie composition load).
+     */
+    protected final class AsyncRenderSizeReporter implements View.OnLayoutChangeListener {
+        private final String type;
+        private final String logTag;
+        private final RenderSizeResolver resolver;
+        private final RenderSizeReportState reportState = new RenderSizeReportState();
+
+        private View targetView;
+        private boolean enabled = true;
+
+        private AsyncRenderSizeReporter(String type, String logTag, RenderSizeResolver resolver) {
+            this.type = type;
+            this.logTag = logTag;
+            this.resolver = resolver;
+        }
+
+        public void bind(View targetView) {
+            if (this.targetView == targetView) {
+                return;
+            }
+            unbind();
+            this.targetView = targetView;
+            if (this.targetView != null) {
+                this.targetView.addOnLayoutChangeListener(this);
+            }
+        }
+
+        public void unbind() {
+            if (this.targetView != null) {
+                this.targetView.removeOnLayoutChangeListener(this);
+                this.targetView = null;
+            }
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public void request() {
+            request(properties);
+        }
+
+        public void request(Map<String, Object> propertySource) {
+            if (!enabled || targetView == null) {
+                return;
+            }
+            scheduleRenderSizeReport(targetView, type, reportState, propertySource, logTag, resolver);
+        }
+
+        @Override
+        public void onLayoutChange(View v,
+                                   int left,
+                                   int top,
+                                   int right,
+                                   int bottom,
+                                   int oldLeft,
+                                   int oldTop,
+                                   int oldRight,
+                                   int oldBottom) {
+            request();
+        }
+    }
 
     /**
      * Constructor
@@ -83,17 +177,8 @@ public abstract class A2UIComponent {
             // If properties have already been set (updateProperties was called before createView),
             // apply styles now.
             if (view != null && properties != null && !properties.isEmpty()) {
+                applyYogaLayout(view, properties, parent, false);
                 applyCommonStyles(view, properties, parent);
-            }
-
-            // Handle the weight property (A2UI v0.9 protocol: CatalogComponentCommon.weight).
-            // weight must be set as FlexboxLayout.LayoutParams right after the View is created
-            // so that the LayoutParams are correctly configured when the child is added to its parent.
-            if (view != null && parent instanceof FlexContainerLayout) {
-                applyFlexChildStyles(view, this);
-                applyWeightToLayoutParams(view, parent);
-                // Apply Position styles (after Flex styles; can override LayoutParams)
-                applyPositionStyles(view, this);
             }
 
             // Set a generic click listener (A2UI v0.9 protocol: all components support the action property).
@@ -105,113 +190,19 @@ public abstract class A2UIComponent {
         return view;
     }
 
+    protected final AsyncRenderSizeReporter createAsyncRenderSizeReporter(String type,
+                                                                          String logTag) {
+        return createAsyncRenderSizeReporter(type, logTag, null);
+    }
+
     /**
-     * Applies the weight property to LayoutParams.
-     *
-     * weight is analogous to CSS flex-grow and controls the relative weight of a child component
-     * along the main axis of its parent container.
-     *
-     * @param view   The child component's View
-     * @param parent The parent container (must be a FlexContainerLayout)
+     * Creates a reusable async size reporter for components whose final size is only known after
+     * the Android view has rendered real content.
      */
-    private void applyWeightToLayoutParams(View view, ViewGroup parent) {
-        if (!(parent instanceof FlexContainerLayout)) {
-            return;
-        }
-
-        FlexboxLayout flexboxLayout =
-                ((FlexContainerLayout) parent).getFlexboxLayout();
-
-        // Get the weight property value
-        Object weightObj = properties.get("weight");
-        if (weightObj == null) {
-            return;
-        }
-
-        float weight = 0f;
-        if (weightObj instanceof Number) {
-            weight = ((Number) weightObj).floatValue();
-        } else if (weightObj instanceof String) {
-            try {
-                weight = Float.parseFloat((String) weightObj);
-            } catch (NumberFormatException e) {
-                Log.w(TAG, "Invalid weight value: " + weightObj, e);
-                return;
-            }
-        }
-
-        if (weight <= 0) {
-            return;
-        }
-
-        // Get or create FlexboxLayout.LayoutParams
-        ViewGroup.LayoutParams params = view.getLayoutParams();
-        FlexboxLayout.LayoutParams flexParams;
-
-        if (params instanceof FlexboxLayout.LayoutParams) {
-            // Already FlexboxLayout.LayoutParams; use directly (preserving existing width/height)
-            flexParams = (FlexboxLayout.LayoutParams) params;
-        } else if (params != null) {
-            // Other LayoutParams type: create new FlexboxLayout.LayoutParams and preserve width/height
-            flexParams = new FlexboxLayout.LayoutParams(
-                params.width,
-                params.height
-            );
-        } else {
-            // No LayoutParams: determine default dimensions based on the parent's flex direction
-            int flexDirection = flexboxLayout.getFlexDirection();
-            boolean isRow = (flexDirection == FlexDirection.ROW ||
-                    flexDirection == FlexDirection.ROW_REVERSE);
-
-            if (isRow) {
-                // Row: width is 0 (controlled by flex-grow), height is WRAP_CONTENT
-                flexParams = new FlexboxLayout.LayoutParams(
-                    0,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                );
-            } else {
-                // Column: width is MATCH_PARENT, height is 0 (controlled by flex-grow)
-                flexParams = new FlexboxLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    0
-                );
-            }
-        }
-
-        // Set flex-grow to achieve the weight effect
-        flexParams.setFlexGrow(weight);
-
-        // When weight is set, the main-axis dimension should be 0 to let flex-grow control
-        // the actual size. However, if the user has explicitly set width/height via styles,
-        // preserve those values.
-        int flexDirection = flexboxLayout.getFlexDirection();
-        boolean isRow = (flexDirection == FlexDirection.ROW ||
-                flexDirection == FlexDirection.ROW_REVERSE);
-
-        // Check for explicit width/height settings
-        Map<String, Object> styles = extractStyles(properties);
-        boolean hasExplicitWidth = styles != null && styles.containsKey("width");
-        boolean hasExplicitHeight = styles != null && styles.containsKey("height");
-
-        if (isRow) {
-            // Row's main axis is horizontal.
-            // Set width to 0 only if no explicit width is specified.
-            if (!hasExplicitWidth) {
-                flexParams.width = 0;
-            }
-        } else {
-            // Column's main axis is vertical.
-            // Set height to 0 only if no explicit height is specified.
-            if (!hasExplicitHeight) {
-                flexParams.height = 0;
-            }
-        }
-
-        view.setLayoutParams(flexParams);
-
-        Log.d(TAG, "Applied weight=" + weight + " to component " + id +
-                " (flexDirection=" + (isRow ? "ROW" : "COLUMN") +
-                          ", width=" + flexParams.width + ", height=" + flexParams.height + ")");
+    protected final AsyncRenderSizeReporter createAsyncRenderSizeReporter(String type,
+                                                                          String logTag,
+                                                                          RenderSizeResolver resolver) {
+        return new AsyncRenderSizeReporter(type, logTag, resolver);
     }
 
     /**
@@ -232,8 +223,9 @@ public abstract class A2UIComponent {
         this.properties.putAll(properties);
 
         if (view != null) {
-            applyCommonStyles(view, properties);
-            onUpdateProperties(properties);
+            applyYogaLayout(view, this.properties, null, true);
+            applyCommonStyles(view, this.properties);
+            onUpdateProperties(this.properties);
             // The action property may arrive after createView; set the listener here as a catch-up
             if (properties.containsKey("action")) {
                 setupClickListener(view);
@@ -248,14 +240,11 @@ public abstract class A2UIComponent {
      * Styles are read from the "styles" field in properties (JSON String or Map).
      *
      * Supported styles:
-     * - Dimensions: width, height, max-width, max-height, min-width, min-height
-     * - Spacing:    margin, padding (and their inline/block variants)
      * - Display:    display, opacity
      * - Background: background-color, background
      * - Border:     border-radius, border-color, border-width
      * - Shadow:     box-shadow
      * - Filter:     filter
-     * - Aspect ratio: aspect-ratio
      *
      * @param view       The component's View
      * @param properties Properties Map
@@ -267,14 +256,10 @@ public abstract class A2UIComponent {
         if (styles == null || styles.isEmpty()) {
             return;
         }
-
-        StyleHelper.applyDimensions(view, styles, parent);
-        StyleHelper.applySpacing(view, styles);
         StyleHelper.applyDisplay(view, styles);
         StyleHelper.applyBackground(view, styles);
         StyleHelper.applyBorder(view, styles);
         StyleHelper.applyFilter(view, styles);
-        StyleHelper.applyAspectRatio(view, styles);
     }
 
     /**
@@ -313,7 +298,7 @@ public abstract class A2UIComponent {
                 // Simple JSON parsing (using org.json or another JSON library available in the project)
                 return parseJsonToMap(jsonStr);
             } catch (Exception e) {
-                Log.e(TAG, "Failed to parse styles JSON: " + stylesObj, e);
+                AGenUILogger.e(TAG, "Failed to parse styles JSON: " + stylesObj, e);
                 return new HashMap<>();
             }
         }
@@ -341,83 +326,9 @@ public abstract class A2UIComponent {
 
             return map;
         } catch (JSONException e) {
-            Log.e(TAG, "JSON parse error: " + jsonStr, e);
+            AGenUILogger.e(TAG, "JSON parse error: " + jsonStr, e);
             return new HashMap<>();
         }
-    }
-
-    /**
-     * Applies positioning styles to a child component.
-     * Extracts styles internally and delegates to StyleHelper.applyPosition.
-     *
-     * @param childView      The child component's View
-     * @param childComponent The child component instance
-     */
-    protected void applyPositionStyles(View childView, A2UIComponent childComponent) {
-        if (childView == null || childComponent == null) {
-            return;
-        }
-
-        // Extract styles
-        Map<String, Object> styles = extractStyles(childComponent.getProperties());
-        if (styles != null && !styles.isEmpty()) {
-            // Delegate to StyleHelper to apply positioning styles.
-            // applyPosition internally checks whether position is absolute, and if so,
-            // automatically overrides LayoutParams.
-            StyleHelper.applyPosition(childView, styles);
-        }
-    }
-
-    /**
-     * Applies Flex child element styles to a child component.
-     *
-     * Supported styles:
-     * - align-self:  alignment of the child along the cross axis
-     * - flex-grow:   grow factor of the child
-     * - flex-shrink: shrink factor of the child
-     * - flex-basis:  base size of the child
-     *
-     * @param childView      The child component's View
-     * @param childComponent The child component instance
-     */
-    protected void applyFlexChildStyles(View childView, A2UIComponent childComponent) {
-        if (childView == null || childComponent == null) return;
-
-        ViewGroup.LayoutParams params = childView.getLayoutParams();
-        FlexboxLayout.LayoutParams flexParams;
-
-        // Critical fix: if LayoutParams is null, explicitly construct a FlexboxLayout.LayoutParams
-        if (params == null) {
-            flexParams = new FlexboxLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-            Log.d(TAG, "applyFlexChildStyles: created FlexboxLayout.LayoutParams for " + childComponent.getId());
-        } else if (params instanceof FlexboxLayout.LayoutParams) {
-            // Already FlexboxLayout.LayoutParams; use directly
-            flexParams = (FlexboxLayout.LayoutParams) params;
-        } else {
-            // Other LayoutParams type: convert to FlexboxLayout.LayoutParams
-            flexParams = new FlexboxLayout.LayoutParams(
-                params.width,
-                params.height
-            );
-            Log.d(TAG, "applyFlexChildStyles: converted to FlexboxLayout.LayoutParams for " + childComponent.getId());
-        }
-        // Set default FlexLayoutParams values
-        flexParams.setFlexShrink(1);
-
-        Map<String, Object> childProps = childComponent.getProperties();
-
-        // Critical fix: extract styles object from properties.
-        // Flex child styles (align-self, flex-grow, etc.) are inside the styles field.
-        Map<String, Object> styles = extractStyles(childProps);
-
-        // Apply Flex child properties
-        StyleHelper.applyFlexChild(flexParams, styles);
-
-        // Update LayoutParams
-        childView.setLayoutParams(flexParams);
     }
 
     /**
@@ -461,7 +372,9 @@ public abstract class A2UIComponent {
         if (childToRemove != null) {
             removeChild(childToRemove);
         } else {
-            Log.w(TAG, "removeChildById: child not found, id=" + childId);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "removeChildById: child not found, id=" + childId);
+            }
         }
     }
 
@@ -472,7 +385,9 @@ public abstract class A2UIComponent {
      * Subclasses must not override this method; implement onDestroy() to release their own resources.
      */
     public final void destroy() {
-        Log.d(TAG, "destroy: " + this.getId() + " (" + this.getComponentType() + ")");
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "destroy: " + this.getId() + " (" + this.getComponentType() + ")");
+        }
 
         // 1. Recursively destroy child components
         for (A2UIComponent child : children) {
@@ -524,6 +439,21 @@ public abstract class A2UIComponent {
         // Default empty implementation; subclasses override as needed
     }
 
+    /**
+     * Whether this component allows its Yoga-computed x/y/width/height frame to be applied to
+     * a given child's real Android view.
+     *
+     * Containers that manage child geometry themselves (TabsComponent's contentContainer is the
+     * motivating case) should override this to return false. Counterpart to Harmony's
+     * shouldApplyChildLayoutPosition / shouldApplyChildLayoutSize hooks.
+     *
+     * @param child The child component requesting layout application
+     * @return true to apply the Yoga frame as usual, false to skip
+     */
+    public boolean shouldApplyChildYogaLayout(A2UIComponent child) {
+        return true;
+    }
+
 
     /**
      * Creates the concrete Android View.
@@ -562,11 +492,11 @@ public abstract class A2UIComponent {
     }
 
     public List<A2UIComponent> getChildren() {
-        return new ArrayList<>(children);
+        return Collections.unmodifiableList(children);
     }
 
     public Map<String, Object> getProperties() {
-        return new HashMap<>(properties);
+        return Collections.unmodifiableMap(properties);
     }
 
     /**
@@ -590,6 +520,23 @@ public abstract class A2UIComponent {
      */
     public String getSurfaceId() {
         return surfaceId;
+    }
+
+    /**
+     * Wires the supplier that reads the owning Surface's animation toggle on demand.
+     * Called by Surface.addComponent().
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public void setAnimationEnabledSupplier(BoolSupplier supplier) {
+        this.animationEnabledSupplier = supplier;
+    }
+
+    /**
+     * Current animation toggle. Defaults to true when no supplier is wired
+     * (e.g. component used standalone in tests).
+     */
+    protected boolean isAnimationEnabled() {
+        return animationEnabledSupplier == null || animationEnabledSupplier.get();
     }
 
     /**
@@ -641,14 +588,20 @@ public abstract class A2UIComponent {
      *
      */
     public final void triggerAction() {
-        Log.d(TAG, "Component action triggered: " + id + " (type: " + componentType + ")");
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "Component action triggered: " + id + " (type: " + componentType + ")");
+        }
 
         if (surfaceId == null) {
-            Log.w(TAG, "SurfaceId is null, cannot dispatch action for component: " + id);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "SurfaceId is null, cannot dispatch action for component: " + id);
+            }
             return;
         }
         if (componentEventDispatcher == null) {
-            Log.w(TAG, "ComponentEventDispatcher is null, cannot dispatch action for component: " + id);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "ComponentEventDispatcher is null, cannot dispatch action for component: " + id);
+            }
             return;
         }
 
@@ -666,13 +619,381 @@ public abstract class A2UIComponent {
      */
     public final void syncState(String jsonData) {
         if (surfaceId == null) {
-            Log.w(TAG, "SurfaceId is null, cannot syncState for component: " + id);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "SurfaceId is null, cannot syncState for component: " + id);
+            }
             return;
         }
         if (componentEventDispatcher == null) {
-            Log.w(TAG, "ComponentEventDispatcher is null, cannot syncState for component: " + id);
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "ComponentEventDispatcher is null, cannot syncState for component: " + id);
+            }
             return;
         }
         componentEventDispatcher.submitUIDataModel(surfaceId, id, jsonData);
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public void setSurfaceLayoutDispatcher(SurfaceLayoutDispatcher surfaceLayoutDispatcher) {
+        this.surfaceLayoutDispatcher = surfaceLayoutDispatcher;
+    }
+
+    /**
+     * Reports an async render-finish event in A2UI units.
+     */
+    protected final void notifyRenderFinish(String type, float width, float height) {
+        notifyRenderFinish(type, width, height, -1);
+    }
+
+    /**
+     * Reports an async render-finish event, optionally carrying extra component-specific payload
+     * such as Tabs' selected index.
+     */
+    protected final void notifyRenderFinish(String type,
+                                            float width,
+                                            float height,
+                                            int selectedIndex) {
+        if (surfaceLayoutDispatcher == null) {
+            return;
+        }
+        surfaceLayoutDispatcher.notifyRenderFinish(id, type, width, height, selectedIndex);
+    }
+
+    /**
+     * Convenience wrapper that converts Android px to A2UI units before notifying native.
+     */
+    protected final void notifyRenderFinishFromPx(String type, float widthPx, float heightPx) {
+        if (view == null) {
+            return;
+        }
+        notifyRenderFinish(
+                type,
+                StyleHelper.pxToA2ui(view.getContext(), widthPx),
+                StyleHelper.pxToA2ui(view.getContext(), heightPx));
+    }
+
+    /**
+     * Schedules a render-size probe on the view thread after the current layout pass.
+     */
+    protected final void scheduleRenderSizeReport(View targetView,
+                                                  String type,
+                                                  RenderSizeReportState reportState,
+                                                  Map<String, Object> propertySource,
+                                                  String logTag) {
+        scheduleRenderSizeReport(targetView, type, reportState, propertySource, logTag, null);
+    }
+
+    protected final void scheduleRenderSizeReport(View targetView,
+                                                  String type,
+                                                  RenderSizeReportState reportState,
+                                                  Map<String, Object> propertySource,
+                                                  String logTag,
+                                                  RenderSizeResolver resolver) {
+        if (targetView == null) {
+            return;
+        }
+        targetView.post(() -> reportRenderSizeIfNeeded(
+                targetView,
+                type,
+                reportState,
+                propertySource,
+                logTag,
+                resolver));
+    }
+
+    /**
+     * Measures the current rendered size and emits render-finish only when the size changed.
+     */
+    protected final boolean reportRenderSizeIfNeeded(View targetView,
+                                                     String type,
+                                                     RenderSizeReportState reportState,
+                                                     Map<String, Object> propertySource,
+                                                     String logTag) {
+        return reportRenderSizeIfNeeded(targetView, type, reportState, propertySource, logTag, null);
+    }
+
+    protected final boolean reportRenderSizeIfNeeded(View targetView,
+                                                     String type,
+                                                     RenderSizeReportState reportState,
+                                                     Map<String, Object> propertySource,
+                                                     String logTag,
+                                                     RenderSizeResolver resolver) {
+        if (targetView == null || reportState == null) {
+            return false;
+        }
+
+        int widthPx = resolveRenderReportWidthPx(targetView, propertySource);
+        if (widthPx <= 0) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.d(logTag, "⏭ [RENDER_FINISH] Skip report for " + id + ", unresolved width");
+            }
+            return false;
+        }
+
+        int[] resolvedSize = resolver != null
+                ? resolver.resolve(targetView, widthPx)
+                : measureViewForRenderReport(targetView, widthPx);
+        if (resolvedSize == null || resolvedSize.length < 2) {
+            return false;
+        }
+
+        int resolvedWidthPx = resolvedSize[0] > 0 ? resolvedSize[0] : widthPx;
+        int resolvedHeightPx = resolvedSize[1];
+        if (resolvedWidthPx <= 0 || resolvedHeightPx < 0) {
+            return false;
+        }
+
+        float reportedWidth = StyleHelper.pxToA2ui(targetView.getContext(), resolvedWidthPx);
+        float reportedHeight = StyleHelper.pxToA2ui(targetView.getContext(), resolvedHeightPx);
+        if (Float.compare(reportedWidth, reportState.lastReportedWidth) == 0
+                && Float.compare(reportedHeight, reportState.lastReportedHeight) == 0) {
+            return false;
+        }
+
+        reportState.lastReportedWidth = reportedWidth;
+        reportState.lastReportedHeight = reportedHeight;
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(logTag, "📏 [RENDER_FINISH] " + type + " " + id
+                    + " report size: width=" + reportedWidth
+                    + ", height=" + reportedHeight
+                    + " (px=" + resolvedWidthPx + "x" + resolvedHeightPx + ")");
+        }
+        notifyRenderFinish(type, reportedWidth, reportedHeight);
+        return true;
+    }
+
+    /**
+     * Resolves the width constraint that should be used when probing rendered content height.
+     */
+    protected final int resolveRenderReportWidthPx(View targetView, Map<String, Object> propertySource) {
+        if (targetView == null) {
+            return 0;
+        }
+
+        int widthFromStyles = resolveWidthFromStylesPx(targetView, propertySource);
+        if (widthFromStyles > 0) {
+            return widthFromStyles;
+        }
+
+        int currentWidth = targetView.getWidth();
+        if (currentWidth > 0) {
+            return currentWidth;
+        }
+
+        int measuredWidth = targetView.getMeasuredWidth();
+        if (measuredWidth > 0) {
+            return measuredWidth;
+        }
+
+        int parentWidth = resolveParentWidthPx(targetView);
+        if (parentWidth > 0) {
+            return parentWidth;
+        }
+
+        return targetView.getResources().getDisplayMetrics().widthPixels;
+    }
+
+    protected final int resolveParentWidthPx(View targetView) {
+        if (targetView == null || !(targetView.getParent() instanceof View)) {
+            return 0;
+        }
+
+        View parent = (View) targetView.getParent();
+        int parentWidth = parent.getWidth();
+        if (parentWidth > 0) {
+            return parentWidth;
+        }
+
+        return parent.getMeasuredWidth();
+    }
+
+    private int resolveWidthFromStylesPx(View targetView, Map<String, Object> propertySource) {
+        Map<String, Object> styles = extractStyles(propertySource != null ? propertySource : properties);
+        if (styles == null || !styles.containsKey("width")) {
+            return 0;
+        }
+
+        Object widthValue = styles.get("width");
+        if (widthValue instanceof Number) {
+            return Math.max(0, Math.round(StyleHelper.standardUnitToPx(targetView.getContext(), ((Number) widthValue).floatValue())));
+        }
+
+        int parsedWidth = StyleHelper.parseDimension(widthValue, targetView.getContext());
+        if (parsedWidth > 0) {
+            return parsedWidth;
+        }
+        if (parsedWidth == ViewGroup.LayoutParams.MATCH_PARENT) {
+            return resolveParentWidthPx(targetView);
+        }
+
+        return 0;
+    }
+
+    private int[] measureViewForRenderReport(View targetView, int widthPx) {
+        int widthSpec = View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY);
+        int heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        targetView.measure(widthSpec, heightSpec);
+        return new int[]{widthPx, targetView.getMeasuredHeight()};
+    }
+
+    /**
+     * Applies the Yoga frame encoded in component styles to the target view.
+     *
+     * When a SurfaceLayoutDispatcher is present, updates are batched into the surface-level
+     * transaction; otherwise they are applied directly to the parent container.
+     */
+    private void applyYogaLayout(View targetView,
+                                 Map<String, Object> propertySource,
+                                 ViewGroup explicitParent,
+                                 boolean allowDispatch) {
+        if (targetView == null || propertySource == null || propertySource.isEmpty()) {
+            return;
+        }
+        if (parent != null && !parent.shouldApplyChildYogaLayout(this)) {
+            return;
+        }
+        Map<String, Object> styles = extractStyles(propertySource);
+        YogaAbsoluteLayout.LayoutState nextLayout = buildYogaLayout(styles, targetView);
+        if (nextLayout == null || nextLayout.equals(appliedYogaLayout)) {
+            return;
+        }
+
+        ViewGroup parent = explicitParent;
+        if (parent == null && targetView.getParent() instanceof ViewGroup) {
+            parent = (ViewGroup) targetView.getParent();
+        }
+        if (parent == null) {
+            return;
+        }
+
+        if (surfaceLayoutDispatcher != null && allowDispatch) {
+            prepareYogaLayoutParamsForDispatch(targetView, parent, nextLayout);
+            surfaceLayoutDispatcher.dispatchLayout(
+                    targetView,
+                    parent,
+                    nextLayout,
+                    shouldMeasureWrapContentHeightWhenYogaHeightIsZero());
+        } else {
+            applyYogaLayoutDirectly(targetView, parent, nextLayout);
+        }
+        appliedYogaLayout = nextLayout;
+    }
+
+    /**
+     * Converts `styles.x/y/width/height/z-index` from A2UI units into an immutable px frame.
+     */
+    private YogaAbsoluteLayout.LayoutState buildYogaLayout(Map<String, Object> styles, View targetView) {
+        if (styles == null || !hasYogaFrame(styles)) {
+            return null;
+        }
+        int xPx = Math.round(StyleHelper.standardUnitToPx(targetView.getContext(), readA2uiFloat(styles.get("x"))));
+        int yPx = Math.round(StyleHelper.standardUnitToPx(targetView.getContext(), readA2uiFloat(styles.get("y"))));
+        int widthPx = Math.max(0, Math.round(StyleHelper.standardUnitToPx(targetView.getContext(), readA2uiFloat(styles.get("width")))));
+        int heightPx = Math.max(0, Math.round(StyleHelper.standardUnitToPx(targetView.getContext(), readA2uiFloat(styles.get("height")))));
+        int zIndex = readInt(styles.get("z-index"), readInt(styles.get("zIndex"), 0));
+        return new YogaAbsoluteLayout.LayoutState(xPx, yPx, widthPx, heightPx, zIndex);
+    }
+
+    /**
+     * Applies a Yoga frame immediately when no surface transaction dispatcher is available.
+     */
+    private void applyYogaLayoutDirectly(View targetView,
+                                         ViewGroup parent,
+                                         YogaAbsoluteLayout.LayoutState layoutState) {
+        if (parent instanceof YogaAbsoluteLayout) {
+            YogaAbsoluteLayout.YogaLayoutParams params = targetView.getLayoutParams() instanceof YogaAbsoluteLayout.YogaLayoutParams
+                    ? (YogaAbsoluteLayout.YogaLayoutParams) targetView.getLayoutParams()
+                    : new YogaAbsoluteLayout.YogaLayoutParams(layoutState.widthPx, layoutState.heightPx);
+            params.yogaX = layoutState.xPx;
+            params.yogaY = layoutState.yPx;
+            params.yogaWidth = layoutState.widthPx;
+            params.yogaHeight = layoutState.heightPx;
+            params.width = layoutState.widthPx;
+            params.height = layoutState.heightPx;
+            params.zIndex = layoutState.zIndex;
+            params.measureWrapContentHeightWhenZero = shouldMeasureWrapContentHeightWhenYogaHeightIsZero();
+            targetView.setLayoutParams(params);
+            return;
+        }
+
+        ViewGroup.LayoutParams rawParams = targetView.getLayoutParams();
+        ViewGroup.MarginLayoutParams params;
+        if (rawParams instanceof ViewGroup.MarginLayoutParams) {
+            params = (ViewGroup.MarginLayoutParams) rawParams;
+        } else if (rawParams != null) {
+            params = new ViewGroup.MarginLayoutParams(rawParams);
+        } else {
+            params = new ViewGroup.MarginLayoutParams(layoutState.widthPx, layoutState.heightPx);
+        }
+        params.width = layoutState.widthPx;
+        params.height = layoutState.heightPx;
+        params.leftMargin = layoutState.xPx;
+        params.topMargin = layoutState.yPx;
+        targetView.setLayoutParams(params);
+        targetView.setZ(layoutState.zIndex);
+    }
+
+    /**
+     * The batched dispatcher path only carries Yoga frame numbers, so component-specific measure
+     * hints must be attached to LayoutParams before the frame is flushed into YogaAbsoluteLayout.
+     */
+    private void prepareYogaLayoutParamsForDispatch(View targetView,
+                                                    ViewGroup parent,
+                                                    YogaAbsoluteLayout.LayoutState layoutState) {
+        if (!(parent instanceof YogaAbsoluteLayout)) {
+            return;
+        }
+        YogaAbsoluteLayout.YogaLayoutParams params = targetView.getLayoutParams() instanceof YogaAbsoluteLayout.YogaLayoutParams
+                ? (YogaAbsoluteLayout.YogaLayoutParams) targetView.getLayoutParams()
+                : new YogaAbsoluteLayout.YogaLayoutParams(layoutState.widthPx, layoutState.heightPx);
+        params.measureWrapContentHeightWhenZero = shouldMeasureWrapContentHeightWhenYogaHeightIsZero();
+        targetView.setLayoutParams(params);
+    }
+
+    /**
+     * Async self-sizing components can opt in so Yoga containers temporarily measure them with
+     * wrap-content height when native first reports height=0.
+     */
+    protected boolean shouldMeasureWrapContentHeightWhenYogaHeightIsZero() {
+        return false;
+    }
+
+    private boolean hasYogaFrame(Map<String, Object> styles) {
+        return styles.containsKey("x")
+                && styles.containsKey("y")
+                && styles.containsKey("width")
+                && styles.containsKey("height");
+    }
+
+    private float readA2uiFloat(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).floatValue();
+        }
+        if (value == null) {
+            return 0f;
+        }
+        String raw = String.valueOf(value).trim().toLowerCase();
+        if (raw.endsWith("px")) {
+            raw = raw.substring(0, raw.length() - 2);
+        }
+        try {
+            return Float.parseFloat(raw);
+        } catch (NumberFormatException ignored) {
+            return 0f;
+        }
+    }
+
+    private int readInt(Object value, int defaultValue) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
     }
 }

@@ -1,73 +1,90 @@
 package com.amap.agenui.function;
 
-import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
- * Function execution result class
+ * Function execution result.
  *
- * Encapsulates the result of a Function execution, including success/failure status and return value.
- * Simplified version replacing the original SkillResult.
+ * Serialized to a JSON envelope crossing the JNI bridge to the C++ engine.
+ * The schema matches the cross-platform protocol shared with iOS / Harmony:
+ *   success: {"status":"Success","data":<value>}
+ *   error:   {"status":"Error","error":"..."}
+ *   pending: {"status":"Pending","requestId":"..."}
  */
 public class FunctionResult {
     private static final String TAG = "FunctionResult";
-    private boolean result = false;
-    private Object value = null;
 
-    /**
-     * Private constructor
-     */
+    public enum Status { Success, Error, Pending }
+
+    private Status status = Status.Error;
+    private Object data;
+    private String error;
+    private String requestId;
+
     private FunctionResult() {}
 
     /**
-     * Creates a success result
+     * Creates a success result.
      *
-     * @param value Return value
-     * @return FunctionResult instance
+     * @param data Return value (String / JSONObject / JSONArray / Number / Boolean / null)
      */
-    public static FunctionResult createSuccess(Object value) {
-        FunctionResult functionResult = new FunctionResult();
-        functionResult.result = true;
-        functionResult.value = value;
-        return functionResult;
+    public static FunctionResult createSuccess(Object data) {
+        FunctionResult r = new FunctionResult();
+        r.status = Status.Success;
+        r.data = data;
+        return r;
     }
 
     /**
-     * Creates an error result
+     * Creates an error result.
      *
-     * @param value Error message or other value
-     * @return FunctionResult instance
+     * @param error Human-readable error message
      */
-    public static FunctionResult createError(Object value) {
-        FunctionResult functionResult = new FunctionResult();
-        functionResult.result = false;
-        functionResult.value = value;
-        return functionResult;
+    public static FunctionResult createError(String error) {
+        FunctionResult r = new FunctionResult();
+        r.status = Status.Error;
+        r.error = error;
+        return r;
     }
 
     /**
-     * Converts to a JSON object
+     * Creates a pending result for asynchronous functions.
      *
-     * @return JSON object
+     * @param requestId Request id used to correlate the later async callback
      */
+    public static FunctionResult createPending(String requestId) {
+        FunctionResult r = new FunctionResult();
+        r.status = Status.Pending;
+        r.requestId = requestId;
+        return r;
+    }
+
     public JSONObject toJson() {
         JSONObject json = new JSONObject();
         try {
-            json.put("result", result);
-            json.put("value", value != null ? value : JSONObject.NULL);
+            json.put("status", status.name());
+            switch (status) {
+                case Success:
+                    if (data != null) {
+                        json.put("data", data);
+                    }
+                    break;
+                case Error:
+                    json.put("error", error != null ? error : "");
+                    break;
+                case Pending:
+                    json.put("requestId", requestId != null ? requestId : "");
+                    break;
+            }
         } catch (JSONException e) {
-            Log.e(TAG, "toJson serialization failed", e);
+            AGenUILogger.e(TAG, "toJson serialization failed", e);
         }
         return json;
     }
 
-    /**
-     * Converts to a JSON string
-     *
-     * @return JSON string
-     */
     public String toJsonString() {
         return toJson().toString();
     }

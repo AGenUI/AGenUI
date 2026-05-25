@@ -9,6 +9,7 @@
 #include "a2ui_surface_listener.h"
 #include "a2ui/a2ui_component_render_observable.h"
 #include "a2ui/a2ui_surface_layout_observable.h"
+#include "agenui_surface_manager_interface.h"
 
 namespace a2ui {
 
@@ -22,15 +23,34 @@ class A2UISurface;
  * 1. Manage the lifecycle of all surfaces (create, get, destroy)
  * 2. Create an independent ComponentRegistry for each surface by copying factories from the global registry
  * 3. Manage the ISurfaceListener list and dispatch surface/component lifecycle events
+ * 4. Forward Harmony-internal observable events (from C++ render-layer components such as
+ *    Tabs/Video/Image) to the cross-platform agenui::ISurfaceManager via onRenderFinish /
+ *    onSurfaceSizeChanged. This is the only listener registered on the internal observables;
+ *    other platforms (iOS/Android) call ISurfaceManager directly without an observable layer.
  */
-class A2UISurfaceManager {
+class A2UISurfaceManager : public agenui::ComponentRenderListener,
+                           public agenui::SurfaceLayoutListener {
 public:
     /**
      * Constructor
      * @param globalRegistry Global component registry containing all registered factories
      */
     explicit A2UISurfaceManager(ComponentRegistry* globalRegistry);
-    ~A2UISurfaceManager();
+    ~A2UISurfaceManager() override;
+
+    /**
+     * Bind the cross-platform ISurfaceManager that receives forwarded callbacks.
+     *
+     * Must be called once after construction (before any render-finish / surface-size events
+     * are fired) and again with nullptr before the cross-platform SurfaceManager is destroyed,
+     * to break the back-reference safely.
+     */
+    void setCoreSurfaceManager(agenui::ISurfaceManager* coreSurfaceManager);
+
+    // agenui::ComponentRenderListener
+    void onRenderFinish(const agenui::ComponentRenderInfo& info) override;
+    // agenui::SurfaceLayoutListener
+    void onSurfaceSizeChanged(const agenui::SurfaceLayoutInfo& info) override;
 
     /**
      * Create a surface
@@ -115,6 +135,9 @@ private:
 
     agenui::A2UIComponentRenderObservable componentRenderObservable_;  // Component render completion observer (instance)
     agenui::A2UISurfaceLayoutObservable surfaceLayoutObservable_;       // Surface layout observer (instance)
+
+    // Forwarding target. Owned by AGenUIEngine; lifetime managed by napi layer.
+    agenui::ISurfaceManager* coreSurfaceManager_ = nullptr;
 };
 
 } // namespace a2ui

@@ -5,12 +5,9 @@
 // Created on 2026/3/1.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
 import WebKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// Web component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -67,11 +64,8 @@ class WebComponent: Component {
         
         self.progressView = progressView
         
-        // Use FlexLayout for layout
-        flex.define { flex in
-            flex.addItem(webView).width(100%).height(100%)
-            flex.addItem(progressView).position(.absolute).top(0).left(0).right(0).height(2)
-        }
+        addSubview(webView)
+        addSubview(progressView)
         
         // Add KVO observers
         setupObservers()
@@ -88,6 +82,16 @@ class WebComponent: Component {
         cleanup()
     }
     
+    // MARK: - Layout
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        webView?.frame = bounds
+        if let progressView = progressView {
+            progressView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 2)
+        }
+    }
+
     // MARK: - Component Override
     
     override func updateProperties(_ properties: [String: Any]) {
@@ -392,3 +396,5 @@ extension WebComponent: WKUIDelegate {
         }
     }
 }
+
+#endif // AGENUI_SDK_BUILD

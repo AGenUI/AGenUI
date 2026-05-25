@@ -2,6 +2,8 @@
 
 #include "agenui_engine.h"
 #include "agenui_engine_context.h"
+#include "agenui_logger_internal.h"
+#include "surface/agenui_path_config.h"
 #include <map>
 #include <memory>
 #include <atomic>
@@ -10,13 +12,17 @@ namespace agenui {
 
 class SurfaceManager;
 class FunctionCallManager;
+class TemplateRegistry;
 class IComponentPropertySpecManager;
+class MeasurementManagerImpl;
+class IRuntimeLogger;
+class PathConfig;
 
 /**
  * @brief AGenUI engine implementation
  *
  * Global singleton engine responsible for:
- * 1. Managing singleton modules (FunctionCallManager)
+ * 1. Managing singleton modules (FunctionCallManager, TemplateRegistry)
  * 2. Creating and destroying SurfaceManager instances
  * 3. Managing global configuration (theme, DesignToken, day/night mode)
  */
@@ -41,6 +47,7 @@ public:
     void destroySurfaceManager(ISurfaceManager* surfaceManager) override;
     ISurfaceManager* findSurfaceManager(int instanceId) override;
 
+    bool setPathConfig(const std::string &configJson) override;
     void setPlatformLayoutBridge(IPlatformLayoutBridge* platformLayoutBridge) override;
     IPlatformLayoutBridge* getPlatformLayoutBridge() override;
 
@@ -49,15 +56,23 @@ public:
     bool loadThemeConfig(const std::string &themeConfig, std::string &result) override;
     bool loadDesignTokenConfig(const std::string &designTokenConfig, std::string &result) override;
     void setDayNightMode(const std::string &mode) override;
+    IMeasurementManager* getMeasurementManager() override;
 
     FunctionCallManager* getFunctionCallManager() override { return _functionCallManager; }
+    TemplateRegistry* getTemplateRegistry() override { return _templateRegistry; }
     IComponentPropertySpecManager* getComponentPropertySpecManager() override { return _componentPropertySpecManager; }
+    PathConfig* getPathConfig() override { return _pathConfig; }
+    
+    void setRuntimeLogger(IRuntimeLogger* logger) override { agenui::setRuntimeLoggerInternal(logger); }
+    IRuntimeLogger* getRuntimeLogger() override { return agenui::getRuntimeLoggerInternal(); }
 
 private:
     std::atomic_bool _isRunning{false};
     // Single-instance modules (owned)
     FunctionCallManager* _functionCallManager = nullptr;
     IComponentPropertySpecManager* _componentPropertySpecManager = nullptr;
+    TemplateRegistry* _templateRegistry = nullptr;
+    PathConfig* _pathConfig = nullptr;
 
     // Single-instance external dependency (not owned)
     IPlatformLayoutBridge* _platformLayoutBridge = nullptr;
@@ -65,6 +80,9 @@ private:
     // Multi-instance SurfaceManager map
     std::map<int32_t, std::shared_ptr<SurfaceManager>> _surfaceManagers;
     std::atomic<int32_t> _nextInstanceId{1};
+
+    // Shared MeasurementManager (engine-level singleton)
+    std::unique_ptr<MeasurementManagerImpl> _measurementManager;
 };
 
 } // namespace agenui

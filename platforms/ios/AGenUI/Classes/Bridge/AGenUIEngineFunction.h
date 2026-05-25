@@ -41,25 +41,17 @@ public:
     /**
      * @brief Synchronously invoke the platform function
      *
+     * @param context Context information containing engineId and surfaceId
      * @param params Parameters as a JSON string
      * @return FunctionCallResult containing the execution result
      *
      * @note Implementation flow:
      *       1. Retrieves callback from AGenUICXXBridge using the bound function name
-     *       2. Executes the OC callback with the params
+     *       2. Executes the OC callback with context and params
      *       3. Parses and returns the result
      */
-    FunctionCallResult callSync(const std::string& params) override;
-
-    /**
-     * @brief Asynchronously invoke the platform function
-     *
-     * @param params Parameters as a JSON string
-     * @param callback Callback to receive the result when execution completes
-     * @return FunctionCallResult with pending status
-     */
-    FunctionCallResult callAsync(const std::string& params,
-                                 const FunctionCallCallback& callback) override;
+    FunctionCallResult callSync(const FunctionCallContext& context,
+                                 const std::string& params) override;
 
 private:
     void* _bridge;                 ///< Weak reference to AGenUICXXBridge

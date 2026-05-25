@@ -16,8 +16,8 @@ class IDataChangedObserver;
  */
 class StylesDataValue : public DataValue {
 public:
-    explicit StylesDataValue(IDataModel* dataModel);
-    StylesDataValue(IDataModel* dataModel, const std::map<std::string, std::shared_ptr<DataValue>>& styles);
+    explicit StylesDataValue(IDataValueContext* context);
+    StylesDataValue(IDataValueContext* context, const std::map<std::string, std::shared_ptr<DataValue>>& styles);
     virtual ~StylesDataValue();
 
     DataType getDataType() const override;
@@ -25,7 +25,7 @@ public:
     SerializableData getValueData() const override;
     void bind(IDataChangedObserver* observer) override;
     void unbind() override;
-    std::shared_ptr<DataValue> cloneAsTemplate(const std::string& rootDataPath) const override;
+    std::shared_ptr<DataValue> cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const override;
 
     void setStyle(const std::string& styleName, std::shared_ptr<DataValue> value);
     std::shared_ptr<DataValue> getStyle(const std::string& styleName) const;

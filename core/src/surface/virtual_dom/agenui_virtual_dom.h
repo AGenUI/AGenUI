@@ -2,15 +2,18 @@
 
 #include "surface/virtual_dom/agenui_virtual_dom_node.h"
 #include "surface/virtual_dom/agenui_ivirtual_dom.h"
+#include "agenui_batch_guard.h"
+
 #include <memory>
 #include <string>
 #include <map>
 
-namespace agenui {
+#include "surface/yoga_node/agenui_yoga_node_manager.h"
+#include "surface/yoga_node/agenui_tabs_yoga_helper.h"
+#include "surface/yoga_node/agenui_yoga_layout_engine.h"
+#include "agenui_render_info_types.h"
 
-// Forward declaration
-struct ComponentRenderInfo;
-struct SurfaceLayoutInfo;
+namespace agenui {
 
 /**
  * @brief Virtual DOM
@@ -22,7 +25,8 @@ public:
      * @brief Constructor
      * @param observer Virtual DOM observer
      */
-    explicit VirtualDOM(IVirtualDOMObserver* observer);
+    explicit VirtualDOM(IVirtualDOMObserver* observer,
+                        ::agenui::IMeasurementManager* measurementManager = nullptr);
 
     /**
      * @brief Destructor
@@ -39,6 +43,11 @@ public:
      * @brief Clear the tree
      */
     void clear() override;
+
+    /**
+     * @brief Access the batch guard for this virtual DOM.
+     */
+    BatchGuard* batchGuard() override { return &_batchGuard; }
 
     /**
      * @brief Get the root node
@@ -69,6 +78,14 @@ public:
      * @remark Updates the root container size of the surface
      */
     void updateSurfaceSize(const SurfaceLayoutInfo& info);
+    
+    /**
+     * @brief Update Tabs selected tab index and trigger re-layout
+     * @param tabsId Tabs node ID
+     * @param selectedIndex New selected tab index
+     * @remark Called by the rendering layer on tab switch; updates Tabs Yoga minHeight and triggers re-layout
+     */
+    void updateTabsSelectedIndex(const std::string& tabsId, int selectedIndex);
 
 private:
     /**
@@ -90,8 +107,8 @@ private:
     std::shared_ptr<VirtualDOMNode> findNodeByComponentIdAndTypeRecursive(std::shared_ptr<VirtualDOMNode> parent, const std::string& componentId, const std::string& type);
 
     /**
-     * @brief Check and notify layout changes
-     * @remark Recursively checks all nodes from the root and notifies the observer
+     * @brief Recursively walk the tree from the root and notify the
+     *        observer of any layout changes.
      */
     void checkAndNotifyLayoutChanges();
 
@@ -109,15 +126,27 @@ private:
      */
     void tryAttachReadyOrphans();
 
+    /**
+     * @brief Recursively reset platform-supplied size on all nodes
+     * @param node Starting node for recursive traversal
+     */
+    void resetPlatformSizeRecursive(std::shared_ptr<VirtualDOMNode>& node);
+
     std::shared_ptr<VirtualDOMNode> _root;                       // Root node
     IVirtualDOMObserver* _observer;                              // Virtual DOM observer
     std::map<std::string, ComponentSnapshot> _directOrphanSnapshots;          // Orphan snapshots that display unconditionally
     std::map<std::string, ComponentSnapshot> _dataDependentOrphanSnapshots;   // Orphan snapshots that depend on data binding state
-#if defined(__OHOS__)
-    YGNodeRef _defaultRoot = nullptr;                            // Default top-level Yoga container node
+    ::agenui::IMeasurementManager* _measurementManager = nullptr;  // Component measurement manager (non-owning)
+    std::unique_ptr<YogaLayoutEngine> _layoutEngine;             // Layout engine (ILayoutDelegate, owns the YogaNodeManager)
     float _surfaceWidth  = 0.0f;                                 // Current surface width (vp); initialized from getDeviceScreenSize
     float _surfaceHeight = 0.0f;                                 // Current surface height (vp); initialized from getDeviceScreenSize
-#endif
+
+    // ---- Batched updateNode bookkeeping ----
+    // _batchGuard: manages batch depth and triggers the deferred layout
+    //              pass (calculateLayoutWithAdjust + checkAndNotifyLayoutChanges)
+    //              when the outermost batch window closes (or immediately
+    //              if no batch is active when requestFlush() is called).
+    BatchGuard _batchGuard;
 };
 
 }  // namespace agenui

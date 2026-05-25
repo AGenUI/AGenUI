@@ -15,6 +15,10 @@
 
 #include "agenui_engine.h"
 #include "agenui_engine_entry.h"
+#include "agenui_logger_interface.h"
+#include "agenui_platform_layout_bridge.h"
+#include "support/mock_platform_layout_bridge.h"
+#include "support/mock_runtime_logger.h"
 #include "support/test_env.h"
 
 namespace {
@@ -43,8 +47,69 @@ TEST_F(EngineLifecycleTest, E002_InitEngine_RepeatedCall_Idempotent) {
     EXPECT_EQ(b, c);
 }
 
-// E003: setDayNightMode tolerates valid and invalid inputs without throwing.
-TEST_F(EngineLifecycleTest, E003_SetDayNightMode_AcceptsValidValues) {
+// E019: setPathConfig accepts valid JSON and returns true.
+TEST_F(EngineLifecycleTest, E019_SetPathConfig_ValidJson_Succeeds) {
+    auto* engine = ::agenui::getAGenUIEngine();
+    ASSERT_NE(engine, nullptr);
+    bool ok = engine->setPathConfig(R"({"templateDir":"/tmp/agenui_test_templates"})");
+    EXPECT_TRUE(ok);
+}
+
+// E020: setPathConfig rejects invalid JSON and returns false.
+TEST_F(EngineLifecycleTest, E020_SetPathConfig_InvalidJson_Fails) {
+    auto* engine = ::agenui::getAGenUIEngine();
+    ASSERT_NE(engine, nullptr);
+    bool ok = engine->setPathConfig("not json{{");
+    EXPECT_FALSE(ok);
+}
+
+// E009: setRuntimeLogger swap & restore. We MUST restore the default
+// logger before the mock leaves scope, otherwise the engine would
+// keep a dangling pointer for subsequent tests.
+TEST_F(EngineLifecycleTest, E009_SetRuntimeLogger_CustomThenRestore) {
+    auto* engine = ::agenui::getAGenUIEngine();
+    ASSERT_NE(engine, nullptr);
+
+    auto* original = engine->getRuntimeLogger();
+    EXPECT_NE(original, nullptr) << "Default logger must never be null";
+
+    auto* custom = ::agenui::testing::MockRuntimeLogger::CreateInstance();
+    engine->setRuntimeLogger(custom);
+    EXPECT_EQ(engine->getRuntimeLogger(), custom);
+
+    // Restore default by passing nullptr.
+    engine->setRuntimeLogger(nullptr);
+    EXPECT_NE(engine->getRuntimeLogger(), nullptr);
+
+    delete custom;
+}
+
+// E010: setPlatformLayoutBridge get/set symmetric. Restore null
+// before the stack-allocated mock dies.
+TEST_F(EngineLifecycleTest, E010_PlatformLayoutBridge_GetSetSymmetric) {
+    auto* engine = ::agenui::getAGenUIEngine();
+    ASSERT_NE(engine, nullptr);
+
+    auto* before = engine->getPlatformLayoutBridge();
+
+    ::agenui::testing::MockPlatformLayoutBridge bridge;
+    engine->setPlatformLayoutBridge(&bridge);
+    EXPECT_EQ(engine->getPlatformLayoutBridge(), &bridge);
+
+    // Restore previous (typically nullptr) so we don't leave a dangling ref.
+    engine->setPlatformLayoutBridge(before);
+    EXPECT_EQ(engine->getPlatformLayoutBridge(), before);
+}
+
+// E011: getMeasurementManager is non-null on a running engine.
+TEST_F(EngineLifecycleTest, E011_GetMeasurementManager_NotNull) {
+    auto* engine = ::agenui::getAGenUIEngine();
+    ASSERT_NE(engine, nullptr);
+    EXPECT_NE(engine->getMeasurementManager(), nullptr);
+}
+
+// E013: setDayNightMode tolerates valid and invalid inputs without throwing.
+TEST_F(EngineLifecycleTest, E013_SetDayNightMode_AcceptsValidValues) {
     auto* engine = ::agenui::getAGenUIEngine();
     ASSERT_NE(engine, nullptr);
     EXPECT_NO_THROW(engine->setDayNightMode("light"));
@@ -53,8 +118,8 @@ TEST_F(EngineLifecycleTest, E003_SetDayNightMode_AcceptsValidValues) {
     EXPECT_NO_THROW(engine->setDayNightMode(""));
 }
 
-// E004: loadThemeConfig accepts valid JSON.
-TEST_F(EngineLifecycleTest, E004_LoadThemeConfig_ValidJson_Succeeds) {
+// E015
+TEST_F(EngineLifecycleTest, E015_LoadThemeConfig_ValidJson_Succeeds) {
     auto* engine = ::agenui::getAGenUIEngine();
     ASSERT_NE(engine, nullptr);
     std::string err;
@@ -63,8 +128,8 @@ TEST_F(EngineLifecycleTest, E004_LoadThemeConfig_ValidJson_Succeeds) {
     EXPECT_TRUE(err.empty());
 }
 
-// E005: loadThemeConfig rejects malformed JSON and reports error.
-TEST_F(EngineLifecycleTest, E005_LoadThemeConfig_InvalidJson_FailsWithMessage) {
+// E016
+TEST_F(EngineLifecycleTest, E016_LoadThemeConfig_InvalidJson_FailsWithMessage) {
     auto* engine = ::agenui::getAGenUIEngine();
     ASSERT_NE(engine, nullptr);
     std::string err;
@@ -73,8 +138,8 @@ TEST_F(EngineLifecycleTest, E005_LoadThemeConfig_InvalidJson_FailsWithMessage) {
     EXPECT_FALSE(err.empty());
 }
 
-// E006: loadDesignTokenConfig requires a top-level `designTokens` object.
-TEST_F(EngineLifecycleTest, E006_LoadDesignTokenConfig_ValidJson_Succeeds) {
+// E017: TokenParser requires a top-level `designTokens` object.
+TEST_F(EngineLifecycleTest, E017_LoadDesignTokenConfig_ValidJson_Succeeds) {
     auto* engine = ::agenui::getAGenUIEngine();
     ASSERT_NE(engine, nullptr);
     std::string err;
@@ -84,8 +149,8 @@ TEST_F(EngineLifecycleTest, E006_LoadDesignTokenConfig_ValidJson_Succeeds) {
     EXPECT_TRUE(ok) << err;
 }
 
-// E007: loadDesignTokenConfig rejects invalid JSON.
-TEST_F(EngineLifecycleTest, E007_LoadDesignTokenConfig_InvalidJson_Fails) {
+// E018
+TEST_F(EngineLifecycleTest, E018_LoadDesignTokenConfig_InvalidJson_Fails) {
     auto* engine = ::agenui::getAGenUIEngine();
     ASSERT_NE(engine, nullptr);
     std::string err;

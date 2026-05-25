@@ -30,6 +30,19 @@ public:
     /** Tabs manages child node mounting itself. */
     bool shouldAutoAddChildView() const override;
 
+    /**
+     * Tabs direct children do not use the Yoga-computed absolute y coordinate.
+     * The content area is arranged below the tab bar by the ArkUI COLUMN,
+     * so the Yoga y offset must not be applied to the ArkUI node.
+     */
+    bool shouldApplyChildLayoutPosition(const A2UIComponent* child) const override;
+
+    /**
+     * Tabs direct children do not use the Yoga-computed width and height.
+     * Width and height are determined by the ArkUI flex layout of the content container.
+     */
+    bool shouldApplyChildLayoutSize(const A2UIComponent* child) const override;
+
     /** Clean internal handles before delegating to the base destroy path. */
     void destroy() override;
 

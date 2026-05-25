@@ -4,9 +4,9 @@
 
 namespace agenui {
 
-ChecksDataValue::ChecksDataValue(IDataModel* dataModel,
+ChecksDataValue::ChecksDataValue(IDataValueContext* context,
                                  const std::vector<std::shared_ptr<CheckRuleDataValue>>& rules)
-    : DataValue(dataModel), _checks(rules) {
+    : DataValue(context), _checks(rules) {
 }
 
 DataType ChecksDataValue::getDataType() const {
@@ -59,22 +59,20 @@ void ChecksDataValue::unbind() {
     }
 }
 
-std::shared_ptr<DataValue> ChecksDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
+std::shared_ptr<DataValue> ChecksDataValue::cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const {
     std::vector<std::shared_ptr<CheckRuleDataValue>> clonedChecks;
     clonedChecks.reserve(_checks.size());
 
     for (const auto& check : _checks) {
         if (check) {
-            auto clonedCheck = std::static_pointer_cast<CheckRuleDataValue>(check->cloneAsTemplate(rootDataPath));
+            auto clonedCheck = std::static_pointer_cast<CheckRuleDataValue>(check->cloneAsTemplate(context, rootDataPath));
             if (clonedCheck) {
                 clonedChecks.emplace_back(clonedCheck);
             }
         }
     }
 
-    auto cloned = std::make_shared<ChecksDataValue>(_dataModel, clonedChecks);
-    cloned->_extensions = _extensions;
-    return cloned;
+    return std::make_shared<ChecksDataValue>(context, clonedChecks);
 }
 
 }  // namespace agenui

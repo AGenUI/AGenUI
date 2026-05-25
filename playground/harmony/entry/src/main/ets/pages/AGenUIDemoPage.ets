@@ -5,12 +5,17 @@ import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { UIContext } from '@kit.ArkUI';
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { AGenUIContainer, SurfaceManager, ISurfaceManagerListener, Surface, AGenUI } from '@agenui/agenui';
+import { AGenUIContainer, SurfaceManager, ISurfaceManagerListener, Surface, AGenUI, MeasurementManager, A2UIComponent } from '@agenui/agenui';
+import { ChartMeasurementComponent } from '../components/ChartMeasurementComponent';
+import { LottieMeasurementComponent } from '../components/LottieMeasurementComponent';
+import { MarkdownMeasurementComponent } from '../components/MarkdownMeasurementComponent';
+import { MeasurementComponent } from '../components/MeasurementComponent';
 import { CustomMarkdownComponent } from '../components/CustomMarkdownComponent';
 import { CustomChartComponent } from '../components/CustomChartComponent';
 import { CustomLottieComponent } from '../components/CustomLottieComponent';
 import { ToastFunction } from '../functions/ToastFunction';
 import { OpenUrlFunction } from '../functions/OpenUrlFunction';
+import { PlaygroundRuntimeLogger } from '../utils/PlaygroundRuntimeLogger';
 
 import { copyRawfileDirToSandbox } from '../utils/ResourceCopyUtil';
 
@@ -148,6 +153,8 @@ struct Index {
   @State isDarkMode: boolean = false;
 
   private surfaceManager: SurfaceManager | null = null;
+  private measurementManager: MeasurementManager | null = null;
+  private runtimeLogger: PlaygroundRuntimeLogger | null = null;
 
   /**
    * Registers the demo-specific host functions and custom components used by
@@ -244,9 +251,59 @@ struct Index {
   aboutToAppear() {
     // Copy rawfile assets into the sandbox and initialize the SDK.
     const context = getContext(this) as common.UIAbilityContext;
+    
+    // Initialize custom RuntimeLogger and inject to engine
+    this.runtimeLogger = new PlaygroundRuntimeLogger(context,
+      (level: number, tag: string, func: string, line: number, message: string) => {
+        // Forward logs to UI (can be extended to show in UI log area)
+        const levelName = PlaygroundRuntimeLogger.getLevelName(level);
+        hilog.info(DOMAIN, TAG, '[%{public}s] %{public}s', levelName, message);
+      }
+    );
+    AGenUI.setCustomLogger(this.runtimeLogger);
+    hilog.info(DOMAIN, TAG, 'Custom RuntimeLogger initialized');
+    
     this.destroySurfaceManager();
     this.surfaceManager = new SurfaceManager(context);
+    const engineId = this.surfaceManager.getInstanceId();
+    this.measurementManager = new MeasurementManager(engineId);
 
+    // Helper: register measurement + component factory
+    const registerWithMeasure = (
+      type: string,
+      measurement: MeasurementComponent,
+      componentFactory: (surfaceId: string, nodeId: string, componentType: string, viewStatePtr: bigint) => A2UIComponent
+    ) => {
+      this.measurementManager!.register(type, measurement.asMeasurementHandler());
+      AGenUI.registerComponent(type, componentFactory);
+    };
+
+    // Register app-defined functions.
+    AGenUI.registerFunction(new ToastFunction());
+    AGenUI.registerFunction(new OpenUrlFunction(context));
+
+    // Markdown: register measurement + component
+    registerWithMeasure('Markdown',
+      new MarkdownMeasurementComponent(),
+      (surfaceId: string, nodeId: string, componentType: string, viewStatePtr: bigint) => {
+        return new CustomMarkdownComponent(surfaceId, nodeId, componentType, viewStatePtr);
+      }
+    );
+    // Chart: register measurement + component
+    registerWithMeasure('Chart',
+      new ChartMeasurementComponent(),
+      (surfaceId: string, nodeId: string, componentType: string, viewStatePtr: bigint) => {
+        return new CustomChartComponent(surfaceId, nodeId, componentType, viewStatePtr);
+      }
+    );
+    // Lottie: register measurement + component
+    registerWithMeasure('Lottie',
+      new LottieMeasurementComponent(),
+      (surfaceId: string, nodeId: string, componentType: string, viewStatePtr: bigint) => {
+        return new CustomLottieComponent(surfaceId, nodeId, componentType, viewStatePtr);
+      }
+    );
+    
     this.registerDemoExtensions(context);
     this.surfaceManager.addListener(new SurfaceListenerImpl(this));
 
@@ -271,6 +328,7 @@ struct Index {
   aboutToDisappear(): void {
     this.destroySurfaceManager();
     this.unregisterDemoExtensions();
+    this.runtimeLogger = null;
   }
 
   /** Lifecycle: stores the UIContext in AppStorage so child components can access it after the first build. */
@@ -595,14 +653,47 @@ struct Index {
   }
 
   /**
-   * Saves the editor content to the model and closes the editor panel.
-   *
-   * Persists both JSON fields via syncEditorContentToModel, then dismisses
-   * the editor. Preview rendering is currently triggered separately.
+   * Saves the editor content to the model, pushes the updated payloads to
+   * the active surface, and closes the editor panel.
    */
   private saveAndPreview() {
     this.syncEditorContentToModel();
-    hilog.info(DOMAIN, TAG, 'Saved successfully');
+
+    if (this.surfaceManager === null) {
+      hilog.error(DOMAIN, TAG, 'surfaceManager is null, cannot push updates');
+      this.closeEditor();
+      return;
+    }
+
+    // Detect surfaceId change: if the editor changed the surfaceId, recreate the surface.
+    const componentsObj = JSON.parse(this.componentsJson) as ComponentsData;
+    const newSurfaceId = componentsObj.updateComponents?.surfaceId ?? '';
+    if (newSurfaceId && newSurfaceId !== this.currentSurfaceId) {
+      // Tear down the old surface
+      if (this.currentSurfaceId) {
+        const deleteSurfaceJsonStr =
+          `{"version":"${API_VERSION}","deleteSurface":{"surfaceId":"${this.currentSurfaceId}"}}`;
+        this.surfaceManager.receiveTextChunk(deleteSurfaceJsonStr);
+        hilog.info(DOMAIN, TAG, 'deleteSurface sent (surfaceId changed): %{public}s', this.currentSurfaceId);
+      }
+      // Create the new surface
+      const createSurfaceJsonStr =
+        `{"version":"${API_VERSION}","createSurface":{"surfaceId":"${newSurfaceId}","catalogId":"${STANDARD_CATALOG_URL}"}}`;
+      this.surfaceManager.receiveTextChunk(createSurfaceJsonStr);
+      hilog.info(DOMAIN, TAG, 'createSurface sent (surfaceId changed): %{public}s', newSurfaceId);
+    }
+
+    this.currentContent = `Components:\n${this.componentsJson}\n\nDataModel:\n${this.dataModelJson}`;
+
+    if (this.componentsJson !== '{}') {
+      this.surfaceManager.receiveTextChunk(this.componentsJson);
+      hilog.info(DOMAIN, TAG, 'updateComponents sent (from editor)');
+    }
+    if (this.dataModelJson !== '{}') {
+      this.surfaceManager.receiveTextChunk(this.dataModelJson);
+      hilog.info(DOMAIN, TAG, 'updateDataModel sent (from editor)');
+    }
+
     this.closeEditor();
   }
 

@@ -1,7 +1,6 @@
 package com.amap.agenui.render.component.impl;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -10,6 +9,7 @@ import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.StyleHelper;
 
 import java.util.Map;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * Text component implementation (compliant with A2UI v0.9 protocol)
@@ -22,7 +22,7 @@ import java.util.Map;
  *   - line-height: line height (supports multiplier like 0.5, or pixel value like 10px;
  *     note: px is not supported in multi-line scenarios, must use multiplier)
  *   - text-overflow: text overflow handling (clip, ellipsis, head, middle)
- *     * ellipsis: tail ellipsis (requires line-clamp=1, otherwise treated as clip)
+ *     * ellipsis: tail ellipsis (supports multi-line with line-clamp >= 1)
  *     * head: head ellipsis (requires line-clamp=1)
  *     * middle: middle ellipsis (requires line-clamp=1)
  *   - text-align: text alignment (supports horizontal + vertical combinations,
@@ -106,7 +106,7 @@ public class TextComponent extends A2UIComponent {
                     applyStyles(styles);
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Failed to apply styles", e);
+                AGenUILogger.e(TAG, "Failed to apply styles", e);
             }
 
         }

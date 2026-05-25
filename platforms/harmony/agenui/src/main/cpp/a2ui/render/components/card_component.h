@@ -10,6 +10,8 @@ namespace a2ui {
  * Supported properties:
  *   - radius / border-radius: numeric a2ui value or a string such as "16px"
  *   - backgroundColor / background-color: hex color string
+ *   - border-width / borderWidth: border width (e.g. "3px")
+ *   - border-color / borderColor: border color (e.g. "#1565C0")
  *   - padding: numeric value or a string such as "24px", applied to all sides
  *   - filter: CSS filter, currently supporting "drop-shadow(offsetX offsetY blur color)"
  *   - elevation: reserved legacy field, replaced by filter
@@ -26,8 +28,11 @@ private:
     /** Parse radius / border-radius and apply NODE_BORDER_RADIUS. */
     void applyRadius(const nlohmann::json& properties);
 
-    /** Parse backgroundColor / background-color and apply NODE_BACKGROUND_COLOR. */
-    void applyBackgroundColor(const nlohmann::json& properties);
+    /** Parse border-width / borderWidth and apply NODE_BORDER_WIDTH. */
+    void applyBorderWidth(const nlohmann::json& properties);
+
+    /** Parse border-color / borderColor and apply NODE_BORDER_COLOR. */
+    void applyBorderColor(const nlohmann::json& properties);
 
     /** Parse filter: drop-shadow(...) and apply NODE_CUSTOM_SHADOW. */
     void applyFilter(const nlohmann::json& properties);

@@ -5,11 +5,8 @@
 // Created on 2026/2/28.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// CheckBox component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -59,10 +56,10 @@ class CheckBoxComponent: Component {
         loadLocalStyleConfig()
         
             // Create CheckBoxButton
-        createCheckBoxButton(flex: flex)
+        createCheckBoxButton()
         
         // Create error label
-        createErrorLabel(flex: flex)
+        createErrorLabel()
         
         // Apply initial properties
         updateProperties(properties)
@@ -72,7 +69,108 @@ class CheckBoxComponent: Component {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Measurement Override
+    
+    /// Measure the intrinsic size of the CheckBox component
+    ///
+    /// Logic:
+    /// 1. Parse label text from paramJson
+    /// 2. Read checkboxSize, textMargin, textSize from local style config
+    /// 3. Measure text height using NSAttributedString.boundingRect
+    /// 4. Height = max(checkboxSize, textHeight)
+    /// 5. Apply MeasureMode constraints
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        // 1. Parse paramJson
+        guard let jsonData = paramJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            return .zero
+        }
+        
+        // 2. Extract label text
+        let labelText = extractLabelText(from: json)
+        
+        // 3. Load style config values
+        var checkboxSize: CGFloat = 16
+        var textMargin: CGFloat = 8
+        var textSize: CGFloat = 16
+        
+        if let config = ComponentStyleConfigManager.shared.getConfig(for: "CheckBox") {
+            if let size = config["checkbox-size"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(size) {
+                checkboxSize = value
+            }
+            if let margin = config["text-margin"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(margin) {
+                textMargin = value
+            }
+            if let size = config["text-size"] as? String,
+               let value = ComponentStyleConfigManager.parseSize(size) {
+                textSize = value
+            }
+        }
+        
+        // 4. Measure text height
+        let constraintWidth: CGFloat = (widthMode == .undefined) ? .greatestFiniteMagnitude : CGFloat(maxWidth)
+        let textAvailWidth = max(1.0, constraintWidth - checkboxSize - textMargin)
+        
+        var measuredHeight: CGFloat = checkboxSize
+        if !labelText.isEmpty {
+            let font = UIFont.systemFont(ofSize: textSize, weight: .regular)
+            let attributedString = NSAttributedString(string: labelText, attributes: [.font: font])
+            let textBounds = attributedString.boundingRect(
+                with: CGSize(width: textAvailWidth, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                context: nil)
+            measuredHeight = max(checkboxSize, ceil(textBounds.size.height))
+        }
+        
+        var measuredWidth: CGFloat = constraintWidth
+        
+        // 5. Apply MeasureMode constraints
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+        
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
+    /// Extract label text from measure JSON
+    private class func extractLabelText(from json: [String: Any]) -> String {
+        if let label = json["label"] as? String {
+            return label
+        } else {
+            return ""
+        }
+    }
+    
     // MARK: - Component Override
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        let boundsWidth = bounds.width
+        var currentY: CGFloat = 0
+        
+        // Layout checkBoxButton at the top
+        if let button = checkBoxButton {
+            let buttonSize = button.sizeThatFits(CGSize(width: boundsWidth, height: .greatestFiniteMagnitude))
+            button.frame = CGRect(x: 0, y: currentY, width: boundsWidth, height: buttonSize.height)
+            currentY += buttonSize.height
+        }
+        
+        // Layout errorLabel below checkBoxButton if visible
+        if let label = errorLabel, !label.isHidden {
+            let labelSize = label.sizeThatFits(CGSize(width: boundsWidth, height: .greatestFiniteMagnitude))
+            label.frame = CGRect(x: 0, y: currentY, width: boundsWidth, height: labelSize.height)
+        }
+    }
     
     override func updateProperties(_ properties: [String: Any]) {
         // Call parent method to apply CSS properties to self
@@ -206,7 +304,7 @@ class CheckBoxComponent: Component {
     // MARK: - Private Methods - UI Creation
     
     /// Create CheckBoxButton
-    private func createCheckBoxButton(flex: Flex) {
+    private func createCheckBoxButton() {
         let button = CheckBoxButton()
         button.addTarget(self, action: #selector(checkBoxButtonTapped(_:)), for: .touchUpInside)
         
@@ -226,11 +324,11 @@ class CheckBoxComponent: Component {
         button.textSize = textSize
         
         self.checkBoxButton = button
-        flex.addItem(button).minHeight(44)
+        addSubview(button)
     }
     
     /// Create error label
-    private func createErrorLabel(flex: Flex) {
+    private func createErrorLabel() {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 12)
         label.textColor = .red
@@ -238,7 +336,7 @@ class CheckBoxComponent: Component {
         label.isHidden = true
         
         self.errorLabel = label
-        flex.addItem(label).marginHorizontal(8).marginTop(4).marginBottom(8)
+        addSubview(label)
     }
     
     // MARK: - Private Methods - Value Extraction
@@ -269,14 +367,14 @@ class CheckBoxComponent: Component {
     private func showError(_ message: String) {
         errorLabel?.text = message
         errorLabel?.isHidden = false
-        notifyLayoutChanged()
+        setNeedsLayout()
     }
     
     /// Hide error message
     private func hideError() {
         errorLabel?.text = nil
         errorLabel?.isHidden = true
-        notifyLayoutChanged()
+        setNeedsLayout()
     }
     
     // MARK: - Private Methods - Data Binding
@@ -300,3 +398,5 @@ class CheckBoxComponent: Component {
         syncState(["checked": sender.isSelected])
     }
 }
+
+#endif // AGENUI_SDK_BUILD

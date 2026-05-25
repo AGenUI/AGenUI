@@ -2,20 +2,18 @@
 
 #include "agenui_functioncall_config.h"
 #include "function_call/agenui_functioncall_resolution.h"
-#include "agenui_async_request_manager.h"
 #include "agenui_ifunctioncall.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <mutex>
 #include <memory>
-#include <atomic>
 
 namespace agenui {
 
 // Forward declarations
-class FunctionCallValidator;
 class IPlatformFunction;
+struct FunctionCallContext;
 
 /**
  * @brief FunctionCall entry combining a FunctionCallConfig and a platform function reference
@@ -60,17 +58,11 @@ public:
     /**
      * @brief Execute a functionCall synchronously
      * @param name FunctionCall name
+     * @param context The function call context (engine and surface info)
      * @param args Arguments
      * @return Execution result
      */
-    FunctionCallResolution executeFunctionCallSync(const std::string& name, const nlohmann::json& args);
-
-    /**
-     * @brief Cancel an asynchronous request
-     * @param requestId Request ID
-     * @return true if successfully cancelled, false if not found
-     */
-    bool cancelAsyncRequest(const std::string& requestId);
+    FunctionCallResolution executeFunctionCallSync(const std::string& name, const FunctionCallContext& context, const nlohmann::json& args);
 
     /**
      * @brief Get all registered functionCalls
@@ -84,19 +76,10 @@ public:
      */
     nlohmann::json exportCatalog() const;
 
-    /**
-     * @brief Generate a unique request ID
-     * @return Unique request ID string
-     */
-    std::string generateRequestId();
-    
 private:
     std::map<std::string, FunctionCallEntry> _functionCalls;      // Platform functionCall map
     std::map<std::string, FunctionCallPtr> _cppFunctionCalls;     // C++ functionCall map
-    FunctionCallValidator* _validator;                      // Parameter validator
-    AsyncRequestManager* _asyncManager;              // Async request manager
     mutable std::mutex _mutex;                       // Mutex
-    std::atomic<int> _requestIdCounter;              // Request ID counter
 
     /**
      * @brief Find a platform functionCall by name

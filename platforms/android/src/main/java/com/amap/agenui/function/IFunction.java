@@ -11,10 +11,11 @@ public interface IFunction {
     /**
      * Executes the Function
      *
+     * @param context    Call context containing engineId and surfaceId
      * @param jsonString Function parameters (JSON string)
      * @return Execution result
      */
-    FunctionResult execute(String jsonString);
+    FunctionResult execute(FunctionCallContext context, String jsonString);
 
     /**
      * Returns the Function configuration

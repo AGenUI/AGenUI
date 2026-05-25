@@ -25,21 +25,18 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
           "width": "auto",
           "height": "auto",
           "font-family": "system",
-          "line-clamp": 0,
-          "text-align": "left"
+          "line-clamp": 1,
+          "text-align": "left",
+          "text-overflow": "ellipsis"
         }
       }
     },
     "Card": {
-      "child": {"default": ""},
       "styles": {
         "default": {
           "width": "auto",
           "height": "auto",
-          "padding": "24px",
-          "border-radius": "16px",
-          "background-color": "#FFFFFF",
-          "filter": "drop-shadow(0px 6px 24px rgba(0, 0, 0, 0.08))"
+          "border-radius": "16px"
         }
       }
     },
@@ -74,7 +71,7 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
     "Image": {
       "url": {"default": ""},
       "fit": {
-        "default": "cover"
+        "default": "fill"
       },
       "variant": {
         "enum": {
@@ -203,7 +200,6 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
       }
     },
     "Button": {
-      "child": {"default": ""},
       "variant": {
         "default": "default",
         "enum": {

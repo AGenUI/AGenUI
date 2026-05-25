@@ -5,11 +5,8 @@
 // Created on 2026/2/28.
 //
 
+#if AGENUI_SDK_BUILD
 import UIKit
-#if ENABLE_CUSTOM_YOGA
-#else
-import FlexLayout
-#endif
 
 /// SliderComponent component implementation (compliant with A2UI v0.9 protocol)
 ///
@@ -72,6 +69,43 @@ class SliderComponent: Component {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Measurement Override
+    
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        // Load slider height from style config
+        let config = ComponentStyleConfigManager.shared.getConfig(for: "Slider")
+        var defaultHeight: CGFloat = 48
+        if let height = config?["slider-height"] as? String,
+           let value = ComponentStyleConfigManager.parseSize(height) {
+            defaultHeight = value
+        }
+        
+        var measuredWidth: CGFloat = 200
+        var measuredHeight: CGFloat = defaultHeight
+
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
+    // MARK: - Layout
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Sync slider frame with component bounds
+        slider?.frame = bounds
     }
     
     // MARK: - Component Override
@@ -201,7 +235,7 @@ class SliderComponent: Component {
         self.slider = sliderControl
         
         // Add to self using FlexLayout
-        flex.addItem(sliderControl).height(sliderHeight)
+        addSubview(sliderControl)
     }
     
     /// Create track image (control height and corner radius)
@@ -262,3 +296,5 @@ class SliderComponent: Component {
         syncState(["value": newValue])
     }
 }
+
+#endif // AGENUI_SDK_BUILD

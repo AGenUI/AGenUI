@@ -7,7 +7,6 @@
 
 import UIKit
 import Lottie
-import FlexLayout
 import AGenUI
 
 /// Lottie component implementation (complies with A2UI protocol)
@@ -37,13 +36,20 @@ class LottieComponent: Component {
         clipsToBounds = true
         
         // Create LottieAnimationView
-        let animationView = LottieAnimationView(frame: CGRectMake(0, 0, defaultSize, defaultSize))
+        let animationView = LottieAnimationView()
         animationView.contentMode = .scaleAspectFit
         animationView.backgroundBehavior = .pauseAndRestore
         self.animationView = animationView
         
-        // Add to self using FlexLayout
-        flex.addItem(animationView).width(100%).height(100%)
+        // Add to self using Auto Layout
+        addSubview(animationView)
+        animationView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            animationView.topAnchor.constraint(equalTo: topAnchor),
+            animationView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            animationView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            animationView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
         
         // Apply initial properties
         updateProperties(properties)
@@ -58,16 +64,34 @@ class LottieComponent: Component {
         cleanup()
     }
     
+    // MARK: - Measurement Override
+    
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+        let defaultSize: CGFloat = 100
+        var measuredWidth = defaultSize
+        var measuredHeight = defaultSize
+
+        if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
+            measuredWidth = widthMode == .atMost
+                ? min(measuredWidth, CGFloat(maxWidth))
+                : CGFloat(maxWidth)
+        }
+        if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
+            measuredHeight = heightMode == .atMost
+                ? min(measuredHeight, CGFloat(maxHeight))
+                : CGFloat(maxHeight)
+        }
+
+        return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
     // MARK: - Layout
     
-    override func sizeThatFits(_ size: CGSize) -> CGSize {
-        // Return directly when input size is valid
-        guard size.width <= 0 || size.height <= 0 else {
-            return size
-        }
+    override func layoutSubviews() {
+        super.layoutSubviews()
         
-        // Return default value when size is invalid
-        return CGSize(width: defaultSize, height: defaultSize)
+        // Sync animationView frame with component bounds
+        animationView?.frame = bounds
     }
     
     override func updateProperties(_ properties: [String: Any]) {

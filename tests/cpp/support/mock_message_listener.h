@@ -63,17 +63,16 @@ public:
         cv_.notify_all();
     }
 
-    void onInteractionStatusEvent(int32_t eventType,
-                                  const std::string& content) override {
+    void onActionEventRouted(const std::string& content) override {
         std::lock_guard<std::mutex> lock(mutex_);
-        interactionStatusCalls.push_back({eventType, content});
+        actionEventRoutedCalls.push_back(content);
         ++totalCalls_;
         cv_.notify_all();
     }
 
-    void onActionEventRouted(const std::string& content) override {
+    void onError(const ::agenui::ErrorMessage& msg) override {
         std::lock_guard<std::mutex> lock(mutex_);
-        actionEventRoutedCalls.push_back(content);
+        errorCalls.push_back(msg);
         ++totalCalls_;
         cv_.notify_all();
     }
@@ -94,7 +93,6 @@ public:
         componentsUpdateCalls.clear();
         componentsAddCalls.clear();
         componentsRemoveCalls.clear();
-        interactionStatusCalls.clear();
         actionEventRoutedCalls.clear();
         errorCalls.clear();
         totalCalls_.store(0);
@@ -122,15 +120,10 @@ public:
         std::string surfaceId;
         std::vector<::agenui::ComponentsRemoveMessage> messages;
     };
-    struct InteractionStatusRecord {
-        int32_t eventType;
-        std::string content;
-    };
 
     std::vector<ComponentsUpdateRecord> componentsUpdateCalls;
     std::vector<ComponentsAddRecord> componentsAddCalls;
     std::vector<ComponentsRemoveRecord> componentsRemoveCalls;
-    std::vector<InteractionStatusRecord> interactionStatusCalls;
     std::vector<std::string> actionEventRoutedCalls;
     std::vector<::agenui::ErrorMessage> errorCalls;
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "agenui_measurement.h"
 
 namespace agenui {
 
@@ -7,12 +8,15 @@ class ISurfaceManager;
 class IPlatformLayoutBridge;
 class IPlatformInvoker;
 class IPlatformFunction;
+class IMeasurementManager;
+class IRuntimeLogger;
+class IPerfLogger;
 
 /**
  * @brief AGenUI Engine Interface
  *
  * The globally unique engine instance, responsible for:
- * 1. Managing singleton modules (FunctionCallManager, TokenParser, etc.)
+ * 1. Managing singleton modules (FunctionCallManager, TemplateRegistry, TokenParser, etc.)
  * 2. Creating and destroying multi-instance SurfaceManagers
  * 3. Managing global configurations (theme, DesignToken, day/night mode)
  *
@@ -39,6 +43,14 @@ public:
      * @return SurfaceManager interface pointer, nullptr if not found
      */
     virtual ISurfaceManager* findSurfaceManager(int instanceId) = 0;
+
+    /**
+     * @brief Sets the path configuration
+     * @param configJson Path configuration in JSON format
+     *        Supported keys: "templateDir" - absolute path to the template directory
+     * @return true if configuration was applied successfully, false if JSON parsing failed
+     */
+    virtual bool setPathConfig(const std::string &configJson) = 0;
 
     /**
      * @brief Sets the platform layout bridge service (singleton)
@@ -92,6 +104,24 @@ public:
      */
     virtual void setDayNightMode(const std::string &mode) = 0;
 
+    /**
+     * @brief Get MeasurementManager
+     * @return MeasurementManager pointer, returns nullptr if uninitialized
+     */
+    virtual IMeasurementManager* getMeasurementManager() = 0;
+
+    /**
+     * @brief Set runtime logger
+     * @param logger Runtime logger implementation (for DEBUG/INFO/WARN/ERROR/FATAL logs).
+     *               Pass nullptr to restore the built-in default logger.
+     */
+    virtual void setRuntimeLogger(IRuntimeLogger* logger) = 0;
+
+    /**
+     * @brief Get the currently active runtime logger
+     * @return Runtime logger interface pointer, never null (falls back to the built-in default)
+     */
+    virtual IRuntimeLogger* getRuntimeLogger() = 0;
 };
 
 } // namespace agenui

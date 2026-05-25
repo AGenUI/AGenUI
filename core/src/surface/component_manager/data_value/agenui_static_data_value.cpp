@@ -26,7 +26,7 @@ void StaticDataValue::unbind() {
     // Static values do not need unbinding
 }
 
-std::shared_ptr<DataValue> StaticDataValue::cloneAsTemplate(const std::string& rootDataPath) const {
+std::shared_ptr<DataValue> StaticDataValue::cloneAsTemplate(IDataValueContext* context, const std::string& rootDataPath) const {
     return std::make_shared<StaticDataValue>(_value);
 }
 

@@ -5,6 +5,8 @@ namespace agenui {
 
 extern jint register_jni_AGenUIEngine(JNIEnv* env);
 extern jint register_jni_AGenUISurfaceManager(JNIEnv* env);
+extern jint register_jni_ColorParser(JNIEnv* env);
+extern jint register_jni_EdgeInsetsParser(JNIEnv* env);
 
 #if defined(__cplusplus)
 extern "C" {
@@ -13,6 +15,8 @@ extern "C" {
 void registerAGenUIMain(JNIEnv *env) {
     register_jni_AGenUIEngine(env);
     register_jni_AGenUISurfaceManager(env);
+    register_jni_ColorParser(env);
+    register_jni_EdgeInsetsParser(env);
 }
 
 void unregisterAGenUIMain(JNIEnv *env) {

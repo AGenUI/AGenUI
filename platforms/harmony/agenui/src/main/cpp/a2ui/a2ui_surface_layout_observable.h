@@ -1,10 +1,32 @@
 #pragma once
 
-#include "agenui_surface_layout_observable.h"
+#include "agenui_render_info_types.h"
 #include <vector>
 #include <mutex>
 
 namespace agenui {
+
+/**
+ * @brief Listener interface for surface layout change events.
+ * @remark Harmony-internal type. Other platforms talk to ISurfaceManager directly.
+ */
+class SurfaceLayoutListener {
+public:
+    virtual ~SurfaceLayoutListener() {}
+    virtual void onSurfaceSizeChanged(const SurfaceLayoutInfo& info) = 0;
+};
+
+/**
+ * @brief Observable interface for fanning out surface layout change events.
+ * @remark Harmony-internal type.
+ */
+class ISurfaceLayoutObservable {
+public:
+    virtual ~ISurfaceLayoutObservable() {}
+    virtual void addSurfaceLayoutListener(SurfaceLayoutListener* listener) = 0;
+    virtual void removeSurfaceLayoutListener(SurfaceLayoutListener* listener) = 0;
+    virtual void notifySurfaceSizeChanged(const SurfaceLayoutInfo& info) = 0;
+};
 
 /**
  * @brief Observable implementation for surface layout changes.
@@ -48,7 +70,7 @@ public:
 
 private:
     std::vector<SurfaceLayoutListener*> m_listeners;  // Registered listeners
-    mutable std::mutex m_mutex;                      // Guards listener access
+    mutable std::mutex m_mutex;                       // Guards listener access
 };
 
 } // namespace agenui

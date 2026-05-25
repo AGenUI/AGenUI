@@ -5,11 +5,18 @@
 #include <map>
 
 namespace agenui {
+
+class BatchGuard;
 enum class DisplayRule;
 
 /**
  * @brief Component manager interface
  * @remark Defines the basic operations for component management
+ *
+ * Callers should wrap bursts of operations that may fan out into many
+ * attribute changes (data-model updates, function-call invalidation
+ * sweeps, UI->data sync, etc.) in a BatchScope via batchGuard() so each
+ * affected component is flushed to the virtual DOM at most once.
  */
 class IComponentManager {
 public:
@@ -38,10 +45,13 @@ public:
     virtual std::string getParentId(const std::string& componentId) = 0;
 
     /**
-     * @brief Refresh style tokens for all components
-     * @remark Iterates all components and notifies them of style updates
+     * @brief Re-evaluate every component's attributes and styles
+     * @remark Iterates all components and triggers a full snapshot rebuild,
+     *         causing each DataValue to re-run getValueData() (including any
+     *         registered FunctionCalls). Unchanged values are filtered out by
+     *         VirtualDom's two-layer diff before reaching the native renderer.
      */
-    virtual void refreshStyleTokens() = 0;
+    virtual void invalidateFunctionCallValues() = 0;
 
     /**
      * @brief Batch-set the display rules for components
@@ -57,6 +67,13 @@ public:
      * @param dispatcher Event dispatcher pointer
      */
     virtual void executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher) = 0;
+
+    /**
+     * @brief Access the batch guard for this component manager.
+     * @return Non-owning pointer to the internal BatchGuard; never null
+     *         for a live instance.
+     */
+    virtual BatchGuard* batchGuard() = 0;
 };
 
 }  // namespace agenui

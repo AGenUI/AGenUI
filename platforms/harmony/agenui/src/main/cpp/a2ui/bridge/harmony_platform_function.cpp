@@ -40,7 +40,8 @@ HarmonyPlatformFunction::~HarmonyPlatformFunction() {
  * This path is only used after confirming the current thread is the main thread.
  */
 FunctionCallResult HarmonyPlatformFunction::callSyncOnMainThread(
-    napi_env env, napi_ref callbackRef, const std::string& params) {
+    napi_env env, napi_ref callbackRef, const FunctionCallContext& context,
+    const std::string& params) {
 
     // Get the callback function
     napi_value callback;
@@ -50,7 +51,23 @@ FunctionCallResult HarmonyPlatformFunction::callSyncOnMainThread(
         return {FunctionCallStatus::Error, "", "Failed to get callback reference"};
     }
 
-    // Create the callback argument.
+    // Create the context object: { instanceId: number, surfaceId: string }
+    napi_value contextObj;
+    status = napi_create_object(env, &contextObj);
+    if (status != napi_ok) {
+        HM_LOGE("[HarmonyPlatformFunction] callSyncOnMainThread: failed to create context object");
+        return {FunctionCallStatus::Error, "", "Failed to create context object"};
+    }
+
+    napi_value instanceIdVal;
+    napi_create_int32(env, context.instanceId, &instanceIdVal);
+    napi_set_named_property(env, contextObj, "instanceId", instanceIdVal);
+
+    napi_value surfaceIdVal;
+    napi_create_string_utf8(env, context.surfaceId.c_str(), NAPI_AUTO_LENGTH, &surfaceIdVal);
+    napi_set_named_property(env, contextObj, "surfaceId", surfaceIdVal);
+
+    // Create the params argument.
     napi_value paramsArg;
     status = napi_create_string_utf8(env, params.c_str(), NAPI_AUTO_LENGTH, &paramsArg);
     if (status != napi_ok) {
@@ -61,10 +78,10 @@ FunctionCallResult HarmonyPlatformFunction::callSyncOnMainThread(
     napi_value undefined;
     napi_get_undefined(env, &undefined);
 
-    // Invoke the ArkTS callback: callback(paramsJson) => resultJson.
+    // Invoke the ArkTS callback: callback(context, paramsJson) => resultJson.
     napi_value result;
-    napi_value args[] = {paramsArg};
-    status = napi_call_function(env, undefined, callback, 1, args, &result);
+    napi_value args[] = {contextObj, paramsArg};
+    status = napi_call_function(env, undefined, callback, 2, args, &result);
     if (status != napi_ok) {
         HM_LOGE("[HarmonyPlatformFunction] callSyncOnMainThread: failed to call callback, status=%d", status);
         return {FunctionCallStatus::Error, "", "Failed to call callback"};
@@ -109,7 +126,8 @@ FunctionCallResult HarmonyPlatformFunction::callSyncOnMainThread(
     }
 }
 
-FunctionCallResult HarmonyPlatformFunction::callSync(const std::string& params) {
+FunctionCallResult HarmonyPlatformFunction::callSync(const FunctionCallContext& context,
+                                                       const std::string& params) {
     // Snapshot env and callback_ref under lock.
     napi_env env;
     napi_ref callbackRef;
@@ -126,7 +144,7 @@ FunctionCallResult HarmonyPlatformFunction::callSync(const std::string& params) 
     // Call directly when already on the main thread.
     if (pthread_equal(pthread_self(), mainThreadId_)) {
         HM_LOGI("[HarmonyPlatformFunction] callSync: on main thread, calling directly");
-        return callSyncOnMainThread(env, callbackRef, params);
+        return callSyncOnMainThread(env, callbackRef, context, params);
     }
 
     // Otherwise dispatch to the main thread and wait synchronously.
@@ -141,6 +159,7 @@ FunctionCallResult HarmonyPlatformFunction::callSync(const std::string& params) 
     struct CrossThreadContext {
         napi_env env;
         napi_ref callbackRef;
+        const FunctionCallContext* context;
         const std::string* params;
         FunctionCallResult result;
         std::mutex mtx;
@@ -152,12 +171,13 @@ FunctionCallResult HarmonyPlatformFunction::callSync(const std::string& params) 
     CrossThreadContext ctx;
     ctx.env = env;
     ctx.callbackRef = callbackRef;
+    ctx.context = &context;
     ctx.params = &params;
     ctx.self = this;
 
     // Heap-allocate the task; the TSFN callback path deletes it.
     auto* task = new MainThreadTask([&ctx](napi_env taskEnv) {
-        ctx.result = ctx.self->callSyncOnMainThread(taskEnv, ctx.callbackRef, *ctx.params);
+        ctx.result = ctx.self->callSyncOnMainThread(taskEnv, ctx.callbackRef, *ctx.context, *ctx.params);
         {
             std::lock_guard<std::mutex> lock(ctx.mtx);
             ctx.done = true;
@@ -178,17 +198,6 @@ FunctionCallResult HarmonyPlatformFunction::callSync(const std::string& params) 
 
     HM_LOGI("[HarmonyPlatformFunction] callSync: main thread execution completed");
     return ctx.result;
-}
-
-FunctionCallResult HarmonyPlatformFunction::callAsync(const std::string& params,
-                                                       const FunctionCallCallback& callback) {
-    // Async calls currently fall back to the synchronous path.
-    HM_LOGW("[HarmonyPlatformFunction] callAsync: falling back to sync call");
-    FunctionCallResult result = callSync(params);
-    if (callback) {
-        callback(result);
-    }
-    return result;
 }
 
 } // namespace agenui

@@ -7,10 +7,12 @@
 
 #import "AGenUIEngineBridge.h"
 #import "AGenUIEngineFunction.h"
+#import "AGenUILoggerBridge.h"
 #include "agenui_engine_entry.h"
 #include "agenui_surface_manager_interface.h"
 #include <memory>
 #include <unordered_map>
+#include <mutex>
 
 // MARK: - AGenUIEngineBridge Private Interface
 
@@ -18,11 +20,14 @@
 
 @property (nonatomic, unsafe_unretained) agenui::IAGenUIEngine* engine;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AGenUIFunctionCallCallback>* functionCallCallbacks;
+@property (nonatomic, strong) AGenUILoggerBridge* perfLoggerBridge;
 
 @end
 
 // C++ storage for platform function instances (cannot be an OC property)
 static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformFunctions;
+// Mutex protecting sPlatformFunctions and _functionCallCallbacks from concurrent access
+static std::mutex sFunctionMutex;
 
 // MARK: - AGenUIEngineBridge Implementation
 
@@ -37,6 +42,12 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
         instance = [[AGenUIEngineBridge alloc] init];
     });
     return instance;
+}
+
+// MARK: - Version
+
++ (NSString *)sdkVersion {
+    return [NSString stringWithUTF8String:agenui::getAGenUIVersion()];
 }
 
 - (instancetype)init {
@@ -69,6 +80,7 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
     
      // Unregister all platform functions before engine destruction
      if (_engine != nullptr) {
+         std::lock_guard<std::mutex> lock(sFunctionMutex);
          for (auto& pair : sPlatformFunctions) {
              _engine->unregisterFunction(pair.first);
              delete pair.second;
@@ -77,7 +89,9 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
      }
     
     // Clear FunctionCall callbacks
-    [_functionCallCallbacks removeAllObjects];
+    @synchronized (_functionCallCallbacks) {
+        [_functionCallCallbacks removeAllObjects];
+    }
 
     // Destroy engine
     if (_engine != nullptr) {
@@ -161,8 +175,11 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
     }
 
     std::string nameStr = [functionCallName UTF8String];
-        std::string configStr = [configJson UTF8String];
-        
+    std::string configStr = [configJson UTF8String];
+
+    {
+        std::lock_guard<std::mutex> lock(sFunctionMutex);
+
         // 1. If already registered, unregister the old one first
         auto existingIt = sPlatformFunctions.find(nameStr);
         if (existingIt != sPlatformFunctions.end()) {
@@ -170,20 +187,23 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
             delete existingIt->second;
             sPlatformFunctions.erase(existingIt);
         }
-        
+
         // 2. Save callback
-        _functionCallCallbacks[functionCallName] = [callback copy];
-        
+        @synchronized (_functionCallCallbacks) {
+            _functionCallCallbacks[functionCallName] = [callback copy];
+        }
+
         // 3. Create IPlatformFunction instance bound to this function
         auto* platformFunction = new agenui::AGenUIEngineFunction((__bridge void*)self, nameStr);
-        
+
         // 4. Register config + function instance to engine
         _engine->registerFunction(configStr, platformFunction);
-        
+
         // 5. Cache the instance for later unregister
         sPlatformFunctions[nameStr] = platformFunction;
-        
-        return YES;
+    }
+
+    return YES;
 }
 
 - (void)unregisterFunction:(NSString *)functionCallName {
@@ -196,19 +216,25 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
     }
     
     std::string nameStr = [functionCallName UTF8String];
-    
-    // 1. Unregister from C++ engine
-    _engine->unregisterFunction(nameStr);
-    
-    // 2. Clean up IPlatformFunction instance
-    auto it = sPlatformFunctions.find(nameStr);
-    if (it != sPlatformFunctions.end()) {
-        delete it->second;
-        sPlatformFunctions.erase(it);
+
+    {
+        std::lock_guard<std::mutex> lock(sFunctionMutex);
+
+        // 1. Unregister from C++ engine
+        _engine->unregisterFunction(nameStr);
+
+        // 2. Clean up IPlatformFunction instance
+        auto it = sPlatformFunctions.find(nameStr);
+        if (it != sPlatformFunctions.end()) {
+            delete it->second;
+            sPlatformFunctions.erase(it);
+        }
+
+        // 3. Remove OC callback
+        @synchronized (_functionCallCallbacks) {
+            [_functionCallCallbacks removeObjectForKey:functionCallName];
+        }
     }
-    
-    // 3. Remove OC callback
-    [_functionCallCallbacks removeObjectForKey:functionCallName];
 }
 
 
@@ -216,7 +242,36 @@ static std::unordered_map<std::string, agenui::AGenUIEngineFunction*> sPlatformF
     if (!functionCallName || functionCallName.length == 0) {
         return nil;
     }
-    return _functionCallCallbacks[functionCallName];
+    @synchronized (_functionCallCallbacks) {
+        return _functionCallCallbacks[functionCallName];
+    }
+}
+
+- (BOOL)setPathConfig:(NSString *)configJson {
+    if (!configJson || configJson.length == 0) {
+        return NO;
+    }
+    if (_engine == nullptr) {
+        return NO;
+    }
+    std::string configStr = [configJson UTF8String];
+    bool success = _engine->setPathConfig(configStr);
+    return success;
+}
+
+- (void)setRuntimeLogEnabled:(BOOL)enabled {
+    if (_engine == nullptr) {
+        return;
+    }
+    
+    if (enabled) {
+        if (_perfLoggerBridge == nil) {
+            _perfLoggerBridge = [[AGenUILoggerBridge alloc] init];
+        }
+        _engine->setRuntimeLogger(static_cast<agenui::IRuntimeLogger*>([_perfLoggerBridge cppRumtimeLoggerPointer]));
+    } else {
+        _engine->setRuntimeLogger(nullptr);
+    }
 }
 
 @end

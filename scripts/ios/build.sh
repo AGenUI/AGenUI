@@ -44,6 +44,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=../common/_common.sh
 source "${SCRIPT_DIR}/../common/_common.sh"
+# shellcheck source=../common/_build_id.sh
+source "${SCRIPT_DIR}/../common/_build_id.sh"
 
 # -------------------- Default parameters --------------------
 BUILD_TYPE="xcframework"
@@ -90,7 +92,9 @@ esac
 
 [[ -f "$RUNNER" ]] || error "Underlying build script not found: ${RUNNER}"
 [[ -d "$IOS_PROJECT_ROOT" ]] || error "iOS project directory not found: ${IOS_PROJECT_ROOT}"
-ensure_engine_dir
+ensure_core_dir
+check_version_consistency
+fetch_build_id "ios"
 
 # -------------------- Default workspace auto-detection --------------------
 if [[ -z "$WORKSPACE" && -z "$PROJECT" ]]; then
@@ -165,4 +169,5 @@ info "Arguments: ${RUNNER_ARGS[*]}"
 
 bash "$RUNNER" "${RUNNER_ARGS[@]}"
 
+print_build_version
 success "iOS ${BUILD_TYPE} build completed"
