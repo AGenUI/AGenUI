@@ -361,6 +361,9 @@ public:
         OH_Drawing_DestroyTypography(typography);
         OH_Drawing_DestroyTypographyHandler(handler);
         OH_Drawing_DestroyTypographyStyle(typoStyle);
+        if (fontCollection) {
+            OH_Drawing_DestroyFontCollection(fontCollection);
+        }
 
         return result;
     }
