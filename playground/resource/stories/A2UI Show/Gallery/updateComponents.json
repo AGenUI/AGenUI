@@ -889,7 +889,7 @@
         "id": "choicepicker-multi",
         "component": "ChoicePicker",
         "label": "Choose multiple options",
-        "variant": "multiSelect",
+        "variant": "multipleSelection",
         "options": [
           { "label": "Feature X", "value": "x" },
           { "label": "Feature Y", "value": "y" },
