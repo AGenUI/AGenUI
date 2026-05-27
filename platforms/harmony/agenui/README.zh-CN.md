@@ -170,6 +170,10 @@ class SurfaceListenerImpl implements ISurfaceManagerListener {
   onReceiveActionEvent(event: string): void {
     // 处理组件交互事件
   }
+
+  onError(surface: Surface | null, code: number, message: string): void {
+    // 错误码定义见 agenui_errorcode_define.h
+  }
 }
 
 @Entry

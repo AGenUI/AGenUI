@@ -251,6 +251,7 @@ export interface ISurfaceManagerListener {
     onCreateSurface?: (surface: Surface) => void;
     onDeleteSurface?: (surface: Surface) => void;
     onReceiveActionEvent?: (event: string) => void;
+    onError?: (surface: Surface | null, code: number, message: string) => void;
 }
 ```
 
