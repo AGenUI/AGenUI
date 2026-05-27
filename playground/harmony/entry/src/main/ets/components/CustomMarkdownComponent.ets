@@ -25,31 +25,7 @@ function buildCustomMarkdown(view: CustomView): void {
     .width('100%')
     .height(undefined)
     .onSizeChange((_oldValue: SizeOptions, newValue: SizeOptions) => {
-      const newH: number = newValue.height as number;
-      if (newH < 0) {
-        return;
-      }
-      const mdView = view as CustomMarkdownComponent;
-      if (mdView.sizeReported) {
-        return;
-      }
-      mdView.sizeReported = true;
-
-      const yogaHeight: number = view.getProperty().getViewHeight();
-      let capHeight: number;
-      if (yogaHeight > 0) {
-        capHeight = yogaHeight;
-      } else {
-        try {
-          const d: display.Display = display.getDefaultDisplaySync();
-          capHeight = d.height / d.densityPixels;
-        } catch (_e) {
-          capHeight = 0;
-        }
-      }
-      const reportH: number = (capHeight > 0 && newH > capHeight) ? capHeight : newH;
-      const reportW: number = newValue.width as number;
-      (mdView as A2UIComponent).reportContentHeight(reportH, reportW);
+      (view as CustomMarkdownComponent).onMarkdownSizeChange(newValue);
     })
   }
   .width(view.getProperty().getViewWidth() <= 0 ? '100%' : view.getProperty().getViewWidth())
@@ -63,9 +39,26 @@ export class CustomMarkdownComponent extends A2UIComponent {
   markdownContent: string = '';
   rawfilePath: string = '';
   loadMode: "text" | "rawfile" | "sandbox" = 'text';
-  sizeReported: boolean = false;
   public mdContext: Context | undefined = undefined;
   private isLoading: boolean = false;
+
+  // Size dedup: only report when (height > 0) AND (height/width differ from last reported value).
+  // Replaces the previous one-time `sizeReported` lock so that content updates and post-async-render
+  // size changes can still be propagated upstream.
+  private lastReportedHeight: number = 0;
+  private lastReportedWidth: number = 0;
+  // Latest size observed from onSizeChange; used by the deferred flush and the fallback timer.
+  private latestSize: SizeOptions | undefined = undefined;
+  // Deferred-report timer: gives the async Markdown library (Worker thread parsing) time to settle
+  // before we read its final size. Cleared/rescheduled on every onSizeChange.
+  private pendingReportTimer: number = -1;
+  // Fallback timer: armed on every content (re)load. If no valid (>0) height has been reported
+  // within the deadline, force a flush from the latest observed size.
+  private fallbackTimer: number = -1;
+  // Delay in ms before flushing a reported size after onSizeChange settles.
+  private static readonly REPORT_DEBOUNCE_MS: number = 150;
+  // Deadline in ms after a content (re)load to ensure at least one valid size report.
+  private static readonly REPORT_FALLBACK_MS: number = 500;
 
   // Style state
   private textColor: string = '#000000';
@@ -88,6 +81,91 @@ export class CustomMarkdownComponent extends A2UIComponent {
 
   onUpdateViewFinished(): void {
     this.updateArkUI();
+  }
+
+  /**
+   * Receives raw size events from the inner Column. Stores the latest value and schedules a
+   * debounced flush so the async Markdown renderer has time to finalize its content height
+   * before we report upstream.
+   */
+  public onMarkdownSizeChange(newValue: SizeOptions): void {
+    const newH: number = newValue.height as number;
+    if (newH < 0) {
+      return;
+    }
+    this.latestSize = newValue;
+    if (this.pendingReportTimer >= 0) {
+      clearTimeout(this.pendingReportTimer);
+    }
+    this.pendingReportTimer = setTimeout((): void => {
+      this.pendingReportTimer = -1;
+      this.flushReportedSize();
+    }, CustomMarkdownComponent.REPORT_DEBOUNCE_MS);
+  }
+
+  /**
+   * Computes the final report height (clamped by Yoga / display) and forwards it to the engine.
+   * Dedups against the last reported (height, width) pair and ignores non-positive heights.
+   */
+  private flushReportedSize(): void {
+    const size: SizeOptions | undefined = this.latestSize;
+    if (size === undefined) {
+      return;
+    }
+    const newH: number = size.height as number;
+    const newW: number = size.width as number;
+    if (newH <= 0) {
+      return;
+    }
+
+    const yogaHeight: number = this.getProperty().getViewHeight();
+    let capHeight: number;
+    if (yogaHeight > 0) {
+      capHeight = yogaHeight;
+    } else {
+      try {
+        const d: display.Display = display.getDefaultDisplaySync();
+        capHeight = d.height / d.densityPixels;
+      } catch (_e) {
+        capHeight = 0;
+      }
+    }
+    const reportH: number = (capHeight > 0 && newH > capHeight) ? capHeight : newH;
+    const reportW: number = newW;
+    if (reportH === this.lastReportedHeight && reportW === this.lastReportedWidth) {
+      return;
+    }
+    this.lastReportedHeight = reportH;
+    this.lastReportedWidth = reportW;
+    this.reportContentHeight(reportH, reportW);
+  }
+
+  /**
+   * Called whenever new Markdown content starts loading. Resets the dedup state so the next valid
+   * size will be reported, and arms a fallback timer in case the async renderer never triggers a
+   * subsequent onSizeChange (e.g. content height equals previous content height after layout).
+   */
+  private resetReportStateForReload(): void {
+    this.lastReportedHeight = 0;
+    this.lastReportedWidth = 0;
+    if (this.pendingReportTimer >= 0) {
+      clearTimeout(this.pendingReportTimer);
+      this.pendingReportTimer = -1;
+    }
+    if (this.fallbackTimer >= 0) {
+      clearTimeout(this.fallbackTimer);
+    }
+    this.fallbackTimer = setTimeout((): void => {
+      this.fallbackTimer = -1;
+      // If a valid size has already been reported, nothing to do.
+      if (this.lastReportedHeight > 0) {
+        return;
+      }
+      // Otherwise force a flush from the latest observed size to escape the height=0 deadlock.
+      if (this.latestSize !== undefined) {
+        this.flushReportedSize();
+      }
+    }, CustomMarkdownComponent.REPORT_FALLBACK_MS);
   }
 
   protected onUpdateProperties(properties: A2UIComponentProps): void {
@@ -207,7 +285,7 @@ export class CustomMarkdownComponent extends A2UIComponent {
       this.isLoading = true;
       this.loadMode = 'text';
       this.markdownContent = content;
-      this.sizeReported = false;
+      this.resetReportStateForReload();
       this.rawfilePath = '';
       this.initController();
       this.updateArkUI();
@@ -227,7 +305,7 @@ export class CustomMarkdownComponent extends A2UIComponent {
       this.loadMode = 'rawfile';
       this.rawfilePath = rawfilePath;
       this.markdownContent = '';
-      this.sizeReported = false;
+      this.resetReportStateForReload();
       this.initController();
       this.updateArkUI();
     } catch (e) {
@@ -251,7 +329,7 @@ export class CustomMarkdownComponent extends A2UIComponent {
       this.loadMode = 'text';
       this.markdownContent = content;
       this.rawfilePath = '';
-      this.sizeReported = false;
+      this.resetReportStateForReload();
       this.initController();
       this.updateArkUI();
     } catch (e) {
@@ -262,6 +340,15 @@ export class CustomMarkdownComponent extends A2UIComponent {
   }
 
   onDestroy(): void {
+    if (this.pendingReportTimer >= 0) {
+      clearTimeout(this.pendingReportTimer);
+      this.pendingReportTimer = -1;
+    }
+    if (this.fallbackTimer >= 0) {
+      clearTimeout(this.fallbackTimer);
+      this.fallbackTimer = -1;
+    }
+    this.latestSize = undefined;
     this.markdownContent = '';
     this.rawfilePath = '';
     this.loadMode = 'text';
