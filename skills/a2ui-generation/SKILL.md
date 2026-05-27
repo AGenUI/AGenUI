@@ -1,6 +1,7 @@
 ---
 name: a2ui-generation
-description: Design and generate A2UI `updateComponents` and `updateDataModel` payloads for three modes: DTO component, non-DTO component, and non-DTO page. Use when asked to create or refine A2UI cards, components, or pages from DTO/JSON/business data, generate Python transformer code for DTO-driven components, iterate on existing A2UI output files by diff, improve mobile UI quality, or validate A2UI rules such as `surfaceId`, `root`, path binding, and component-vs-page boundaries.
+description: |
+  Design and generate A2UI updateComponents and updateDataModel payloads for three modes (DTO component, non-DTO component, non-DTO page). Use when asked to create or refine A2UI cards, components, or pages from DTO/JSON/business data, generate Python transformer code for DTO-driven components, iterate on existing A2UI output files by diff, improve mobile UI quality, or validate A2UI rules such as surfaceId, root, path binding, and component-vs-page boundaries.
 ---
 
 # A2UI Generation
