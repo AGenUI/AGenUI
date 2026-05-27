@@ -30,13 +30,6 @@ BUTTONISH_TEXT_PATH_RE = re.compile(
 
 UNSUPPORTED_STYLE_KEYS = {"flex-basis", "gap", "box-shadow", "position", "z-index"}
 ALLOWED_FONT_SIZES = {"24px", "28px", "32px", "36px", "40px"}
-ALLOWED_COMPONENTS = {
-    "Column", "Row", "List", "Card", "Tabs", "Modal", "Divider", "Carousel",
-    "Text", "RichText", "Markdown", "Image", "Icon", "Video",
-    "AudioPlayer", "Lottie", "Web",
-    "Button", "TextField", "CheckBox", "ChoicePicker", "Slider", "DateTimeInput",
-    "Chart", "Table",
-}
 
 
 def _normalize_px(value: Any) -> str | None:
@@ -409,12 +402,6 @@ def validate(comp: dict, data: dict, overrides: dict[str, Any] | None = None) ->
     for component in components:
         cid = component.get("id", "")
         ctype = component.get("component", "")
-
-        if ctype and ctype not in ALLOWED_COMPONENTS:
-            errors.append(
-                f"{cid or '?'}: unknown component '{ctype}'; "
-                f"allowed: {sorted(ALLOWED_COMPONENTS)}"
-            )
 
         if not cid:
             preview = json.dumps(component, ensure_ascii=False)[:120]

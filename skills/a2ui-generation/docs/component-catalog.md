@@ -100,14 +100,6 @@ Dialog. `trigger` is the triggering component id; `content` is the dialog body c
 {"id": "modal1", "component": "Modal", "trigger": "btn1", "content": "modal_body"}
 ```
 
-#### `Carousel`
-
-Image carousel. `content` is an array of image URLs. `autoplay` defaults to `false`; `draggable` defaults to `true`.
-
-```json
-{"id": "carousel1", "component": "Carousel", "content": ["/images/slide1.jpg", "/images/slide2.jpg"], "autoplay": false, "draggable": true}
-```
-
 ### Content Components
 
 #### `Text`
@@ -220,23 +212,31 @@ Built-in icon. `name` supports a literal value or `{"path": "..."}` dynamic bind
 
 ### Chart Components
 
-#### `Chart`
-
-Unified chart component. Use `chartType` to select visualization type.
+#### `BarChart`
 
 ```json
-{"id": "chart1", "component": "Chart", "chartType": "bar", "title": {"path": "/data/chartTitle"}, "data": {"path": "/data/chartData"}}
+{"id": "bc1", "component": "BarChart", "title": {"path": "/data/chartTitle"}, "data": {"path": "/data/chartData"}}
 ```
 
-`chartType` enum: `"bar"` | `"line"` | `"donut"` | `"bar_grouped"`
-
-`data` structure (bar / line / bar_grouped):
+`data` structure:
 
 ```json
 {"xAxis": ["Label1", "Label2"], "yAxis": ["Low", "Mid", "High"], "series": [{"name": "Series Name", "data": [{"value": 1.5, "label": "Display Text"}]}]}
 ```
 
-`data` structure (donut):
+#### `LineChart`
+
+```json
+{"id": "lc1", "component": "LineChart", "title": {"path": "/data/lineTitle"}, "data": {"path": "/data/lineData"}}
+```
+
+#### `DonutChart`
+
+```json
+{"id": "dc1", "component": "DonutChart", "title": {"path": "/data/donutTitle"}, "data": {"path": "/data/donutData"}}
+```
+
+`data` structure:
 
 ```json
 {"series": [{"name": "", "data": [{"label": "Category A", "value": 30}, {"label": "Category B", "value": 70}]}]}
