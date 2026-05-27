@@ -147,6 +147,7 @@ void ModalComponent::showDialog() {
         // Recover the bound instance and clear its handle.
         auto* component = static_cast<ModalComponent*>(OH_ArkUI_DialogDismissEvent_GetUserData(event));
         if (component) {
+            component->m_dialogAPI->dispose(component->m_dialogHandle);
             component->m_dialogHandle = nullptr;
             HM_LOGI("handle reset, id=%s", component->m_id.c_str());
         }
