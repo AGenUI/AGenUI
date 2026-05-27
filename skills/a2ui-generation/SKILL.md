@@ -1,6 +1,8 @@
 ---
 name: a2ui-generation
-description: Design and generate A2UI `updateComponents` and `updateDataModel` payloads for three modes: DTO component, non-DTO component, and non-DTO page. Use when asked to create or refine A2UI cards, components, or pages from DTO/JSON/business data, generate Python transformer code for DTO-driven components, iterate on existing A2UI output files by diff, improve mobile UI quality, or validate A2UI rules such as `surfaceId`, `root`, path binding, and component-vs-page boundaries.
+description: |
+  Design and generate A2UI updateComponents and updateDataModel payloads for three modes (DTO component, non-DTO component, non-DTO page). Use when asked to create or refine A2UI cards, components, or pages from DTO/JSON/business data, generate Python transformer code for DTO-driven components, iterate on existing A2UI output files by diff, improve mobile UI quality, or validate A2UI rules such as surfaceId, root, path binding, and component-vs-page boundaries.
+  Trigger words: "A2UI", "a2ui", "generate card", "generate page", "UI component", "AGenUI"
 ---
 
 # A2UI Generation
@@ -213,6 +215,16 @@ Only truly irreplaceable business invariants that scripts cannot fully substitut
 - The layout rationale must cover at minimum: main sections, visual focal point, content rhythm, key component relationships, and the role of images/charts
 - Before formal output, at least `1` explicit improvement round is required; the first version in your head must not be delivered directly as the final first draft
 - This explicit improvement round defaults to prioritizing premium feel, design quality, and overall completeness — not just literal additions
+- **Component allowlist**: Only use component names defined in `docs/component-catalog.md`.
+  Do NOT invent, translate, or import names from React / Flutter / SwiftUI / Tailwind.
+  Allowed components: `Column`, `Row`, `List`, `Card`, `Tabs`, `Modal`, `Divider`, `Carousel`, `Text`, `RichText`, `Markdown`, `Image`, `Icon`, `Video`, `AudioPlayer`, `Lottie`, `Web`, `Button`, `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Chart`, `Table`.
+  Common wrong names and their correct replacements:
+  - "Container" / "Box" / "Wrapper" → use `Card` (bordered) or `Column` with padding
+  - "Stack" / "VStack" / "HStack" → use `Column` (vertical) or `Row` (horizontal)
+  - "Spacer" → use margin / padding on adjacent components
+  - "Badge" / "Chip" / "Tag" → use `Text` with rounded background styles
+  - "Accordion" → use `Tabs` or toggle visibility via styles `display: "none"`
+  - "BarChart" / "LineChart" / "DonutChart" → use `Chart` with `chartType: "bar" | "line" | "donut" | "bar_grouped"`
 
 ## Resources
 
