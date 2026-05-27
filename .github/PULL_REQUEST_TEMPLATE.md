@@ -22,7 +22,7 @@
 
 ## Checklist
 
-- [ ] I have read the [CONTRIBUTING.md](../CONTRIBUTING.md) guide
+- [ ] I have read the [CONTRIBUTING.md](https://github.com/AGenUI/AGenUI/blob/main/CONTRIBUTING.md) guide
 - [ ] Code compiles without errors on affected platform(s)
 - [ ] I have tested on relevant device(s) or simulator(s)
 - [ ] Documentation updated (if applicable)
