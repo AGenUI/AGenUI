@@ -93,6 +93,21 @@ class SurfaceListenerImpl implements ISurfaceManagerListener {
     }
   }
 
+  /**
+   * Called by the native engine when a protocol-layer payload is rejected.
+   * Renders a top red banner so the failure is visible in the playground.
+   *
+   * @param surface - The associated Surface, or null when not bound.
+   * @param code - Error code from core/src/agenui_errorcode_define.h.
+   * @param message - Human-readable error description.
+   */
+  onError(surface: Surface | null, code: number, message: string): void {
+    const surfaceText = surface ? surface.surfaceId : '<no surface>';
+    hilog.error(DOMAIN, TAG, `AGenUI Error code=${code} surface=${surfaceText} message=${message}`);
+    if (this.indexComponent) {
+      this.indexComponent.showErrorBanner(`AGenUI Error  code=${code}\nsurface: ${surfaceText}\n${message}`);
+    }
+  }
 }
 
 
@@ -151,6 +166,12 @@ struct Index {
   @State surfaceVersion: number = 0;
   /** Whether dark mode is currently active. */
   @State isDarkMode: boolean = false;
+
+  /** Text shown in the top error banner (empty string hides the banner). */
+  @State errorBannerText: string = '';
+
+  /** setTimeout handle used to auto-dismiss the error banner. */
+  private errorBannerTimer: number = -1;
 
   private surfaceManager: SurfaceManager | null = null;
   private measurementManager: MeasurementManager | null = null;
@@ -326,6 +347,10 @@ struct Index {
 
   /** Lifecycle: tears down page-owned native resources and demo registrations. */
   aboutToDisappear(): void {
+    if (this.errorBannerTimer !== -1) {
+      clearTimeout(this.errorBannerTimer);
+      this.errorBannerTimer = -1;
+    }
     this.destroySurfaceManager();
     this.unregisterDemoExtensions();
     this.runtimeLogger = null;
@@ -363,6 +388,33 @@ struct Index {
     if (this.currentSurfaceId === surfaceId) {
       this.currentSurfaceId = '';
     }
+  }
+
+  /**
+   * Shows the top error banner. A new error replaces any banner currently
+   * visible so rapid bursts do not stack. The banner auto-dismisses after
+   * 4 seconds; tap also dismisses immediately.
+   *
+   * @param text - Multi-line text to render inside the banner.
+   */
+  showErrorBanner(text: string): void {
+    if (this.errorBannerTimer !== -1) {
+      clearTimeout(this.errorBannerTimer);
+      this.errorBannerTimer = -1;
+    }
+    this.errorBannerText = text;
+    this.errorBannerTimer = setTimeout(() => {
+      this.hideErrorBanner();
+    }, 4000);
+  }
+
+  /** Hides the error banner and clears the auto-dismiss timer. */
+  hideErrorBanner(): void {
+    if (this.errorBannerTimer !== -1) {
+      clearTimeout(this.errorBannerTimer);
+      this.errorBannerTimer = -1;
+    }
+    this.errorBannerText = '';
   }
 
   /**
@@ -560,6 +612,9 @@ struct Index {
       return;
     }
 
+    // Reset parser buffer so a previous broken payload cannot block this case.
+    this.surfaceManager.beginTextStream();
+
     if (this.currentSurfaceId) {
       const oldSurfaceId = this.currentSurfaceId;
       const deleteSurfaceJsonStr =
@@ -588,6 +643,8 @@ struct Index {
       this.surfaceManager.receiveTextChunk(this.dataModelJson);
       hilog.info(DOMAIN, TAG, '3/3 updateDataModel sent');
     }
+
+    this.surfaceManager.endTextStream();
   }
 
   /** Toggles the left navigation drawer open or closed. */
@@ -665,6 +722,8 @@ struct Index {
       return;
     }
 
+    this.surfaceManager.beginTextStream();
+
     // Detect surfaceId change: if the editor changed the surfaceId, recreate the surface.
     const componentsObj = JSON.parse(this.componentsJson) as ComponentsData;
     const newSurfaceId = componentsObj.updateComponents?.surfaceId ?? '';
@@ -693,6 +752,8 @@ struct Index {
       this.surfaceManager.receiveTextChunk(this.dataModelJson);
       hilog.info(DOMAIN, TAG, 'updateDataModel sent (from editor)');
     }
+
+    this.surfaceManager.endTextStream();
 
     this.closeEditor();
   }
@@ -994,6 +1055,28 @@ struct Index {
         .width('100%')
         .height('100%')
         .transition(TransitionEffect.OPACITY.animation({ duration: 300 }))
+      }
+
+      // Top error banner triggered by SurfaceManagerListener.onError.
+      // Rendered last so it sits above the drawer and editor overlays.
+      if (this.errorBannerText) {
+        Column() {
+          Column() {
+            Text(this.errorBannerText)
+              .fontSize(13)
+              .fontColor(Color.White)
+              .fontWeight(FontWeight.Medium)
+              .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+              .width('100%')
+          }
+          .width('100%')
+          .borderRadius(10)
+          .backgroundColor('rgba(244, 67, 54, 0.95)')
+          .onClick(() => { this.hideErrorBanner(); })
+        }
+        .width('100%')
+        .padding({ left: 12, right: 12 })
+        .margin({ top: 8 })
       }
     }
     .width('100%')

@@ -16,6 +16,12 @@ export interface ISurfaceListener {
    * Optional callback routed from component actions.
    */
   onActionEventRouted?: (content: string) => void;
+
+  /**
+   * Called when the engine rejects a payload. surfaceId is empty when the
+   * error cannot be bound to any Surface. Code definitions: agenui_errorcode_define.h.
+   */
+  onError?: (code: number, surfaceId: string, message: string) => void;
 }
 
 /**

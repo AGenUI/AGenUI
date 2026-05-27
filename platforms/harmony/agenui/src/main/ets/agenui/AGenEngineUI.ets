@@ -53,6 +53,12 @@ export interface ISurfaceManagerListener {
    * @param event Event data as a JSON string
    */
   onReceiveActionEvent?: (event: string) => void;
+
+  /**
+   * Called when the engine rejects a payload. surface is null when the error
+   * cannot be bound to any Surface. Code definitions: agenui_errorcode_define.h.
+   */
+  onError?: (surface: Surface | null, code: number, message: string) => void;
 }
 
 // ==================== Component ====================
@@ -163,15 +169,18 @@ class NativeSurfaceListenerWrapper implements ISurfaceListener {
   onCreateSurface: (surfaceId: string, messageId: string, rawProtocolContent: string) => void;
   onDeleteSurface: (surfaceId: string) => void;
   onActionEventRouted?: (content: string) => void;
+  onError?: (code: number, surfaceId: string, message: string) => void;
 
   constructor(
     onCreate: (surfaceId: string, messageId: string, rawProtocolContent: string) => void,
     onDelete: (surfaceId: string) => void,
-    onAction?: (content: string) => void
+    onAction?: (content: string) => void,
+    onError?: (code: number, surfaceId: string, message: string) => void
   ) {
     this.onCreateSurface = onCreate;
     this.onDeleteSurface = onDelete;
     this.onActionEventRouted = onAction;
+    this.onError = onError;
   }
 }
 
@@ -260,6 +269,10 @@ export class SurfaceManager {
       },
       (event: string) => {
         this._listeners.forEach(l => l.onReceiveActionEvent?.(event));
+      },
+      (code: number, surfaceId: string, message: string) => {
+        const surface = surfaceId ? (this._surfaces.get(surfaceId) ?? null) : null;
+        this._listeners.forEach(l => l.onError?.(surface, code, message));
       }
     );
 
