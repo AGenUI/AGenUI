@@ -128,6 +128,22 @@ The following libraries are included under the Apache License, Version 2.0
     Copyright (c) 2017-2019 Dimitry Ivanov (noties)
 
 --------------------------------------------------------------------------------
+AGenUI Go Agent SDK
+--------------------------------------------------------------------------------
+
+  Copyright (c) 2026 AGenUI Contributors
+
+  The Go Agent SDK (agent_sdks/go/) and Go samples (samples/go/) were
+  originally authored by AGenUI Contributors and imported via git subtree
+  from the upstream google/A2UI repository. The source code carries the
+  Google LLC copyright header as required by the Google CLA, while the
+  original authorship and copyright are retained by AGenUI Contributors
+  under the Apache License, Version 2.0.
+
+  Upstream source: https://github.com/google/A2UI
+  License: Apache 2.0
+
+--------------------------------------------------------------------------------
 Disclaimer
 --------------------------------------------------------------------------------
 
