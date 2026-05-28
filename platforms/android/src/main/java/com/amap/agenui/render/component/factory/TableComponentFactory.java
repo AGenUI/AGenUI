@@ -2,9 +2,13 @@ package com.amap.agenui.render.component.factory;
 
 import android.content.Context;
 
+import androidx.annotation.Nullable;
+
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.IComponentFactory;
 import com.amap.agenui.render.component.impl.TableComponent;
+import com.amap.agenui.render.measurement.IMeasurer;
+import com.amap.agenui.render.measurement.TableMeasurer;
 
 import java.util.Map;
 
@@ -18,5 +22,11 @@ public class TableComponentFactory implements IComponentFactory {
     @Override
     public String getComponentType() {
         return "Table";
+    }
+
+    @Nullable
+    @Override
+    public IMeasurer getMeasurer() {
+        return TableMeasurer::measure;
     }
 }

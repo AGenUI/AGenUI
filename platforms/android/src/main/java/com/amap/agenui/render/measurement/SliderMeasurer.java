@@ -14,7 +14,7 @@ import java.util.Map;
  *
  * If both axes are explicitly fixed by style, Yoga may skip measure.
  */
-final class SliderMeasurer {
+public final class SliderMeasurer {
 
     private static final String COMPONENT_NAME = "Slider";
     private static final float CONTAINER_VERTICAL_PADDING_A2UI = 16f;
@@ -22,7 +22,7 @@ final class SliderMeasurer {
     private SliderMeasurer() {
     }
 
-    static MeasureResult measure(Context context,
+    public static MeasureResult measure(Context context,
                                  String paramJson,
                                  float maxWidth,
                                  int widthMode,

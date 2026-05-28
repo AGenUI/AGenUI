@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 // Third-party library headers
@@ -35,6 +36,19 @@ public:
     int getInstanceId() const override;
     std::string getSurfaceId() const override;
     IDataModel* getDataModel() const override;
+
+    /**
+     * @brief Return the cached surface width in vp, lazily fetching from
+     *        the host-supplied ISurfaceSizeProvider on first call when the
+     *        cache has never been initialized.
+     */
+    float getSurfaceWidth() override;
+
+    /**
+     * @brief Return the cached surface height in vp. Same lazy-fetch
+     *        semantics as getSurfaceWidth().
+     */
+    float getSurfaceHeight() override;
     
     // Component size update
     void updateComponentSize(const ComponentRenderInfo& info);
@@ -69,6 +83,15 @@ public:
 private:
     void flushPendingDispatches();
 
+    /**
+     * @brief Issue a one-shot bootstrap fetch of the surface size from the
+     *        host-supplied ISurfaceSizeProvider on the first call. Whatever
+     *        the provider returns (or absence thereof) is written verbatim
+     *        and never retried; subsequent real size changes only arrive
+     *        through the push channel (Surface::updateSurfaceSize).
+     */
+    void ensureSurfaceSizeFetched();
+
     std::string _surfaceId;
     std::string _theme;
     IDataModel* _dataModel;
@@ -77,14 +100,33 @@ private:
     SurfaceManager* _surfaceManager = nullptr;
     bool _isDestroying = false;
 
+    // Surface size (vp). Whatever the host supplies — via either an
+    // onSurfaceSizeChanged push (Surface::updateSurfaceSize) or a one-shot
+    // bootstrap pull from the ISurfaceSizeProvider — is written verbatim;
+    // neither path applies any positivity guard. _surfaceSizeFetched flips
+    // to true on the first push or the first pull attempt (regardless of
+    // result), so subsequent getSurfaceWidth()/getSurfaceHeight() calls
+    // short-circuit to the cached value. Real size changes after bootstrap
+    // arrive exclusively through the push channel.
+    float _surfaceWidth  = 0.0f;
+    float _surfaceHeight = 0.0f;
+    bool  _surfaceSizeFetched = false;
+
     // ---- Batched dispatch bookkeeping ----
     // _dispatchGuard: defers platform dispatch calls (onNodeUpdate/Add/Remove)
     //                 until the outermost batch window closes, so the platform
     //                 receives all changes in a single burst per operation type.
+    //
+    // _pendingDispatches preserves the original observer-callback order across
+    // all three message kinds. On flush we slice the queue into maximal runs
+    // of the same kind and dispatch each run via its typed listener call, so
+    // the platform sees changes in the exact order VirtualDOM emitted them
+    // while keeping the existing per-kind listener signatures intact.
     BatchGuard _dispatchGuard;
-    std::vector<ComponentsUpdateMessage> _pendingUpdates;
-    std::vector<ComponentsAddMessage> _pendingAdds;
-    std::vector<ComponentsRemoveMessage> _pendingRemoves;
+    using PendingDispatch = std::variant<ComponentsAddMessage,
+                                         ComponentsRemoveMessage,
+                                         ComponentsUpdateMessage>;
+    std::vector<PendingDispatch> _pendingDispatches;
 };
 
 }  // namespace agenui

@@ -370,9 +370,6 @@ static napi_value Start(napi_env env, napi_callback_info info) {
         NAPI_RETURN_UNDEFINED(env);
     }
 
-    // Configure the device service (global singleton)
-    engine->setPlatformLayoutBridge(new a2ui::A2UIPlatformLayoutBridge());
-    
     // Initialize runtime logger
     if (a2ui::gRuntimeLoggerImpl == nullptr) {
         // Get the ArkTS logger object from the first argument
@@ -529,6 +526,7 @@ static napi_value CreateSurfaceManager(napi_env env, napi_callback_info info) {
     }
 
     int instanceId = sm->getInstanceId();
+    sm->setSurfaceSizeProvider(a2ui::getSharedSurfaceSizeProvider());
 
     // Must allocate via make_shared so enable_shared_from_this works in the
     // listener's worker-thread callbacks. Engine still receives a raw pointer.

@@ -17,18 +17,18 @@ import org.json.JSONObject;
  * A registered Image measurer does not mean every Image story will hit this code path. If Yoga
  * already knows the final width and height from style + parent constraints, it can skip measure.
  */
-final class ImageMeasurer {
+public final class ImageMeasurer {
 
     private static final int MODE_EXACTLY = 1;
 
     private ImageMeasurer() {
     }
 
-    static MeasureResult measure(String paramJson,
-                                 float maxWidth,
-                                 int widthMode,
-                                 float maxHeight,
-                                 int heightMode) {
+    public static MeasureResult measure(String paramJson,
+                                        float maxWidth,
+                                        int widthMode,
+                                        float maxHeight,
+                                        int heightMode) {
         // Fast path: if Yoga already provided exact constraints, avoid JSON parsing entirely.
         MeasureResult exactResult = resolveSyncResult(
                 null,

@@ -10,6 +10,7 @@
  */
 
 #include "surface/yoga_node/agenui_layout_data_wrapper.h"
+#include "surface/yoga_node/agenui_yoga_value.h"
 #include "surface/virtual_dom/agenui_component_snapshot.h"
 
 #include <memory>
@@ -28,35 +29,27 @@ public:
     ComponentSnapshotWrapper(const ComponentSnapshotWrapper&) = delete;
     ComponentSnapshotWrapper& operator=(const ComponentSnapshotWrapper&) = delete;
 
-    /** Direct access for legacy code paths during the migration. */
-    const ComponentSnapshot& raw() const { return *_snapshot; }
-    ComponentSnapshot& mutableRaw() { return *_snapshot; }
-    std::shared_ptr<ComponentSnapshot> sharedRaw() const { return _snapshot; }
+    /**
+     * @brief Get style value as YogaValue (for converters).
+     * @return YogaValue representing the style value, or YogaValue() if key doesn't exist.
+     */
+    YogaValue getStyleValue(const std::string& key) const override;
+
+    /**
+     * @brief Get attribute value as YogaValue (for converters).
+     * @return YogaValue representing the attribute value, or YogaValue() if key doesn't exist.
+     */
+    YogaValue getAttributeValue(const std::string& key) const override;
 
     // ---------------- ILayoutDataWrapper ----------------
 
     const std::string& nodeId() const override;
-    const std::string& rawId() const override;
     const std::string& componentType() const override;
 
     const std::vector<std::string>& childIds() const override;
-    bool appendMode() const override;
-
-    bool hasStyle(const std::string& key) const override;
-    bool hasAttribute(const std::string& key) const override;
 
     std::string styleAsString(const std::string& key,
                               const std::string& def = std::string()) const override;
-    double styleAsNumber(const std::string& key, double def = 0.0) const override;
-    bool styleAsBool(const std::string& key, bool def = false) const override;
-
-    std::string attributeAsString(const std::string& key,
-                                  const std::string& def = std::string()) const override;
-    double attributeAsNumber(const std::string& key, double def = 0.0) const override;
-    bool attributeAsBool(const std::string& key, bool def = false) const override;
-
-    void forEachStyle(ILayoutValueVisitor& visitor) const override;
-    void forEachAttribute(ILayoutValueVisitor& visitor) const override;
 
     void clearStyle(const std::string& key) override;
     void clearAttribute(const std::string& key) override;

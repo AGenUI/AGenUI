@@ -51,7 +51,18 @@ void YogaNodeManager::removeNode(const std::string& nodeId) {
             node->_hasOwner = false;
         }
 
-        // Detach all children BEFORE erase triggers ~YogaNode
+        // Detach all children BEFORE erase triggers ~YogaNode.
+        // YGNodeRemoveAllChildren clears each child's owner_ on the Yoga side,
+        // but the wrapper-side `_hasOwner` flag would otherwise stay stale.
+        // Walk the manager's pool and reset `_hasOwner` for any sibling whose
+        // current Yoga owner is this node, keeping the two views in sync.
+        for (auto& kv : _nodes) {
+            YogaNode* sib = kv.second.get();
+            if (sib && sib != node && sib->get() &&
+                YGNodeGetOwner(sib->get()) == ygNode) {
+                sib->_hasOwner = false;
+            }
+        }
         YGNodeRemoveAllChildren(ygNode);
     }
 

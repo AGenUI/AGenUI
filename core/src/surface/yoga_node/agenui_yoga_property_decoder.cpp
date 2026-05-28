@@ -6,7 +6,7 @@
 
 namespace agenui {
 
-// Hard constraint #2: the cast lives in the concrete decoder that pairs with
+// Phase A Hard Rule 2: the cast lives in the concrete decoder that pairs with
 // ComponentSnapshotWrapper. The base ILayoutDataWrapper interface stays
 // free of asXxx hooks; SDK consumers providing their own wrapper subclass
 // pair it with their own decoder subclass and do their own cast in their
@@ -22,8 +22,8 @@ void BuiltinYogaPropertyDecoder::apply(ILayoutDataWrapper& wrapper,
                                        bool clearAfterDecode) {
     if (!node) return;
     auto& concrete = static_cast<ComponentSnapshotWrapper&>(wrapper);
-    CSSStyleConverter::convertToYoga(concrete.mutableRaw(), node, clearAfterDecode);
-    A2UIAttributeConverter::convertToYoga(concrete.mutableRaw(), node, clearAfterDecode);
+    CSSStyleConverter::convertToYoga(concrete, node, clearAfterDecode);
+    A2UIAttributeConverter::convertToYoga(concrete, node, clearAfterDecode);
 }
 
 }  // namespace agenui

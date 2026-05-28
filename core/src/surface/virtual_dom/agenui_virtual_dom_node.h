@@ -82,6 +82,13 @@ public:
     const ComponentSnapshot* getSnapshot() const { return _snapshot.get(); }
 
     /**
+     * @brief Get the snapshot as a shared_ptr (for callers that need to share
+     *        ownership, e.g. constructing a ComponentSnapshotWrapper).
+     * @return Shared pointer to the snapshot; may be empty if no snapshot exists.
+     */
+    const std::shared_ptr<ComponentSnapshot>& getSnapshotShared() const { return _snapshot; }
+
+    /**
      * @brief Get the parent node pointer (non-owning)
      */
     const VirtualDOMNode* getParent() const { return _parent; }

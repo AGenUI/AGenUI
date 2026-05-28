@@ -151,11 +151,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     // MARK: - Sandbox Log Management
     
-    /// Clear the agenui_log directory in sandbox
+    /// Clear the agenui_log directory in the sandbox
     private func clearSandboxLogs() {
         let fileManager = FileManager.default
         
-        // Get Documents directory
+        // Get the Documents directory
         guard let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             print("⚠️ [SandboxLog] Failed to get Documents directory")
             return
@@ -163,7 +163,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         let agenuiLogPath = documentsPath.appendingPathComponent("agenui_log")
         
-        // Check if directory exists
+        // Check whether the directory exists
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: agenuiLogPath.path, isDirectory: &isDir), isDir.boolValue else {
             print("ℹ️ [SandboxLog] agenui_log directory does not exist, no need to clear")
@@ -171,7 +171,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
         
         do {
-            // List all files and subdirectories
+            // Get all files and subdirectories under the directory
             let contents = try fileManager.contentsOfDirectory(atPath: agenuiLogPath.path)
             
             var deletedCount = 0

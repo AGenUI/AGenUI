@@ -450,12 +450,6 @@ class AudioPlayerComponent: Component {
         }        
     }
 
-    
-    override func destroy() {
-        cleanup()
-        super.destroy()
-    }
-    
     // MARK: - Private Methods
     
     private func loadLocalStyleConfig() {

@@ -54,6 +54,18 @@ import UIKit
     ///   - surface: The detected Surface
     ///   - isBlank: true means determined as blank
     @objc optional func onBlankCheckResult(_ surface: Surface, isBlank: Bool)
+
+    /// Synchronously return the current size (in points) of the surface identified by `surfaceId`.
+    ///
+    /// - Parameter surfaceId: Surface identifier assigned by the engine.
+    /// - Returns: Current surface size in points (pt). Return `.zero` if not measurable yet.
+    ///
+    /// - Important: This method may be invoked **synchronously on a non-main engine worker
+    ///   thread**. Implementers must ensure the returned value can be produced in a
+    ///   thread-safe manner and must not perform blocking work on the main thread from here.
+    ///   If multiple listeners are registered, the first listener that returns a positive
+    ///   size wins; others are not consulted.
+    @objc optional func surfaceSize(for surfaceId: String) -> CGSize
 }
 
 /// AGenUI Surface Manager
@@ -75,6 +87,16 @@ import UIKit
 
     /// Listener container (weak references)
     private let listeners = NSHashTable<SurfaceManagerListener>.weakObjects()
+
+    /// Guards `listeners` against concurrent access. The C++ engine may invoke
+    /// the surface-size provider block on a worker thread while the host calls
+    /// `addListener` / `removeListener` from the main thread; without this lock,
+    /// `NSHashTable.weakObjects()` can crash during concurrent enumeration and
+    /// weak-zeroing. All add/remove paths acquire the lock for writes; the
+    /// provider block snapshots the listeners under the lock and releases it
+    /// before invoking listener callbacks (to avoid re-entrant deadlock when
+    /// a listener calls back into add/removeListener).
+    private let listenersLock = NSLock()
 
     // MARK: - Initialization
     
@@ -104,6 +126,19 @@ import UIKit
                 widthMode: Int(widthMode),
                 maxHeight: maxHeight,
                 heightMode: Int(heightMode))
+        }
+
+        surfaceBridge.surfaceSizeProviderBlock = { [weak self] surfaceId -> CGSize in
+            guard let self = self else { return .zero }
+
+            // Iterate a locked snapshot of listeners; see `snapshotListeners()`
+            // for the concurrency rationale.
+            for listener in self.snapshotListeners() {
+                if let size = listener.surfaceSize?(for: surfaceId) {
+                    return size
+                }
+            }
+            return .zero
         }
     }
     
@@ -170,7 +205,7 @@ import UIKit
     
     // MARK: - Notification Handlers
     
-    @objc private func handleCreateSurfaceNotification(_ notification: Notification) {
+    @MainActor @objc private func handleCreateSurfaceNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let surfaceId = userInfo["surfaceId"] as? String,
               let catalogId = userInfo["catalogId"] as? String,
@@ -191,7 +226,7 @@ import UIKit
                        rawProtocolContent: rawProtocolContent)
     }
     
-    @objc private func handleComponentsUpdateNotification(_ notification: Notification) {
+    @MainActor @objc private func handleComponentsUpdateNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let surfaceId = userInfo["surfaceId"] as? String,
               let messages = userInfo["componentsUpdate"] as? [[String: String]] else {
@@ -202,7 +237,7 @@ import UIKit
         onComponentsUpdate(withSurfaceId: surfaceId, messages: messages)
     }
     
-    @objc private func handleComponentsAddNotification(_ notification: Notification) {
+    @MainActor @objc private func handleComponentsAddNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let surfaceId = userInfo["surfaceId"] as? String,
               let messages = userInfo["componentsAdd"] as? [[String: String]] else {
@@ -213,7 +248,7 @@ import UIKit
         onComponentsAdd(withSurfaceId: surfaceId, messages: messages)
     }
     
-    @objc private func handleComponentsRemoveNotification(_ notification: Notification) {
+    @MainActor @objc private func handleComponentsRemoveNotification(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let surfaceId = userInfo["surfaceId"] as? String,
               let messages = userInfo["componentsRemove"] as? [[String: String]] else {
@@ -241,7 +276,7 @@ import UIKit
             return
         }
         
-        for listener in listeners.allObjects.compactMap({ $0 }) {
+        for listener in snapshotListeners() {
             listener.onReceiveActionEvent?(context)
         }
     }
@@ -259,7 +294,7 @@ import UIKit
         // Look up the related Surface; nil if not associated to any specific Surface
         let surface: Surface? = surfaceId.isEmpty ? nil : surfaces[surfaceId]
         
-        for listener in listeners.allObjects.compactMap({ $0 }) {
+        for listener in snapshotListeners() {
             listener.onError?(surface, code: code, message: message)
         }
     }
@@ -270,19 +305,37 @@ import UIKit
     ///
     /// - Parameter listener: Object implementing SurfaceManagerListener protocol
     @objc public func addListener(_ listener: SurfaceManagerListener) {
+        listenersLock.lock()
         listeners.add(listener)
+        listenersLock.unlock()
     }
     
     /// Remove Surface lifecycle listener
     ///
     /// - Parameter listener: Listener object to remove
     @objc public func removeListener(_ listener: SurfaceManagerListener) {
+        listenersLock.lock()
         listeners.remove(listener)
+        listenersLock.unlock()
     }
     
     /// Remove all listeners
     @objc public func removeAllListeners() {
+        listenersLock.lock()
         listeners.removeAllObjects()
+        listenersLock.unlock()
+    }
+
+    /// Returns a non-mutable snapshot of registered listeners taken under the lock.
+    /// Always iterate this snapshot (released-from-lock) instead of touching
+    /// `listeners` directly, so listener callbacks may freely call back into
+    /// `addListener` / `removeListener` without re-entrant deadlock, and concurrent
+    /// add/remove on another thread cannot corrupt enumeration or weak-zeroing.
+    private func snapshotListeners() -> [SurfaceManagerListener] {
+        listenersLock.lock()
+        let snapshot = listeners.allObjects.compactMap { $0 }
+        listenersLock.unlock()
+        return snapshot
     }
 
     /// Returns the native instance id assigned by the engine on creation.
@@ -306,13 +359,6 @@ import UIKit
     @objc public func endTextStream() {
         Logger.shared.debug("endTextStream")
         surfaceBridge.endTextStream()
-    }
-
-    @objc public func presetSurfaceSize(surfaceId: String, width: CGFloat, height: CGFloat) {
-        guard !surfaceId.isEmpty else { return }
-        let widthCXX  = (width.isFinite  && width  > 0) ? Float(width)  : 0.0
-        let heightCXX = (height.isFinite && height > 0) ? Float(height) : 0.0
-        surfaceBridge.notifySurfaceSizeChanged(surfaceId, width: widthCXX, height: heightCXX)
     }
 
     /// Receive text chunk from external source
@@ -452,13 +498,13 @@ import UIKit
         Logger.shared.info("Surface created: \(surfaceId), width: \(surface.width), height: \(surface.height)")
 
         // Notify all listeners
-        for listener in listeners.allObjects.compactMap({ $0 }) {
+        for listener in snapshotListeners() {
             listener.onCreateSurface?(surface)
         }
     }
     
     /// Components update handler (internal)
-    func onComponentsUpdate(withSurfaceId surfaceId: String, messages: [[String: String]]) {
+    @MainActor func onComponentsUpdate(withSurfaceId surfaceId: String, messages: [[String: String]]) {
         Logger.shared.info("Surface components update: \(surfaceId), messages count: \(messages.count)")
         
         guard let surface = surfaces[surfaceId] else {
@@ -470,7 +516,7 @@ import UIKit
     }
     
     /// Components add handler (internal)
-    func onComponentsAdd(withSurfaceId surfaceId: String, messages: [[String: String]]) {
+    @MainActor func onComponentsAdd(withSurfaceId surfaceId: String, messages: [[String: String]]) {
         Logger.shared.info("Surface components add: \(surfaceId), messages count: \(messages.count)")
         
         guard let surface = surfaces[surfaceId] else {
@@ -482,7 +528,7 @@ import UIKit
     }
     
     /// Components remove handler (internal)
-    func onComponentsRemove(withSurfaceId surfaceId: String, messages: [[String: String]]) {
+    @MainActor func onComponentsRemove(withSurfaceId surfaceId: String, messages: [[String: String]]) {
         Logger.shared.info("Surface components remove: \(surfaceId), messages count: \(messages.count)")
         
         guard let surface = surfaces[surfaceId] else {
@@ -495,14 +541,14 @@ import UIKit
     
     /// Notify listeners that root component properties were updated (internal)
     func notifyRootComponentUpdate(surface: Surface, props: [String: Any]) {
-        for listener in listeners.allObjects.compactMap({ $0 }) {
+        for listener in snapshotListeners() {
             listener.onRootComponentUpdate?(surface, props: props)
         }
     }
     
     /// Notify listeners about a blank-check result (internal)
     func notifyBlankCheckResult(surface: Surface, isBlank: Bool) {
-        for listener in listeners.allObjects.compactMap({ $0 }) {
+        for listener in snapshotListeners() {
             listener.onBlankCheckResult?(surface, isBlank: isBlank)
         }
     }
@@ -518,9 +564,11 @@ import UIKit
         }
 
         // Notify all listeners
-        for listener in listeners.allObjects.compactMap({ $0 }) {
+        for listener in snapshotListeners() {
             listener.onDeleteSurface?(surface)
         }
+        
+        surface.onLayoutChanged = nil
 
         Logger.shared.info("Surface destroyed: \(surfaceId)")
     }

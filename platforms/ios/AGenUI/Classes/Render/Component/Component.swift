@@ -107,7 +107,7 @@ public enum MeasureMode: Int {
     /// Uses relative position insertion to ensure child view order matches properties["children"].
     ///
     /// - Parameter child: Child component
-    open func addChild(_ child: Component) {
+    @MainActor open func addChild(_ child: Component) {
         // Avoid duplicate addition
         if children.contains(where: { $0.componentId == child.componentId }) {
             return
@@ -145,7 +145,7 @@ public enum MeasureMode: Int {
     /// Remove a child component
     ///
     /// - Parameter child: Child component
-    open func removeChild(_ child: Component) {
+    @MainActor open func removeChild(_ child: Component) {
         // Remove from view hierarchy
         child.removeFromSuperview()
         
@@ -162,7 +162,7 @@ public enum MeasureMode: Int {
     /// - Parameters:
     ///   - child: Child component
     ///   - index: Insertion position
-    open func insertChild(_ child: Component, at index: Int) {
+    @MainActor open func insertChild(_ child: Component, at index: Int) {
         guard index >= 0 && index <= children.count else { return }
         
         // Avoid duplicate addition
@@ -182,7 +182,7 @@ public enum MeasureMode: Int {
     ///
     /// - Parameter componentId: Component ID
     /// - Returns: Child component instance, or nil if not found
-    public func getChild(_ componentId: String) -> Component? {
+    @MainActor public func getChild(_ componentId: String) -> Component? {
         return children.first { $0.componentId == componentId }
     }
     
@@ -190,7 +190,7 @@ public enum MeasureMode: Int {
     ///
     /// - Parameter componentId: Component ID
     /// - Returns: Child component instance, or nil if not found
-    public func findChild(_ componentId: String) -> Component? {
+    @MainActor public func findChild(_ componentId: String) -> Component? {
         // First search direct children
         if let child = getChild(componentId) {
             return child
@@ -214,7 +214,7 @@ public enum MeasureMode: Int {
     /// Default: extracts from properties["children"].
     ///
     /// - Returns: Child component ID array
-    open func getChildrenIdsFromProperties() -> [String] {
+    @MainActor open func getChildrenIdsFromProperties() -> [String] {
         return properties["children"] as? [String] ?? []
     }
     
@@ -225,11 +225,11 @@ public enum MeasureMode: Int {
     /// Subclasses should override this method to handle specific properties.
     ///
     /// - Parameter properties: New properties dictionary
-    open func updateProperties(_ properties: [String: Any]) {
+    @MainActor open func updateProperties(_ properties: [String: Any]) {
         var allProperties = properties
         
         // 1. Extract and merge styles field
-        if let styles = properties["styles"] as? [String: Any] {
+        if let styles = allProperties["styles"] as? [String: Any] {
             // 1a. Apply layout position and size from Engine-computed values (x, y, width, height)
             applyLayoutFromStyles(styles)
             
@@ -245,19 +245,19 @@ public enum MeasureMode: Int {
         CSSPropertyApplier.apply(properties: allProperties, to: self)
         
         // 5. Extract and process action
-        if let action = properties["action"] as? [String: Any] {
+        if let action = allProperties["action"] as? [String: Any] {
             self.actionDef = action
             addTapGesture()
-        } else if properties["action"] == nil {
+        } else if allProperties["action"] == nil {
             // Only remove when explicitly passed nil
         }
         
         #if DEBUG
-        accessibilityHint = properties.description
+        accessibilityHint = allProperties.description
         #endif
         
         // 6. Notify properties update callback
-        onPropertiesUpdate?(properties)
+        onPropertiesUpdate?(allProperties)
     }
     
     // MARK: - Visual Style Hooks
@@ -269,7 +269,7 @@ public enum MeasureMode: Int {
     /// The base implementation sets self.layer.cornerRadius only.
     ///
     /// - Parameter radius: Corner radius in points
-    open func setBorderRadius(_ radius: CGFloat) {
+    @MainActor open func setBorderRadius(_ radius: CGFloat) {
         layer.cornerRadius = radius
     }
     
@@ -351,27 +351,7 @@ public enum MeasureMode: Int {
             height: heightA2ui
         )
     }
-    
-    // MARK: - Lifecycle
-    
-    /// Destroy component
-    ///
-    /// Recursively destroys all child components and removes from parent view
-    open func destroy() {
-        // Recursively destroy children
-        for child in children {
-            child.destroy()
-        }
-        children.removeAll()
-        
-        // Clear relationships
-        parent = nil
-        surface = nil
-        
-        // Remove from parent view
-        removeFromSuperview()
-    }
-    
+
     // MARK: - Gesture Handling
     
     /// Add tap gesture
@@ -467,4 +447,6 @@ public enum MeasureMode: Int {
         if let str = value as? String { return Int(str) ?? defaultValue }
         return defaultValue
     }
+
+
 }

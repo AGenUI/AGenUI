@@ -27,6 +27,17 @@
  *   safety of that cast. Adding any `asXxx()` hook here breaks the
  *   "zero business-type leak" contract for SDK consumers.
  *
+ * @par Lifetime requirement: shared_ptr ownership is mandatory
+ *   ILayoutDataWrapper inherits std::enable_shared_from_this so that the
+ *   layout engine can capture a `weak_from_this()` inside Yoga measure
+ *   callbacks (which may fire on the layout thread after the wrapper has
+ *   been replaced). SDK consumers MUST own every wrapper instance via
+ *   std::shared_ptr (e.g. std::make_shared<MyWrapper>(...)) before passing
+ *   it into the engine. Holding a wrapper through a raw pointer or a
+ *   stack value violates weak_from_this()'s preconditions and silently
+ *   produces empty weak refs (measure callbacks will fall back to
+ *   YGUndefined sizing).
+ *
  * @par SDK consumers
  *   Include via:
  *       \#include "surface/yoga_node/agenui_layout_data_wrapper.h"
@@ -39,31 +50,12 @@
 #include <vector>
 #include <functional>
 
+#include "surface/yoga_node/agenui_yoga_value.h"
+
 namespace agenui {
 
-// Hard constraint #1: NO forward declaration of any concrete subclass here.
+// Phase A Hard Rule 1: NO forward declaration of any concrete subclass here.
 // The base interface must be free of concrete-type knowledge.
-
-/**
- * @brief A read-only style/attribute value visitor.
- *
- * The decoder iterates style/attribute keys via @ref forEachStyle and
- * @ref forEachAttribute and reads each value through the visitor.
- * Returning false from the visitor stops iteration early.
- */
-class ILayoutValueVisitor {
-public:
-    virtual ~ILayoutValueVisitor() = default;
-
-    /** Called when a value is a string. */
-    virtual bool onString(const std::string& key, const std::string& value) = 0;
-    /** Called when a value is a number (double). */
-    virtual bool onNumber(const std::string& key, double value) = 0;
-    /** Called when a value is a boolean. */
-    virtual bool onBool(const std::string& key, bool value) = 0;
-    /** Called when a value is null / unsupported. */
-    virtual bool onNull(const std::string& key) = 0;
-};
 
 /**
  * @brief Layout data wrapper interface.
@@ -81,31 +73,28 @@ public:
     // ---------------- identification ----------------
 
     virtual const std::string& nodeId() const = 0;
-    virtual const std::string& rawId() const = 0;
     virtual const std::string& componentType() const = 0;
 
     // ---------------- structure ----------------
 
     virtual const std::vector<std::string>& childIds() const = 0;
-    virtual bool appendMode() const = 0;
 
     // ---------------- style / attribute access ----------------
 
-    virtual bool hasStyle(const std::string& key) const = 0;
-    virtual bool hasAttribute(const std::string& key) const = 0;
-
     virtual std::string styleAsString(const std::string& key,
                                       const std::string& def = std::string()) const = 0;
-    virtual double styleAsNumber(const std::string& key, double def = 0.0) const = 0;
-    virtual bool styleAsBool(const std::string& key, bool def = false) const = 0;
 
-    virtual std::string attributeAsString(const std::string& key,
-                                          const std::string& def = std::string()) const = 0;
-    virtual double attributeAsNumber(const std::string& key, double def = 0.0) const = 0;
-    virtual bool attributeAsBool(const std::string& key, bool def = false) const = 0;
+    /**
+     * @brief Get style value as YogaValue.
+     * @return YogaValue (kFloat / kBool / kString) for valid values; YogaValue() (kNone) otherwise.
+     */
+    virtual YogaValue getStyleValue(const std::string& key) const = 0;
 
-    virtual void forEachStyle(ILayoutValueVisitor& visitor) const = 0;
-    virtual void forEachAttribute(ILayoutValueVisitor& visitor) const = 0;
+    /**
+     * @brief Get attribute value as YogaValue.
+     * @return YogaValue (kFloat / kBool / kString) for valid values; YogaValue() (kNone) otherwise.
+     */
+    virtual YogaValue getAttributeValue(const std::string& key) const = 0;
 
     virtual void clearStyle(const std::string& key) = 0;
     virtual void clearAttribute(const std::string& key) = 0;
@@ -127,7 +116,7 @@ public:
 
     // NOTE: previously this interface exposed `asComponentSnapshotWrapper()`
     // as a manual-RTTI hook so engine/decoders could downcast. That violated
-    // hard constraint #1 (base interface MUST NOT know any concrete subclass).
+    // Phase A Hard Rule 1 (base interface MUST NOT know any concrete subclass).
     // The hook has been removed; concrete decoders/engines that pair with a
     // specific wrapper subclass perform their own static_cast inside their
     // implementation files. See `core/src/surface/yoga_node/README.md`.

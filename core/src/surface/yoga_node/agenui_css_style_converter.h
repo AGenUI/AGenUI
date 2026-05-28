@@ -1,5 +1,6 @@
 #pragma once
 
+#include "surface/yoga_node/agenui_yoga_value.h"
 #include "surface/virtual_dom/agenui_component_snapshot.h"
 #include <string>
 
@@ -7,6 +8,9 @@
 #include "nlohmann/json.hpp"
 
 namespace agenui {
+
+class ComponentSnapshotWrapper;
+class ILayoutDataWrapper;
 
 // CSS property name static mapping (W3C standard naming)
 namespace CSSPropertyNames {
@@ -125,15 +129,15 @@ public:
      * @brief Convert CSS styles to Yoga layout properties
      * @param snapshot Component snapshot (input source)
      * @param yogaNode Yoga layout node (output target)
-     * @param clearAfterConvert Whether to clear CSS styles from snapshot after conversion, default false
+     * @param clearAfterConvert Whether to clear CSS styles from snapshot after conversion, default true
      * @remark Processes CSS style properties in the styles field
      */
-    static void convertToYoga(ComponentSnapshot& snapshot, YGNodeRef yogaNode, bool clearAfterConvert = false);
+    static void convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yogaNode, bool clearAfterConvert = true);
     
     static bool isRichText(const std::string& text);
 
 public:    
-    static void applyCellPadding(YGNodeRef yogaNode, ComponentSnapshot& snapshot);
+    static void applyCellPadding(YGNodeRef yogaNode, ILayoutDataWrapper& wrapper);
     
     /**
      * @brief Parse style dimension value
@@ -148,73 +152,73 @@ public:
     // CSS-specific apply functions (handle CSS standard value formats)
 
     // Size properties
-    static void applyWidth(YGNodeRef yogaNode, const SerializableData& value, bool hasMeasureFunc);
-    static void applyHeight(YGNodeRef yogaNode, const SerializableData& value, bool hasMeasureFunc);
-    static void applyMinWidth(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMaxWidth(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMinHeight(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMaxHeight(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyWidth(YGNodeRef yogaNode, YogaValue value, bool hasMeasureFunc);
+    static void applyHeight(YGNodeRef yogaNode, YogaValue value, bool hasMeasureFunc);
+    static void applyMinWidth(YGNodeRef yogaNode, YogaValue value);
+    static void applyMaxWidth(YGNodeRef yogaNode, YogaValue value);
+    static void applyMinHeight(YGNodeRef yogaNode, YogaValue value);
+    static void applyMaxHeight(YGNodeRef yogaNode, YogaValue value);
     
     // Flexbox layout properties
-    static void applyFlexDirection(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyFlexWrap(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyJustifyContent(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyAlignItems(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyAlignSelf(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyAlignContent(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyFlex(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyFlexGrow(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyFlexShrink(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyFlexBasis(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyFlexDirection(YGNodeRef yogaNode, YogaValue value);
+    static void applyFlexWrap(YGNodeRef yogaNode, YogaValue value);
+    static void applyJustifyContent(YGNodeRef yogaNode, YogaValue value);
+    static void applyAlignItems(YGNodeRef yogaNode, YogaValue value);
+    static void applyAlignSelf(YGNodeRef yogaNode, YogaValue value);
+    static void applyAlignContent(YGNodeRef yogaNode, YogaValue value);
+    static void applyFlex(YGNodeRef yogaNode, YogaValue value);
+    static void applyFlexGrow(YGNodeRef yogaNode, YogaValue value);
+    static void applyFlexShrink(YGNodeRef yogaNode, YogaValue value);
+    static void applyFlexBasis(YGNodeRef yogaNode, YogaValue value);
     
     // Spacing properties
-    static void applyPadding(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyPaddingLeft(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyPaddingRight(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyPaddingTop(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyPaddingBottom(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMargin(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMarginLeft(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMarginRight(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMarginTop(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMarginBottom(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyBorder(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyBorderWidth(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyGap(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyPadding(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingLeft(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingRight(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingTop(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingBottom(YGNodeRef yogaNode, YogaValue value);
+    static void applyMargin(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginLeft(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginRight(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginTop(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginBottom(YGNodeRef yogaNode, YogaValue value);
+    static void applyBorder(YGNodeRef yogaNode, YogaValue value);
+    static void applyBorderWidth(YGNodeRef yogaNode, YogaValue value);
+    static void applyGap(YGNodeRef yogaNode, YogaValue value);
     
     // Positioning properties
-    static void applyPosition(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyTop(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyRight(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyBottom(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyLeft(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyPosition(YGNodeRef yogaNode, YogaValue value);
+    static void applyTop(YGNodeRef yogaNode, YogaValue value);
+    static void applyRight(YGNodeRef yogaNode, YogaValue value);
+    static void applyBottom(YGNodeRef yogaNode, YogaValue value);
+    static void applyLeft(YGNodeRef yogaNode, YogaValue value);
     
     // Display and overflow properties
-    static void applyDisplay(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyOverflow(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyDirection(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyDisplay(YGNodeRef yogaNode, YogaValue value);
+    static void applyOverflow(YGNodeRef yogaNode, YogaValue value);
+    static void applyDirection(YGNodeRef yogaNode, YogaValue value);
     
     // Other properties
-    static void applyAspectRatio(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyAspectRatio(YGNodeRef yogaNode, YogaValue value);
     
     // CSS Logical Properties
     // Inset logical properties
-    static void applyInsetInlineStart(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyInsetInlineEnd(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyInsetBlockStart(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyInsetBlockEnd(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyInsetInlineStart(YGNodeRef yogaNode, YogaValue value);
+    static void applyInsetInlineEnd(YGNodeRef yogaNode, YogaValue value);
+    static void applyInsetBlockStart(YGNodeRef yogaNode, YogaValue value);
+    static void applyInsetBlockEnd(YGNodeRef yogaNode, YogaValue value);
     
     // Margin logical properties
-    static void applyMarginInlineStart(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMarginInlineEnd(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMarginBlockStart(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyMarginBlockEnd(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyMarginInlineStart(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginInlineEnd(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginBlockStart(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginBlockEnd(YGNodeRef yogaNode, YogaValue value);
     
     // Padding logical properties
-    static void applyPaddingInlineStart(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyPaddingInlineEnd(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyPaddingBlockStart(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyPaddingBlockEnd(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyPaddingInlineStart(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingInlineEnd(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingBlockStart(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingBlockEnd(YGNodeRef yogaNode, YogaValue value);
 };
 
 }  // namespace agenui

@@ -1,11 +1,19 @@
 #pragma once
 
-#include "surface/virtual_dom/agenui_component_snapshot.h"
+#include "surface/yoga_node/agenui_yoga_value.h"
 #include <string>
 
-#include <yoga/Yoga.h>
+// Forward declaration of YGNodeRef (defined in <yoga/Yoga.h>).
+// Implementation files must include <yoga/Yoga.h> directly so that the
+// public surface of this header does not pull the full Yoga API into
+// every translation unit that just needs to know about the converter.
+struct YGNode;
+typedef struct YGNode* YGNodeRef;
 
 namespace agenui {
+
+class ComponentSnapshotWrapper;
+class ILayoutDataWrapper;
 
 // A2UI property name static mapping (A2UI spec naming)
 namespace A2UIPropertyNames {
@@ -58,17 +66,17 @@ public:
      * @brief Convert A2UI attributes to Yoga layout properties
      * @param snapshot Component snapshot (input source)
      * @param yogaNode Yoga layout node (output target)
-     * @param clearAfterConvert Whether to clear A2UI attributes from snapshot after conversion, default false
+     * @param clearAfterConvert Whether to clear A2UI attributes from snapshot after conversion, default true
      * @remark Processes A2UI-specific attributes in the attributes field (direction, justify, align, weight)
      */
-    static void convertToYoga(ComponentSnapshot& snapshot, YGNodeRef yogaNode, bool clearAfterConvert = false);
+    static void convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yogaNode, bool clearAfterConvert = true);
 
 private:
     // A2UI-specific apply functions (handle A2UI value format + component type checks)
-    static void applyFlexDirection(YGNodeRef yogaNode, const SerializableData& value, ComponentSnapshot& snapshot);
-    static void applyJustifyContent(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyAlignItems(YGNodeRef yogaNode, const SerializableData& value);
-    static void applyFlexGrow(YGNodeRef yogaNode, const SerializableData& value);
+    static void applyFlexDirection(YGNodeRef yogaNode, YogaValue value, ILayoutDataWrapper& wrapper);
+    static void applyJustifyContent(YGNodeRef yogaNode, YogaValue value);
+    static void applyAlignItems(YGNodeRef yogaNode, YogaValue value);
+    static void applyFlexGrow(YGNodeRef yogaNode, YogaValue value);
 };
 
 }  // namespace agenui

@@ -1,9 +1,13 @@
 #include "jni_scoped_local_ref.h"
 #include <jni.h>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
 #include "jni_scoped_utf_chars.h"
 #include "agenui_engine_entry.h"
 #include "agenui_dispatcher_types.h"
 #include "jni_message_listener_bridge.h"
+#include "jni_surface_size_provider_bridge.h"
 #include "agenui_type_define.h"
 #include "agenui_logger_internal.h"
 #include "agenui_message_listener.h"
@@ -11,6 +15,19 @@
 #include "module/agenui_surface_manager.h"
 
 namespace agenui {
+
+namespace {
+
+// Owns the JNISurfaceSizeProviderBridge instance for each registered
+// SurfaceManager. The C++ ISurfaceManager only holds a non-owning pointer to
+// the bridge, so somewhere on the C++ side has to keep the bridge alive while
+// the engine may still query it. Keyed by Java SurfaceManager.instanceId so
+// register/clear are idempotent and double-clear is safe.
+std::mutex sSurfaceSizeProviderBridgeMapMutex;
+std::unordered_map<int, std::unique_ptr<JNISurfaceSizeProviderBridge>>
+        sSurfaceSizeProviderBridgeMap;
+
+}  // namespace
 
 static ISurfaceManager* findSurfaceManagerByInstanceId(jint instanceId) {
     IAGenUIEngine* engine = getAGenUIEngine();
@@ -218,6 +235,48 @@ static void jni_invalidateFunctionCallValues(JNIEnv* env, jclass clazz, jint ins
     surfaceManager->invalidateFunctionCallValues();
 }
 
+static void jni_setSurfaceSizeProvider(JNIEnv* env, jclass clazz, jint instanceId,
+                                       jobject javaSurfaceManager) {
+    AGENUI_LOG("[JNI] setSurfaceSizeProvider: instanceId=%d", instanceId);
+    if (javaSurfaceManager == nullptr) {
+        AGENUI_LOG("[JNI] setSurfaceSizeProvider: javaSurfaceManager is null");
+        return;
+    }
+    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    if (!surfaceManager) {
+        return;
+    }
+
+    auto bridge = std::make_unique<JNISurfaceSizeProviderBridge>(env, javaSurfaceManager);
+    surfaceManager->setSurfaceSizeProvider(bridge.get());
+
+    std::lock_guard<std::mutex> lock(sSurfaceSizeProviderBridgeMapMutex);
+    // Replacing an existing entry: detach old bridge from C++ first so the engine
+    // never sees a dangling pointer between the new assignment above and the
+    // old unique_ptr's destructor below.
+    auto it = sSurfaceSizeProviderBridgeMap.find(instanceId);
+    if (it != sSurfaceSizeProviderBridgeMap.end()) {
+        AGENUI_LOG("[JNI] setSurfaceSizeProvider: replacing existing bridge, instanceId=%d",
+                   instanceId);
+        it->second.reset();  // unique_ptr deleter runs here
+    }
+    sSurfaceSizeProviderBridgeMap[instanceId] = std::move(bridge);
+}
+
+static void jni_clearSurfaceSizeProvider(JNIEnv* env, jclass clazz, jint instanceId) {
+    AGENUI_LOG("[JNI] clearSurfaceSizeProvider: instanceId=%d", instanceId);
+    // Detach from the engine first so no in-flight Yoga pass can see the bridge
+    // while we delete it. If the SurfaceManager is already gone we skip the
+    // detach (the engine has nothing to point at) but still drop the bridge.
+    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    if (surfaceManager) {
+        surfaceManager->setSurfaceSizeProvider(nullptr);
+    }
+
+    std::lock_guard<std::mutex> lock(sSurfaceSizeProviderBridgeMapMutex);
+    sSurfaceSizeProviderBridgeMap.erase(instanceId);
+}
+
 jint register_jni_AGenUISurfaceManager(JNIEnv* env) {
     AGENUI_LOG("[JNI] register_jni_AGenUIEngine");
     // Register all methods for AGenUI class
@@ -242,6 +301,9 @@ jint register_jni_AGenUISurfaceManager(JNIEnv* env) {
         {"nativeNotifySurfaceSizeChanged", "(ILjava/lang/String;FF)V", (void*)jni_notifySurfaceSizeChanged},
         // SurfaceManager FunctionCall value invalidation
         {"nativeInvalidateFunctionCallValues", "(I)V", (void*)jni_invalidateFunctionCallValues},
+        // Surface size pull-channel provider bridge
+        {"nativeSetSurfaceSizeProvider",   "(ILcom/amap/agenui/render/surface/ISurfaceSizeProviderHost;)V", (void*)jni_setSurfaceSizeProvider},
+        {"nativeClearSurfaceSizeProvider", "(I)V",                                                          (void*)jni_clearSurfaceSizeProvider},
     };
     
     jint result = env->RegisterNatives(engineClz.get(), nativeMethods, sizeof(nativeMethods) / sizeof(nativeMethods[0]));

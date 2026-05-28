@@ -56,7 +56,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
     @Override
     public void onComponentsUpdate(String surfaceId, String[] components) {
         if (AGenUILogger.isLoggingEnabled()) {
-            AGenUILogger.i(TAG, "onComponentsUpdate: surfaceId=" + surfaceId + ", count=" + (components != null ? components.length : 0));
+            AGenUILogger.d(TAG, "onComponentsUpdate: surfaceId=" + surfaceId + ", count=" + (components != null ? components.length : 0));
         }
         mainHandler.post(() -> applyIncrementalComponentUpdates(surfaceId, components));
     }
@@ -99,8 +99,10 @@ public class NativeEventBridge implements IAGenUIMessageListener {
 
     @Override
     public void onError(int code, String surfaceId, String message) {
-        AGenUILogger.e(TAG, "onError: code=" + code + ", surfaceId=" + surfaceId + ", message=" + message);
-        // Map to SDKInternal error type per design spec; message is reported as reason
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.i(TAG, "onError: code=" + code + ", surfaceId=" + surfaceId + ", message=" + message);
+        }
+        // Map to the SDKInternal type specified by the design doc; message is reported as the reason field
         mainHandler.post(() -> surfaceManager.notifyError(code, message, surfaceId));
     }
 
@@ -120,14 +122,14 @@ public class NativeEventBridge implements IAGenUIMessageListener {
             String componentType = extractComponentType(componentData);
 
             if (componentId == null || componentType == null) {
-                AGenUILogger.e(TAG, "Component missing id or type");
+                AGenUILogger.e(TAG, "Component missing id or type, surfaceId: " + surface.getSurfaceId() + ", explicitParentId: " + explicitParentId);
                 return false;
             }
 
             // If component already exists, update properties only
             A2UIComponent existingComponent = surface.getComponent(componentId);
             if (existingComponent != null) {
-                AGenUILogger.w(TAG, "Component already exists, updating: " + componentId);
+                AGenUILogger.e(TAG, "Component already exists, updating: " + componentId);
 
                 Map<String, Object> updateProperties = extractComponentProperties(componentData);
                 if (updateProperties != null && !updateProperties.isEmpty()) {
@@ -195,7 +197,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
 
                 String componentId = extractComponentId(componentData);
                 if (componentId == null) {
-                    AGenUILogger.w(TAG, "onComponentsUpdate: component id missing");
+                    AGenUILogger.e(TAG, "onComponentsUpdate: component id missing");
                     continue;
                 }
 
@@ -205,9 +207,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
 
                 A2UIComponent existingComponent = surface.getComponent(componentId);
                 if (existingComponent == null) {
-                    if (AGenUILogger.isLoggingEnabled()) {
-                        AGenUILogger.w(TAG, "onComponentsUpdate: component not found, skip id=" + componentId);
-                    }
+                    AGenUILogger.e(TAG, "onComponentsUpdate: component not found, skip id=" + componentId);
                     continue;
                 }
 

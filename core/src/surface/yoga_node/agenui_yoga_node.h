@@ -4,9 +4,10 @@
 #include <functional>
 #include <memory>
 #include <vector>
-#include "surface/virtual_dom/agenui_component_snapshot.h"
 
 namespace agenui {
+
+class ILayoutDataWrapper;  // Forward declaration only
 
 /**
  * @brief RAII wrapper for YGNodeRef
@@ -68,16 +69,16 @@ public:
     void clearNewLayout();
 
     /**
-     * @brief Apply styles and attributes from ComponentSnapshot to the Yoga node
+     * @brief Apply styles and attributes from layout data wrapper to the Yoga node
      *
      * Equivalent to calling in sequence:
-     *   CSSStyleConverter::convertToYoga(snapshot, get(), clearAfterConvert)
-     *   A2UIAttributeConverter::convertToYoga(snapshot, get(), clearAfterConvert)
+     *   CSSStyleConverter::convertToYoga(wrapper, get(), clearAfterConvert)
+     *   A2UIAttributeConverter::convertToYoga(wrapper, get(), clearAfterConvert)
      *
-     * @param snapshot         Component snapshot (input source; cleared of converted attributes when clearAfterConvert=true)
-     * @param clearAfterConvert Whether to clear converted styles/attributes from snapshot, default true
+     * @param wrapper          Layout data wrapper (input source; cleared of converted attributes when clearAfterConvert=true)
+     * @param clearAfterConvert Whether to clear converted styles/attributes from wrapper, default true
      */
-    void applySnapshot(ComponentSnapshot& snapshot, bool clearAfterConvert = true);
+    void applySnapshot(ILayoutDataWrapper& wrapper, bool clearAfterConvert = true);
 
     /**
      * @brief Apply snapshot with Tabs-specific layout hints
@@ -89,14 +90,12 @@ public:
      *
      * Callers need not depend on TabsYogaHelper directly; all Tabs Yoga specialization logic is centralized here.
      *
-     * @param snapshot         This node's component snapshot
-     * @param parentSnapshot   Parent node's component snapshot pointer (nullptr means no parent)
-     * @param nodeId           This node's id (for logging)
-     * @param clearAfterConvert Whether to clear converted attributes from snapshot, default true
+     * @param wrapper          Layout data wrapper for this node
+     * @param parentWrapper    Parent node's layout data wrapper (nullptr means no parent)
+     * @param clearAfterConvert Whether to clear converted attributes from wrapper, default true
      */
-    void applySnapshotWithTabsHints(ComponentSnapshot& snapshot,
-                                    const ComponentSnapshot* parentSnapshot,
-                                    const std::string& nodeId,
+    void applySnapshotWithTabsHints(ILayoutDataWrapper& wrapper,
+                                    ILayoutDataWrapper& parentWrapper,
                                     bool clearAfterConvert = true);
 
     /**

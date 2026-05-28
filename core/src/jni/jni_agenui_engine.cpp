@@ -6,7 +6,6 @@
 #include "agenui_platform_function.h"
 #include "jni_message_listener_bridge.h"
 #include "jni_android_platform_function.h"
-#include "jni_agenui_android_platform_layout_bridge.h"
 #include "jni_agenui_measurement.h"
 #include "agenui_type_define.h"
 #include "agenui_logger_internal.h"
@@ -27,8 +26,6 @@ namespace {
 static jlong jni_initAGenUIEngine(JNIEnv *env, jobject /* thiz */) {
     AGENUI_LOG("[JNI] initAGenUIEngine");
     auto *engine = initAGenUIEngine();
-    ensureAndroidPlatformLayoutBridge(engine);
-    registerAndroidMeasurements();
     if (!initializeAndroidMeasurementBridge(env)) {
         AGENUI_LOG("[JNI] initAGenUIEngine: initializeAndroidMeasurementBridge failed");
     }
@@ -56,10 +53,6 @@ static jint jni_createSurfaceManager(JNIEnv *env, jclass jcls) {
     int instanceId = sm->getInstanceId();
     AGENUI_LOG("[JNI] createSurfaceManager: created with instanceId=%d", instanceId);
     return (jint)instanceId;
-}
-
-static void jni_updatePlatformLayoutInfo(JNIEnv* env, jclass jcls, jint widthPx, jint heightPx, jfloat density) {
-    updateAndroidPlatformDeviceInfo(static_cast<int>(widthPx), static_cast<int>(heightPx), density);
 }
 
 static void jni_destroySurfaceManager(JNIEnv *env, jclass jcls, jint instanceId) {
@@ -248,7 +241,6 @@ jint register_jni_AGenUIEngine(JNIEnv* env) {
         {"nativeDestroySurfaceManager", "(I)V", (void *) jni_destroySurfaceManager},
         // Engine-level methods
         {"nativeSetPathConfig", "(Ljava/lang/String;)Z", (void*)jni_setPathConfig},
-        {"nativeUpdatePlatformLayoutInfo", "(IIF)V", (void*)jni_updatePlatformLayoutInfo},
         {"nativeLoadThemeConfig", "(Ljava/lang/String;)Z", (void*)jni_loadThemeConfig},
         {"nativeLoadDesignTokenConfig", "(Ljava/lang/String;)Z", (void*)jni_loadDesignTokenConfig},
         {"nativeSetDayNightMode", "(Ljava/lang/String;)V", (void*)jni_setDayNightMode},

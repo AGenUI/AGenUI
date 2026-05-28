@@ -140,7 +140,7 @@ public class StyleHelper {
         if ("bold".equals(value)) return true;
         if ("normal".equals(value)) return false;
         try {
-            return Integer.parseInt(value) >= 500;
+            return Double.parseDouble(value) >= 500;
         } catch (NumberFormatException ignored) {
             return false;
         }

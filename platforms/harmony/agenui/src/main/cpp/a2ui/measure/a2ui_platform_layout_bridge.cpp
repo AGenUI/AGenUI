@@ -307,27 +307,19 @@ int32_t getImageFadeInDurationMs() {
     return kDefaultImageFadeInDurationMs;
 }
 
-A2UIPlatformLayoutBridge::A2UIPlatformLayoutBridge() {
-    HM_LOGD("A2UIPlatformLayoutBridge created");
+A2UISurfaceSizeProvider* getSharedSurfaceSizeProvider() {
+    static A2UISurfaceSizeProvider sProvider;
+    return &sProvider;
 }
 
-A2UIPlatformLayoutBridge::~A2UIPlatformLayoutBridge() {
-    HM_LOGD("A2UIPlatformLayoutBridge destroyed");
+agenui::SurfaceSize A2UISurfaceSizeProvider::getSurfaceSize(const std::string& /*surfaceId*/) {
+    agenui::SurfaceSize size;
+    size.width  = UnitConverter::pxToA2ui(static_cast<float>(s_deviceWidth));
+    size.height = UnitConverter::pxToA2ui(static_cast<float>(s_deviceHeight));
+    return size;
 }
 
-int A2UIPlatformLayoutBridge::getDeviceWidth() {
-    return static_cast<int>(UnitConverter::pxToA2ui(s_deviceWidth));
-}
-
-int A2UIPlatformLayoutBridge::getDeviceHeight() {
-    return static_cast<int>(UnitConverter::pxToA2ui(s_deviceHeight));
-}
-
-float A2UIPlatformLayoutBridge::getDeviceDensity() {
-    return s_deviceDensity;
-}
-
-const char* A2UIPlatformLayoutBridge::getComponentStyles() {
+const char* getComponentStylesRaw() {
     return g_component_styles;
 }
 

@@ -13,14 +13,14 @@ import org.json.JSONObject;
  *
  * If both width and height are already fixed, Yoga may skip the callback.
  */
-final class IconMeasurer {
+public final class IconMeasurer {
 
     private static final float DEFAULT_ICON_SIZE_A2UI = 48f;
 
     private IconMeasurer() {
     }
 
-    static MeasureResult measure(String paramJson,
+    public static MeasureResult measure(String paramJson,
                                  float maxWidth,
                                  int widthMode,
                                  float maxHeight,

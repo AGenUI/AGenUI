@@ -3,7 +3,7 @@
 #include <string>
 #include <cstdint>
 #include <nlohmann/json.hpp>
-#include "agenui_platform_layout_bridge.h"
+#include "agenui_surface_size_provider.h"
 #include "text_measurement_utils.h"
 
 namespace a2ui {
@@ -30,6 +30,11 @@ float getScreenDensity();
 const nlohmann::json& getComponentStylesFor(const std::string& componentName);
 
 /**
+ * @brief Return the raw component styles JSON as a C string.
+ */
+const char* getComponentStylesRaw();
+
+/**
  * @brief Set the global image fade-in switch.
  * @param enabled True to enable fade-in, false to disable it
  */
@@ -46,16 +51,21 @@ bool isImageFadeInEnabled();
  */
 int32_t getImageFadeInDurationMs();
 
-class A2UIPlatformLayoutBridge : public agenui::IPlatformLayoutBridge {
+/**
+ * @brief ISurfaceSizeProvider implementation backed by the device metrics
+ * cached via setDeviceInfo(). Returns the device window size (in a2ui units)
+ * for every surfaceId, serving as a sensible default until the platform
+ * pushes a per-surface size via ISurfaceManager::onSurfaceSizeChanged.
+ */
+class A2UISurfaceSizeProvider : public agenui::ISurfaceSizeProvider {
 public:
-    A2UIPlatformLayoutBridge();
-    ~A2UIPlatformLayoutBridge() override;
-
-    int getDeviceWidth() override;
-    int getDeviceHeight() override;
-    DeviceOrientation getDeviceOrientation() override { return eOrientationuUknown; }
-    float getDeviceDensity() override;
-    const char* getComponentStyles() override;
+    agenui::SurfaceSize getSurfaceSize(const std::string& surfaceId) override;
 };
+
+/**
+ * @brief Process-wide A2UISurfaceSizeProvider singleton; inject it into
+ * every ISurfaceManager via setSurfaceSizeProvider() after creation.
+ */
+A2UISurfaceSizeProvider* getSharedSurfaceSizeProvider();
 
 } // namespace a2ui

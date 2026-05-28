@@ -6,6 +6,7 @@
 namespace agenui {
 
 class IAGenUIMessageListener;
+class ISurfaceSizeProvider;
 struct ActionMessage;
 struct SyncUIToDataMessage;
 
@@ -124,6 +125,27 @@ public:
      * they are evaluated lazily on event firing, not pre-computed.
      */
     virtual void invalidateFunctionCallValues() = 0;
+
+    /**
+     * @brief Inject the host-supplied source of truth for per-surface sizes.
+     *
+     * The engine queries this provider synchronously when its locally cached
+     * size for a given surface has never been initialized (neither by an
+     * onSurfaceSizeChanged push nor by a prior provider query). After the
+     * first positive value is observed via either channel, the cache is
+     * authoritative until the next onSurfaceSizeChanged push overrides it.
+     *
+     * @param provider Non-owning pointer; the host must keep it alive at
+     *                 least until this SurfaceManager is destroyed or
+     *                 setSurfaceSizeProvider(nullptr) detaches it.
+     */
+    virtual void setSurfaceSizeProvider(ISurfaceSizeProvider* provider) = 0;
+
+    /**
+     * @brief Return the previously injected surface size provider.
+     * @return Non-owning pointer; nullptr if none has been injected.
+     */
+    virtual ISurfaceSizeProvider* getSurfaceSizeProvider() const = 0;
 };
 
 } // namespace agenui

@@ -20,14 +20,14 @@ import java.util.Map;
  *
  * If both width and height are explicitly pinned by layout styles, Yoga may not invoke measure.
  */
-final class DateTimeInputMeasurer {
+public final class DateTimeInputMeasurer {
 
     private static final String COMPONENT_NAME = "DateTimeInput";
 
     private DateTimeInputMeasurer() {
     }
 
-    static MeasureResult measure(Context context,
+    public static MeasureResult measure(Context context,
                                  String paramJson,
                                  float maxWidth,
                                  int widthMode,

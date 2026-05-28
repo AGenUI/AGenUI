@@ -2,6 +2,8 @@ package com.amap.agenui.render.component;
 
 import android.content.Context;
 
+import com.amap.agenui.render.measurement.IMeasurer;
+import com.amap.agenui.render.measurement.MeasurementBridge;
 import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.Map;
@@ -40,6 +42,10 @@ public class ComponentRegistry {
             AGenUILogger.d(TAG, "registerComponent: componentType=" + componentType);
         }
         factories.put(componentType, factory);
+        IMeasurer measurer = factory.getMeasurer();
+        if (measurer != null) {
+            MeasurementBridge.registerMeasurer(componentType, measurer);
+        }
     }
 
     /**
@@ -51,7 +57,10 @@ public class ComponentRegistry {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.d(TAG, "unregisterComponent: componentType=" + componentType);
         }
-        factories.remove(componentType);
+        IComponentFactory removed = factories.remove(componentType);
+        if (removed != null && removed.getMeasurer() != null) {
+            MeasurementBridge.unregisterMeasurer(componentType);
+        }
     }
 
     /**
@@ -129,7 +138,7 @@ public class ComponentRegistry {
         registerComponent("RichText", new com.amap.agenui.render.component.factory.RichTextComponentFactory());
 
         if (AGenUILogger.isLoggingEnabled()) {
-            AGenUILogger.d(TAG, "Built-in components registered: " + factories.size() + "/22 ✅ All done");
+            AGenUILogger.d(TAG, "Built-in components registered: " + factories.size() + "/8 ✅ All done");
         }
     }
 

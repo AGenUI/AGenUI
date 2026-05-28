@@ -163,9 +163,18 @@ afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
-                groupId    = SDK_GROUP_ID
-                artifactId = SDK_ARTIFACT_ID
-                version    = SDK_VERSION
+                // Allow -PmavenVersion / -PmavenGroupId / -PmavenArtifactId to override defaults
+                def pubGroupId = project.hasProperty('mavenGroupId') ? project.property('mavenGroupId') : SDK_GROUP_ID
+                def pubArtifactId = project.hasProperty('mavenArtifactId') ? project.property('mavenArtifactId') : SDK_ARTIFACT_ID
+                def pubVersion = project.hasProperty('mavenVersion') ? project.property('mavenVersion') : SDK_VERSION
+
+                groupId    = pubGroupId
+                artifactId = pubArtifactId
+                version    = pubVersion
+
+                if (project.hasProperty('mavenVersion')) {
+                    logger.lifecycle("[maven] Publishing with version: ${pubVersion} (groupId=${pubGroupId}, artifactId=${pubArtifactId})")
+                }
 
                 def normalAar = file("${buildDir}/outputs/aar/${project.name}-release.aar")
                 artifact(normalAar)

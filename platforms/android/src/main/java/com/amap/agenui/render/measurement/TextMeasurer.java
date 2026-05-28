@@ -39,7 +39,7 @@ import java.util.Locale;
  * `StyleHelper.applyTextStyles()` onto `TextPaint + StaticLayout`, keeping measure and render
  * close enough while avoiding off-screen `TextView` work on a non-UI thread.
  */
-final class TextMeasurer {
+public final class TextMeasurer {
 
     private static final float DEFAULT_TEXT_SIZE_SP = 14f;
     private static final float DEFAULT_RICH_TEXT_SIZE_SP = 16f;
@@ -86,12 +86,12 @@ final class TextMeasurer {
     private TextMeasurer() {
     }
 
-    static MeasureResult measureText(Context context,
-                                     String paramJson,
-                                     float maxWidth,
-                                     int widthMode,
-                                     float maxHeight,
-                                     int heightMode) {
+    public static MeasureResult measureText(Context context,
+                                            String paramJson,
+                                            float maxWidth,
+                                            int widthMode,
+                                            float maxHeight,
+                                            int heightMode) {
         return measureInternal(
                 context,
                 paramJson,
@@ -103,12 +103,12 @@ final class TextMeasurer {
                 heightMode);
     }
 
-    static MeasureResult measureRichText(Context context,
-                                         String paramJson,
-                                         float maxWidth,
-                                         int widthMode,
-                                         float maxHeight,
-                                         int heightMode) {
+    public static MeasureResult measureRichText(Context context,
+                                                String paramJson,
+                                                float maxWidth,
+                                                int widthMode,
+                                                float maxHeight,
+                                                int heightMode) {
         return measureInternal(
                 context,
                 paramJson,
@@ -209,12 +209,12 @@ final class TextMeasurer {
             int measuredWidthPx = resolveMeasuredSizePx(desiredWidthPx, constrainedWidthPx, widthMode);
             int measuredHeightPx = resolveMeasuredSizePx(desiredHeightPx, constrainedHeightPx, heightMode);
 
-            // On some devices (e.g. Mi 11, density=2.625), a single character with
-            // padding may show ellipsis even though it fits. This is due to precision
-            // loss during px conversion: Yoga computes borderBox = content + padL + padR
-            // in float space, but independent rounding to int pixels shrinks the content
-            // area: round(borderBoxPx) - round(padPx)*2 < contentPx.
-            // +1 compensates for this rounding error.
+            // On certain devices (e.g. Mi 11, density=2.625), when the Text component has padding,
+            // a single character may be ellipsized even though the text could actually fit. This is because properties like padding
+            // suffer precision loss during pixel conversion: Yoga computes exactly in A2UI float space as
+            // borderBox = contentWidth + paddingLeft + paddingRight, but each value is independently converted to
+            // integer pixels, shrinking the content area: round(borderBoxPx) - round(padPx) - round(padPx) < contentPx.
+            // +1 compensates for this precision loss to ensure the content area is not under-allocated.
             int ceilW = (int) Math.ceil(StyleHelper.pxToA2ui(context, measuredWidthPx)) + 1;
             int ceilH = (int) Math.ceil(StyleHelper.pxToA2ui(context, measuredHeightPx)) + 1;
 

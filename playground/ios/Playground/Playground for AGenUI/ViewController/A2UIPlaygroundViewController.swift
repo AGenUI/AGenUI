@@ -49,7 +49,16 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var qrCodeFrameView: UIView?
     private var windowQRCodeFrameView: UIView?
-    
+
+    // MARK: - Surface size cache (read on engine worker thread)
+    //
+    // The C++ engine queries `surfaceSize(for:)` synchronously on a worker thread, so
+    // it cannot touch UIKit (`view.bounds`) directly. We refresh this cached width on
+    // the main thread inside `viewDidLayoutSubviews()` and serve the value through a
+    // simple lock to keep cross-thread reads safe.
+    private let surfaceSizeLock = NSLock()
+    private var cachedSurfaceWidth: CGFloat = 0
+
 
     // MARK: - Lifecycle
     
@@ -67,6 +76,14 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         themeManager.surfaceManager = surfaceManager
         
         registerDecoupledComponents()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let w = view.bounds.size.width
+        surfaceSizeLock.lock()
+        cachedSurfaceWidth = w
+        surfaceSizeLock.unlock()
     }
     
     /// Auto-load Gallery template from Bundle (used by --gallery launch argument).
@@ -214,7 +231,7 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
     }
     
     // MARK: - SurfaceManagerListener
-    
+        
     /// Surface creation completed callback
     ///
     /// - Parameter surface: Surface object
@@ -224,21 +241,40 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
 
         print("[Playground] 🎨 Surface created: \(surface.surfaceId)")
         
-        surface.updateSize(width: self.view.bounds.width, height: .infinity)
         scrollView.addSubview(surface.view)
-        
+        weak let weakSurface = surface
         surface.onLayoutChanged = { [weak self] in
+            guard let weakSurface = weakSurface else {
+                return
+            }
             guard let self = self else {
-                print("[Playground] ⚠️ Layout changed but self is nil for: \(surface.surfaceId)")
+                print("[Playground] ⚠️ Layout changed but self is nil for: \(weakSurface.surfaceId)")
                 return
             }
             
             // Use surface.view height (view size is determined by Surface's width/height)
-            let height = surface.view.frame.size.height
+            let height = weakSurface.view.frame.size.height
             self.scrollView.contentSize = CGSize(width: scrollView.frame.size.width, height: height)
         }
         
         print("[Playground] ✅ Surface rootView added to container: \(surface.surfaceId)")
+    }
+    
+    /// Provide the current surface size synchronously to the engine.
+    ///
+    /// Width follows the view's current width; height is unbounded — matches the
+    /// previous `surface.updateSize(width:height:)` semantics. The engine may invoke
+    /// this on a non-main worker thread, so the value is served from a main-thread
+    /// updated cache guarded by a lock.
+    ///
+    /// - Parameter surfaceId: Surface identifier assigned by the engine.
+    /// - Returns: Current surface size in points; `.zero` if not measurable yet.
+    func surfaceSize(for surfaceId: String) -> CGSize {
+        surfaceSizeLock.lock()
+        let width = cachedSurfaceWidth
+        surfaceSizeLock.unlock()
+        guard width > 0 else { return .zero }
+        return CGSize(width: width, height: .infinity)
     }
     
     /// Surface deletion completed callback
@@ -650,12 +686,6 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         if let createSurfaceJson = createSurfaceJson {
             surfaceManager.receiveTextChunk(createSurfaceJson)
             print("✅ [QR Code] Sent createSurface")
-            
-            if let sid = Self.extractSurfaceId(fromCreateSurface: createSurfaceJson) {
-                surfaceManager.presetSurfaceSize(surfaceId: sid,
-                                                 width: self.view.bounds.width,
-                                                 height: .infinity)
-            }
         }
 
         // Process updateComponents JSON
@@ -750,10 +780,6 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
                     print("[Main Page] Sent createSurface: surfaceId = \(surfaceId)")
                 }
 
-                surfaceManager.presetSurfaceSize(surfaceId: surfaceId,
-                                                 width: self.view.bounds.width,
-                                                 height: .infinity)
-                
                 self.previousSurfaceId = surfaceId
             }
             

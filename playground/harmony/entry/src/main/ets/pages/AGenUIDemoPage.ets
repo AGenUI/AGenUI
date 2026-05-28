@@ -166,7 +166,6 @@ struct Index {
   @State surfaceVersion: number = 0;
   /** Whether dark mode is currently active. */
   @State isDarkMode: boolean = false;
-
   /** Text shown in the top error banner (empty string hides the banner). */
   @State errorBannerText: string = '';
 

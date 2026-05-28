@@ -151,6 +151,7 @@ class CarouselComponent: Component {
     
     deinit {
         stopAutoplay()
+        cancelAllImageTasks()
     }
     
     // MARK: - Component Override
@@ -199,16 +200,6 @@ class CarouselComponent: Component {
         // Mirror corner radius to scrollView so image content is clipped to rounded corners.
         scrollView?.layer.cornerRadius = radius
         scrollView?.clipsToBounds = radius > 0
-    }
-
-    override func destroy() {
-        // Stop timer
-        stopAutoplay()
-        
-        // Cancel ongoing image tasks
-        cancelAllImageTasks()
-        
-        super.destroy()
     }
     
     // MARK: - Configuration Methods

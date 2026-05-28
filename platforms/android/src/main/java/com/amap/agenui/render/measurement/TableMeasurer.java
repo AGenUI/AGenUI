@@ -19,7 +19,7 @@ import java.util.Map;
  *
  * If a future table variant becomes fully fixed-size, Yoga can bypass this callback.
  */
-final class TableMeasurer {
+public final class TableMeasurer {
 
     private static final String COMPONENT_NAME = "Table";
     private static final int MAX_ROWS_TO_MEASURE = 10;
@@ -27,7 +27,7 @@ final class TableMeasurer {
     private TableMeasurer() {
     }
 
-    static MeasureResult measure(Context context,
+    public static MeasureResult measure(Context context,
                                  String paramJson,
                                  float maxWidth,
                                  int widthMode,

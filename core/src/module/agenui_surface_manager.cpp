@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "agenui_surface_manager.h"
 #include "agenui_logger_internal.h"
+#include "agenui_surface_size_provider.h"
 #include "agenui_type_define.h"
 #include "agenui_thread_manager.h"
 #include "stream/agenui_streaming_content_parser.h"
@@ -241,6 +242,16 @@ void SurfaceManager::invalidateFunctionCallValues() {
             self->_surfaceCoordinator->invalidateFunctionCallValues();
         }
     });
+}
+
+void SurfaceManager::setSurfaceSizeProvider(ISurfaceSizeProvider* provider) {
+    std::lock_guard<std::mutex> lock(_surfaceSizeProviderMutex);
+    _surfaceSizeProvider = provider;
+}
+
+ISurfaceSizeProvider* SurfaceManager::getSurfaceSizeProvider() const {
+    std::lock_guard<std::mutex> lock(_surfaceSizeProviderMutex);
+    return _surfaceSizeProvider;
 }
 
 EventDispatcher* SurfaceManager::getEventDispatcher() {

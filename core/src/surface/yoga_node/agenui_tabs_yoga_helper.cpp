@@ -24,12 +24,17 @@ void TabsYogaHelper::injectFlexGrowIfNeeded(ComponentSnapshot& snapshot) {
 
 void TabsYogaHelper::setChildAbsoluteLayout(YogaNode& yogaNode,
                                             const std::string& childId) {
-    // Tabs direct child: set to Yoga absolute layout, removing from flex flow.
-    // top  = kTabBarHeight (content area starts below tabBar)
-    // left = 0, width = 100%
-    // Note: child Yoga coordinates are not applied to ArkUI nodes (shouldApplyChildLayoutPosition/Size both return false).
-    // Yoga-layer absolute layout is only used by updateMinHeightRecursive to read contentH;
-    // ArkUI-layer child width/height is determined by contentContainer's COLUMN flex naturally.
+    // Tabs direct child: pin to Yoga absolute layout (top=kTabBarHeight,
+    // left=0, width=100%) so it is removed from the parent flex flow.
+    //
+    // These Yoga-layer position/size values are NOT propagated to the
+    // ArkUI node frame (shouldApplyChildLayoutPosition / shouldApplyChildLayoutSize
+    // both return false for Tabs children). They exist purely so that
+    // updateMinHeightRecursive can read this child's measured contentH from
+    // the Yoga tree — the absolute pinning + 100% width gives Yoga enough
+    // constraints to lay out the descendants and produce a meaningful
+    // contentH. The actual ArkUI-side child width/height is driven by
+    // contentContainer's COLUMN flex.
     YGNodeStyleSetPositionType(yogaNode.get(), YGPositionTypeAbsolute);
     YGNodeStyleSetPosition(yogaNode.get(), YGEdgeTop, kTabBarHeight);
     YGNodeStyleSetPosition(yogaNode.get(), YGEdgeLeft, 0.0f);

@@ -135,6 +135,14 @@ public class CustomTabLayout extends FrameLayout {
         updateAllTabStyles();
     }
 
+    public int getTabNormalTextColor() {
+        return this.normalTextColor;
+    }
+
+    public int getTabSelectedTextColor() {
+        return this.selectedTextColor;
+    }
+
     public void setTabTextSize(float sizePx) {
         this.tabTextSizePx = sizePx;
         updateAllTabStyles();
