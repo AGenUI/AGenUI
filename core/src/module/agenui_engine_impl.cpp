@@ -136,17 +136,6 @@ bool AGenUIEngine::setPathConfig(const std::string &configJson) {
     return _pathConfig->setPathConfig(configJson);
 }
 
-void AGenUIEngine::setPlatformLayoutBridge(IPlatformLayoutBridge* platformLayoutBridge) {
-    if (!_isRunning.load()) {
-        return;
-    }
-    _platformLayoutBridge = platformLayoutBridge;
-}
-
-IPlatformLayoutBridge* AGenUIEngine::getPlatformLayoutBridge() {
-    return _platformLayoutBridge;
-}
-
 bool AGenUIEngine::registerFunction(const std::string& config, IPlatformFunction* function) {
     AGENUI_LOG("config:%s, function:%p", config.c_str(), function);
     if (!_isRunning.load()) {

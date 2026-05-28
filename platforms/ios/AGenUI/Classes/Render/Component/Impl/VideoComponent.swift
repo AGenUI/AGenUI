@@ -81,11 +81,6 @@ class VideoComponent: Component {
         }
     }
     
-    override func destroy() {
-        cleanup()
-        super.destroy()
-    }
-    
     // MARK: - Private Methods
     
     /// Set video URL

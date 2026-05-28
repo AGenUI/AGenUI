@@ -13,7 +13,7 @@ class CSSPropertyApplier {
     // MARK: - Main Application Methods
 
     /// Applies CSS properties to a UIView (Component as View mode)
-    static func apply(properties: [String: Any], to view: UIView) {
+    @MainActor static func apply(properties: [String: Any], to view: UIView) {
         let sortedProperties = sortByPriority(properties)
         for (key, value) in sortedProperties {
             let valueStr: String
@@ -27,7 +27,7 @@ class CSSPropertyApplier {
     }
 
     /// Applies CSS properties to a component (BaseA2UIComponent mode)
-    static func apply(properties: [String: Any], to component: Component, view: UIView) {
+    @MainActor static func apply(properties: [String: Any], to component: Component, view: UIView) {
         let sortedProperties = sortByPriority(properties)
         for (key, value) in sortedProperties {
             let valueStr: String
@@ -45,7 +45,7 @@ class CSSPropertyApplier {
     /// Sort properties by priority
     /// - Parameter properties: Property dictionary
     /// - Returns: Sorted property array
-    private static func sortByPriority(_ properties: [String: Any]) -> [(String, Any)] {
+    @MainActor private static func sortByPriority(_ properties: [String: Any]) -> [(String, Any)] {
         // Pre-compute priorities for all properties to avoid repeated lookups during sort comparison
         // Sort complexity O(n log n), before optimization each comparison calls config(for:) twice, totaling 2n log n calls
         // After optimization only n lookups needed, performance improved by approximately 2 log n times
@@ -72,7 +72,7 @@ class CSSPropertyApplier {
     ///   - key: Property name
     ///   - value: Property value string
     ///   - view: Target view
-    private static func applyProperty(key: String, value: String, to view: UIView) {
+    @MainActor private static func applyProperty(key: String, value: String, to view: UIView) {
         // Get property configuration
         guard let config = CSSPropertyRegistry.config(for: key) else {
             #if DEBUG
@@ -102,7 +102,7 @@ class CSSPropertyApplier {
     ///   - value: Property value string
     ///   - component: Target component
     ///   - view: Target view
-    private static func applyProperty(key: String, value: String, to component: Component, view: UIView) {
+    @MainActor private static func applyProperty(key: String, value: String, to component: Component, view: UIView) {
         // Get property configuration
         guard let config = CSSPropertyRegistry.config(for: key) else {
             #if DEBUG
@@ -131,7 +131,7 @@ class CSSPropertyApplier {
     ///   - key: Property name
     ///   - parsedValue: Parsed property value
     ///   - view: Target view
-    private static func applyPropertyByKey(_ key: String, parsedValue: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyPropertyByKey(_ key: String, parsedValue: CSSPropertyValue, to view: UIView) {
         switch key {
 
         // Style properties
@@ -179,7 +179,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyBackgroundColor(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyBackgroundColor(_ value: CSSPropertyValue, to view: UIView) {
         // Tear down any gradient installed by a previous update so the new value
         // is the sole source of truth (idempotent across re-applies).
         BackgroundGradientHolder.remove(from: view)
@@ -205,7 +205,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyBackgroundImage(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyBackgroundImage(_ value: CSSPropertyValue, to view: UIView) {
         guard case .url(let urlString) = value else { return }
         
         if urlString.isEmpty {
@@ -242,7 +242,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - image: Image
     ///   - view: Target view
-    private static func setBackgroundImage(_ image: UIImage, for view: UIView) {
+    @MainActor private static func setBackgroundImage(_ image: UIImage, for view: UIView) {
         view.layer.contents = image.cgImage
         view.layer.contentsGravity = .resizeAspectFill
     }
@@ -251,7 +251,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - urlString: Image URL
     ///   - view: Target view
-    private static func loadBackgroundImage(from urlString: String, for view: UIView) {
+    @MainActor private static func loadBackgroundImage(from urlString: String, for view: UIView) {
         guard let url = URL(string: urlString) else { return }
         
         URLSession.shared.dataTask(with: url) { data, _, error in
@@ -270,7 +270,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyBorderRadius(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyBorderRadius(_ value: CSSPropertyValue, to view: UIView) {
         guard case .number(let radius) = value else { return }
         // Dispatch to Component.setBorderRadius if available, allowing subclasses to propagate
         // the radius to inner subviews (e.g., imageView, innerTableView) via override.
@@ -286,7 +286,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyOpacity(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyOpacity(_ value: CSSPropertyValue, to view: UIView) {
         guard case .number(let opacity) = value else { return }
         // Ensure opacity is between 0.0 and 1.0
         view.alpha = max(0.0, min(1.0, opacity))
@@ -300,7 +300,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyBorderColor(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyBorderColor(_ value: CSSPropertyValue, to view: UIView) {
         guard case .color(let color) = value else { return }
         view.layer.borderColor = color.cgColor
     }
@@ -309,7 +309,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyBorderWidth(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyBorderWidth(_ value: CSSPropertyValue, to view: UIView) {
         guard case .number(let width) = value else { return }
         view.layer.borderWidth = width
     }
@@ -322,7 +322,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyBorderStyle(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyBorderStyle(_ value: CSSPropertyValue, to view: UIView) {
         guard case .keyword(let style) = value else {
             // Parsing failed, reset border width
             view.layer.borderWidth = 0
@@ -344,7 +344,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyOverflow(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyOverflow(_ value: CSSPropertyValue, to view: UIView) {
         guard case .keyword(let overflow) = value else { return }
         
         switch overflow {
@@ -363,7 +363,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyDisplay(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyDisplay(_ value: CSSPropertyValue, to view: UIView) {
         guard case .keyword(let display) = value else { return }
         
         switch display {
@@ -378,7 +378,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyVisibility(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyVisibility(_ value: CSSPropertyValue, to view: UIView) {
         guard case .keyword(let visibility) = value else { return }
         
         switch visibility {
@@ -398,7 +398,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyFilter(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyFilter(_ value: CSSPropertyValue, to view: UIView) {
         guard case .shadow(let shadow) = value else { return }
         applyShadow(shadow, to: view, includeSpread: false)
     }
@@ -407,7 +407,7 @@ class CSSPropertyApplier {
     /// - Parameters:
     ///   - value: CSS property value
     ///   - view: Target view
-    private static func applyBoxShadow(_ value: CSSPropertyValue, to view: UIView) {
+    @MainActor private static func applyBoxShadow(_ value: CSSPropertyValue, to view: UIView) {
         guard case .shadow(let shadow) = value else { return }
         applyShadow(shadow, to: view, includeSpread: true)
     }
@@ -417,7 +417,7 @@ class CSSPropertyApplier {
     ///   - shadow: Shadow configuration
     ///   - view: Target view
     ///   - includeSpread: Whether to include spread parameter (used by box-shadow)
-    private static func applyShadow(_ shadow: CSSShadow, to view: UIView, includeSpread: Bool) {
+    @MainActor private static func applyShadow(_ shadow: CSSShadow, to view: UIView, includeSpread: Bool) {
         // Set shadow offset
         // CSS coordinate system: Y-axis positive direction is downward
         // iOS shadowOffset: Y-axis positive direction is also downward (consistent with UIKit coordinate system)
@@ -465,7 +465,7 @@ class CSSPropertyApplier {
     
     /// Clears shadow effect
     /// - Parameter view: Target view
-    private static func clearShadow(from view: UIView) {
+    @MainActor private static func clearShadow(from view: UIView) {
         view.layer.shadowOpacity = 0
         view.layer.shadowPath = nil
         view.layer.shouldRasterize = false

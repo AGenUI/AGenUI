@@ -2,6 +2,10 @@ package com.amap.agenui.render.component;
 
 import android.content.Context;
 
+import androidx.annotation.Nullable;
+
+import com.amap.agenui.render.measurement.IMeasurer;
+
 import java.util.Map;
 
 /**
@@ -46,4 +50,18 @@ public interface IComponentFactory {
      * @return Component type name (e.g. "Text", "Button", "Row")
      */
     String getComponentType();
+
+    /**
+     * Returns the measurer for this component type, or null if the component does not
+     * participate in Yoga measurement (e.g. container components like Row/Column/List).
+     *
+     * When non-null, the measurement will be automatically registered alongside the
+     * component factory in {@link ComponentRegistry}.
+     *
+     * @return IMeasurer implementation, or null to opt out of measurement
+     */
+    @Nullable
+    default IMeasurer getMeasurer() {
+        return null;
+    }
 }

@@ -27,26 +27,28 @@ public:
 
     MeasureResult measure(const std::string& paramJson,
                           const MeasureModes& modes) override {
-        AGenUIMeasureCallback callback = [AGenUIEngineMeasurementBridge measureCallback];
-        if (!callback) {
-            return MeasureResult{CalcType::Sync, 0.0f, 0.0f, 0};
+        @autoreleasepool {
+            AGenUIMeasureCallback callback = [AGenUIEngineMeasurementBridge measureCallback];
+            if (!callback) {
+                return MeasureResult{CalcType::Sync, 0.0f, 0.0f, 0};
+            }
+            
+            NSString *nsType = [NSString stringWithUTF8String:_type.c_str()];
+            NSString *nsParamJson = [NSString stringWithUTF8String:paramJson.c_str()];
+            
+            CGSize size = callback(
+                                   nsType, nsParamJson,
+                                   modes.width.maxValue / 2., modes.width.mode,
+                                   modes.height.maxValue / 2., modes.height.mode);
+            
+            // Convert pt -> a2ui units (1pt = 2 a2ui units, same as @2x logical pixel scale)
+            return MeasureResult{
+                CalcType::Sync,
+                (float)size.width * 2.0f,
+                (float)size.height * 2.0f,
+                0
+            };
         }
-
-        NSString *nsType = [NSString stringWithUTF8String:_type.c_str()];
-        NSString *nsParamJson = [NSString stringWithUTF8String:paramJson.c_str()];
-
-        CGSize size = callback(
-            nsType, nsParamJson,
-            modes.width.maxValue / 2., modes.width.mode,
-            modes.height.maxValue / 2., modes.height.mode);
-
-        // Convert pt -> a2ui units (1pt = 2 a2ui units, same as @2x logical pixel scale)
-        return MeasureResult{
-            CalcType::Sync,
-            (float)size.width * 2.0f,
-            (float)size.height * 2.0f,
-            0
-        };
     }
 
 private:

@@ -15,14 +15,14 @@ import java.util.Map;
  * If both axes are already fully determined by style + parent constraints, Yoga may skip the
  * callback entirely even though the measurement implementation is registered.
  */
-final class AudioPlayerMeasurer {
+public final class AudioPlayerMeasurer {
 
     private static final String COMPONENT_NAME = "AudioPlayer";
 
     private AudioPlayerMeasurer() {
     }
 
-    static MeasureResult measure(Context context,
+    public static MeasureResult measure(Context context,
                                  String paramJson,
                                  float maxWidth,
                                  int widthMode,

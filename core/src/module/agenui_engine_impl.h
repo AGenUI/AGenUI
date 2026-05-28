@@ -48,8 +48,6 @@ public:
     ISurfaceManager* findSurfaceManager(int instanceId) override;
 
     bool setPathConfig(const std::string &configJson) override;
-    void setPlatformLayoutBridge(IPlatformLayoutBridge* platformLayoutBridge) override;
-    IPlatformLayoutBridge* getPlatformLayoutBridge() override;
 
     bool registerFunction(const std::string& config, IPlatformFunction* function) override;
     bool unregisterFunction(const std::string& name) override;
@@ -73,9 +71,6 @@ private:
     IComponentPropertySpecManager* _componentPropertySpecManager = nullptr;
     TemplateRegistry* _templateRegistry = nullptr;
     PathConfig* _pathConfig = nullptr;
-
-    // Single-instance external dependency (not owned)
-    IPlatformLayoutBridge* _platformLayoutBridge = nullptr;
 
     // Multi-instance SurfaceManager map
     std::map<int32_t, std::shared_ptr<SurfaceManager>> _surfaceManagers;

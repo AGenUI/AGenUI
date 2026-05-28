@@ -1,73 +1,70 @@
 #include "agenui_a2ui_attribute_converter.h"
+#include <yoga/Yoga.h>
+#include "agenui_component_snapshot_wrapper.h"
 #include "agenui_yoga_internal_parse.h"
 
 namespace agenui {
 
-void A2UIAttributeConverter::convertToYoga(ComponentSnapshot& snapshot, YGNodeRef yogaNode, bool clearAfterConvert) {
-    if (yogaNode == nullptr) {
+void A2UIAttributeConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yogaNode, bool clearAfterConvert) {
+    if (!yogaNode) {
         return;
     }
-    
-    // Process direction attribute (maps to flex-direction)
+
+    // Process direction attribute (maps to flex-direction).
+    // Note: applyFlexDirection enforces component-type defaults (Row/Column take
+    // precedence over the explicit value) regardless of whether `direction` is
+    // present, so we always invoke it — the implicit component-type default is
+    // intentional and lives inside applyFlexDirection, not in a `valid` branch here.
     {
-        auto attrIt = snapshot.attributes.find(A2UIPropertyNames::kDirection);
-        if (attrIt != snapshot.attributes.end()) {
-            applyFlexDirection(yogaNode, attrIt->second, snapshot);
-        }  else {
-            // Even without explicit direction, set based on component type
-            applyFlexDirection(yogaNode, SerializableData(), snapshot);
-        }
+        applyFlexDirection(yogaNode,
+                           wrapper.getAttributeValue(A2UIPropertyNames::kDirection),
+                           wrapper);
     }
     
     // Process justify attribute (maps to justify-content)
     {
-        auto attrIt = snapshot.attributes.find(A2UIPropertyNames::kJustify);
-        if (attrIt != snapshot.attributes.end()) {
-            applyJustifyContent(yogaNode, attrIt->second);
+        YogaValue value = wrapper.getAttributeValue(A2UIPropertyNames::kJustify);
+        if (value.isValid()) {
+            applyJustifyContent(yogaNode, value);
         }
     }
     
     // Process align attribute (maps to align-items)
     {
-        auto attrIt = snapshot.attributes.find(A2UIPropertyNames::kAlign);
-        if (attrIt != snapshot.attributes.end()) {
-            applyAlignItems(yogaNode, attrIt->second);
+        YogaValue value = wrapper.getAttributeValue(A2UIPropertyNames::kAlign);
+        if (value.isValid()) {
+            applyAlignItems(yogaNode, value);
         }
     }
     
     // Process weight attribute (maps to flex-grow)
     {
-        auto attrIt = snapshot.attributes.find(A2UIPropertyNames::kWeight);
-        if (attrIt != snapshot.attributes.end()) {
-            applyFlexGrow(yogaNode, attrIt->second);
+        YogaValue value = wrapper.getAttributeValue(A2UIPropertyNames::kWeight);
+        if (value.isValid()) {
+            applyFlexGrow(yogaNode, value);
         }
     }
     
     // Clear A2UI-related attributes if requested.
-    // NOTE: kDirection / kAlign are intentionally NOT erased — downstream
-    // platform components (Row/Column/Tabs render layer) read them directly
-    // from snapshot.attributes after Yoga conversion. Removing them would
-    // break visual rendering. Only the keys whose semantics are fully
-    // absorbed by the Yoga layout (justify, weight) are erased here.
     if (clearAfterConvert) {
-        snapshot.attributes.erase(A2UIPropertyNames::kJustify);
-        snapshot.attributes.erase(A2UIPropertyNames::kWeight);
+        wrapper.clearAttribute(A2UIPropertyNames::kJustify);
+        wrapper.clearAttribute(A2UIPropertyNames::kWeight);
     }
 }
 
-void A2UIAttributeConverter::applyFlexDirection(YGNodeRef yogaNode, const SerializableData& value, ComponentSnapshot& snapshot) {
-    if (yogaNode == nullptr) {
+void A2UIAttributeConverter::applyFlexDirection(YGNodeRef yogaNode, YogaValue value, ILayoutDataWrapper& wrapper) {
+    if (!yogaNode) {
         return;
     }
     
-    // Check component type first
-    if (snapshot.component == "Row" || snapshot.component == "row") {
+    const std::string& component = wrapper.componentType();
+    if (component == "Row") {
         YGNodeStyleSetFlexDirection(yogaNode, YGFlexDirectionRow);
-    } else if (snapshot.component == "Column" || snapshot.component == "column")  {
+    } else if (component == "Column" || component == "column") {
         YGNodeStyleSetFlexDirection(yogaNode, YGFlexDirectionColumn);
-    } else if (!value.asString().empty()) {
+    } else if (value.type() == YogaValue::kString && !value.asString().empty()) {
         // Use explicitly set value for other component types
-        std::string actualValue = value.asString();
+        const std::string& actualValue = value.asString();
         // Handle A2UI value format
         if (actualValue == "horizontal") {
             YGNodeStyleSetFlexDirection(yogaNode, YGFlexDirectionRow);
@@ -77,12 +74,14 @@ void A2UIAttributeConverter::applyFlexDirection(YGNodeRef yogaNode, const Serial
     }
 }
 
-void A2UIAttributeConverter::applyJustifyContent(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void A2UIAttributeConverter::applyJustifyContent(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     // Handle A2UI value format
     if (actualValue == "start") {
@@ -100,12 +99,14 @@ void A2UIAttributeConverter::applyJustifyContent(YGNodeRef yogaNode, const Seria
     }
 }
 
-void A2UIAttributeConverter::applyAlignItems(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void A2UIAttributeConverter::applyAlignItems(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     // Handle A2UI value format
     if (actualValue == "start") {
@@ -119,17 +120,19 @@ void A2UIAttributeConverter::applyAlignItems(YGNodeRef yogaNode, const Serializa
     }
 }
 
-void A2UIAttributeConverter::applyFlexGrow(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void A2UIAttributeConverter::applyFlexGrow(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    if (value.isNumber()) {
-        YGNodeStyleSetFlexGrow(yogaNode, static_cast<float>(value.asDouble()));
+
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetFlexGrow(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (!actualValue.empty()) {
         bool ok = false;

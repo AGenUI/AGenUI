@@ -1,11 +1,9 @@
 #include "agenui_css_style_converter.h"
-#include "agenui_platform_layout_bridge.h"
+#include "agenui_component_snapshot_wrapper.h"
 #include "agenui_yoga_internal_parse.h"
-#include "surface/virtual_dom/agenui_ivirtual_define.h"
 #include <cctype>
 #include <sstream>
 #include <vector>
-#include "nlohmann/json.hpp"
 
 namespace agenui {
 
@@ -98,8 +96,8 @@ bool CSSStyleConverter::isRichText(const std::string& text) {
     return false;
 }
 
-void CSSStyleConverter::convertToYoga(ComponentSnapshot& snapshot, YGNodeRef yogaNode, bool clearAfterConvert) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yogaNode, bool clearAfterConvert) {
+    if (!yogaNode) {
         return;
     }
     
@@ -107,9 +105,9 @@ void CSSStyleConverter::convertToYoga(ComponentSnapshot& snapshot, YGNodeRef yog
     
     // Process width attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kWidth);
-        if (styleIt != snapshot.styles.end()) {
-            applyWidth(yogaNode, styleIt->second, hasMeasureFunc);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kWidth);
+        if (value.isValid()) {
+            applyWidth(yogaNode, value, hasMeasureFunc);
         } 
         else if (hasMeasureFunc) {
             // No explicit width and node has measure function -> set to auto
@@ -120,473 +118,559 @@ void CSSStyleConverter::convertToYoga(ComponentSnapshot& snapshot, YGNodeRef yog
     
     // Process height attribute (mirror the width path so axes are symmetric)
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kHeight);
-        if (styleIt != snapshot.styles.end()) {
-            applyHeight(yogaNode, styleIt->second, hasMeasureFunc);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kHeight);
+        if (value.isValid()) {
+            applyHeight(yogaNode, value, hasMeasureFunc);
         }
     }
     
     // Process flex-direction attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kFlexDirection);
-        if (styleIt != snapshot.styles.end()) {
-            applyFlexDirection(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexDirection);
+        if (value.isValid()) {
+            applyFlexDirection(yogaNode, value);
         }
     }
     
     // Process justify-content attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kJustifyContent);
-        if (styleIt != snapshot.styles.end()) {
-            applyJustifyContent(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kJustifyContent);
+        if (value.isValid()) {
+            applyJustifyContent(yogaNode, value);
         }
     }
     
     // Process align-items attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kAlignItems);
-        if (styleIt != snapshot.styles.end()) {
-            applyAlignItems(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAlignItems);
+        if (value.isValid()) {
+            applyAlignItems(yogaNode, value);
         }
     }
     
     // Process align-self attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kAlignSelf);
-        if (styleIt != snapshot.styles.end()) {
-            applyAlignSelf(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAlignSelf);
+        if (value.isValid()) {
+            applyAlignSelf(yogaNode, value);
         }
     }
 
     // Process flex-grow attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kFlexGrow);
-        if (styleIt != snapshot.styles.end()) {
-            applyFlexGrow(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexGrow);
+        if (value.isValid()) {
+            applyFlexGrow(yogaNode, value);
         }
     }
     
     // Process flex-shrink attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kFlexShrink);
-        if (styleIt != snapshot.styles.end()) {
-            applyFlexShrink(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexShrink);
+        if (value.isValid()) {
+            applyFlexShrink(yogaNode, value);
         }
     }
     
     // Process padding attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kPadding);
-        if (styleIt != snapshot.styles.end()) {
-            applyPadding(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPadding);
+        if (value.isValid()) {
+            applyPadding(yogaNode, value);
         }
     }
     
     // Process padding-left/right/top/bottom attributes (override padding shorthand)
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingLeft);
-        if (it != snapshot.styles.end()) applyPaddingLeft(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingLeft);
+        if (value.isValid()) {
+            applyPaddingLeft(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingRight);
-        if (it != snapshot.styles.end()) applyPaddingRight(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingRight);
+        if (value.isValid()) {
+            applyPaddingRight(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingTop);
-        if (it != snapshot.styles.end()) applyPaddingTop(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingTop);
+        if (value.isValid()) {
+            applyPaddingTop(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingBottom);
-        if (it != snapshot.styles.end()) applyPaddingBottom(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingBottom);
+        if (value.isValid()) {
+            applyPaddingBottom(yogaNode, value);
+        }
     }
     
     // Process margin attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kMargin);
-        if (styleIt != snapshot.styles.end()) {
-            applyMargin(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMargin);
+        if (value.isValid()) {
+            applyMargin(yogaNode, value);
         }
     }
     
     // Process margin-left/right/top/bottom attributes (override margin shorthand)
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginLeft);
-        if (it != snapshot.styles.end()) applyMarginLeft(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginLeft);
+        if (value.isValid()) {
+            applyMarginLeft(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginRight);
-        if (it != snapshot.styles.end()) applyMarginRight(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginRight);
+        if (value.isValid()) {
+            applyMarginRight(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginTop);
-        if (it != snapshot.styles.end()) applyMarginTop(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginTop);
+        if (value.isValid()) {
+            applyMarginTop(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginBottom);
-        if (it != snapshot.styles.end()) applyMarginBottom(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginBottom);
+        if (value.isValid()) {
+            applyMarginBottom(yogaNode, value);
+        }
     }
     
     
     // Process min-width attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kMinWidth);
-        if (styleIt != snapshot.styles.end()) {
-            applyMinWidth(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMinWidth);
+        if (value.isValid()) {
+            applyMinWidth(yogaNode, value);
         }
     }
     
     // Process max-width attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kMaxWidth);
-        if (styleIt != snapshot.styles.end()) {
-            applyMaxWidth(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMaxWidth);
+        if (value.isValid()) {
+            applyMaxWidth(yogaNode, value);
         }
     }
     
     // Process min-height attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kMinHeight);
-        if (styleIt != snapshot.styles.end()) {
-            applyMinHeight(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMinHeight);
+        if (value.isValid()) {
+            applyMinHeight(yogaNode, value);
         }
     }
     
     // Process max-height attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kMaxHeight);
-        if (styleIt != snapshot.styles.end()) {
-            applyMaxHeight(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMaxHeight);
+        if (value.isValid()) {
+            applyMaxHeight(yogaNode, value);
         }
     }
     
     // Process flex-wrap attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kFlexWrap);
-        if (styleIt != snapshot.styles.end()) {
-            applyFlexWrap(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexWrap);
+        if (value.isValid()) {
+            applyFlexWrap(yogaNode, value);
         }
     }
     
     // Process align-content attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kAlignContent);
-        if (styleIt != snapshot.styles.end()) {
-            applyAlignContent(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAlignContent);
+        if (value.isValid()) {
+            applyAlignContent(yogaNode, value);
         }
     }
     
     // Process flex-basis attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kFlexBasis);
-        if (styleIt != snapshot.styles.end()) {
-            applyFlexBasis(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexBasis);
+        if (value.isValid()) {
+            applyFlexBasis(yogaNode, value);
         }
     }
     
     // Process border attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kBorder);
-        if (styleIt != snapshot.styles.end()) {
-            applyBorder(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kBorder);
+        if (value.isValid()) {
+            applyBorder(yogaNode, value);
         }
     }
     
     // Process border-width attribute
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kBorderWidth);
-        if (it != snapshot.styles.end()) applyBorderWidth(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kBorderWidth);
+        if (value.isValid()) {
+            applyBorderWidth(yogaNode, value);
+        }
     }
     
     // Process position attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kPosition);
-        if (styleIt != snapshot.styles.end()) {
-            applyPosition(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPosition);
+        if (value.isValid()) {
+            applyPosition(yogaNode, value);
         }
     }
     
     // Process top attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kTop);
-        if (styleIt != snapshot.styles.end()) {
-            applyTop(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kTop);
+        if (value.isValid()) {
+            applyTop(yogaNode, value);
         }
     }
     
     // Process right attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kRight);
-        if (styleIt != snapshot.styles.end()) {
-            applyRight(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kRight);
+        if (value.isValid()) {
+            applyRight(yogaNode, value);
         }
     }
     
     // Process bottom attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kBottom);
-        if (styleIt != snapshot.styles.end()) {
-            applyBottom(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kBottom);
+        if (value.isValid()) {
+            applyBottom(yogaNode, value);
         }
     }
     
     // Process left attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kLeft);
-        if (styleIt != snapshot.styles.end()) {
-            applyLeft(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kLeft);
+        if (value.isValid()) {
+            applyLeft(yogaNode, value);
         }
     }
     
     // Process display attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kDisplay);
-        if (styleIt != snapshot.styles.end()) {
-            applyDisplay(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kDisplay);
+        if (value.isValid()) {
+            applyDisplay(yogaNode, value);
         }
     }
     
     // Process overflow attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kOverflow);
-        if (styleIt != snapshot.styles.end()) {
-            applyOverflow(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kOverflow);
+        if (value.isValid()) {
+            applyOverflow(yogaNode, value);
         }
     }
     
     // Process direction attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kDirection);
-        if (styleIt != snapshot.styles.end()) {
-            applyDirection(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kDirection);
+        if (value.isValid()) {
+            applyDirection(yogaNode, value);
         }
     }
     
     // Process aspect-ratio attribute
     {
-        auto styleIt = snapshot.styles.find(CSSPropertyNames::kAspectRatio);
-        if (styleIt != snapshot.styles.end()) {
-            applyAspectRatio(yogaNode, styleIt->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAspectRatio);
+        if (value.isValid()) {
+            applyAspectRatio(yogaNode, value);
         }
     }
     
     // Process CSS Logical Properties
     // Inset logical properties
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetInlineStart);
-        if (it != snapshot.styles.end()) applyInsetInlineStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInlineStart);
+        if (value.isValid()) {
+            applyInsetInlineStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetInlineEnd);
-        if (it != snapshot.styles.end()) applyInsetInlineEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInlineEnd);
+        if (value.isValid()) {
+            applyInsetInlineEnd(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetBlockStart);
-        if (it != snapshot.styles.end()) applyInsetBlockStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetBlockStart);
+        if (value.isValid()) {
+            applyInsetBlockStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetBlockEnd);
-        if (it != snapshot.styles.end()) applyInsetBlockEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetBlockEnd);
+        if (value.isValid()) {
+            applyInsetBlockEnd(yogaNode, value);
+        }
     }
     
     // Margin logical properties
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginInlineStart);
-        if (it != snapshot.styles.end()) applyMarginInlineStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInlineStart);
+        if (value.isValid()) {
+            applyMarginInlineStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginInlineEnd);
-        if (it != snapshot.styles.end()) applyMarginInlineEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInlineEnd);
+        if (value.isValid()) {
+            applyMarginInlineEnd(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginBlockStart);
-        if (it != snapshot.styles.end()) applyMarginBlockStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginBlockStart);
+        if (value.isValid()) {
+            applyMarginBlockStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginBlockEnd);
-        if (it != snapshot.styles.end()) applyMarginBlockEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginBlockEnd);
+        if (value.isValid()) {
+            applyMarginBlockEnd(yogaNode, value);
+        }
     }
     
     // Padding logical properties
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingInlineStart);
-        if (it != snapshot.styles.end()) applyPaddingInlineStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInlineStart);
+        if (value.isValid()) {
+            applyPaddingInlineStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingInlineEnd);
-        if (it != snapshot.styles.end()) applyPaddingInlineEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInlineEnd);
+        if (value.isValid()) {
+            applyPaddingInlineEnd(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingBlockStart);
-        if (it != snapshot.styles.end()) applyPaddingBlockStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingBlockStart);
+        if (value.isValid()) {
+            applyPaddingBlockStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingBlockEnd);
-        if (it != snapshot.styles.end()) applyPaddingBlockEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingBlockEnd);
+        if (value.isValid()) {
+            applyPaddingBlockEnd(yogaNode, value);
+        }
     }
     
 
     // camelCase alias processing (equivalent to kebab-case)
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kJustifyContentCC);
-        if (it != snapshot.styles.end()) applyJustifyContent(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kJustifyContentCC);
+        if (value.isValid()) {
+            applyJustifyContent(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kAlignItemsCC);
-        if (it != snapshot.styles.end()) applyAlignItems(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAlignItemsCC);
+        if (value.isValid()) {
+            applyAlignItems(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kFlexWrapCC);
-        if (it != snapshot.styles.end()) applyFlexWrap(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexWrapCC);
+        if (value.isValid()) {
+            applyFlexWrap(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kAlignContentCC);
-        if (it != snapshot.styles.end()) applyAlignContent(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAlignContentCC);
+        if (value.isValid()) {
+            applyAlignContent(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kAlignSelfCC);
-        if (it != snapshot.styles.end()) applyAlignSelf(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAlignSelfCC);
+        if (value.isValid()) {
+            applyAlignSelf(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kFlexGrowCC);
-        if (it != snapshot.styles.end()) applyFlexGrow(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexGrowCC);
+        if (value.isValid()) {
+            applyFlexGrow(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kFlexShrinkCC);
-        if (it != snapshot.styles.end()) applyFlexShrink(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexShrinkCC);
+        if (value.isValid()) {
+            applyFlexShrink(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kFlexBasisCC);
-        if (it != snapshot.styles.end()) applyFlexBasis(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kFlexBasisCC);
+        if (value.isValid()) {
+            applyFlexBasis(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kBorderWidthCC);
-        if (it != snapshot.styles.end()) applyBorderWidth(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kBorderWidthCC);
+        if (value.isValid()) {
+            applyBorderWidth(yogaNode, value);
+        }
     }
     // Inset logical properties camelCase
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetInlineStartCC);
-        if (it != snapshot.styles.end()) applyInsetInlineStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInlineStartCC);
+        if (value.isValid()) {
+            applyInsetInlineStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetInlineEndCC);
-        if (it != snapshot.styles.end()) applyInsetInlineEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInlineEndCC);
+        if (value.isValid()) {
+            applyInsetInlineEnd(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetBlockStartCC);
-        if (it != snapshot.styles.end()) applyInsetBlockStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetBlockStartCC);
+        if (value.isValid()) {
+            applyInsetBlockStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kInsetBlockEndCC);
-        if (it != snapshot.styles.end()) applyInsetBlockEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetBlockEndCC);
+        if (value.isValid()) {
+            applyInsetBlockEnd(yogaNode, value);
+        }
     }
     // Margin logical properties camelCase
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginInlineStartCC);
-        if (it != snapshot.styles.end()) applyMarginInlineStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInlineStartCC);
+        if (value.isValid()) {
+            applyMarginInlineStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginInlineEndCC);
-        if (it != snapshot.styles.end()) applyMarginInlineEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInlineEndCC);
+        if (value.isValid()) {
+            applyMarginInlineEnd(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginBlockStartCC);
-        if (it != snapshot.styles.end()) applyMarginBlockStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginBlockStartCC);
+        if (value.isValid()) {
+            applyMarginBlockStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kMarginBlockEndCC);
-        if (it != snapshot.styles.end()) applyMarginBlockEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginBlockEndCC);
+        if (value.isValid()) {
+            applyMarginBlockEnd(yogaNode, value);
+        }
     }
     // Padding logical properties camelCase
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingInlineStartCC);
-        if (it != snapshot.styles.end()) applyPaddingInlineStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInlineStartCC);
+        if (value.isValid()) {
+            applyPaddingInlineStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingInlineEndCC);
-        if (it != snapshot.styles.end()) applyPaddingInlineEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInlineEndCC);
+        if (value.isValid()) {
+            applyPaddingInlineEnd(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingBlockStartCC);
-        if (it != snapshot.styles.end()) applyPaddingBlockStart(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingBlockStartCC);
+        if (value.isValid()) {
+            applyPaddingBlockStart(yogaNode, value);
+        }
     }
     {
-        auto it = snapshot.styles.find(CSSPropertyNames::kPaddingBlockEndCC);
-        if (it != snapshot.styles.end()) applyPaddingBlockEnd(yogaNode, it->second);
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingBlockEndCC);
+        if (value.isValid()) {
+            applyPaddingBlockEnd(yogaNode, value);
+        }
     }
 
     // Clear converted CSS properties if requested
     if (clearAfterConvert) {
-        snapshot.styles.erase(CSSPropertyNames::kWidth);
-        snapshot.styles.erase(CSSPropertyNames::kHeight);
-        snapshot.styles.erase(CSSPropertyNames::kMinWidth);
-        snapshot.styles.erase(CSSPropertyNames::kMaxWidth);
-        snapshot.styles.erase(CSSPropertyNames::kMinHeight);
-        snapshot.styles.erase(CSSPropertyNames::kMaxHeight);
-        snapshot.styles.erase(CSSPropertyNames::kFlexDirection);
-        snapshot.styles.erase(CSSPropertyNames::kFlexWrap);
-        snapshot.styles.erase(CSSPropertyNames::kJustifyContent);
-        snapshot.styles.erase(CSSPropertyNames::kAlignItems);
-        snapshot.styles.erase(CSSPropertyNames::kAlignSelf);
-        snapshot.styles.erase(CSSPropertyNames::kAlignContent);
-        snapshot.styles.erase(CSSPropertyNames::kFlexGrow);
-        snapshot.styles.erase(CSSPropertyNames::kFlexShrink);
-        snapshot.styles.erase(CSSPropertyNames::kFlexBasis);
+        wrapper.clearStyle(CSSPropertyNames::kWidth);
+        wrapper.clearStyle(CSSPropertyNames::kHeight);
+        wrapper.clearStyle(CSSPropertyNames::kMinWidth);
+        wrapper.clearStyle(CSSPropertyNames::kMaxWidth);
+        wrapper.clearStyle(CSSPropertyNames::kMinHeight);
+        wrapper.clearStyle(CSSPropertyNames::kMaxHeight);
+        wrapper.clearStyle(CSSPropertyNames::kFlexDirection);
+        wrapper.clearStyle(CSSPropertyNames::kFlexWrap);
+        wrapper.clearStyle(CSSPropertyNames::kJustifyContent);
+        wrapper.clearStyle(CSSPropertyNames::kAlignItems);
+        wrapper.clearStyle(CSSPropertyNames::kAlignSelf);
+        wrapper.clearStyle(CSSPropertyNames::kAlignContent);
+        wrapper.clearStyle(CSSPropertyNames::kFlexGrow);
+        wrapper.clearStyle(CSSPropertyNames::kFlexShrink);
+        wrapper.clearStyle(CSSPropertyNames::kFlexBasis);
 
-        snapshot.styles.erase(CSSPropertyNames::kMargin);
-        snapshot.styles.erase(CSSPropertyNames::kBorder);
-        snapshot.styles.erase(CSSPropertyNames::kGap);
-        snapshot.styles.erase(CSSPropertyNames::kPosition);
-        snapshot.styles.erase(CSSPropertyNames::kTop);
-        snapshot.styles.erase(CSSPropertyNames::kRight);
-        snapshot.styles.erase(CSSPropertyNames::kBottom);
-        snapshot.styles.erase(CSSPropertyNames::kLeft);
-        snapshot.styles.erase(CSSPropertyNames::kDisplay);
-        snapshot.styles.erase(CSSPropertyNames::kDirection);
-        snapshot.styles.erase(CSSPropertyNames::kAspectRatio);
+        wrapper.clearStyle(CSSPropertyNames::kMargin);
+        wrapper.clearStyle(CSSPropertyNames::kBorder);
+        wrapper.clearStyle(CSSPropertyNames::kGap);
+        wrapper.clearStyle(CSSPropertyNames::kPosition);
+        wrapper.clearStyle(CSSPropertyNames::kTop);
+        wrapper.clearStyle(CSSPropertyNames::kRight);
+        wrapper.clearStyle(CSSPropertyNames::kBottom);
+        wrapper.clearStyle(CSSPropertyNames::kLeft);
+        wrapper.clearStyle(CSSPropertyNames::kDisplay);
+        wrapper.clearStyle(CSSPropertyNames::kDirection);
+        wrapper.clearStyle(CSSPropertyNames::kAspectRatio);
         
         // Clear CSS logical properties
-        snapshot.styles.erase(CSSPropertyNames::kInsetInlineStart);
-        snapshot.styles.erase(CSSPropertyNames::kInsetInlineEnd);
-        snapshot.styles.erase(CSSPropertyNames::kInsetBlockStart);
-        snapshot.styles.erase(CSSPropertyNames::kInsetBlockEnd);
-        snapshot.styles.erase(CSSPropertyNames::kMarginInlineStart);
-        snapshot.styles.erase(CSSPropertyNames::kMarginInlineEnd);
-        snapshot.styles.erase(CSSPropertyNames::kMarginBlockStart);
-        snapshot.styles.erase(CSSPropertyNames::kMarginBlockEnd);
+        wrapper.clearStyle(CSSPropertyNames::kInsetInlineStart);
+        wrapper.clearStyle(CSSPropertyNames::kInsetInlineEnd);
+        wrapper.clearStyle(CSSPropertyNames::kInsetBlockStart);
+        wrapper.clearStyle(CSSPropertyNames::kInsetBlockEnd);
+        wrapper.clearStyle(CSSPropertyNames::kMarginInlineStart);
+        wrapper.clearStyle(CSSPropertyNames::kMarginInlineEnd);
+        wrapper.clearStyle(CSSPropertyNames::kMarginBlockStart);
+        wrapper.clearStyle(CSSPropertyNames::kMarginBlockEnd);
 
         // camelCase aliases
-        snapshot.styles.erase(CSSPropertyNames::kJustifyContentCC);
-        snapshot.styles.erase(CSSPropertyNames::kAlignItemsCC);
-        snapshot.styles.erase(CSSPropertyNames::kFlexWrapCC);
-        snapshot.styles.erase(CSSPropertyNames::kAlignContentCC);
-        snapshot.styles.erase(CSSPropertyNames::kAlignSelfCC);
-        snapshot.styles.erase(CSSPropertyNames::kFlexGrowCC);
-        snapshot.styles.erase(CSSPropertyNames::kFlexShrinkCC);
-        snapshot.styles.erase(CSSPropertyNames::kFlexBasisCC);
-        snapshot.styles.erase(CSSPropertyNames::kBorderWidthCC);
-        snapshot.styles.erase(CSSPropertyNames::kInsetInlineStartCC);
-        snapshot.styles.erase(CSSPropertyNames::kInsetInlineEndCC);
-        snapshot.styles.erase(CSSPropertyNames::kInsetBlockStartCC);
-        snapshot.styles.erase(CSSPropertyNames::kInsetBlockEndCC);
-        snapshot.styles.erase(CSSPropertyNames::kMarginInlineStartCC);
-        snapshot.styles.erase(CSSPropertyNames::kMarginInlineEndCC);
-        snapshot.styles.erase(CSSPropertyNames::kMarginBlockStartCC);
-        snapshot.styles.erase(CSSPropertyNames::kMarginBlockEndCC);
+        wrapper.clearStyle(CSSPropertyNames::kJustifyContentCC);
+        wrapper.clearStyle(CSSPropertyNames::kAlignItemsCC);
+        wrapper.clearStyle(CSSPropertyNames::kFlexWrapCC);
+        wrapper.clearStyle(CSSPropertyNames::kAlignContentCC);
+        wrapper.clearStyle(CSSPropertyNames::kAlignSelfCC);
+        wrapper.clearStyle(CSSPropertyNames::kFlexGrowCC);
+        wrapper.clearStyle(CSSPropertyNames::kFlexShrinkCC);
+        wrapper.clearStyle(CSSPropertyNames::kFlexBasisCC);
+        wrapper.clearStyle(CSSPropertyNames::kBorderWidthCC);
+        wrapper.clearStyle(CSSPropertyNames::kInsetInlineStartCC);
+        wrapper.clearStyle(CSSPropertyNames::kInsetInlineEndCC);
+        wrapper.clearStyle(CSSPropertyNames::kInsetBlockStartCC);
+        wrapper.clearStyle(CSSPropertyNames::kInsetBlockEndCC);
+        wrapper.clearStyle(CSSPropertyNames::kMarginInlineStartCC);
+        wrapper.clearStyle(CSSPropertyNames::kMarginInlineEndCC);
+        wrapper.clearStyle(CSSPropertyNames::kMarginBlockStartCC);
+        wrapper.clearStyle(CSSPropertyNames::kMarginBlockEndCC);
 
     }
 }
 
-void CSSStyleConverter::applyWidth(YGNodeRef yogaNode, const SerializableData& value, bool hasMeasureFunc) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyWidth(YGNodeRef yogaNode, YogaValue value, bool hasMeasureFunc) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetWidth(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetWidth(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "auto") {
         YGNodeStyleSetWidthAuto(yogaNode);
@@ -606,17 +690,19 @@ void CSSStyleConverter::applyWidth(YGNodeRef yogaNode, const SerializableData& v
     }
 }
 
-void CSSStyleConverter::applyHeight(YGNodeRef yogaNode, const SerializableData& value, bool hasMeasureFunc) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyHeight(YGNodeRef yogaNode, YogaValue value, bool hasMeasureFunc) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetHeight(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetHeight(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "auto") {
         YGNodeStyleSetHeightAuto(yogaNode);
@@ -636,12 +722,14 @@ void CSSStyleConverter::applyHeight(YGNodeRef yogaNode, const SerializableData& 
     }
 }
 
-void CSSStyleConverter::applyFlexDirection(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyFlexDirection(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "row") {
         YGNodeStyleSetFlexDirection(yogaNode, YGFlexDirectionRow);
@@ -654,12 +742,14 @@ void CSSStyleConverter::applyFlexDirection(YGNodeRef yogaNode, const Serializabl
     }
 }
 
-void CSSStyleConverter::applyJustifyContent(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyJustifyContent(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "flex-start") {
         YGNodeStyleSetJustifyContent(yogaNode, YGJustifyFlexStart);
@@ -676,15 +766,16 @@ void CSSStyleConverter::applyJustifyContent(YGNodeRef yogaNode, const Serializab
     }
 }
 
-void CSSStyleConverter::applyAlignItems(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyAlignItems(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "flex-start") {
-        
         YGNodeStyleSetAlignItems(yogaNode, YGAlignFlexStart);
     } else if (actualValue == "center") {
         YGNodeStyleSetAlignItems(yogaNode, YGAlignCenter);
@@ -697,12 +788,14 @@ void CSSStyleConverter::applyAlignItems(YGNodeRef yogaNode, const SerializableDa
     }
 }
 
-void CSSStyleConverter::applyAlignSelf(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyAlignSelf(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "auto") {
         YGNodeStyleSetAlignSelf(yogaNode, YGAlignAuto);
@@ -719,69 +812,77 @@ void CSSStyleConverter::applyAlignSelf(YGNodeRef yogaNode, const SerializableDat
     }
 }
 
-void CSSStyleConverter::applyFlex(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyFlex(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetFlex(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetFlex(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (!actualValue.empty()) {
         float flex = parseCssFloat(actualValue);
         YGNodeStyleSetFlex(yogaNode, flex);
     }
 }
 
-void CSSStyleConverter::applyFlexGrow(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyFlexGrow(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetFlexGrow(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetFlexGrow(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (!actualValue.empty()) {
         float flexGrow = parseCssFloat(actualValue);
         YGNodeStyleSetFlexGrow(yogaNode, flexGrow);
     }
 }
 
-void CSSStyleConverter::applyFlexShrink(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyFlexShrink(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetFlexShrink(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetFlexShrink(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (!actualValue.empty()) {
         float flexShrink = parseCssFloat(actualValue);
         YGNodeStyleSetFlexShrink(yogaNode, flexShrink);
     }
 }
 
-void CSSStyleConverter::applyPadding(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyPadding(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        float val = static_cast<float>(value.asDouble());
+    if (value.type() == YogaValue::kFloat) {
+        float val = value.asFloat();
         YGNodeStyleSetPadding(yogaNode, YGEdgeAll, val);
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -811,18 +912,20 @@ void CSSStyleConverter::applyPadding(YGNodeRef yogaNode, const SerializableData&
     }
 }
 
-void CSSStyleConverter::applyMargin(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyMargin(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        float val = static_cast<float>(value.asDouble());
+    if (value.type() == YogaValue::kFloat) {
+        float val = value.asFloat();
         YGNodeStyleSetMargin(yogaNode, YGEdgeAll, val);
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -852,29 +955,33 @@ void CSSStyleConverter::applyMargin(YGNodeRef yogaNode, const SerializableData& 
     }
 }
 
-void CSSStyleConverter::applyGap(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyGap(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetGap(yogaNode, YGGutterAll, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetGap(yogaNode, YGGutterAll, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (!actualValue.empty()) {
         float gap = parseCssFloat(actualValue);
         YGNodeStyleSetGap(yogaNode, YGGutterAll, gap);
     }
 }
 
-void CSSStyleConverter::applyPosition(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyPosition(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "relative") {
         YGNodeStyleSetPositionType(yogaNode, YGPositionTypeRelative);
@@ -883,17 +990,19 @@ void CSSStyleConverter::applyPosition(YGNodeRef yogaNode, const SerializableData
     }
 }
 
-void CSSStyleConverter::applyMinWidth(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyMinWidth(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetMinWidth(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMinWidth(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -912,17 +1021,19 @@ void CSSStyleConverter::applyMinWidth(YGNodeRef yogaNode, const SerializableData
     }
 }
 
-void CSSStyleConverter::applyMaxWidth(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyMaxWidth(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetMaxWidth(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMaxWidth(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -941,17 +1052,19 @@ void CSSStyleConverter::applyMaxWidth(YGNodeRef yogaNode, const SerializableData
     }
 }
 
-void CSSStyleConverter::applyMinHeight(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyMinHeight(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetMinHeight(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMinHeight(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -970,17 +1083,19 @@ void CSSStyleConverter::applyMinHeight(YGNodeRef yogaNode, const SerializableDat
     }
 }
 
-void CSSStyleConverter::applyMaxHeight(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyMaxHeight(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetMaxHeight(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMaxHeight(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -999,12 +1114,14 @@ void CSSStyleConverter::applyMaxHeight(YGNodeRef yogaNode, const SerializableDat
     }
 }
 
-void CSSStyleConverter::applyFlexWrap(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyFlexWrap(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "nowrap") {
         YGNodeStyleSetFlexWrap(yogaNode, YGWrapNoWrap);
@@ -1015,12 +1132,14 @@ void CSSStyleConverter::applyFlexWrap(YGNodeRef yogaNode, const SerializableData
     }
 }
 
-void CSSStyleConverter::applyAlignContent(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyAlignContent(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "flex-start") {
         YGNodeStyleSetAlignContent(yogaNode, YGAlignFlexStart);
@@ -1037,17 +1156,19 @@ void CSSStyleConverter::applyAlignContent(YGNodeRef yogaNode, const Serializable
     }
 }
 
-void CSSStyleConverter::applyFlexBasis(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyFlexBasis(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetFlexBasis(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetFlexBasis(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "auto") {
         YGNodeStyleSetFlexBasisAuto(yogaNode);
@@ -1065,18 +1186,20 @@ void CSSStyleConverter::applyFlexBasis(YGNodeRef yogaNode, const SerializableDat
     }
 }
 
-void CSSStyleConverter::applyBorder(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyBorder(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        float val = static_cast<float>(value.asDouble());
+    if (value.type() == YogaValue::kFloat) {
+        float val = value.asFloat();
         YGNodeStyleSetBorder(yogaNode, YGEdgeAll, val);
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -1109,17 +1232,19 @@ void CSSStyleConverter::applyBorder(YGNodeRef yogaNode, const SerializableData& 
     }
 }
 
-void CSSStyleConverter::applyTop(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyTop(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetPosition(yogaNode, YGEdgeTop, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPosition(yogaNode, YGEdgeTop, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -1138,17 +1263,19 @@ void CSSStyleConverter::applyTop(YGNodeRef yogaNode, const SerializableData& val
     }
 }
 
-void CSSStyleConverter::applyRight(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyRight(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetPosition(yogaNode, YGEdgeRight, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPosition(yogaNode, YGEdgeRight, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -1167,17 +1294,19 @@ void CSSStyleConverter::applyRight(YGNodeRef yogaNode, const SerializableData& v
     }
 }
 
-void CSSStyleConverter::applyBottom(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyBottom(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetPosition(yogaNode, YGEdgeBottom, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPosition(yogaNode, YGEdgeBottom, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -1196,17 +1325,19 @@ void CSSStyleConverter::applyBottom(YGNodeRef yogaNode, const SerializableData& 
     }
 }
 
-void CSSStyleConverter::applyLeft(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyLeft(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetPosition(yogaNode, YGEdgeLeft, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPosition(yogaNode, YGEdgeLeft, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (actualValue.empty()) {
         return;
     }
@@ -1225,12 +1356,14 @@ void CSSStyleConverter::applyLeft(YGNodeRef yogaNode, const SerializableData& va
     }
 }
 
-void CSSStyleConverter::applyDisplay(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyDisplay(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "flex") {
         YGNodeStyleSetDisplay(yogaNode, YGDisplayFlex);
@@ -1239,12 +1372,14 @@ void CSSStyleConverter::applyDisplay(YGNodeRef yogaNode, const SerializableData&
     }
 }
 
-void CSSStyleConverter::applyOverflow(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyOverflow(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "visible") {
         YGNodeStyleSetOverflow(yogaNode, YGOverflowVisible);
@@ -1255,12 +1390,14 @@ void CSSStyleConverter::applyOverflow(YGNodeRef yogaNode, const SerializableData
     }
 }
 
-void CSSStyleConverter::applyDirection(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyDirection(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     
     if (actualValue == "ltr") {
         YGNodeStyleSetDirection(yogaNode, YGDirectionLTR);
@@ -1271,17 +1408,19 @@ void CSSStyleConverter::applyDirection(YGNodeRef yogaNode, const SerializableDat
     }
 }
 
-void CSSStyleConverter::applyAspectRatio(YGNodeRef yogaNode, const SerializableData& value) {
-    if (yogaNode == nullptr) {
+void CSSStyleConverter::applyAspectRatio(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
     
-    if (value.isNumber()) {
-        YGNodeStyleSetAspectRatio(yogaNode, static_cast<float>(value.asDouble()));
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetAspectRatio(yogaNode, value.asFloat());
         return;
     }
-    
-    std::string actualValue = value.asString();
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
     if (!actualValue.empty()) {
         float aspectRatio = 0.0f;
         if (parseAspectRatioValue(actualValue, aspectRatio)) {
@@ -1300,120 +1439,167 @@ static float parseLengthValue(const std::string& val) {
     return yoga_internal::parseCssFloat(numericPart);
 }
 
-void CSSStyleConverter::applyMarginLeft(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetMargin(yogaNode, YGEdgeLeft, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyMarginLeft(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMargin(yogaNode, YGEdgeLeft, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (v == "auto") { YGNodeStyleSetMarginAuto(yogaNode, YGEdgeLeft); }
     else if (!v.empty() && v.back() == '%') { YGNodeStyleSetMarginPercent(yogaNode, YGEdgeLeft, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetMargin(yogaNode, YGEdgeLeft, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyMarginRight(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetMargin(yogaNode, YGEdgeRight, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyMarginRight(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMargin(yogaNode, YGEdgeRight, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (v == "auto") { YGNodeStyleSetMarginAuto(yogaNode, YGEdgeRight); }
     else if (!v.empty() && v.back() == '%') { YGNodeStyleSetMarginPercent(yogaNode, YGEdgeRight, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetMargin(yogaNode, YGEdgeRight, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyMarginTop(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetMargin(yogaNode, YGEdgeTop, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyMarginTop(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMargin(yogaNode, YGEdgeTop, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (v == "auto") { YGNodeStyleSetMarginAuto(yogaNode, YGEdgeTop); }
     else if (!v.empty() && v.back() == '%') { YGNodeStyleSetMarginPercent(yogaNode, YGEdgeTop, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetMargin(yogaNode, YGEdgeTop, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyMarginBottom(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetMargin(yogaNode, YGEdgeBottom, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyMarginBottom(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMargin(yogaNode, YGEdgeBottom, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (v == "auto") { YGNodeStyleSetMarginAuto(yogaNode, YGEdgeBottom); }
     else if (!v.empty() && v.back() == '%') { YGNodeStyleSetMarginPercent(yogaNode, YGEdgeBottom, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetMargin(yogaNode, YGEdgeBottom, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyPaddingLeft(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetPadding(yogaNode, YGEdgeLeft, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyPaddingLeft(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPadding(yogaNode, YGEdgeLeft, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (!v.empty() && v.back() == '%') { YGNodeStyleSetPaddingPercent(yogaNode, YGEdgeLeft, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetPadding(yogaNode, YGEdgeLeft, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyPaddingRight(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetPadding(yogaNode, YGEdgeRight, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyPaddingRight(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPadding(yogaNode, YGEdgeRight, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (!v.empty() && v.back() == '%') { YGNodeStyleSetPaddingPercent(yogaNode, YGEdgeRight, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetPadding(yogaNode, YGEdgeRight, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyPaddingTop(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetPadding(yogaNode, YGEdgeTop, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyPaddingTop(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPadding(yogaNode, YGEdgeTop, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (!v.empty() && v.back() == '%') { YGNodeStyleSetPaddingPercent(yogaNode, YGEdgeTop, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetPadding(yogaNode, YGEdgeTop, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyPaddingBottom(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetPadding(yogaNode, YGEdgeBottom, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyPaddingBottom(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPadding(yogaNode, YGEdgeBottom, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (!v.empty() && v.back() == '%') { YGNodeStyleSetPaddingPercent(yogaNode, YGEdgeBottom, yoga_internal::parseCssFloat(v.substr(0, v.size()-1))); }
     else if (!v.empty()) { YGNodeStyleSetPadding(yogaNode, YGEdgeBottom, parseLengthValue(v)); }
 }
 
-void CSSStyleConverter::applyBorderWidth(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
-    if (value.isNumber()) {
-        YGNodeStyleSetBorder(yogaNode, YGEdgeAll, static_cast<float>(value.asDouble()));
+void CSSStyleConverter::applyBorderWidth(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
         return;
     }
-    std::string v = value.asString();
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetBorder(yogaNode, YGEdgeAll, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
     if (!v.empty()) {
         YGNodeStyleSetBorder(yogaNode, YGEdgeAll, parseLengthValue(v));
     }
 }
 
-void CSSStyleConverter::applyCellPadding(YGNodeRef yogaNode, ComponentSnapshot& snapshot) {
+void CSSStyleConverter::applyCellPadding(YGNodeRef yogaNode, ILayoutDataWrapper& wrapper) {
     // Same logic as applyPadding: parse single or multi-value CSS padding format
-    {
-        auto it = snapshot.styles.find(CSSPropertyNames::kCellPadding);
-        if (it != snapshot.styles.end()) applyPadding(yogaNode, it->second);
+    YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kCellPadding);
+    if (value.isValid()) {
+        applyPadding(yogaNode, value);
     }
 }
 
-void CSSStyleConverter::applyInsetInlineStart(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyInsetInlineStart(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     YGDirection direction = YGNodeStyleGetDirection(yogaNode);
     if (direction == YGDirectionRTL) {
         applyRight(yogaNode, value);
@@ -1422,8 +1608,10 @@ void CSSStyleConverter::applyInsetInlineStart(YGNodeRef yogaNode, const Serializ
     }
 }
 
-void CSSStyleConverter::applyInsetInlineEnd(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyInsetInlineEnd(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     YGDirection direction = YGNodeStyleGetDirection(yogaNode);
     if (direction == YGDirectionRTL) {
         applyLeft(yogaNode, value);
@@ -1432,19 +1620,25 @@ void CSSStyleConverter::applyInsetInlineEnd(YGNodeRef yogaNode, const Serializab
     }
 }
 
-void CSSStyleConverter::applyInsetBlockStart(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyInsetBlockStart(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     applyTop(yogaNode, value);
 }
 
-void CSSStyleConverter::applyInsetBlockEnd(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyInsetBlockEnd(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     applyBottom(yogaNode, value);
 }
 
 // Margin logical properties implementation
-void CSSStyleConverter::applyMarginInlineStart(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyMarginInlineStart(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     YGDirection direction = YGNodeStyleGetDirection(yogaNode);
     if (direction == YGDirectionRTL) {
         applyMarginRight(yogaNode, value);
@@ -1453,8 +1647,10 @@ void CSSStyleConverter::applyMarginInlineStart(YGNodeRef yogaNode, const Seriali
     }
 }
 
-void CSSStyleConverter::applyMarginInlineEnd(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyMarginInlineEnd(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     YGDirection direction = YGNodeStyleGetDirection(yogaNode);
     if (direction == YGDirectionRTL) {
         applyMarginLeft(yogaNode, value);
@@ -1463,19 +1659,25 @@ void CSSStyleConverter::applyMarginInlineEnd(YGNodeRef yogaNode, const Serializa
     }
 }
 
-void CSSStyleConverter::applyMarginBlockStart(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyMarginBlockStart(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     applyMarginTop(yogaNode, value);
 }
 
-void CSSStyleConverter::applyMarginBlockEnd(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyMarginBlockEnd(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     applyMarginBottom(yogaNode, value);
 }
 
 // Padding logical properties implementation
-void CSSStyleConverter::applyPaddingInlineStart(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyPaddingInlineStart(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     YGDirection direction = YGNodeStyleGetDirection(yogaNode);
     if (direction == YGDirectionRTL) {
         applyPaddingRight(yogaNode, value);
@@ -1484,8 +1686,10 @@ void CSSStyleConverter::applyPaddingInlineStart(YGNodeRef yogaNode, const Serial
     }
 }
 
-void CSSStyleConverter::applyPaddingInlineEnd(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyPaddingInlineEnd(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     YGDirection direction = YGNodeStyleGetDirection(yogaNode);
     if (direction == YGDirectionRTL) {
         applyPaddingLeft(yogaNode, value);
@@ -1494,13 +1698,17 @@ void CSSStyleConverter::applyPaddingInlineEnd(YGNodeRef yogaNode, const Serializ
     }
 }
 
-void CSSStyleConverter::applyPaddingBlockStart(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyPaddingBlockStart(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     applyPaddingTop(yogaNode, value);
 }
 
-void CSSStyleConverter::applyPaddingBlockEnd(YGNodeRef yogaNode, const SerializableData& value) {
-    if (!yogaNode) return;
+void CSSStyleConverter::applyPaddingBlockEnd(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
     applyPaddingBottom(yogaNode, value);
 }
 

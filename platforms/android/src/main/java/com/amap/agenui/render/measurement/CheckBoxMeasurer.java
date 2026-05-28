@@ -18,14 +18,14 @@ import java.util.Map;
  * If both axes are already fixed by layout styles, Yoga may resolve the node without invoking
  * this callback.
  */
-final class CheckBoxMeasurer {
+public final class CheckBoxMeasurer {
 
     private static final String COMPONENT_NAME = "CheckBox";
 
     private CheckBoxMeasurer() {
     }
 
-    static MeasureResult measure(Context context,
+    public static MeasureResult measure(Context context,
                                  String paramJson,
                                  float maxWidth,
                                  int widthMode,

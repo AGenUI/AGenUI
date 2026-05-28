@@ -13,6 +13,7 @@ class StreamingContentParser;
 class SurfaceCoordinator;
 class EventDispatcher;
 class IAGenUIMessageListener;
+class ISurfaceSizeProvider;
 class IThread;
 
 /**
@@ -113,6 +114,18 @@ public:
      */
     void invalidateFunctionCallValues() override;
 
+    /**
+     * @brief Inject the host-supplied source of truth for per-surface sizes.
+     *
+     * Non-owning. See ISurfaceManager for the threading and lifetime contract.
+     */
+    void setSurfaceSizeProvider(ISurfaceSizeProvider* provider) override;
+
+    /**
+     * @brief Return the previously injected surface size provider.
+     */
+    ISurfaceSizeProvider* getSurfaceSizeProvider() const override;
+
     EventDispatcher* getEventDispatcher();
     StreamingContentParser* getStreamingContentParser();
     SurfaceCoordinator* getSurfaceCoordinator();
@@ -136,6 +149,14 @@ private:
     std::vector<IAGenUIMessageListener*> _cachedListeners;
     StreamingContentParser* _streamingContentParser = nullptr;
     SurfaceCoordinator* _surfaceCoordinator = nullptr;
+
+    // Host-supplied surface size source of truth. Non-owning; the host is
+    // responsible for keeping it alive at least until this SurfaceManager
+    // is destroyed or a subsequent setSurfaceSizeProvider(nullptr) call
+    // detaches it. Read on the worker thread; updates are serialized by
+    // _surfaceSizeProviderMutex against any in-flight provider queries.
+    ISurfaceSizeProvider* _surfaceSizeProvider = nullptr;
+    mutable std::mutex _surfaceSizeProviderMutex;
 
     // Running state
     std::atomic_bool _isRunning{false};

@@ -1,9 +1,11 @@
 #include "agenui_yoga_node.h"
 
 #include <utility>
+#include "surface/yoga_node/agenui_layout_data_wrapper.h"
 #include "surface/yoga_node/agenui_css_style_converter.h"
 #include "surface/yoga_node/agenui_a2ui_attribute_converter.h"
 #include "surface/yoga_node/agenui_tabs_yoga_helper.h"
+#include "surface/yoga_node/agenui_component_snapshot_wrapper.h"
 
 namespace agenui {
 
@@ -157,10 +159,10 @@ float YogaNode::getLayoutTop()    const { auto v = _ygNode ? YGNodeLayoutGetTop(
 float YogaNode::getLayoutWidth()  const { auto v = _ygNode ? YGNodeLayoutGetWidth(_ygNode)  : 0.0f; return std::isnan(v) ? 0.0f : v; }
 float YogaNode::getLayoutHeight() const { auto v = _ygNode ? YGNodeLayoutGetHeight(_ygNode) : 0.0f; return std::isnan(v) ? 0.0f : v; }
 
-void YogaNode::applySnapshot(ComponentSnapshot& snapshot, bool clearAfterConvert) {
+void YogaNode::applySnapshot(ILayoutDataWrapper& wrapper, bool clearAfterConvert) {
     if (!_ygNode) { return; }
-    CSSStyleConverter::convertToYoga(snapshot, _ygNode, clearAfterConvert);
-    A2UIAttributeConverter::convertToYoga(snapshot, _ygNode, clearAfterConvert);
+    CSSStyleConverter::convertToYoga(wrapper, _ygNode, clearAfterConvert);
+    A2UIAttributeConverter::convertToYoga(wrapper, _ygNode, clearAfterConvert);
     saveCurrentStyleSize();
 }
 
@@ -198,17 +200,16 @@ void YogaNode::resetToStyleSize() {
     }
 }
 
-void YogaNode::applySnapshotWithTabsHints(ComponentSnapshot& snapshot,
-                                          const ComponentSnapshot* parentSnapshot,
-                                          const std::string& nodeId,
+void YogaNode::applySnapshotWithTabsHints(ILayoutDataWrapper& wrapper,
+                                          ILayoutDataWrapper& parentWrapper,
                                           bool clearAfterConvert) {
     // Apply snapshot attributes to Yoga node
     // Note: injectFlexGrowIfNeeded must be called by the caller before StyleDefaults; not repeated here.
-    applySnapshot(snapshot, clearAfterConvert);
+    applySnapshot(wrapper, clearAfterConvert);
 
     // Rule 2: parent is Tabs -- set this node to Yoga absolute layout (for height measurement)
-    if (parentSnapshot && parentSnapshot->component == "Tabs") {
-        TabsYogaHelper::setChildAbsoluteLayout(*this, nodeId);
+    if (parentWrapper.componentType() == "Tabs") {
+        TabsYogaHelper::setChildAbsoluteLayout(*this, wrapper.nodeId());
     }
 }
 

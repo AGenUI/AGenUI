@@ -2,8 +2,6 @@
 #include <cstdio>
 #include "surface/yoga_node/agenui_css_style_converter.h"
 #include "surface/yoga_node/agenui_a2ui_attribute_converter.h"
-#include "agenui_ivirtual_define.h"
-#include "agenui_platform_layout_bridge.h"
 #include "surface/style_defaults/agenui_style_defaults.h"
 #include "agenui_logger_internal.h"
 #include "surface/agenui_serializable_data_impl.h"
@@ -11,11 +9,11 @@
 #include <functional>
 #include "nlohmann/json.hpp"
 #include <yoga/Yoga.h>
-#include "surface/virtual_dom/agenui_ivirtual_define.h"
 #include "surface/yoga_node/agenui_yoga_node_manager.h"
 #include "surface/yoga_node/agenui_tabs_yoga_helper.h"
 #include "surface/yoga_node/agenui_measurement_manager.h"
 #include "surface/yoga_node/agenui_layout_delegate.h"
+#include "surface/yoga_node/agenui_component_snapshot_wrapper.h"
 
 namespace agenui {
 
@@ -157,11 +155,15 @@ void VirtualDOMNode::setSnapshot(const ComponentSnapshot& snapshot, const std::s
     // Apply Yoga layout conversion with Tabs-specific hints (flex-grow injection + absolute layout),
     // clearAfterConvert=true clears already-converted properties from _snapshot
     if (_yogaNode) {
-        _yogaNode->applySnapshotWithTabsHints(
-            *_snapshot,
-            _parent ? _parent->getSnapshot() : nullptr,
-            _id,
-            true);
+        // Create wrappers (shared_ptr copy, not move - VirtualDOMNode keeps ownership)
+        ComponentSnapshotWrapper wrapper(_snapshot);
+        auto parentSnapshot = _parent ? _parent->getSnapshotShared() : nullptr;
+        if (parentSnapshot) {
+            ComponentSnapshotWrapper parentWrapper(parentSnapshot);
+            _yogaNode->applySnapshotWithTabsHints(wrapper, parentWrapper, true);
+        } else {
+            _yogaNode->applySnapshot(wrapper, true);
+        }
     }
 }
 

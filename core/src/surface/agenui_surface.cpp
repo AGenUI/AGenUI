@@ -2,6 +2,7 @@
 #include "agenui_template_registry.h"
 #include "agenui_engine_context.h"
 #include "agenui_engine_entry.h"
+#include "agenui_surface_size_provider.h"
 #include "agenui_type_define.h"
 #include "module/agenui_surface_manager.h"
 #include "agenui_measurement.h"
@@ -31,7 +32,10 @@ Surface::Surface(const std::string& surfaceId, const std::string& theme, Surface
     if (engine) {
         mm = engine->getMeasurementManager();
     }
-    _virtualDom = new VirtualDOM(this, mm);
+    // Pass `this` as the ISurfaceContext so VirtualDOM can pull the surface
+    // size on demand (cache-first; falls back to the host-supplied provider
+    // on the bootstrap miss before any onSurfaceSizeChanged push has arrived).
+    _virtualDom = new VirtualDOM(this, this, mm);
     _componentManager = new ComponentManager(this, _virtualDom, _theme);
 
     // Wire up cascading batch guards:
@@ -74,6 +78,42 @@ IDataModel* Surface::getDataModel() const {
     return _dataModel;
 }
 
+void Surface::ensureSurfaceSizeFetched() {
+    if (_surfaceSizeFetched) {
+        return;
+    }
+    // Only count as "fetched" when we actually reach the provider — a missing
+    // SurfaceManager or a not-yet-injected ISurfaceSizeProvider leaves the
+    // flag false so a later call retries the bootstrap once the host has
+    // wired everything up.
+    if (!_surfaceManager) {
+        return;
+    }
+    ISurfaceSizeProvider* provider = _surfaceManager->getSurfaceSizeProvider();
+    if (!provider) {
+        return;
+    }
+    // Whatever the provider returns is authoritative — same policy as the
+    // push channel. No positivity guard; the source of truth lives outside
+    // this class. After this call subsequent real size changes only arrive
+    // through the push channel (Surface::updateSurfaceSize) which overwrites
+    // these fields verbatim.
+    SurfaceSize size = provider->getSurfaceSize(_surfaceId);
+    _surfaceWidth  = size.width;
+    _surfaceHeight = size.height;
+    _surfaceSizeFetched = true;
+}
+
+float Surface::getSurfaceWidth() {
+    ensureSurfaceSizeFetched();
+    return _surfaceWidth;
+}
+
+float Surface::getSurfaceHeight() {
+    ensureSurfaceSizeFetched();
+    return _surfaceHeight;
+}
+
 void Surface::updateComponentSize(const ComponentRenderInfo& info) {
     if (_virtualDom) {
         BatchScope batchScope(_virtualDom->batchGuard());
@@ -95,10 +135,28 @@ void Surface::updateTabsSelectedIndex(const ComponentRenderInfo& info) {
 }
 
 void Surface::updateSurfaceSize(const SurfaceLayoutInfo& info) {
+    // Always refresh the cache and flip the fetched flag so subsequent
+    // bootstrap pulls are short-circuited, even when the size is unchanged.
+    const bool firstPush = !_surfaceSizeFetched;
+    const bool sizeChanged = firstPush
+                          || _surfaceWidth  != info.width
+                          || _surfaceHeight != info.height;
+
+    _surfaceWidth  = info.width;
+    _surfaceHeight = info.height;
+    _surfaceSizeFetched = true;
+
+    // Skip the VDOM notification when the size is unchanged: it would wipe
+    // every node's platform-measured size cache and re-layout against an
+    // unchanged width, forcing pointless re-measure on Text / Image nodes.
+    if (!sizeChanged) {
+        return;
+    }
+
     if (_virtualDom) {
         BatchScope batchScope(_virtualDom->batchGuard());
         VirtualDOM* virtualDomImpl = static_cast<VirtualDOM*>(_virtualDom);
-        virtualDomImpl->updateSurfaceSize(info);
+        virtualDomImpl->notifySurfaceSizeChanged();
     } else {
         AGENUI_LOG("virtualDom is null");
     }
@@ -233,7 +291,7 @@ void Surface::onNodeUpdate(const std::string& componentId, const std::string& no
     ComponentsUpdateMessage message;
     message.componentId = componentId;
     message.component = nodeJson;
-    _pendingUpdates.emplace_back(std::move(message));
+    _pendingDispatches.emplace_back(std::move(message));
     _dispatchGuard.requestFlush();
 }
 
@@ -251,7 +309,7 @@ void Surface::onNodeAdded(const std::string& parentId, const std::string& nodeJs
     message.parentId = parentId;
     message.componentId = componentId;
     message.component = nodeJson;
-    _pendingAdds.emplace_back(std::move(message));
+    _pendingDispatches.emplace_back(std::move(message));
     _dispatchGuard.requestFlush();
 }
 
@@ -261,7 +319,7 @@ void Surface::onNodeRemoved(const std::string& parentId, const std::string& id) 
     ComponentsRemoveMessage message;
     message.parentId = parentId;
     message.componentId = id;
-    _pendingRemoves.emplace_back(std::move(message));
+    _pendingDispatches.emplace_back(std::move(message));
     _dispatchGuard.requestFlush();
 }
 
@@ -269,21 +327,58 @@ void Surface::flushPendingDispatches() {
     if (!_surfaceManager) return;
     auto* dispatcher = _surfaceManager->getEventDispatcher();
     if (!dispatcher) return;
+    if (_pendingDispatches.empty()) return;
 
-    if (!_pendingRemoves.empty()) {
-        std::vector<ComponentsRemoveMessage> removes;
-        removes.swap(_pendingRemoves);
-        dispatcher->dispatchComponentsRemove(_surfaceId, removes);
-    }
-    if (!_pendingAdds.empty()) {
-        std::vector<ComponentsAddMessage> adds;
-        adds.swap(_pendingAdds);
-        dispatcher->dispatchComponentsAdd(_surfaceId, adds);
-    }
-    if (!_pendingUpdates.empty()) {
-        std::vector<ComponentsUpdateMessage> updates;
-        updates.swap(_pendingUpdates);
-        dispatcher->dispatchComponentsUpdate(_surfaceId, updates);
+    // Take ownership of the queue up front so re-entrant observer callbacks
+    // triggered by a dispatch land in a fresh queue rather than the run we
+    // are currently iterating.
+    std::vector<PendingDispatch> pending;
+    pending.swap(_pendingDispatches);
+
+    // Slice the queue into maximal runs of the same alternative and dispatch
+    // each run through its typed listener call. This preserves the exact
+    // emission order across kinds while keeping the existing per-kind
+    // listener signatures (vector<AddMessage> / vector<RemoveMessage> /
+    // vector<UpdateMessage>) intact.
+    size_t i = 0;
+    while (i < pending.size()) {
+        const size_t kind = pending[i].index();
+        size_t j = i + 1;
+        while (j < pending.size() && pending[j].index() == kind) {
+            ++j;
+        }
+        switch (kind) {
+            case 0: {  // ComponentsAddMessage
+                std::vector<ComponentsAddMessage> run;
+                run.reserve(j - i);
+                for (size_t k = i; k < j; ++k) {
+                    run.emplace_back(std::move(std::get<ComponentsAddMessage>(pending[k])));
+                }
+                dispatcher->dispatchComponentsAdd(_surfaceId, run);
+                break;
+            }
+            case 1: {  // ComponentsRemoveMessage
+                std::vector<ComponentsRemoveMessage> run;
+                run.reserve(j - i);
+                for (size_t k = i; k < j; ++k) {
+                    run.emplace_back(std::move(std::get<ComponentsRemoveMessage>(pending[k])));
+                }
+                dispatcher->dispatchComponentsRemove(_surfaceId, run);
+                break;
+            }
+            case 2: {  // ComponentsUpdateMessage
+                std::vector<ComponentsUpdateMessage> run;
+                run.reserve(j - i);
+                for (size_t k = i; k < j; ++k) {
+                    run.emplace_back(std::move(std::get<ComponentsUpdateMessage>(pending[k])));
+                }
+                dispatcher->dispatchComponentsUpdate(_surfaceId, run);
+                break;
+            }
+            default:
+                break;
+        }
+        i = j;
     }
 }
 

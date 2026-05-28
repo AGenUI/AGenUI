@@ -1,8 +1,7 @@
 #include "slider_component.h"
 #include "../a2ui_node.h"
 #include "../../utils/a2ui_color_palette.h"
-#include "agenui_platform_layout_bridge.h"
-#include "agenui_engine_entry.h"
+#include "../../measure/a2ui_platform_layout_bridge.h"
 #include "log/a2ui_capi_log.h"
 #include <algorithm>
 #include <string>
@@ -20,12 +19,7 @@ const nlohmann::json& getSliderStyleConfig() {
     static std::string cachedRaw;
     static nlohmann::json cachedConfig = nlohmann::json::object();
 
-    agenui::IPlatformLayoutBridge* platformLayoutBridge = agenui::getAGenUIEngine()->getPlatformLayoutBridge();
-    if (platformLayoutBridge == nullptr) {
-        return cachedConfig;
-    }
-
-    const char* rawStyles = platformLayoutBridge->getComponentStyles();
+    const char* rawStyles = a2ui::getComponentStylesRaw();
     if (rawStyles == nullptr) {
         return cachedConfig;
     }

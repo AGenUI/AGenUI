@@ -2,7 +2,6 @@
 #include "hm_text_measure_utils.h"
 #include "nlohmann/json.hpp"
 #include "a2ui/third_party/key_define.h"
-#include "surface/virtual_dom/agenui_ivirtual_define.h"
 #include <climits>
 #include <cstdlib>
 #include <algorithm>

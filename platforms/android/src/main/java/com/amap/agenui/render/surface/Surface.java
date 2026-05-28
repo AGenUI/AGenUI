@@ -46,9 +46,9 @@ public class Surface {
     private final String surfaceId;
 
     // ---- Blank Screen Detection ----
-    /** Handler for blank-screen detection (lazy-init) */
+    /** Handler used for blank screen detection (lazily created) */
     private Handler mBlankCheckHandler;
-    /** Pending blank-check task (for cancellation) */
+    /** Pending blank screen detection task (used for cancel) */
     private Runnable mBlankCheckRunnable;
 
     /**
@@ -173,12 +173,13 @@ public class Surface {
         View existing = component.getView();
         if (existing != null) {
             ViewParent parent = existing.getParent();
-            // Skip if already attached to the target container
+            // Only when it is already inside container do we skip the add
             if (parent != container) {
                 if (parent instanceof ViewGroup) {
                     ((ViewGroup) parent).removeView(existing);
                 }
-                container.addView(existing); // Always add regardless of original parent
+                container.addView(existing); // Regardless of whether parent is null or another ViewGroup, it must be added in the end
+                AGenUILogger.e(TAG, "surface root view already has parent: " + surfaceId);
             }
             return;
         }
@@ -280,7 +281,7 @@ public class Surface {
         }
 
         if (component == rootComponent) {
-            AGenUILogger.e(TAG, "removeComponent: attempted to remove root component incrementally, ignored");
+            AGenUILogger.e(TAG, "removeComponent: attempted to remove root component incrementally, ignored: " + surfaceId);
             return;
         }
 
@@ -375,22 +376,23 @@ public class Surface {
                         notifyParentChildViewCreated(parentComponent, child);
                     }
                 } else {
-                    AGenUILogger.e(TAG, "Failed to create child view: " + child.getId());
+                    AGenUILogger.e(TAG, "Failed to create child view: " + child.getId() + ", parentId: " + parentComponent.getId());
                 }
             }
         }
     }
 
     /**
-     * Start blank-screen detection for this Surface's component tree.
+     * Start blank screen detection on this Surface's component tree.
      * <p>
-     * After {@code delayMs} milliseconds, traverses the component tree and
-     * counts components with both width and height &gt; 0 (lcpX). Reports via
-     * {@code ComponentEventDispatcher.onSurfaceError} if below threshold.
+     * After {@code delayMs} milliseconds, recursively traverses the component tree
+     * and counts components whose view width and height are both &gt; 0 (lcpX).
+     * If the count is less than {@code validComponentCount}, reports via
+     * {@code ComponentEventDispatcher.onSurfaceError}.
      * </p>
      *
-     * @param delayMs             delay before detection (ms)
-     * @param validComponentCount minimum lcpX count to pass
+     * @param delayMs             detection delay in milliseconds
+     * @param validComponentCount minimum lcpX component count required to consider the screen non-blank
      */
     public void startBlankCheck(long delayMs, int validComponentCount) {
         if (validComponentCount <= 0) {
@@ -428,7 +430,7 @@ public class Surface {
     }
 
     /**
-     * Cancel pending blank-screen detection. Called automatically on destroy.
+     * Cancel any pending blank screen detection task. Automatically invoked on destroy.
      */
     public void cancelBlankCheck() {
         if (mBlankCheckHandler != null && mBlankCheckRunnable != null) {
@@ -438,7 +440,7 @@ public class Surface {
     }
 
     /**
-     * Traverse the component tree, counting components with width and height &gt; 0.
+     * Recursively traverse the component tree and count components whose view width and height are both &gt; 0 (lcpX).
      * Returns early once count[0] &gt;= minCount.
      */
     private void traverseForLcpX(A2UIComponent component, int[] count, int minCount) {

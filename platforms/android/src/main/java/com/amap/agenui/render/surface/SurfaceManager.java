@@ -3,8 +3,11 @@ package com.amap.agenui.render.surface;
 import android.app.Activity;
 import android.content.Context;
 
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.WorkerThread;
 
 import com.amap.agenui.AGenUI;
 import com.amap.agenui.IAGenUIMessageListener;
@@ -33,7 +36,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * - Supports RecyclerView ViewHolder recycling optimization
  *
  */
-public class SurfaceManager {
+public class SurfaceManager implements ISurfaceSizeProviderHost {
 
     private static final String TAG = "SurfaceManager";
 
@@ -47,7 +50,7 @@ public class SurfaceManager {
     /**
      * Constructor
      *
-     * @param context Android Activity
+     * @param activity Android Activity
      */
     @SuppressWarnings("RestrictedApi")
     public SurfaceManager(@NonNull Activity activity) throws IllegalStateException {
@@ -55,6 +58,7 @@ public class SurfaceManager {
         this.instanceId = AGenUI.getInstance().createSurfaceManager();
         this.nativeEventBridge = new NativeEventBridge(this, instanceId);
         addMessageListener(nativeEventBridge);
+        registerSurfaceSizeProvider();
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.i(TAG, "SurfaceManager created with instanceId=" + instanceId);
         }
@@ -160,7 +164,7 @@ public class SurfaceManager {
      */
     void addMessageListener(IAGenUIMessageListener listener) {
         if (listener == null) {
-            AGenUILogger.e(TAG, "addMessageListener: listener is null");
+            AGenUILogger.w(TAG, "addMessageListener: listener is null");
             return;
         }
         try {
@@ -203,9 +207,44 @@ public class SurfaceManager {
         clearAll();
         listeners.clear();
         removeMessageListener(nativeEventBridge);
+        unregisterSurfaceSizeProvider();
         AGenUI.getInstance().destroySurfaceManager(instanceId);
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.i(TAG, "SurfaceManager destroyed, instanceId=" + instanceId);
+        }
+    }
+
+    /**
+     * Registers this SurfaceManager as the C++ engine's surface-size provider.
+     * <p>
+     * Called once during construction, AFTER the native SurfaceManager has been
+     * created and BEFORE any Surface is created on the C++ side, so the very
+     * first Yoga bootstrap layout already sees the provider. The C++ bridge
+     * will hold a JNI global ref to this object until
+     * {@link #unregisterSurfaceSizeProvider()} is called.
+     */
+    private void registerSurfaceSizeProvider() {
+        try {
+            nativeSetSurfaceSizeProvider(instanceId, this);
+        } catch (Exception e) {
+            AGenUILogger.e(TAG, "Failed to register surface size provider", e);
+        }
+    }
+
+    /**
+     * Detaches this SurfaceManager from the C++ engine's surface-size provider
+     * slot and releases the JNI global ref held by the bridge.
+     * <p>
+     * Must run BEFORE the native SurfaceManager is torn down so (a) the JNI
+     * bridge can still talk to the live engine to clear the pointer and
+     * (b) the worker thread does not call back into a soon-to-be-destroyed
+     * Java side. Order matters: provider clear → {@code destroySurfaceManager}.
+     */
+    private void unregisterSurfaceSizeProvider() {
+        try {
+            nativeClearSurfaceSizeProvider(instanceId);
+        } catch (Exception e) {
+            AGenUILogger.e(TAG, "Failed to clear surface size provider", e);
         }
     }
 
@@ -465,6 +504,54 @@ public class SurfaceManager {
         }
     }
 
+    /**
+     * Surface-size pull entry point invoked by the C++ engine via JNI reflection
+     * (see {@code core/src/jni/jni_surface_size_provider_bridge.cpp}). Walks the
+     * registered listeners in registration order and returns the first non-null
+     * {@link SurfaceSize}; {@code null} signals "no listener could measure yet"
+     * and is converted to {@code {0, 0}} by the C++ bridge.
+     *
+     * <p><b>⚠ THREADING WARNING — runs on the engine WORKER THREAD, not the UI
+     * thread.</b> See {@link ISurfaceManagerListener#surfaceSize(String)} for the
+     * full contract.
+     *
+     * <p><b>Concurrency note on {@link #listeners}</b>: the field is a
+     * {@link CopyOnWriteArrayList}, so this enhanced for-loop walks an immutable
+     * snapshot taken at iterator creation. Concurrent {@link #addListener} /
+     * {@link #removeListener} calls from the UI thread mutate the underlying
+     * array atomically (copy-on-write) and never affect the in-flight snapshot
+     * — no {@code ConcurrentModificationException}, no torn reads. The trade-off
+     * is the well-known one: a listener added during this iteration won't be
+     * consulted until the next pull, and a removed listener may still be
+     * consulted exactly once after removal returns. Both are acceptable for a
+     * size-pull whose return value is treated as a best-effort snapshot anyway.
+     * Each listener is independently guarded so a single exception does not
+     * affect the remaining listeners.
+     *
+     * <p>Method name and signature are part of the JNI binary contract — do not
+     * rename or change types without updating the C++ bridge.
+     *
+     * @param surfaceId Surface identifier passed through from the engine.
+     * @return The first non-null size reported by any listener, or {@code null}.
+     */
+    @Keep
+    @Override
+    @WorkerThread
+    @Nullable
+    public SurfaceSize getSurfaceSize(@NonNull String surfaceId) {
+        for (ISurfaceManagerListener listener : listeners) {
+            try {
+                SurfaceSize size = listener.surfaceSize(surfaceId);
+                if (size != null) {
+                    return size;
+                }
+            } catch (Throwable t) {
+                AGenUILogger.e(TAG, "getSurfaceSize: listener threw", t);
+            }
+        }
+        return null;
+    }
+
 
     private static native void nativeAddEventListener(int instanceId, IAGenUIMessageListener listener);
     private static native void nativeRemoveEventListener(int instanceId, IAGenUIMessageListener listener);
@@ -485,5 +572,13 @@ public class SurfaceManager {
     private static native void nativeNotifySurfaceSizeChanged(int instanceId, String surfaceId, float width, float height);
 
     private static native void nativeInvalidateFunctionCallValues(int engineId);
+
+    // Surface size pull-channel: register / detach the C++ bridge that proxies
+    // ISurfaceSizeProvider calls back into this Java SurfaceManager. The bridge
+    // is owned on the C++ side keyed by instanceId; the Java object is held via
+    // a global ref while registered, so callers must call clear before letting
+    // the SurfaceManager become unreachable.
+    private static native void nativeSetSurfaceSizeProvider(int instanceId, ISurfaceSizeProviderHost host);
+    private static native void nativeClearSurfaceSizeProvider(int instanceId);
 
 }

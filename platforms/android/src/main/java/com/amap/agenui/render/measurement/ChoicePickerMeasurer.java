@@ -19,7 +19,7 @@ import java.util.Map;
  *
  * If a future ChoicePicker variant becomes fully fixed-size, Yoga can skip this callback.
  */
-final class ChoicePickerMeasurer {
+public final class ChoicePickerMeasurer {
 
     private static final String COMPONENT_NAME = "ChoicePicker";
     private static final float ITEM_PADDING_HORIZONTAL_A2UI = 24f;
@@ -28,7 +28,7 @@ final class ChoicePickerMeasurer {
     private ChoicePickerMeasurer() {
     }
 
-    static MeasureResult measure(Context context,
+    public static MeasureResult measure(Context context,
                                  String paramJson,
                                  float maxWidth,
                                  int widthMode,

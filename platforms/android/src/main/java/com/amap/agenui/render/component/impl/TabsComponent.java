@@ -556,9 +556,27 @@ public class TabsComponent extends A2UILayoutComponent {
                     + ", properties=" + properties);
         }
 
-        if (tabLayout != null && properties.containsKey("tabs")) {
+        if (tabLayout == null) {
+            return;
+        }
+
+        if (properties.containsKey("tabs")) {
             parseTabs();
         }
+
+        Map<String, Object> styles = extractStyles(properties);
+
+        int tabFontColor = tabLayout.getTabNormalTextColor();
+        if (styles.containsKey("tab-font-color")) {
+            tabFontColor = StyleHelper.parseColor(styles.get("tab-font-color"));
+        }
+
+        int tabFontColorSelected = tabLayout.getTabSelectedTextColor();
+        if (styles.containsKey("tab-font-color-selected")) {
+            tabFontColorSelected = StyleHelper.parseColor(styles.get("tab-font-color-selected"));
+        }
+
+        tabLayout.setTabTextColors(tabFontColor, tabFontColorSelected);
     }
 
     /**

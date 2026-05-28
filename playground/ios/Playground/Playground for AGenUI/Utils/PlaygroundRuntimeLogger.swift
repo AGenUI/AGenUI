@@ -27,7 +27,7 @@ final class PlaygroundRuntimeLogger: NSObject, LoggerDelegate {
 
         super.init()
         
-        // Set up log directory and session log file
+        // Create the log directory and the log file for the current session
         setupLogDirectory()
         createNewLogFile()
     }
@@ -44,7 +44,7 @@ final class PlaygroundRuntimeLogger: NSObject, LoggerDelegate {
         let prefix = levelPrefix(for: level)
         let timestamp = dateFormatter.string(from: Date())
         print("[AGenUI/\(prefix)] \(timestamp) [\(tag):\(line)] \(message)")
-        // Persist log to file asynchronously
+        // Asynchronously persist the log to file
         saveLogToFile(level: level, timestamp: timestamp, tag: tag, function: `func`, line: line, message: message)
     }
 

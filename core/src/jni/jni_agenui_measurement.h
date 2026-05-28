@@ -13,12 +13,11 @@ namespace agenui {
 bool initializeAndroidMeasurementBridge(JNIEnv* env);
 
 /**
- * Registers all Android measurement implementations into the engine-level MeasurementManager.
+ * Registers native methods for MeasurementBridge Java class.
  *
- * Registration is type based (Text/Image/ChoicePicker...) and is intentionally separated from
- * initializeAndroidMeasurementBridge(): the former wires the native registry, the latter warms
- * up the Java bridge references that those implementations call into.
+ * Provides nativeRegisterMeasurement/nativeUnregisterMeasurement so the Java-side
+ * ComponentRegistry can dynamically register/unregister measurement types at runtime.
  */
-void registerAndroidMeasurements();
+jint register_jni_MeasurementBridge(JNIEnv* env);
 
 }  // namespace agenui

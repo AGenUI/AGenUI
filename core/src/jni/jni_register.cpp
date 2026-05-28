@@ -7,6 +7,7 @@ extern jint register_jni_AGenUIEngine(JNIEnv* env);
 extern jint register_jni_AGenUISurfaceManager(JNIEnv* env);
 extern jint register_jni_ColorParser(JNIEnv* env);
 extern jint register_jni_EdgeInsetsParser(JNIEnv* env);
+extern jint register_jni_MeasurementBridge(JNIEnv* env);
 
 #if defined(__cplusplus)
 extern "C" {
@@ -17,6 +18,7 @@ void registerAGenUIMain(JNIEnv *env) {
     register_jni_AGenUISurfaceManager(env);
     register_jni_ColorParser(env);
     register_jni_EdgeInsetsParser(env);
+    register_jni_MeasurementBridge(env);
 }
 
 void unregisterAGenUIMain(JNIEnv *env) {

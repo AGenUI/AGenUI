@@ -15,6 +15,8 @@
 
 namespace agenui {
 
+class ISurfaceContext;
+
 /**
  * @brief Virtual DOM
  * @remark Manages the component tree structure; serves as the intermediate representation before actual rendering
@@ -24,8 +26,13 @@ public:
     /**
      * @brief Constructor
      * @param observer Virtual DOM observer
+     * @param surfaceContext Surface context providing on-demand surface size
+     *        (non-owning; the owning Surface must outlive this VirtualDOM,
+     *        which it does because Surface owns VirtualDOM directly).
+     * @param measurementManager Optional component measurement manager
      */
     explicit VirtualDOM(IVirtualDOMObserver* observer,
+                        ISurfaceContext* surfaceContext,
                         ::agenui::IMeasurementManager* measurementManager = nullptr);
 
     /**
@@ -73,11 +80,15 @@ public:
     void updateComponentSize(const ComponentRenderInfo& info);
 
     /**
-     * @brief Update the Surface dimensions
-     * @param info Surface info, including surfaceId and size
-     * @remark Updates the root container size of the surface
+     * @brief Notify that the surface size has changed and trigger a re-layout.
+     * @remark The caller (Surface) is responsible for refreshing its own
+     *         cached size first so that any subsequent
+     *         _surfaceContext->getSurfaceWidth() call observes the new value.
+     *         This method only invalidates stale platform-measured sizes on
+     *         the tree and replays a layout pass against the new surface
+     *         width; it does not carry the size itself.
      */
-    void updateSurfaceSize(const SurfaceLayoutInfo& info);
+    void notifySurfaceSizeChanged();
     
     /**
      * @brief Update Tabs selected tab index and trigger re-layout
@@ -134,12 +145,11 @@ private:
 
     std::shared_ptr<VirtualDOMNode> _root;                       // Root node
     IVirtualDOMObserver* _observer;                              // Virtual DOM observer
+    ISurfaceContext* _surfaceContext = nullptr;                  // Surface size source of truth (non-owning; owned by the owning Surface)
     std::map<std::string, ComponentSnapshot> _directOrphanSnapshots;          // Orphan snapshots that display unconditionally
     std::map<std::string, ComponentSnapshot> _dataDependentOrphanSnapshots;   // Orphan snapshots that depend on data binding state
     ::agenui::IMeasurementManager* _measurementManager = nullptr;  // Component measurement manager (non-owning)
     std::unique_ptr<YogaLayoutEngine> _layoutEngine;             // Layout engine (ILayoutDelegate, owns the YogaNodeManager)
-    float _surfaceWidth  = 0.0f;                                 // Current surface width (vp); initialized from getDeviceScreenSize
-    float _surfaceHeight = 0.0f;                                 // Current surface height (vp); initialized from getDeviceScreenSize
 
     // ---- Batched updateNode bookkeeping ----
     // _batchGuard: manages batch depth and triggers the deferred layout

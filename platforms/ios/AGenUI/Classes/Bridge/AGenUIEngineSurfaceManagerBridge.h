@@ -6,8 +6,20 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CoreGraphics.h>
 
 NS_ASSUME_NONNULL_BEGIN
+
+/// External-supplied source of truth for surface size, queried synchronously by the C++ engine
+/// when its locally cached size for the given surfaceId has not been initialized yet.
+///
+/// - Parameter surfaceId: The surface identifier assigned by the engine.
+/// - Returns: Current surface size in points (pt). Return CGSizeZero if not measurable yet;
+///            the bridge will convert pt to a2ui units (× 2) internally.
+///
+/// Thread convention: invoked synchronously on the engine worker thread; the block
+/// implementation must be thread-safe.
+typedef CGSize (^AGenUISurfaceSizeProviderBlock)(NSString *surfaceId);
 
 // MARK: - Notification Names
 
@@ -63,6 +75,8 @@ extern NSString * const AGenUIErrorMessageKey;
 @interface AGenUIEngineSurfaceManagerBridge : NSObject
 
 @property (nonatomic, assign, readonly) NSInteger instanceId;
+
+@property (nonatomic, copy, nullable) AGenUISurfaceSizeProviderBlock surfaceSizeProviderBlock;
 
 /// Initialize and create the C++ ISurfaceManager
 - (instancetype)init;

@@ -1,7 +1,6 @@
 package com.amap.agenui;
 
 import android.content.Context;
-import android.util.DisplayMetrics;
 
 import androidx.annotation.Keep;
 import androidx.annotation.RestrictTo;
@@ -72,8 +71,6 @@ public class AGenUI {
             try {
                 appContext = applicationContext.getApplicationContext();
                 nativePtr = nativeInitAGenUIEngine();
-                DisplayMetrics metrics = appContext.getResources().getDisplayMetrics();
-                nativeUpdatePlatformLayoutInfo(metrics.widthPixels, metrics.heightPixels, metrics.density);
                 if (AGenUILogger.isLoggingEnabled()) {
                     AGenUILogger.i(TAG, "AGenUI Engine created: nativePtr=" + nativePtr);
                 }
@@ -388,7 +385,6 @@ public class AGenUI {
     public static native void nativeDestroySurfaceManager(int instanceId);
 
     public static native boolean nativeSetPathConfig(String configJson);
-    private static native void nativeUpdatePlatformLayoutInfo(int widthPx, int heightPx, float density);
 
     private static native boolean nativeLoadThemeConfig(String themeConfig);
     private static native boolean nativeLoadDesignTokenConfig(String designTokenConfig);

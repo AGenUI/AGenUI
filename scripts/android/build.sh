@@ -19,6 +19,10 @@ set -euo pipefail
 #                             publishReleasePublicationToLocalMavenRepository
 #   --debug                 Equivalent to --task assembleDebug
 #   --publish-local         Equivalent to --task publishReleasePublicationToLocalMavenRepository
+#   --publish-maven         Publish AAR to remote Maven repository.
+#                           Requires MAVEN_URL / MAVEN_USERNAME / MAVEN_PASSWORD env vars.
+#                           Optionally set AGENUI_MAVEN_GROUP / AGENUI_MAVEN_ARTIFACT env vars
+#                           to override groupId/artifactId (defaults: SDK_GROUP_ID/SDK_ARTIFACT_ID).
 #   --yoga-prebuilt <dir>   Path to prebuilt yoga artifacts directory.
 #                           Expected structure: {dir}/include/yoga/ + {dir}/libs/libyoga.so
 #                           If not specified, yoga is fetched from GitHub via FetchContent.
@@ -44,6 +48,7 @@ GRADLE_TASK="assembleRelease"
 DO_CLEAN=false
 YOGA_PREBUILT_DIR=""
 YOGA_INCLUDE_IN_AAR=""
+PUBLISH_MAVEN=false
 
 ANDROID_PROJECT_ROOT="${PLATFORMS_DIR}/android"
 
@@ -58,6 +63,7 @@ while [[ $# -gt 0 ]]; do
         --task)            GRADLE_TASK="$2"; shift 2 ;;
         --debug)           GRADLE_TASK="assembleDebug"; shift ;;
         --publish-local)   GRADLE_TASK="publishReleasePublicationToLocalMavenRepository"; shift ;;
+        --publish-maven)   PUBLISH_MAVEN=true; shift ;;
         --yoga-prebuilt)   YOGA_PREBUILT_DIR="$2"; shift 2 ;;
         --no-yoga-in-aar)  YOGA_INCLUDE_IN_AAR="false"; shift ;;
         --clean)           DO_CLEAN=true; shift ;;
@@ -117,6 +123,36 @@ fi
 
 info "Running Gradle task: ${GRADLE_TASK}"
 ./gradlew $GRADLE_EXTRA_ARGS "$GRADLE_TASK" | cat
+
+# -------------------- Publish to remote Maven (if --publish-maven) --------------------
+if [[ "$PUBLISH_MAVEN" == true ]]; then
+    if [[ -z "${AGENUI_FULL_VERSION:-}" ]]; then
+        error "AGENUI_FULL_VERSION is not set (fetch_build_id must be called before --publish-maven)"
+    fi
+    if [[ -z "${MAVEN_URL:-}" ]]; then
+        error "MAVEN_URL env var is required for --publish-maven. Set MAVEN_URL / MAVEN_USERNAME / MAVEN_PASSWORD before running this script."
+    fi
+
+    # Optional Maven coordinates override (caller sets these env vars)
+    MAVEN_GRADLE_ARGS="-PmavenVersion=${AGENUI_FULL_VERSION}"
+    if [[ -n "${AGENUI_MAVEN_GROUP:-}" ]]; then
+        MAVEN_GRADLE_ARGS="${MAVEN_GRADLE_ARGS} -PmavenGroupId=${AGENUI_MAVEN_GROUP}"
+    fi
+    if [[ -n "${AGENUI_MAVEN_ARTIFACT:-}" ]]; then
+        MAVEN_GRADLE_ARGS="${MAVEN_GRADLE_ARGS} -PmavenArtifactId=${AGENUI_MAVEN_ARTIFACT}"
+    fi
+
+    info "Publishing to Maven: ${MAVEN_URL}"
+    info "  version=${AGENUI_FULL_VERSION}${AGENUI_MAVEN_GROUP:+, groupId=${AGENUI_MAVEN_GROUP}}${AGENUI_MAVEN_ARTIFACT:+, artifactId=${AGENUI_MAVEN_ARTIFACT}}"
+    info "Running Gradle publish task: publishReleasePublicationToRemoteMavenRepository"
+    if ./gradlew $GRADLE_EXTRA_ARGS $MAVEN_GRADLE_ARGS publishReleasePublicationToRemoteMavenRepository | cat; then
+        success "Maven publish complete: ${AGENUI_MAVEN_GROUP:-default}:${AGENUI_MAVEN_ARTIFACT:-default}:${AGENUI_FULL_VERSION}"
+        # Export published version to a temp file for caller to read (wrapper script needs this for amap version bump)
+        echo "$AGENUI_FULL_VERSION" > "${SCRIPT_DIR}/.published_version"
+    else
+        error "Maven publish FAILED. Check the error output above."
+    fi
+fi
 
 # -------------------- Print output artifact path --------------------
 AAR_DIR="${ANDROID_PROJECT_ROOT}/build/outputs/aar"

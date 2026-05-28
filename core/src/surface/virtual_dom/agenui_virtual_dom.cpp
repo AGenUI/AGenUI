@@ -1,28 +1,32 @@
 #include "surface/virtual_dom/agenui_virtual_dom.h"
 #include "agenui_render_info_types.h"
 #include "agenui_logger_internal.h"
+#include "surface/agenui_isurface_context.h"
 #include <functional>
 #include <yoga/Yoga.h>
-#include "surface/virtual_dom/agenui_ivirtual_define.h"
 #include "surface/yoga_node/agenui_yoga_node_manager.h"
 
 namespace agenui {
 
 VirtualDOM::VirtualDOM(IVirtualDOMObserver* observer,
+                       ISurfaceContext* surfaceContext,
                        ::agenui::IMeasurementManager* measurementManager)
     : _root(nullptr)
     , _observer(observer)
+    , _surfaceContext(surfaceContext)
     , _measurementManager(measurementManager)
     , _batchGuard([this] {
+          // Layout against whatever width the surface context currently
+          // reports. The context owns the validity policy (cache + one-shot
+          // pull bootstrap + push channel overwrite); VirtualDOM trusts it
+          // unconditionally and does not second-guess the value.
           if (_layoutEngine) {
-              _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
+              const float surfaceWidth = _surfaceContext ? _surfaceContext->getSurfaceWidth() : 0.0f;
+              _layoutEngine->calculateLayoutWithAdjust(_root, surfaceWidth);
               checkAndNotifyLayoutChanges();
           }
       }) {
     _layoutEngine = std::make_unique<YogaLayoutEngine>(measurementManager);
-    YGSize screenSize = AGenUIVirtualDefine::getDeviceScreenSize();
-    _surfaceWidth  = screenSize.width;
-    _surfaceHeight = screenSize.height;
     _root = std::make_shared<VirtualDOMNode>("root", observer, this, measurementManager
         , _layoutEngine.get()
     );
@@ -242,19 +246,21 @@ void VirtualDOM::checkAndNotifyLayoutChanges() {
 }
 
 
-void VirtualDOM::updateSurfaceSize(const SurfaceLayoutInfo& info) {
-    AGENUI_LOG("updateSurfaceSize: surfaceId=%s, width=%.1f, height=%.1f",
-               info.surfaceId.c_str(), info.width, info.height);
-    if (info.width > 0.0f)  _surfaceWidth  = info.width;
-    if (info.height > 0.0f) _surfaceHeight = info.height;
-
+void VirtualDOM::notifySurfaceSizeChanged() {
+    AGENUI_LOG("notifySurfaceSizeChanged");
+    // Surface has already refreshed its cached size before invoking this
+    // notification, so _surfaceContext->getSurfaceWidth() now observes the
+    // freshly pushed value. This method's only job is to invalidate stale
+    // platform-measured sizes on the tree and trigger a re-layout against
+    // the surface context's current width.
     resetPlatformSizeRecursive(_root);
 
     // Single-shot external event: bypass the batch path and fire
     // immediately. (Batching is exclusive to updateNode bursts driven by
     // ComponentManager flush.)
     if (_layoutEngine) {
-        _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
+        const float surfaceWidth = _surfaceContext ? _surfaceContext->getSurfaceWidth() : 0.0f;
+        _layoutEngine->calculateLayoutWithAdjust(_root, surfaceWidth);
     }
     checkAndNotifyLayoutChanges();
 }
@@ -269,17 +275,19 @@ void VirtualDOM::resetPlatformSizeRecursive(std::shared_ptr<VirtualDOMNode>& nod
     }
 }
 
-
 void VirtualDOM::updateComponentSize(const ComponentRenderInfo& info) {
+    AGENUI_LOG("updateComponentSize: id=%s, type=%s, width=%.1f, height=%.1f",
+               info.componentId.c_str(), info.type.c_str(), info.width, info.height);
     auto node = findNodeByComponentIdAndTypeRecursive(_root, info.componentId, info.type);
-    if (!node) {
-        return;
-    }
-
+    if (!node) return;
+    // Record the measured intrinsic size on the Yoga node; it is independent
+    // of the surface width and will be consumed by the next layout pass.
     node->setYogaNodeSize(info.width, info.height);
-    // Single-shot renderer callback: fire layout pass immediately.
+    // Single-shot renderer callback: fire layout pass immediately against the
+    // surface context's current width.
     if (_layoutEngine) {
-        _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
+        const float surfaceWidth = _surfaceContext ? _surfaceContext->getSurfaceWidth() : 0.0f;
+        _layoutEngine->calculateLayoutWithAdjust(_root, surfaceWidth);
         checkAndNotifyLayoutChanges();
     }
 }
@@ -287,9 +295,11 @@ void VirtualDOM::updateComponentSize(const ComponentRenderInfo& info) {
 void VirtualDOM::updateTabsSelectedIndex(const std::string& tabsId, int selectedIndex) {
     AGENUI_LOG("[Tabs] updateTabsSelectedIndex id=%s index=%d", tabsId.c_str(), selectedIndex);
     if (!_layoutEngine) return;
+    // Record the new selected index unconditionally and replay layout
+    // immediately against the surface context's current width.
     _layoutEngine->updateTabsSelectedIndex(tabsId, selectedIndex);
-    // Single-shot user action: fire layout pass immediately.
-    _layoutEngine->calculateLayoutWithAdjust(_root, _surfaceWidth);
+    const float surfaceWidth = _surfaceContext ? _surfaceContext->getSurfaceWidth() : 0.0f;
+    _layoutEngine->calculateLayoutWithAdjust(_root, surfaceWidth);
     checkAndNotifyLayoutChanges();
 }
 

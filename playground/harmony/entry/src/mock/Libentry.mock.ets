@@ -135,6 +135,10 @@ export function stop(): void {}
 
 export function setMinLogLevel(level: number): void {}
 
+export function setPathConfig(configJson: string): boolean {
+  return true;
+}
+
 export function registerDefaultTheme(theme: string, designToken: string): boolean {
   return true;
 }
@@ -158,6 +162,8 @@ export function destroySurfaceManager(engineId: number): void {
 }
 
 export function sendMockData(mockData: string): void {}
+
+export function setWorkingDir(dir: string): void {}
 
 export function removeEventListener(listener: Object): void {}
 
@@ -293,6 +299,7 @@ const NativeMock: Record<string, Object> = {
   'start': start as Object,
   'stop': stop as Object,
   'setMinLogLevel': setMinLogLevel as Object,
+  'setPathConfig': setPathConfig as Object,
   'registerDefaultTheme': registerDefaultTheme as Object,
   'setDayNightMode': setDayNightMode as Object,
   'registerComponent': registerComponent as Object,
@@ -300,6 +307,7 @@ const NativeMock: Record<string, Object> = {
   'createSurfaceManager': createSurfaceManager as Object,
   'destroySurfaceManager': destroySurfaceManager as Object,
   'sendMockData': sendMockData as Object,
+  'setWorkingDir': setWorkingDir as Object,
   'removeEventListener': removeEventListener as Object,
   'requestSurface': requestSurface as Object,
   'registerA2UISurfaceListener': registerA2UISurfaceListener as Object,

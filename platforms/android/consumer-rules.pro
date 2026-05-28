@@ -18,6 +18,11 @@
 -keep public interface com.amap.agenui.render.component.IComponentFactory { *; }
 -keep class * implements com.amap.agenui.render.component.IComponentFactory { *; }
 
+# IMeasurer is implemented by host components that opt into Yoga measurement
+# via IComponentFactory.getMeasurer().
+-keep public interface com.amap.agenui.render.measurement.IMeasurer { *; }
+-keep class * implements com.amap.agenui.render.measurement.IMeasurer { *; }
+
 -keep public interface com.amap.agenui.render.image.ImageLoader { *; }
 -keep class * implements com.amap.agenui.render.image.ImageLoader { *; }
 
@@ -35,6 +40,10 @@
 -keep public class com.amap.agenui.render.image.ImageLoadResult { *; }
 -keep public class com.amap.agenui.render.image.ImageLoaderError { *; }
 -keep public class com.amap.agenui.render.image.ImageLoadOptionsKey { *; }
+# SurfaceSize is constructed by host code and read by JNI (GetFloatField on width/height)
+-keep public class com.amap.agenui.render.surface.SurfaceSize { *; }
+# ISurfaceSizeProviderHost: SurfaceManager implements it; JNI signature references its FQN
+-keep public interface com.amap.agenui.render.surface.ISurfaceSizeProviderHost { *; }
 
 # ── JNI bridge (C++ calls back into Java via reflection) ─────────────────────
 -keep public interface com.amap.agenui.IAGenUIMessageListener { *; }

@@ -271,8 +271,8 @@ void TableComponent::buildTable(const nlohmann::json& properties) {
 
     float tableWidth = getWidth();
     if (tableWidth <= 0.0f) {
-        A2UIPlatformLayoutBridge platformLayoutBridge;
-        tableWidth = static_cast<float>(platformLayoutBridge.getDeviceWidth());
+        agenui::SurfaceSize surfaceSize = a2ui::getSharedSurfaceSizeProvider()->getSurfaceSize("");
+        tableWidth = surfaceSize.width;
     }
     if (tableWidth <= 0.0f) {
         tableWidth = 600.0f;

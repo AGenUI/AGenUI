@@ -13,18 +13,6 @@
 
 namespace agenui {
 
-namespace {
-
-// Hard constraint #2: the engine pairs with ComponentSnapshotWrapper as its
-// canonical wrapper type for Tabs-rule lookups. The base
-// ILayoutDataWrapper interface stays free of asXxx hooks; the cast lives
-// here because the engine is the concrete consumer of the pairing.
-inline const ComponentSnapshotWrapper* asConcreteConst(const ILayoutDataWrapper* w) {
-    return w ? static_cast<const ComponentSnapshotWrapper*>(w) : nullptr;
-}
-
-}  // namespace
-
 YogaLayoutEngine::YogaLayoutEngine(IMeasurementManager* measurementManager)
     : _manager(std::make_unique<YogaNodeManager>())
     , _measurementManager(measurementManager)
@@ -78,12 +66,9 @@ void YogaLayoutEngine::onSnapshotChanged(const std::string& nodeId,
     }
 
     // Tabs-rule: if the PARENT is a Tabs component, this child needs an
-    // absolute-position layout hint. The cast lives here because the engine
-    // pairs with ComponentSnapshotWrapper for its built-in Tabs lookup
-    // (hard constraint #2). Custom decoders that don't use ComponentSnapshot
-    // are responsible for their own Tabs handling.
-    auto* concreteParent = asConcreteConst(parentWrapper);
-    if (concreteParent && concreteParent->raw().component == "Tabs") {
+    // absolute-position layout hint. We only rely on the public ILayoutDataWrapper
+    // interface (componentType()) here, no business-type leak.
+    if (parentWrapper && parentWrapper->componentType() == "Tabs") {
         TabsYogaHelper::setChildAbsoluteLayout(*node, nodeId);
     }
 }
@@ -112,7 +97,7 @@ void YogaLayoutEngine::setupMeasureFunctionIfNeeded(const std::string& nodeId,
     // INTERNAL types (declared in agenui_measurement_manager.h), not part of
     // the public IMeasurementManager interface. Engine pairs with the
     // bundled MeasurementManagerImpl and does the downcast here (Phase A
-    // hard constraint #2 — the cast lives in the concrete consumer).
+    // Hard Rule 2 — the cast lives in the concrete consumer).
     auto* mgrImpl = static_cast<MeasurementManagerImpl*>(_measurementManager);
     ::agenui::MeasureDecision decision = ::agenui::MeasureDecision::Skip;
     if (mgrImpl) {
@@ -173,7 +158,7 @@ bool YogaLayoutEngine::calculateLayout(const std::string& rootId,
     YogaNode* root = _manager->getNode(rootId);
     if (!root) return false;
     _manager->calculateLayout(surfaceWidth);
-    return false;
+    return true;
 }
 
 void YogaLayoutEngine::updateTabsSelectedIndex(const std::string& tabsId,

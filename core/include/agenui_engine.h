@@ -5,7 +5,6 @@
 namespace agenui {
 
 class ISurfaceManager;
-class IPlatformLayoutBridge;
 class IPlatformInvoker;
 class IPlatformFunction;
 class IMeasurementManager;
@@ -51,18 +50,6 @@ public:
      * @return true if configuration was applied successfully, false if JSON parsing failed
      */
     virtual bool setPathConfig(const std::string &configJson) = 0;
-
-    /**
-     * @brief Sets the platform layout bridge service (singleton)
-     * @param platformLayoutBridge Platform layout bridge interface pointer
-     */
-    virtual void setPlatformLayoutBridge(IPlatformLayoutBridge* platformLayoutBridge) = 0;
-
-    /**
-     * @brief Gets the platform layout bridge service
-     * @return Platform layout bridge interface pointer, nullptr if not set
-     */
-    virtual IPlatformLayoutBridge* getPlatformLayoutBridge() = 0;
 
     /**
      * @brief Registers a platform function

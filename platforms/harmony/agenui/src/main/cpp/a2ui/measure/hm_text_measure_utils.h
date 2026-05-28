@@ -8,7 +8,6 @@
 #include <native_drawing/drawing_text_typography.h>
 #include <native_drawing/drawing_text_declaration.h>
 #include <native_drawing/drawing_font_collection.h>
-#include <agenui_platform_layout_bridge.h>
 #include "a2ui/third_party/key_define.h"
 #include "a2ui/third_party/Html.h"
 #include "a2ui/utils/hm_font_utils.h"

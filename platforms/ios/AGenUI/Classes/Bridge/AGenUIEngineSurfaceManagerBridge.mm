@@ -9,9 +9,37 @@
 #import "AGenUIEngineBridge.h"
 #include "agenui_message_listener.h"
 #include "agenui_surface_manager_interface.h"
+#include "agenui_surface_size_provider.h"
 #include "agenui_render_info_types.h"
+#include <cmath>
 #include <memory>
 #include <mutex>
+
+// MARK: - Safe std::string -> NSString helper
+//
+// `+[NSString stringWithUTF8String:]` returns nil when the input bytes are not
+// valid UTF-8. If that nil flows into an `@{}` literal or `addObject:`, ObjC
+// raises `NSInvalidArgumentException: attempt to insert nil object`, which is
+// the dominant crash mode of the C++ -> OC bridge layer. This helper:
+//   1) tries strict UTF-8 decoding;
+//   2) falls back to lossy decoding via NSData;
+//   3) finally returns @"" so callers can safely build dictionaries.
+static inline NSString *AGenUIStringFromCxx(const std::string &s) {
+    if (s.empty()) {
+        return @"";
+    }
+    NSString *str = [[NSString alloc] initWithBytes:s.data()
+                                             length:s.size()
+                                           encoding:NSUTF8StringEncoding];
+    if (str != nil) {
+        return str;
+    }
+    // Lossy fallback: keep payload alive instead of crashing.
+    NSData *data = [NSData dataWithBytes:s.data() length:s.size()];
+    NSString *lossy = [[NSString alloc] initWithData:data
+                                            encoding:NSNonLossyASCIIStringEncoding];
+    return lossy ?: @"";
+}
 
 // MARK: - Notification Constants
 
@@ -65,227 +93,243 @@ public:
     }
 
     void onCreateSurface(const agenui::CreateSurfaceMessage& msg) override {
-        NSMutableDictionary *themeDict = [NSMutableDictionary dictionary];
-        for (const auto& pair : msg.theme) {
-            themeDict[[NSString stringWithUTF8String:pair.first.c_str()]] =
-                [NSString stringWithUTF8String:pair.second.c_str()];
-        }
-
-        NSString *surfaceId  = [NSString stringWithUTF8String:msg.surfaceId.c_str()];
-        NSString *catalogId  = [NSString stringWithUTF8String:msg.catalogId.c_str()];
-        BOOL sendDataModel   = msg.sendDataModel;
-        BOOL animated        = msg.animated;
-        NSString *rawProtocolContent = [NSString stringWithUTF8String:msg.rawProtocolContent.c_str()];
-
-        NSDictionary *userInfo = @{
-            AGenUISurfaceIdKey:            surfaceId,
-            AGenUICatalogIdKey:            catalogId,
-            AGenUIThemeKey:                themeDict,
-            AGenUISendDataModelKey:        @(sendDataModel),
-            AGenUIAnimated:                @(animated),
-            AGenUIRawProtocolContentKey:   rawProtocolContent
-        };
-
-        id bridgeObj = nil;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_invalidated) return;
-            bridgeObj = (__bridge id)_bridge;
-        }
-        NSString *notifName = _createNotifName;
-        auto postBlock = ^{
-            [[NSNotificationCenter defaultCenter]
-                postNotificationName:notifName
-                              object:bridgeObj
-                            userInfo:userInfo];
-        };
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), postBlock);
-        } else {
-            postBlock();
+        @autoreleasepool {
+            NSMutableDictionary *themeDict = [NSMutableDictionary dictionary];
+            for (const auto& pair : msg.theme) {
+                NSString *k = AGenUIStringFromCxx(pair.first);
+                NSString *v = AGenUIStringFromCxx(pair.second);
+                if (k.length == 0) { continue; }   // skip empty keys, never crash
+                themeDict[k] = v;
+            }
+            
+            NSString *surfaceId          = AGenUIStringFromCxx(msg.surfaceId);
+            NSString *catalogId          = AGenUIStringFromCxx(msg.catalogId);
+            BOOL sendDataModel           = msg.sendDataModel;
+            BOOL animated                = msg.animated;
+            NSString *rawProtocolContent = AGenUIStringFromCxx(msg.rawProtocolContent);
+            
+            NSDictionary *userInfo = @{
+                AGenUISurfaceIdKey:            surfaceId,
+                AGenUICatalogIdKey:            catalogId,
+                AGenUIThemeKey:                themeDict,
+                AGenUISendDataModelKey:        @(sendDataModel),
+                AGenUIAnimated:                @(animated),
+                AGenUIRawProtocolContentKey:   rawProtocolContent
+            };
+            
+            id bridgeObj = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated) return;
+                bridgeObj = (__bridge id)_bridge;
+            }
+            NSString *notifName = _createNotifName;
+            auto postBlock = ^{
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:notifName
+                 object:bridgeObj
+                 userInfo:userInfo];
+            };
+            if (![NSThread isMainThread]) {
+                dispatch_async(dispatch_get_main_queue(), postBlock);
+            } else {
+                postBlock();
+            }
         }
     }
 
     void onComponentsUpdate(const std::string& surfaceId, const std::vector<agenui::ComponentsUpdateMessage>& msg) override {
-        NSMutableArray *messagesArray = [NSMutableArray array];
-        for (const auto& m : msg) {
-            [messagesArray addObject:@{
-                @"componentId": [NSString stringWithUTF8String:m.componentId.c_str()],
-                @"component":   [NSString stringWithUTF8String:m.component.c_str()]
-            }];
-        }
-
-        NSString *surfaceIdStr = [NSString stringWithUTF8String:surfaceId.c_str()];
-        NSDictionary *userInfo = @{
-            AGenUISurfaceIdKey:        surfaceIdStr,
-            AGenUIComponentsUpdateKey: messagesArray
-        };
-
-        id bridgeObj = nil;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_invalidated) return;
-            bridgeObj = (__bridge id)_bridge;
-        }
-        NSString *notifName = _componentsUpdateNotifName;
-        auto postBlock = ^{
-            [[NSNotificationCenter defaultCenter]
-                postNotificationName:notifName
-                              object:bridgeObj
-                            userInfo:userInfo];
-        };
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), postBlock);
-        } else {
-            postBlock();
+        @autoreleasepool {
+            NSMutableArray *messagesArray = [NSMutableArray array];
+            for (const auto& m : msg) {
+                [messagesArray addObject:@{
+                    @"componentId": AGenUIStringFromCxx(m.componentId),
+                    @"component":   AGenUIStringFromCxx(m.component)
+                }];
+            }
+            
+            NSString *surfaceIdStr = AGenUIStringFromCxx(surfaceId);
+            NSDictionary *userInfo = @{
+                AGenUISurfaceIdKey:        surfaceIdStr,
+                AGenUIComponentsUpdateKey: messagesArray
+            };
+            
+            id bridgeObj = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated) return;
+                bridgeObj = (__bridge id)_bridge;
+            }
+            NSString *notifName = _componentsUpdateNotifName;
+            auto postBlock = ^{
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:notifName
+                 object:bridgeObj
+                 userInfo:userInfo];
+            };
+            if (![NSThread isMainThread]) {
+                dispatch_async(dispatch_get_main_queue(), postBlock);
+            } else {
+                postBlock();
+            }
         }
     }
 
     void onComponentsAdd(const std::string& surfaceId, const std::vector<agenui::ComponentsAddMessage>& msg) override {
-        NSMutableArray *messagesArray = [NSMutableArray array];
-        for (const auto& m : msg) {
-            [messagesArray addObject:@{
-                @"parentId":    [NSString stringWithUTF8String:m.parentId.c_str()],
-                @"componentId": [NSString stringWithUTF8String:m.componentId.c_str()],
-                @"component":   [NSString stringWithUTF8String:m.component.c_str()]
-            }];
-        }
-
-        NSString *surfaceIdStr = [NSString stringWithUTF8String:surfaceId.c_str()];
-        NSDictionary *userInfo = @{
-            AGenUISurfaceIdKey:     surfaceIdStr,
-            AGenUIComponentsAddKey: messagesArray
-        };
-
-        id bridgeObj = nil;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_invalidated) return;
-            bridgeObj = (__bridge id)_bridge;
-        }
-        NSString *notifName = _componentsAddNotifName;
-        auto postBlock = ^{
-            [[NSNotificationCenter defaultCenter]
-                postNotificationName:notifName
-                              object:bridgeObj
-                            userInfo:userInfo];
-        };
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), postBlock);
-        } else {
-            postBlock();
+        @autoreleasepool {
+            NSMutableArray *messagesArray = [NSMutableArray array];
+            for (const auto& m : msg) {
+                [messagesArray addObject:@{
+                    @"parentId":    AGenUIStringFromCxx(m.parentId),
+                    @"componentId": AGenUIStringFromCxx(m.componentId),
+                    @"component":   AGenUIStringFromCxx(m.component)
+                }];
+            }
+            
+            NSString *surfaceIdStr = AGenUIStringFromCxx(surfaceId);
+            NSDictionary *userInfo = @{
+                AGenUISurfaceIdKey:     surfaceIdStr,
+                AGenUIComponentsAddKey: messagesArray
+            };
+            
+            id bridgeObj = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated) return;
+                bridgeObj = (__bridge id)_bridge;
+            }
+            NSString *notifName = _componentsAddNotifName;
+            auto postBlock = ^{
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:notifName
+                 object:bridgeObj
+                 userInfo:userInfo];
+            };
+            if (![NSThread isMainThread]) {
+                dispatch_async(dispatch_get_main_queue(), postBlock);
+            } else {
+                postBlock();
+            }
         }
     }
 
     void onComponentsRemove(const std::string& surfaceId, const std::vector<agenui::ComponentsRemoveMessage>& msg) override {
-        NSMutableArray *messagesArray = [NSMutableArray array];
-        for (const auto& m : msg) {
-            [messagesArray addObject:@{
-                @"parentId":    [NSString stringWithUTF8String:m.parentId.c_str()],
-                @"componentId": [NSString stringWithUTF8String:m.componentId.c_str()]
-            }];
-        }
-
-        NSString *surfaceIdStr = [NSString stringWithUTF8String:surfaceId.c_str()];
-        NSDictionary *userInfo = @{
-            AGenUISurfaceIdKey:        surfaceIdStr,
-            AGenUIComponentsRemoveKey: messagesArray
-        };
-
-        id bridgeObj = nil;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_invalidated) return;
-            bridgeObj = (__bridge id)_bridge;
-        }
-        NSString *notifName = _componentsRemoveNotifName;
-        auto postBlock = ^{
-            [[NSNotificationCenter defaultCenter]
-                postNotificationName:notifName
-                              object:bridgeObj
-                            userInfo:userInfo];
-        };
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), postBlock);
-        } else {
-            postBlock();
+        @autoreleasepool {
+            NSMutableArray *messagesArray = [NSMutableArray array];
+            for (const auto& m : msg) {
+                [messagesArray addObject:@{
+                    @"parentId":    AGenUIStringFromCxx(m.parentId),
+                    @"componentId": AGenUIStringFromCxx(m.componentId)
+                }];
+            }
+            
+            NSString *surfaceIdStr = AGenUIStringFromCxx(surfaceId);
+            NSDictionary *userInfo = @{
+                AGenUISurfaceIdKey:        surfaceIdStr,
+                AGenUIComponentsRemoveKey: messagesArray
+            };
+            
+            id bridgeObj = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated) return;
+                bridgeObj = (__bridge id)_bridge;
+            }
+            NSString *notifName = _componentsRemoveNotifName;
+            auto postBlock = ^{
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:notifName
+                 object:bridgeObj
+                 userInfo:userInfo];
+            };
+            if (![NSThread isMainThread]) {
+                dispatch_async(dispatch_get_main_queue(), postBlock);
+            } else {
+                postBlock();
+            }
         }
     }
 
     void onDeleteSurface(const agenui::DeleteSurfaceMessage& msg) override {
-        NSString *surfaceId = [NSString stringWithUTF8String:msg.surfaceId.c_str()];
-        NSDictionary *userInfo = @{ AGenUISurfaceIdKey: surfaceId };
-
-        id bridgeObj = nil;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_invalidated) return;
-            bridgeObj = (__bridge id)_bridge;
-        }
-        NSString *notifName = _deleteNotifName;
-        auto postBlock = ^{
-            [[NSNotificationCenter defaultCenter]
-                postNotificationName:notifName
-                              object:bridgeObj
-                            userInfo:userInfo];
-        };
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), postBlock);
-        } else {
-            postBlock();
+        @autoreleasepool {
+            NSString *surfaceId = AGenUIStringFromCxx(msg.surfaceId);
+            NSDictionary *userInfo = @{ AGenUISurfaceIdKey: surfaceId };
+            
+            id bridgeObj = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated) return;
+                bridgeObj = (__bridge id)_bridge;
+            }
+            NSString *notifName = _deleteNotifName;
+            auto postBlock = ^{
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:notifName
+                 object:bridgeObj
+                 userInfo:userInfo];
+            };
+            if (![NSThread isMainThread]) {
+                dispatch_async(dispatch_get_main_queue(), postBlock);
+            } else {
+                postBlock();
+            }
         }
     }
 
     void onActionEventRouted(const std::string& content) override {
-        NSString *context = [NSString stringWithUTF8String:content.c_str()];
-        NSDictionary *userInfo = @{ AGenUIContextKey: context };
-
-        id bridgeObj = nil;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_invalidated) return;
-            bridgeObj = (__bridge id)_bridge;
-        }
-        NSString *notifName = _actionNotifName;
-        auto postBlock = ^{
-            [[NSNotificationCenter defaultCenter]
-                postNotificationName:notifName
-                              object:bridgeObj
-                            userInfo:userInfo];
-        };
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), postBlock);
-        } else {
-            postBlock();
+        @autoreleasepool {
+            NSString *context = AGenUIStringFromCxx(content);
+            NSDictionary *userInfo = @{ AGenUIContextKey: context };
+            
+            id bridgeObj = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated) return;
+                bridgeObj = (__bridge id)_bridge;
+            }
+            NSString *notifName = _actionNotifName;
+            auto postBlock = ^{
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:notifName
+                 object:bridgeObj
+                 userInfo:userInfo];
+            };
+            if (![NSThread isMainThread]) {
+                dispatch_async(dispatch_get_main_queue(), postBlock);
+            } else {
+                postBlock();
+            }
         }
     }
 
     void onError(const agenui::ErrorMessage& msg) override {
-        NSString *surfaceIdStr = [NSString stringWithUTF8String:msg.surfaceId.c_str()];
-        NSString *messageStr   = [NSString stringWithUTF8String:msg.message.c_str()];
-        NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
-        userInfo[AGenUIErrorCodeKey]    = @(msg.code);
-        userInfo[AGenUISurfaceIdKey]    = surfaceIdStr;
-        userInfo[AGenUIErrorMessageKey] = messageStr;
-
-        id bridgeObj = nil;
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_invalidated) return;
-            bridgeObj = (__bridge id)_bridge;
-        }
-        NSString *notifName = _errorNotifName;
-        NSDictionary *capturedUserInfo = [userInfo copy];
-        auto postBlock = ^{
-            [[NSNotificationCenter defaultCenter]
-                postNotificationName:notifName
-                              object:bridgeObj
-                            userInfo:capturedUserInfo];
-        };
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), postBlock);
-        } else {
-            postBlock();
+        @autoreleasepool {
+            NSString *surfaceIdStr = AGenUIStringFromCxx(msg.surfaceId);
+            NSString *messageStr   = AGenUIStringFromCxx(msg.message);
+            NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
+            userInfo[AGenUIErrorCodeKey]    = @(msg.code);
+            userInfo[AGenUISurfaceIdKey]    = surfaceIdStr;
+            userInfo[AGenUIErrorMessageKey] = messageStr;
+            
+            id bridgeObj = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated) return;
+                bridgeObj = (__bridge id)_bridge;
+            }
+            NSString *notifName = _errorNotifName;
+            NSDictionary *capturedUserInfo = [userInfo copy];
+            auto postBlock = ^{
+                [[NSNotificationCenter defaultCenter]
+                 postNotificationName:notifName
+                 object:bridgeObj
+                 userInfo:capturedUserInfo];
+            };
+            if (![NSThread isMainThread]) {
+                dispatch_async(dispatch_get_main_queue(), postBlock);
+            } else {
+                postBlock();
+            }
         }
     }
 
@@ -302,12 +346,78 @@ private:
     NSString* _errorNotifName;
 };
 
+// MARK: - C++ Surface Size Provider (per-instance)
+
+/// Per-instance C++ ISurfaceSizeProvider implementation.
+/// Forwards getSurfaceSize() queries to the owning ObjC bridge's surfaceSizeProvider block.
+class AGenUIInstanceSurfaceSizeProvider : public agenui::ISurfaceSizeProvider {
+public:
+    explicit AGenUIInstanceSurfaceSizeProvider(void* bridge)
+        : _bridge(bridge), _invalidated(false) {}
+    virtual ~AGenUIInstanceSurfaceSizeProvider() = default;
+
+    /// Invalidate the bridge pointer; must be called before dealloc of the ObjC object
+    /// or before unregistering this provider from the C++ engine.
+    void invalidate() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        _invalidated = true;
+        _bridge = nullptr;
+    }
+
+    agenui::SurfaceSize getSurfaceSize(const std::string& surfaceId) override {
+        // Snapshot the bridge + block under the lock, then release the lock before
+        // invoking the block — never call back into ObjC while holding our mutex.
+        @autoreleasepool {
+            AGenUISurfaceSizeProviderBlock block = nil;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_invalidated || _bridge == nullptr) {
+                    return {0.0f, 0.0f};
+                }
+                AGenUIEngineSurfaceManagerBridge *bridge = (__bridge AGenUIEngineSurfaceManagerBridge *)_bridge;
+                block = bridge.surfaceSizeProviderBlock;
+            }
+            if (block == nil) {
+                return {0.0f, 0.0f};
+            }
+
+            NSString *surfaceIdStr = AGenUIStringFromCxx(surfaceId);
+            CGSize sizePt = block(surfaceIdStr);
+
+            // Sanitize each axis independently so a fixed-width / unbounded-height
+            // (or vice versa) request stays expressible. Any non-finite (NaN / ±Inf)
+            // or non-positive component is normalized to 0 on its own axis only;
+            // we never poison the other axis just because this one is unmeasurable.
+            // The engine treats 0 on a given axis as "no constraint" on that axis,
+            // and {0, 0} as "not measurable yet" per the provider contract.
+            auto sanitize = [](float v) -> float {
+                return (std::isfinite(v) && v > 0.0f) ? v : 0.0f;
+            };
+
+            float widthPt  = sanitize((float)sizePt.width);
+            float heightPt = sanitize((float)sizePt.height);
+
+            // pt -> a2ui units (× 2), consistent with notifySurfaceSizeChanged.
+            agenui::SurfaceSize result;
+            result.width  = widthPt  * 2.0f;
+            result.height = heightPt * 2.0f;
+            return result;
+        }
+    }
+
+private:
+    mutable std::mutex _mutex;
+    bool _invalidated;
+    void* _bridge;          // Weak (unretained) reference to owning ObjC bridge
+};
+
 // MARK: - AGenUIEngineSurfaceManagerBridge Private Interface
 
 @interface AGenUIEngineSurfaceManagerBridge ()
 
 @property (nonatomic, unsafe_unretained) agenui::ISurfaceManager* surfaceManager;
 @property (nonatomic, unsafe_unretained) AGenUIInstanceEventListener* eventListener;
+@property (nonatomic, unsafe_unretained) AGenUIInstanceSurfaceSizeProvider* surfaceSizeProvider;
 
 @end
 
@@ -325,6 +435,11 @@ private:
         if (_surfaceManager != nullptr) {
             _eventListener = new AGenUIInstanceEventListener((__bridge void*)self, self.instanceId);
             _surfaceManager->addSurfaceEventListener(_eventListener);
+
+            // Inject per-instance ISurfaceSizeProvider; forwards getSurfaceSize() to the
+            // host-supplied surfaceSizeProvider block on this bridge.
+            _surfaceSizeProvider = new AGenUIInstanceSurfaceSizeProvider((__bridge void*)self);
+            _surfaceManager->setSurfaceSizeProvider(_surfaceSizeProvider);
         }
     }
     return self;
@@ -340,6 +455,13 @@ private:
         _surfaceManager->removeSurfaceEventListener(_eventListener);
         delete _eventListener;
         _eventListener = nullptr;
+    }
+
+    if (_surfaceManager != nullptr && _surfaceSizeProvider != nullptr) {
+        _surfaceSizeProvider->invalidate();
+        _surfaceManager->setSurfaceSizeProvider(nullptr);
+        delete _surfaceSizeProvider;
+        _surfaceSizeProvider = nullptr;
     }
 
     if (_surfaceManager != nullptr) {
@@ -423,6 +545,7 @@ private:
                               height:(float)heightA2ui {
     if (!surfaceId || surfaceId.length == 0) { return; }
     if (!componentId || componentId.length == 0) { return; }
+    if (!type || type.length == 0) { return; }
     if (_surfaceManager == nullptr) { return; }
 
     agenui::ComponentRenderInfo info;

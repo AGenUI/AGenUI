@@ -123,11 +123,6 @@ class WebComponent: Component {
         }
     }
     
-    override func destroy() {
-        cleanup()
-        super.destroy()
-    }
-    
     // MARK: - Private Methods
     
     /// Setup observers

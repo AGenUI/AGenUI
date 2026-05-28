@@ -254,37 +254,86 @@ bool initializeAndroidMeasurementBridge(JNIEnv* env) {
     return success;
 }
 
-void registerAndroidMeasurements() {
+static void jni_nativeRegisterMeasurement(JNIEnv* env, jclass /* clazz */, jstring jType) {
+    if (jType == nullptr) {
+        AGENUI_LOG("[JNI] nativeRegisterMeasurement: type is null");
+        return;
+    }
+
     IAGenUIEngine* engine = getAGenUIEngine();
     if (engine == nullptr) {
-        AGENUI_LOG("[JNI] registerAndroidMeasurements: engine is null");
+        AGENUI_LOG("[JNI] nativeRegisterMeasurement: engine is null");
         return;
     }
 
-    IMeasurementManager* measurementManager = engine->getMeasurementManager();
-    if (measurementManager == nullptr) {
-        AGENUI_LOG("[JNI] registerAndroidMeasurements: measurement manager is null");
+    IMeasurementManager* mm = engine->getMeasurementManager();
+    if (mm == nullptr) {
+        AGENUI_LOG("[JNI] nativeRegisterMeasurement: measurement manager is null");
         return;
     }
 
-    static const char* const kMeasurementTypes[] = {
-            "Text",
-            "RichText",
-//            "Image",
-            "CheckBox",
-            "ChoicePicker",
-            "DateTimeInput",
-            "Slider",
-            "AudioPlayer",
-            "Icon",
-            "Table",
+    const char* typeChars = env->GetStringUTFChars(jType, nullptr);
+    if (typeChars == nullptr) {
+        return;
+    }
+    std::string type(typeChars);
+    env->ReleaseStringUTFChars(jType, typeChars);
+
+    mm->registerMeasurement(type, std::make_shared<AndroidBridgeMeasurement>(type));
+    AGENUI_LOG("[JNI] nativeRegisterMeasurement: registered type=%s", type.c_str());
+}
+
+static void jni_nativeUnregisterMeasurement(JNIEnv* env, jclass /* clazz */, jstring jType) {
+    if (jType == nullptr) {
+        AGENUI_LOG("[JNI] nativeUnregisterMeasurement: type is null");
+        return;
+    }
+
+    IAGenUIEngine* engine = getAGenUIEngine();
+    if (engine == nullptr) {
+        AGENUI_LOG("[JNI] nativeUnregisterMeasurement: engine is null");
+        return;
+    }
+
+    IMeasurementManager* mm = engine->getMeasurementManager();
+    if (mm == nullptr) {
+        AGENUI_LOG("[JNI] nativeUnregisterMeasurement: measurement manager is null");
+        return;
+    }
+
+    const char* typeChars = env->GetStringUTFChars(jType, nullptr);
+    if (typeChars == nullptr) {
+        return;
+    }
+    std::string type(typeChars);
+    env->ReleaseStringUTFChars(jType, typeChars);
+
+    mm->unregisterMeasurement(type);
+    AGENUI_LOG("[JNI] nativeUnregisterMeasurement: unregistered type=%s", type.c_str());
+}
+
+jint register_jni_MeasurementBridge(JNIEnv* env) {
+    AGENUI_LOG("[JNI] register_jni_MeasurementBridge");
+    jclass clazz = env->FindClass(kMeasurementBridgeClassName);
+    if (clazz == nullptr) {
+        env->ExceptionClear();
+        AGENUI_LOG("[JNI] register_jni_MeasurementBridge: class not found");
+        return JNI_ERR;
+    }
+
+    JNINativeMethod methods[] = {
+        {"nativeRegisterMeasurement", "(Ljava/lang/String;)V", (void*)jni_nativeRegisterMeasurement},
+        {"nativeUnregisterMeasurement", "(Ljava/lang/String;)V", (void*)jni_nativeUnregisterMeasurement},
     };
 
-    for (const char* type : kMeasurementTypes) {
-        measurementManager->registerMeasurement(
-                type,
-                std::make_shared<AndroidBridgeMeasurement>(type));
+    jint result = env->RegisterNatives(clazz, methods, sizeof(methods) / sizeof(methods[0]));
+    env->DeleteLocalRef(clazz);
+    if (result != JNI_OK) {
+        AGENUI_LOG("[JNI] register_jni_MeasurementBridge: RegisterNatives failed");
+        return JNI_ERR;
     }
+
+    return JNI_OK;
 }
 
 }  // namespace agenui

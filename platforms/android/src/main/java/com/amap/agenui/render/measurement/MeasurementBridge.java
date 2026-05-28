@@ -7,12 +7,15 @@ import androidx.annotation.Keep;
 
 import com.amap.agenui.AGenUI;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Java-side measurement entry point called from the native Yoga pipeline.
  *
  * Responsibilities:
  * 1. Acts as the only JNI-visible measurement dispatch method.
- * 2. Maps component type -> concrete measurer implementation.
+ * 2. Maintains a registry of type -> IMeasurer and dispatches via lookup.
  * 3. Guarantees a stable zero result when context, params or type are invalid.
  */
 @Keep
@@ -20,7 +23,44 @@ public final class MeasurementBridge {
 
     private static final String TAG = "MeasurementBridge";
 
+    private static final Map<String, IMeasurer> sMeasurers = new ConcurrentHashMap<>();
+
     private MeasurementBridge() {
+    }
+
+    /**
+     * Registers a measurer for the given component type.
+     * Also registers the type in the native C++ MeasurementManager so Yoga can invoke it.
+     *
+     * @param type     Component type string (e.g. "Text", "Image")
+     * @param measurer IMeasurer implementation
+     */
+    public static void registerMeasurer(String type, IMeasurer measurer) {
+        if (type == null || measurer == null) {
+            return;
+        }
+        sMeasurers.put(type, measurer);
+        nativeRegisterMeasurement(type);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "registerMeasurer: type=" + type);
+        }
+    }
+
+    /**
+     * Unregisters the measurer for the given component type.
+     * Also unregisters from the native C++ MeasurementManager.
+     *
+     * @param type Component type string
+     */
+    public static void unregisterMeasurer(String type) {
+        if (type == null) {
+            return;
+        }
+        sMeasurers.remove(type);
+        nativeUnregisterMeasurement(type);
+        if (AGenUILogger.isLoggingEnabled()) {
+            AGenUILogger.d(TAG, "unregisterMeasurer: type=" + type);
+        }
     }
 
     /**
@@ -56,41 +96,12 @@ public final class MeasurementBridge {
                     + ", heightMode=" + heightMode);
         }
 
+        IMeasurer measurer = sMeasurers.get(type);
         MeasureResult result;
-        switch (type) {
-            case "Text":
-                result = TextMeasurer.measureText(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "RichText":
-                result = TextMeasurer.measureRichText(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "Image":
-                result = ImageMeasurer.measure(paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "CheckBox":
-                result = CheckBoxMeasurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "ChoicePicker":
-                result = ChoicePickerMeasurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "DateTimeInput":
-                result = DateTimeInputMeasurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "Slider":
-                result = SliderMeasurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "AudioPlayer":
-                result = AudioPlayerMeasurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "Icon":
-                result = IconMeasurer.measure(paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            case "Table":
-                result = TableMeasurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
-                break;
-            default:
-                result = MeasureResult.zero();
-                break;
+        if (measurer != null) {
+            result = measurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
+        } else {
+            result = MeasureResult.zero();
         }
 
         if (AGenUILogger.isLoggingEnabled()) {
@@ -98,4 +109,8 @@ public final class MeasurementBridge {
         }
         return result;
     }
+
+    private static native void nativeRegisterMeasurement(String type);
+
+    private static native void nativeUnregisterMeasurement(String type);
 }

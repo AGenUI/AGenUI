@@ -188,7 +188,7 @@ public class ImageComponent extends A2UIComponent {
                     return;
                 }
                 currentRequestId = null;
-                AGenUILogger.e(TAG, "[ImageComponent] Image load failed: " + error.getMessage());
+                AGenUILogger.e(TAG, "[ImageComponent] Image load failed: " + id + ", error: " + error.getMessage());
                 if (shimmerTransition != null) {
                     shimmerTransition.stopShimmer();
                 }

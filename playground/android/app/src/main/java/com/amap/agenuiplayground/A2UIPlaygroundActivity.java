@@ -22,6 +22,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
@@ -33,6 +34,7 @@ import com.amap.agenui.AGenUI;
 import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
+import com.amap.agenui.render.surface.SurfaceSize;
 import com.amap.agenuiplayground.adapter.ComponentAdapter;
 import com.amap.agenuiplayground.component.factory.ChartComponentFactory;
 import com.amap.agenuiplayground.component.factory.LottieComponentFactory;
@@ -122,6 +124,25 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
     private SurfaceManager surfaceManager;
     private String currentSurfaceId = null;
 
+    // Surface-size pull cache.
+    //
+    // The engine queries ISurfaceManagerListener#surfaceSize SYNCHRONOUSLY on its
+    // worker thread during the first Yoga layout pass — before the host's container
+    // (renderContent → Surface.getContainer()) has been measured and pushed back via
+    // notifySurfaceSizeChanged. Without this, the bootstrap layout uses width=0 and
+    // first paint flashes a collapsed surface.
+    //
+    // We pre-measure renderContent (the parent FrameLayout that hosts every Surface)
+    // on the UI thread via OnLayoutChangeListener and stash the SurfaceSize in a
+    // volatile field. The worker thread reads the volatile reference — no lock,
+    // no main-thread API call from within the callback. SurfaceSize's constructor
+    // takes raw px and normalizes to a2ui units internally, so we don't deal with
+    // vp here.
+    private volatile SurfaceSize cachedRenderContentSize;
+    // Cached source px width; skip allocation when width didn't actually change.
+    // Height isn't tracked here because we always emit 0 on the height axis.
+    private int lastRenderContentWidthPx = -1;
+
     // Performance Monitor
     private PerformanceMonitor performanceMonitor;
     private View performanceOverlay;
@@ -149,8 +170,11 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
 
     // Streaming mode configuration
     private static final boolean STREAMING_MODE_ENABLED = true;
-    private static final int DEFAULT_STREAMING_CHUNK_SIZE = 100;
-    private static final long DEFAULT_STREAMING_DELAY_MS = 100;
+    // Per-chunk character size shared by sync and async streaming paths.
+    private static final int DEFAULT_STREAMING_CHUNK_SIZE = 300;
+    private static final long DEFAULT_STREAMING_DELAY_MS = 80;
+    // updateComponents streaming style: false=sync (tight loop), true=async (postDelayed).
+    private static final boolean COMPONENTS_ASYNC_STREAMING = false;
     private final Handler streamingHandler = new Handler(Looper.getMainLooper());
 
     private enum EditorType {
@@ -215,6 +239,10 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
         galleryLoadAllMenuItem = navigationView.findViewById(R.id.galleryLoadAllMenuItem);
         renderContainer = findViewById(R.id.renderContainer);
         renderContent = findViewById(R.id.renderContent);
+        // Track renderContent's measured size so the engine's surfaceSize pull can
+        // synchronously hand back a sensible bootstrap value before any push from
+        // Surface.getContainer()'s own OnLayoutChangeListener has had a chance to fire.
+        renderContent.addOnLayoutChangeListener(this::onRenderContentLayoutChanged);
 
         // Log area
         logsContainer = findViewById(R.id.logsContainer);
@@ -697,6 +725,14 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
                     addLog("Surface deleted: " + surface.getSurfaceId());
                 });
             }
+
+            // ⚠ Worker thread — see ISurfaceManagerListener#surfaceSize javadoc.
+            // Just read the volatile cache that the UI thread keeps up-to-date; no
+            // View / Activity / Resources access here.
+            @Override
+            public SurfaceSize surfaceSize(@NonNull String surfaceId) {
+                return cachedRenderContentSize;
+            }
         });
 
         // 5. Register Components and Functions
@@ -707,6 +743,39 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
         AGenUI.getInstance().registerComponent("Chart", new ChartComponentFactory());
 
         addLog("A2UI Framework initialized successfully");
+    }
+
+    /**
+     * Refreshes the surface-size pull cache whenever {@link #renderContent}'s
+     * measured bounds change. Runs on the UI thread (Android layout pipeline);
+     * the worker thread reads {@link #cachedRenderContentSize} via volatile.
+     *
+     * <p>Width is bounded by the host container. Height is intentionally left at
+     * 0 (the engine's "no constraint on this axis" signal) so the surface
+     * decides its own height — renderContent is wrap_content under a ScrollView,
+     * so feeding back the measured height would create a "constraint = last
+     * frame's content height" feedback loop. Mirrors the iOS playground which
+     * returns CGSize(width: w, height: .infinity), where .infinity gets
+     * sanitized to 0 at the bridge boundary.
+     */
+    private void onRenderContentLayoutChanged(View v,
+                                              int left, int top, int right, int bottom,
+                                              int oldLeft, int oldTop, int oldRight, int oldBottom) {
+        int widthPx = right - left;
+        if (widthPx == lastRenderContentWidthPx) {
+            return;
+        }
+        lastRenderContentWidthPx = widthPx;
+
+        if (widthPx <= 0) {
+            // Not laid out yet — null tells the engine "not measurable",
+            // matching the SurfaceSize javadoc contract.
+            cachedRenderContentSize = null;
+            return;
+        }
+        // SurfaceSize's constructor takes raw px and converts to a2ui units
+        // internally — same conversion the SDK uses on the push channel.
+        cachedRenderContentSize = new SurfaceSize(widthPx, 0);
     }
 
     /**
@@ -749,27 +818,28 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
             addLog("1/3 Sent createSurface");
 
             if (STREAMING_MODE_ENABLED) {
-                // Streaming mode: send updateComponents and updateDataModel in chunks
-                addLog("Streaming mode ON");
+                addLog("Streaming mode: " + (COMPONENTS_ASYNC_STREAMING ? "async" : "sync"));
 
-                // 2. Stream updateComponents
-                addLog("2/3 Streaming updateComponents...");
-                surfaceManager.receiveTextChunk(updatedComponentsJson);
-
-                // 3. Stream updateDataModel (if not empty)
-                if (!updatedDataModelJson.equals("{}")) {
-                    addLog("3/3 Streaming updateDataModel...");
-                    sendChunksStreaming(updatedDataModelJson, DEFAULT_STREAMING_CHUNK_SIZE, DEFAULT_STREAMING_DELAY_MS, () -> {
-                        addLog("3/3 updateDataModel streaming complete");
+                // Shared step 3 continuation, run after step 2 finishes on either path.
+                Runnable streamDataModelAndFinish = () -> {
+                    if (!updatedDataModelJson.equals("{}")) {
+                        sendChunksStreaming(updatedDataModelJson, DEFAULT_STREAMING_CHUNK_SIZE, DEFAULT_STREAMING_DELAY_MS, () -> {
+                            currentSurfaceId = newSurfaceId;
+                            addLog("Rendering complete");
+                            Toast.makeText(this, "Render successful (streaming)", Toast.LENGTH_SHORT).show();
+                        });
+                    } else {
                         currentSurfaceId = newSurfaceId;
-                        addLog("Rendering complete!");
+                        addLog("Rendering complete (no dataModel)");
                         Toast.makeText(this, "Render successful (streaming)", Toast.LENGTH_SHORT).show();
-                    });
+                    }
+                };
+
+                if (COMPONENTS_ASYNC_STREAMING) {
+                    sendChunksStreaming(updatedComponentsJson, DEFAULT_STREAMING_CHUNK_SIZE, DEFAULT_STREAMING_DELAY_MS, streamDataModelAndFinish);
                 } else {
-                    addLog("3/3 updateDataModel is empty, skipped");
-                    currentSurfaceId = newSurfaceId;
-                    addLog("Rendering complete!");
-                    Toast.makeText(this, "Render successful (streaming)", Toast.LENGTH_SHORT).show();
+                    sendInChunks(updatedComponentsJson, DEFAULT_STREAMING_CHUNK_SIZE);
+                    streamDataModelAndFinish.run();
                 }
             } else {
                 // Normal mode: send all at once
@@ -830,6 +900,22 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
         } catch (JSONException e) {
             Log.e(TAG, "Failed to replace surfaceId in JSON", e);
             return json;  // If replacement fails, return original JSON
+        }
+    }
+
+    /**
+     * Synchronous counterpart of {@link #sendChunksStreaming}: splits {@code json}
+     * into fixed-size chunks of {@code chunkSize} characters and delivers them in
+     * a tight loop without {@code Handler} delay.
+     */
+    private void sendInChunks(String json, int chunkSize) {
+        int totalLength = json.length();
+        int safeChunkSize = Math.max(1, chunkSize);
+        int offset = 0;
+        while (offset < totalLength) {
+            int end = Math.min(offset + safeChunkSize, totalLength);
+            surfaceManager.receiveTextChunk(json.substring(offset, end));
+            offset = end;
         }
     }
 

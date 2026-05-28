@@ -2,9 +2,13 @@ package com.amap.agenui.render.component.factory;
 
 import android.content.Context;
 
+import androidx.annotation.Nullable;
+
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.IComponentFactory;
 import com.amap.agenui.render.component.impl.RichTextComponent;
+import com.amap.agenui.render.measurement.IMeasurer;
+import com.amap.agenui.render.measurement.TextMeasurer;
 
 import java.util.Map;
 
@@ -18,5 +22,11 @@ public class RichTextComponentFactory implements IComponentFactory {
     @Override
     public String getComponentType() {
         return "RichText";
+    }
+
+    @Nullable
+    @Override
+    public IMeasurer getMeasurer() {
+        return TextMeasurer::measureRichText;
     }
 }

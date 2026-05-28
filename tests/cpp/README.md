@@ -85,7 +85,6 @@ Quick recipe:
 open tests/cpp/build/xcode/agenui_cpp_tests.xcodeproj        # ASan + UBSan
 open tests/cpp/build/xcode-tsan/agenui_cpp_tests.xcodeproj   # TSan
 # pick scheme `agenui_unit_tests`, ⌘R to run, set breakpoints in core/src/**.
-
 ```
 
 ## Adding a new test

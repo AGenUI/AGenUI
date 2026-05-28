@@ -160,7 +160,8 @@ import UIKit
     ///   - componentId: Component ID
     ///   - componentType: Component type
     ///   - properties: Component properties
-    func addComponent(componentId: String, componentType: String, properties: [String: Any], parentId: String?) {
+    @MainActor func addComponent(componentId: String, componentType: String, properties: [String: Any], parentId: String?) {
+        let properties = properties.filter { !($0.value is NSNull) }
         Logger.shared.debug("[Surface] Adding component: \(componentId) (\(componentType))")
         
         // Check if component already exists
@@ -215,7 +216,7 @@ import UIKit
     /// Remove component from tree
     ///
     /// - Parameter componentId: Component ID
-    func removeComponent(componentId: String) {
+    @MainActor func removeComponent(componentId: String) {
         guard let component = componentTree[componentId] else {
             Logger.shared.debug("Component not found: \(componentId)")
             return
@@ -223,10 +224,7 @@ import UIKit
         
         // Remove from parent
         component.parent?.removeChild(component)
-        
-        // Destroy component
-        component.destroy()
-        
+          
         // Remove from tree
         componentTree.removeValue(forKey: componentId)
         
@@ -246,7 +244,8 @@ import UIKit
     /// - Parameters:
     ///   - componentId: Component ID
     ///   - properties: New properties
-    func updateComponent(componentId: String, properties: [String: Any]) {
+    @MainActor func updateComponent(componentId: String, properties: [String: Any]) {
+        let properties = properties.filter { !($0.value is NSNull) }
         guard let component = componentTree[componentId] else {
             Logger.shared.debug("Component not found: \(componentId)")
             return
@@ -327,15 +326,6 @@ import UIKit
         blankCheckWorkItem?.cancel()
         blankCheckWorkItem = nil
         
-        // Destroy all components
-        for component in componentTree.values {
-            component.destroy()
-        }
-        
-        // Clear component tree
-        componentTree.removeAll()
-        rootComponent = nil
-        
         Logger.shared.debug("Deinitialized: \(surfaceId)")
     }
     
@@ -344,7 +334,7 @@ import UIKit
     /// Process single component JSON
     ///
     /// - Parameter componentJson: Component JSON string
-    func processAddComponentJson(_ componentJson: String, parentId: String?) {
+    @MainActor func processAddComponentJson(_ componentJson: String, parentId: String?) {
         // Parse component JSON
         guard var componentData = parseJSON(componentJson) else {
             Logger.shared.error("Failed to parse component JSON")
@@ -398,7 +388,7 @@ import UIKit
     /// Process components update messages
     ///
     /// - Parameter messages: Array of update messages, each containing componentId and component JSON
-    func processComponentsUpdate(_ messages: [[String: String]]) {
+    @MainActor func processComponentsUpdate(_ messages: [[String: String]]) {
         for message in messages {
             guard let componentId = message["componentId"],
                   let componentJson = message["component"] else {
@@ -422,7 +412,7 @@ import UIKit
     /// Process components add messages
     ///
     /// - Parameter messages: Array of add messages, each containing parentId, componentId and component JSON
-    func processComponentsAdd(_ messages: [[String: String]]) {
+    @MainActor func processComponentsAdd(_ messages: [[String: String]]) {
         for message in messages {
             guard let componentJson = message["component"] else {
                 Logger.shared.error("Invalid components add message")
@@ -437,7 +427,7 @@ import UIKit
     /// Process components remove messages
     ///
     /// - Parameter messages: Array of remove messages, each containing parentId and componentId
-    func processComponentsRemove(_ messages: [[String: String]]) {
+    @MainActor func processComponentsRemove(_ messages: [[String: String]]) {
         for message in messages {
             guard let componentId = message["componentId"] else {
                 Logger.shared.error("Invalid components remove message")
