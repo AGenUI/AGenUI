@@ -26,7 +26,7 @@ Check the following universal items every round:
 
 - Has the mode been clearly identified: `DTO Component` / `Non-DTO Component` / `Non-DTO Page`
 - Can all data paths be found in the `dataModel`
-- Are any banned advanced components, unsupported style properties, or non-reproducible hard-coded values used
+- Are all component names in the allowlist (see `reference/component-catalog.md`); no hallucinated names like Badge, Spacer, Stack, BarChart
 - Do lists use template capability rather than hard-coded repeated components
 - Is the layout clearly distinct from plain text stacking (not just "one row after another")
 - Are atomic component capabilities being fully used to express hierarchy and emphasis

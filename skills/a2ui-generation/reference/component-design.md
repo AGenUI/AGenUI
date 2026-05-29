@@ -343,3 +343,34 @@ Because the DTO component Python will handle more DTOs of the same type, the com
 - Explicitly layer fields into required / optional
 - Design the layout-collapse path for when optional fields are missing
 - For high-volatility fields like main title, subtitle, institution name, source, and tags, prepare multi-line or truncation strategies by default
+
+## Component Expressiveness Hierarchy
+
+When data can be represented by multiple component types, prefer the one with higher expressiveness over plain `Text`.
+
+| Tier | Components | When to use |
+|---|---|---|
+| Tier 1 — Visual | `Chart`, `Image`, `Carousel`, `Video`, `Lottie` | Numerical comparison → Chart; visual content → Image/Carousel; animation → Lottie |
+| Tier 2 — Structured | `Card`, `RichText`, `Table`, `Markdown` | Formatted emphasis → RichText; tabular data → Table; rich text blocks → Markdown |
+| Tier 3 — Basic | `Text`, `Icon`, `Image`,`Divider`, `Button` | Single labels, icons, separators — essential but low expressiveness on their own |
+
+Rules:
+
+- During layout planning, check: "Is any section using Tier 3 where Tier 1–2 would better serve the data?"
+- Do not upgrade when data does not support it — a single number does not need a Chart; a short label does not need RichText
+- Tier 1 components require explicit `styles.height` (no intrinsic auto-sizing)
+- Card mode: at most 1 Tier 1 component as visual focal point
+- This hierarchy supplements, not overrides, content budget and height boundary rules
+
+## Chart Height Specification
+
+Chart has no intrinsic height; the renderer needs an explicit `styles.height` to allocate canvas space.
+
+| `chartType` | Recommended height | Rationale |
+|---|---|---|
+| `donut` | `300px` – `400px` | Compact, roughly square; `300px` for cards, `400px` for pages |
+| `bar` | `400px` – `500px` | Needs vertical space for bars + axis labels |
+| `line` | `400px` – `500px` | Needs vertical space for trend lines + axis labels |
+| `bar_grouped` | `400px` – `500px` | Same as bar, may need slightly more for legend |
+
+In card mode, prefer the lower end of each range. In page mode, use the upper end. If the Chart is the primary visual focal point of a card, use the upper end regardless of mode.

@@ -2,6 +2,7 @@
 name: a2ui-generation
 description: |
   Design and generate A2UI updateComponents and updateDataModel payloads for three modes (DTO component, non-DTO component, non-DTO page). Use when asked to create or refine A2UI cards, components, or pages from DTO/JSON/business data, generate Python transformer code for DTO-driven components, iterate on existing A2UI output files by diff, improve mobile UI quality, or validate A2UI rules such as surfaceId, root, path binding, and component-vs-page boundaries.
+  Trigger when user mentions "A2UI", "a2ui", "AGenUI", "generate card", "generate page", "UI component", "生成卡片", "生成页面".
 ---
 
 # A2UI Generation
@@ -132,17 +133,21 @@ Do not read all sub-documents by default. Load only what the current task requir
 
 | Task type | Required docs | Load on demand |
 | --- | --- | --- |
-| DTO component | [`docs/dto-component-mode.md`](docs/dto-component-mode.md), [`docs/component-design.md`](docs/component-design.md) | [`docs/component-catalog.md`](docs/component-catalog.md), [`docs/data-binding.md`](docs/data-binding.md), [`docs/visual-interaction.md`](docs/visual-interaction.md) |
-| Non-DTO component | [`docs/component-catalog.md`](docs/component-catalog.md), [`docs/component-design.md`](docs/component-design.md) | [`docs/data-binding.md`](docs/data-binding.md), [`docs/visual-interaction.md`](docs/visual-interaction.md) |
-| Non-DTO page | [`docs/component-catalog.md`](docs/component-catalog.md), [`docs/page-design.md`](docs/page-design.md), [`docs/visual-interaction.md`](docs/visual-interaction.md) | [`docs/data-binding.md`](docs/data-binding.md), [`docs/review-validation.md`](docs/review-validation.md) |
-| Bug fix / review / iterating on existing artifacts | [`docs/review-validation.md`](docs/review-validation.md) | Whichever doc is directly related to the issue |
+| DTO component | [`reference/dto-component-mode.md`](reference/dto-component-mode.md), [`reference/component-design.md`](reference/component-design.md) | [`reference/component-catalog.md`](reference/component-catalog.md), [`reference/data-binding.md`](reference/data-binding.md), [`reference/visual-interaction.md`](reference/visual-interaction.md), [`reference/design-review.md`](reference/design-review.md), [`reference/spacing-elevation.md`](reference/spacing-elevation.md), [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md) |
+| Non-DTO component | [`reference/component-catalog.md`](reference/component-catalog.md), [`reference/component-design.md`](reference/component-design.md) | [`reference/data-binding.md`](reference/data-binding.md), [`reference/visual-interaction.md`](reference/visual-interaction.md), [`reference/design-review.md`](reference/design-review.md), [`reference/spacing-elevation.md`](reference/spacing-elevation.md), [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md) |
+| Non-DTO page | [`reference/component-catalog.md`](reference/component-catalog.md), [`reference/page-design.md`](reference/page-design.md), [`reference/visual-interaction.md`](reference/visual-interaction.md) | [`reference/data-binding.md`](reference/data-binding.md), [`reference/review-validation.md`](reference/review-validation.md), [`reference/design-review.md`](reference/design-review.md), [`reference/spacing-elevation.md`](reference/spacing-elevation.md) |
+| Bug fix / review / iterating on existing artifacts | [`reference/review-validation.md`](reference/review-validation.md) | Whichever doc is directly related to the issue |
 
 Additional notes:
 
-- Load [`docs/component-catalog.md`](docs/component-catalog.md) when you need to verify atomic components, charts, fields, allowed values, or style whitelists
-- Load [`docs/data-binding.md`](docs/data-binding.md) when you need to verify path binding, template binding, or relative path rules
-- Load [`docs/component-design.md`](docs/component-design.md) when you need to verify component height budgets, card content budgets, or multi-column text budgets
-- Load [`docs/page-design.md`](docs/page-design.md) when you need to verify full-page structure, layout composition, or page-level sectioning
+- Load [`reference/component-catalog.md`](reference/component-catalog.md) when you need to verify atomic components, charts, fields, allowed values, or style whitelists
+- Load [`reference/data-binding.md`](reference/data-binding.md) when you need to verify path binding, template binding, or relative path rules
+- Load [`reference/component-design.md`](reference/component-design.md) when you need to verify component height budgets, card content budgets, or multi-column text budgets
+- Load [`reference/page-design.md`](reference/page-design.md) when you need to verify full-page structure, layout composition, or page-level sectioning
+
+- Load [`reference/spacing-elevation.md`](reference/spacing-elevation.md) when you need spacing scale, shadow elevation, or border radius guidance
+- Load [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md) when you need to add visual richness: inline color, color blocks, icons, opacity, pseudo-gradients
+- Load [`reference/design-review.md`](reference/design-review.md) when performing model-level design review after script validation passes
 
 ## Output Persistence
 
@@ -179,8 +184,8 @@ To save tokens:
 4. Based on that layout rationale, draft an internal first version, then perform at least `1` explicit design improvement before proceeding to formal output
 5. Output the first draft formally and write it to disk immediately (non-DTO mode: components before datamodel, mandatory)
 6. Run [`scripts/validate_a2ui.py`](scripts/validate_a2ui.py) immediately; if it fails, fix the file directly and re-run until it passes
-7. Only after the script passes for the first time, perform `1–2` rounds of model-level design review and improvement on the on-disk files
-8. During model review rounds: address palette coherence, information hierarchy, horizontal relationships, and premium feel; also perform a dedicated "protected content abnormal wrapping" check on all horizontal layouts — prioritize checking whether short phrases, CTAs, ratings, times, and prices are being squeezed and broken by narrow fixed widths
+7. Only after the script passes for the first time, perform design quality review following [`reference/design-review.md`](reference/design-review.md); apply improvements directly to the on-disk file
+8. After design review improvements, perform a dedicated "protected content abnormal wrapping" check on all horizontal layouts — prioritize checking whether short phrases, CTAs, ratings, times, and prices are being squeezed and broken by narrow fixed widths
 9. If the model review modifies files, re-run the validation script; deliver only after it passes again
 10. At delivery, clearly state the output file paths; if placeholder links were used, explicitly remind the user to replace them
 
@@ -214,15 +219,31 @@ Only truly irreplaceable business invariants that scripts cannot fully substitut
 - The layout rationale must cover at minimum: main sections, visual focal point, content rhythm, key component relationships, and the role of images/charts
 - Before formal output, at least `1` explicit improvement round is required; the first version in your head must not be delivered directly as the final first draft
 - This explicit improvement round defaults to prioritizing premium feel, design quality, and overall completeness — not just literal additions
+- **Component allowlist**: Only use component names defined in `reference/component-catalog.md`.
+  Do NOT invent, translate, or import names from React / Flutter / SwiftUI / Tailwind.
+  Allowed components: `Column`, `Row`, `List`, `Card`, `Tabs`, `Modal`, `Divider`, `Carousel`, `Text`, `RichText`, `Markdown`, `Image`, `Icon`, `Video`, `AudioPlayer`, `Lottie`, `Web`, `Button`, `TextField`, `CheckBox`, `ChoicePicker`, `Slider`, `DateTimeInput`, `Chart`, `Table`.
+  Common wrong names and their correct replacements:
+  - "Container" / "Box" / "Wrapper" → use `Card` (bordered) or `Column` with padding
+  - "Stack" / "VStack" / "HStack" → use `Column` (vertical) or `Row` (horizontal)
+  - "Spacer" → use margin / padding on adjacent components
+  - "Badge" / "Chip" / "Tag" → use `Text` with rounded background styles
+  - "Accordion" → use `Tabs` or toggle visibility via styles `display: "none"`
+  - "BarChart" / "LineChart" / "DonutChart" → use `Chart` with `chartType: "bar" | "line" | "donut" | "bar_grouped"`
+- **Template components must use relative paths**: all `{"path": "..."}` bindings inside a template component (i.e., the component referenced by `children.componentId`) must be relative paths (e.g. `text`, `userName`, `author/name`). Absolute paths such as `/children/xxx` or `/item/xxx` are forbidden. Relative paths are plain field names; use `/` to separate nested fields — dot notation is not allowed
+- **Horizontal layout max 3 children**: `Row` and `List(direction=horizontal)` must not contain more than 3 direct children. More than 3 items in a single horizontal row risks overflow and clipping on mobile narrow screens. If more items are needed, switch to vertical layout, use a scrollable `List(direction=horizontal)` with template-driven dynamic children, or split into multiple rows
 
 ## Resources
 
 - Sub-document index: [`reference.md`](reference.md)
-- Component catalog: [`docs/component-catalog.md`](docs/component-catalog.md)
-- Data binding: [`docs/data-binding.md`](docs/data-binding.md)
-- DTO mode: [`docs/dto-component-mode.md`](docs/dto-component-mode.md)
-- Component design: [`docs/component-design.md`](docs/component-design.md)
-- Page design: [`docs/page-design.md`](docs/page-design.md)
-- Visual & interaction: [`docs/visual-interaction.md`](docs/visual-interaction.md)
-- Review & validation: [`docs/review-validation.md`](docs/review-validation.md)
+- Component catalog: [`reference/component-catalog.md`](reference/component-catalog.md)
+- Data binding: [`reference/data-binding.md`](reference/data-binding.md)
+- DTO mode: [`reference/dto-component-mode.md`](reference/dto-component-mode.md)
+- Component design: [`reference/component-design.md`](reference/component-design.md)
+- Page design: [`reference/page-design.md`](reference/page-design.md)
+- Visual & interaction: [`reference/visual-interaction.md`](reference/visual-interaction.md)
+
+- Spacing & elevation: [`reference/spacing-elevation.md`](reference/spacing-elevation.md)
+- Expressiveness toolkit: [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)
+- Design review: [`reference/design-review.md`](reference/design-review.md)
+- Review & validation: [`reference/review-validation.md`](reference/review-validation.md)
 - Validation script: [`scripts/validate_a2ui.py`](scripts/validate_a2ui.py)

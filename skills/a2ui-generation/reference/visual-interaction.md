@@ -65,6 +65,10 @@ When the design requires image decoration:
 - Do not fabricate non-existent image URLs
 - If no reliable, suitable, accessible image can be found, switch to an image-free approach rather than filling in a random URL
 
+## URL Authenticity
+
+`Image`, `Video`, `AudioPlayer`, `Lottie`, `Carousel` all depend on external URLs. Every URL written into `updateDataModel` must be real, reachable, and loadable by the client. Do not fabricate placeholder URLs (`example.com`, `placeholder.com`, `picsum.photos`, `via.placeholder.com`). If the user or DTO does not provide a real URL, omit the component entirely rather than filling it with a fake one.
+
 ## Anti-Patterns To Avoid
 
 Avoid the following structures by default:

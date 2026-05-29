@@ -151,11 +151,30 @@ When integrating an LLM Agent, supply this file's content or its hosted URL as t
 
 ## A2UI Generation Skill
 
-The `skills/a2ui-generation/` directory ships a standalone **A2UI generation Skill** that can be mounted into any Agent that supports the [Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills) mechanism (e.g. Claude Code, Codex, Qoder). It guides the LLM — via the Skill's built-in design rules and constraints — to turn a natural-language query into A2UI protocol messages (`updateComponents` / `updateDataModel`) that AGenUI can render directly.
+The `skills/a2ui-generation/` directory ships a standalone **A2UI generation Skill** that can be mounted into any Agent that supports the [Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills) mechanism (e.g. Claude Code, Cursor, Codex, Gemini CLI, Windsurf, GitHub Copilot, etc.). It guides the LLM — via the Skill's built-in design rules and constraints — to turn a natural-language query into A2UI protocol messages (`updateComponents` / `updateDataModel`) that AGenUI can render directly.
+
+### Installation
+
+**One-command install (recommended)**
+
+```bash
+npx skills add AGenUI/AGenUI
+```
+
+Supports 55+ AI coding agent runtimes, including Claude Code, Cursor, Codex, Gemini CLI, Windsurf, GitHub Copilot, and more.
+
+**Manual install**
+
+```bash
+git clone https://github.com/AGenUI/AGenUI.git
+cp -r AGenUI/skills/a2ui-generation ~/.claude/skills/
+```
+
+> For other runtimes, copy the `skills/a2ui-generation/` directory to the corresponding skills directory (e.g. `~/.cursor/skills/`, `~/.codex/skills/`).
 
 ### How to use
 
-Register `skills/a2ui-generation/` as a Skill in your Agent, then describe the UI you want through a query. The Skill drives the LLM to emit A2UI v0.9–conformant JSON protocol.
+After installation, describe the UI you want through a query in your agent. The Skill drives the LLM to emit A2UI v0.9–conformant JSON protocol.
 
 ### Layout & styling
 

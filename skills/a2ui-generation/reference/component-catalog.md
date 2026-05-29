@@ -100,6 +100,14 @@ Dialog. `trigger` is the triggering component id; `content` is the dialog body c
 {"id": "modal1", "component": "Modal", "trigger": "btn1", "content": "modal_body"}
 ```
 
+#### `Carousel`
+
+Image carousel. `content` is an array of image URLs. `autoplay` defaults to `false`; `draggable` defaults to `true`.
+
+```json
+{"id": "car1", "component": "Carousel", "content": ["https://example.com/img1.jpg", "https://example.com/img2.jpg"], "autoplay": true, "draggable": true}
+```
+
 ### Content Components
 
 #### `Text`
@@ -135,7 +143,7 @@ Supports common Markdown syntax and streaming incremental append.
 Built-in icon. `name` supports a literal value or `{"path": "..."}` dynamic binding.
 
 ```json
-{"id": "icon1", "component": "Icon", "name": "accountCircle|add|arrowBack|arrowForward|attachFile|calendarToday|call|camera|check|close|delete|download|edit|error|event|fastForward|favorite|favoriteOff|folder|help|home|info|locationOn|lock|lockOpen|mail|menu|moreHoriz|moreVert|notifications|notificationsOff|pause|payment|person|phone|photo|play|print|refresh|rewind|search|send|settings|share|shoppingCart|skipNext|skipPrevious|star|starHalf|starOff|stop|upload|visibility|visibilityOff|volumeDown|volumeMute|volumeOff|volumeUp|warning"}
+{"id": "icon1", "component": "Icon", "name": "accountCircle|add|arrowBack|arrowForward|attachFile|calendarToday|call|camera|check|close|delete|download|edit|error|event|favorite|favoriteOff|folder|help|home|info|locationOn|lock|lockOpen|mail|menu|moreHoriz|moreVert|notifications|notificationsOff|payment|person|phone|photo|print|refresh|search|send|settings|share|shoppingCart|star|starHalf|starOff|upload|visibility|visibilityOff|warning"}
 ```
 
 #### `Video`
@@ -212,31 +220,23 @@ Built-in icon. `name` supports a literal value or `{"path": "..."}` dynamic bind
 
 ### Chart Components
 
-#### `BarChart`
+#### `Chart`
+
+Unified chart component. Use `chartType` to select visualization type.
 
 ```json
-{"id": "bc1", "component": "BarChart", "title": {"path": "/data/chartTitle"}, "data": {"path": "/data/chartData"}}
+{"id": "chart1", "component": "Chart", "chartType": "bar", "title": {"path": "/data/chartTitle"}, "data": {"path": "/data/chartData"}}
 ```
 
-`data` structure:
+`chartType` enum: `"bar"` | `"line"` | `"donut"` | `"bar_grouped"`
+
+`data` structure (bar / line / bar_grouped):
 
 ```json
 {"xAxis": ["Label1", "Label2"], "yAxis": ["Low", "Mid", "High"], "series": [{"name": "Series Name", "data": [{"value": 1.5, "label": "Display Text"}]}]}
 ```
 
-#### `LineChart`
-
-```json
-{"id": "lc1", "component": "LineChart", "title": {"path": "/data/lineTitle"}, "data": {"path": "/data/lineData"}}
-```
-
-#### `DonutChart`
-
-```json
-{"id": "dc1", "component": "DonutChart", "title": {"path": "/data/donutTitle"}, "data": {"path": "/data/donutData"}}
-```
-
-`data` structure:
+`data` structure (donut):
 
 ```json
 {"series": [{"name": "", "data": [{"label": "Category A", "value": 30}, {"label": "Category B", "value": 70}]}]}

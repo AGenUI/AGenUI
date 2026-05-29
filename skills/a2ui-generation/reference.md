@@ -12,30 +12,37 @@ Usage principles:
 ## Read By Knowledge Domain
 
 - Component protocol, fields, allowed values, style whitelist, font size spec:
-  [`docs/component-catalog.md`](docs/component-catalog.md)
+  [`reference/component-catalog.md`](reference/component-catalog.md)
 - Path binding, template binding, relative paths, list attribute binding:
-  [`docs/data-binding.md`](docs/data-binding.md)
+  [`reference/data-binding.md`](reference/data-binding.md)
 - DTO component mode, DTO discipline, unified function name, DTO deliverables:
-  [`docs/dto-component-mode.md`](docs/dto-component-mode.md)
+  [`reference/dto-component-mode.md`](reference/dto-component-mode.md)
 - Component/card design, height budget, content budget, multi-column text budget:
-  [`docs/component-design.md`](docs/component-design.md)
+  [`reference/component-design.md`](reference/component-design.md)
 - Page design, page-level structure, component-vs-page boundary:
-  [`docs/page-design.md`](docs/page-design.md)
+  [`reference/page-design.md`](reference/page-design.md)
 - Visual direction, interaction, buttons, image strategy, anti-patterns:
-  [`docs/visual-interaction.md`](docs/visual-interaction.md)
+  [`reference/visual-interaction.md`](reference/visual-interaction.md)
+- Design quality review, palette/layout/decoration/theme audit:
+  [`reference/design-review.md`](reference/design-review.md)
+
+- Spacing scale, shadow elevation, border radius system:
+  [`reference/spacing-elevation.md`](reference/spacing-elevation.md)
+- Expressiveness techniques: inline color, color blocks, icons, opacity, pseudo-gradients:
+  [`reference/expressiveness-toolkit.md`](reference/expressiveness-toolkit.md)
 - Review rounds, review checklist, human/machine validation boundary:
-  [`docs/review-validation.md`](docs/review-validation.md)
+  [`reference/review-validation.md`](reference/review-validation.md)
 
 ## Read By Task
 
 - DTO component:
-  Start with [`docs/dto-component-mode.md`](docs/dto-component-mode.md) and [`docs/component-design.md`](docs/component-design.md)
+  Start with [`reference/dto-component-mode.md`](reference/dto-component-mode.md) and [`reference/component-design.md`](reference/component-design.md)
 - Non-DTO component:
-  Start with [`docs/component-catalog.md`](docs/component-catalog.md) and [`docs/component-design.md`](docs/component-design.md)
+  Start with [`reference/component-catalog.md`](reference/component-catalog.md) and [`reference/component-design.md`](reference/component-design.md)
 - Non-DTO page:
-  Start with [`docs/component-catalog.md`](docs/component-catalog.md), [`docs/page-design.md`](docs/page-design.md), and [`docs/visual-interaction.md`](docs/visual-interaction.md)
+  Start with [`reference/component-catalog.md`](reference/component-catalog.md), [`reference/page-design.md`](reference/page-design.md), and [`reference/visual-interaction.md`](reference/visual-interaction.md)
 - Bug fix / review / iterating on existing files:
-  Start with [`docs/review-validation.md`](docs/review-validation.md)
+  Start with [`reference/review-validation.md`](reference/review-validation.md)
 
 ## Validation Source
 

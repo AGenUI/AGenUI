@@ -13,6 +13,8 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 STRING_PATH_KEYS = {
     "items",
@@ -23,13 +25,119 @@ STRING_PATH_KEYS = {
     "tags",
 }
 BUTTON_ID_RE = re.compile(r"(^|_)(button|btn)(_|$)", re.IGNORECASE)
+PLACEHOLDER_URL_RE = re.compile(
+    r"https?://(example\.com|placeholder\.com|via\.placeholder\.com|picsum\.photos|placehold\.(co|it|jp)|dummyimage\.com|fakeimg\.pl|loremflickr\.com)",
+    re.IGNORECASE,
+)
 BUTTONISH_TEXT_PATH_RE = re.compile(
     r"(^|/)(actionText|buttonText|ctaText|linkText|actionUrl|buttonUrl|ctaUrl|linkUrl)$",
     re.IGNORECASE,
 )
 
-UNSUPPORTED_STYLE_KEYS = {"flex-basis", "gap", "box-shadow", "position", "z-index"}
-ALLOWED_FONT_SIZES = {"24px", "28px", "32px", "36px", "40px"}
+
+ALLOWED_COMPONENTS = {
+    "Column", "Row", "List", "Card", "Tabs", "Modal", "Divider", "Carousel",
+    "Text", "RichText", "Markdown", "Image", "Icon", "Video",
+    "AudioPlayer", "Lottie", "Web",
+    "Button", "TextField", "CheckBox", "ChoicePicker", "Slider", "DateTimeInput",
+    "Chart", "Table",
+}
+
+ALLOWED_COMMON_STYLE_KEYS = {
+    "width", "height",
+    "padding", "padding-inline-start", "padding-left", "padding-inline-end", "padding-right",
+    "padding-block-start", "padding-top", "padding-block-end", "padding-bottom",
+    "margin", "margin-inline-start", "margin-left", "margin-inline-end", "margin-right",
+    "margin-block-start", "margin-top", "margin-block-end", "margin-bottom",
+    "background", "background-color", "background-image",
+    "border-radius", "border-color", "border-style", "border-width",
+    "opacity", "overflow", "display", "visibility",
+    "flex-grow", "flex-shrink", "flex-wrap",
+    "justify-content", "align-items", "align-content", "align-self",
+    "aspect-ratio", "filter", "box-shadow",
+}
+ALLOWED_TEXT_STYLE_KEYS = {
+    "color", "font-size", "font-weight", "font-family", "line-height",
+    "text-align", "line-clamp", "text-overflow",
+    "text-decoration", "text-decoration-line", "text-decoration-style",
+    "text-decoration-color", "text-decoration-thickness",
+}
+
+SHORTHAND_FOUR_VALUE_RE = re.compile(r"^\d+px\s+\d+px\s+\d+px\s+\d+px$")
+SINGLE_PX_RE = re.compile(r"^\d+px$")
+COLOR_RE = re.compile(
+    r"^("
+    r"#[0-9a-fA-F]{3}"
+    r"|#[0-9a-fA-F]{6}"
+    r"|#[0-9a-fA-F]{8}"
+    r"|rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)"
+    r"|transparent"
+    r"|(linear|radial|conic)-gradient\(.+\)"
+    r")$"
+)
+COLOR_STYLE_KEYS = {"background-color", "background", "color", "border-color", "text-decoration-color"}
+
+STYLE_ENUMS: dict[str, set[str]] = {
+    "overflow":      {"hidden", "visible"},
+    "display":       {"none", "flex"},
+    "visibility":    {"visible", "hidden"},
+    "flex-wrap":     {"nowrap", "wrap", "wrap-reverse"},
+    "justify-content": {"flex-start", "flex-end", "center", "space-between", "space-around", "space-evenly"},
+    "align-items":   {"flex-start", "flex-end", "center", "stretch", "baseline"},
+    "align-content": {"flex-start", "flex-end", "center", "space-between", "space-around", "stretch"},
+    "align-self":    {"auto", "flex-start", "flex-end", "center", "stretch", "baseline"},
+    "border-style":  {"solid"},
+    "text-overflow": {"clip", "head", "middle", "ellipsis"},
+    "text-decoration-line":  {"none", "underline", "line-through"},
+    "text-decoration-style": {"solid", "dashed", "dotted", "double", "wavy"},
+}
+
+COMPONENT_ENUMS: dict[str, dict[str, set[str]]] = {
+    "Column":       {"justify": {"start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly", "stretch"},
+                     "align":   {"start", "center", "end", "stretch"}},
+    "Row":          {"justify": {"start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly", "stretch"},
+                     "align":   {"start", "center", "end", "stretch"}},
+    "List":         {"direction": {"vertical", "horizontal"},
+                     "align":     {"start", "center", "end", "stretch"}},
+    "Text":         {"variant": {"h1", "h2", "h3", "h4", "h5", "body", "caption"}},
+    "RichText":     {"variant": {"h1", "h2", "h3", "h4", "h5", "body", "caption"}},
+    "Image":        {"variant": {"icon", "avatar", "smallFeature", "mediumFeature", "largeFeature", "header"},
+                     "fit":     {"contain", "cover", "fill", "none", "scaleDown"}},
+    "Button":       {"variant": {"primary", "borderless"}},
+    "TextField":    {"variant": {"shortText", "longText", "number", "obscured"}},
+    "ChoicePicker": {"variant": {"mutuallyExclusive", "multipleSelection"}},
+    "Divider":      {"axis":    {"horizontal", "vertical"}},
+    "Lottie":       {"variant": {"icon", "small", "medium", "large"}},
+}
+
+COMPONENT_REQUIRED_FIELDS: dict[str, list[str]] = {
+    "Carousel":    ["content"],
+    "Tabs":        ["tabs"],
+    "Modal":       ["trigger", "content"],
+    "RichText":    ["text"],
+    "Markdown":    ["content"],
+    "Video":       ["url"],
+    "AudioPlayer": ["url"],
+    "Lottie":      ["url"],
+    "Web":         ["source"],
+    "Icon":        ["name"],
+    "Chart":       ["data"],
+    "Table":       ["columns", "rows"],
+}
+
+ALLOWED_ICON_NAMES = {
+    "accountCircle", "add", "arrowBack", "arrowForward", "attachFile",
+    "calendarToday", "call", "camera", "check", "close",
+    "delete", "download", "edit", "error", "event",
+    "favorite", "favoriteOff", "folder", "help",
+    "home", "info", "locationOn", "lock", "lockOpen",
+    "mail", "menu", "moreHoriz", "moreVert", "notifications",
+    "notificationsOff", "payment", "person", "phone",
+    "photo", "print", "refresh",
+    "search", "send", "settings", "share", "shoppingCart",
+    "star", "starHalf", "starOff",
+    "upload", "visibility", "visibilityOff", "warning",
+}
 
 
 def _normalize_px(value: Any) -> str | None:
@@ -60,7 +168,6 @@ def _load_overrides(path: str | None) -> dict[str, Any]:
         return {
             "user_requirement_first": False,
             "allow_unsupported_styles": set(),
-            "allow_font_sizes": set(),
         }
 
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -71,16 +178,10 @@ def _load_overrides(path: str | None) -> dict[str, Any]:
         for item in raw.get("allowUnsupportedStyles", [])
         if isinstance(item, str) and item.strip()
     }
-    allow_font_sizes = set()
-    for item in raw.get("allowFontSizes", []):
-        normalized = _normalize_px(item)
-        if normalized:
-            allow_font_sizes.add(normalized)
 
     return {
         "user_requirement_first": user_requirement_first,
         "allow_unsupported_styles": allow_unsupported_styles,
-        "allow_font_sizes": allow_font_sizes,
     }
 
 
@@ -198,12 +299,11 @@ def _validate_button_patterns(components: list[dict], errors: list[str]) -> None
             )
 
 
-def _validate_style_keys_and_font_sizes(
+def _validate_style_keys_and_values(
     components: list[dict], overrides: dict[str, Any], errors: list[str]
 ) -> None:
     user_requirement_first = overrides.get("user_requirement_first", False)
-    allowed_unsupported = overrides.get("allow_unsupported_styles", set())
-    allowed_font_sizes = overrides.get("allow_font_sizes", set())
+    allowed_extra_keys = overrides.get("allow_unsupported_styles", set())
 
     for component in components:
         cid = component.get("id", "<unknown>")
@@ -212,32 +312,108 @@ def _validate_style_keys_and_font_sizes(
         if not isinstance(styles, dict):
             continue
 
-        for style_key in styles.keys():
-            if style_key not in UNSUPPORTED_STYLE_KEYS:
-                continue
-            if user_requirement_first and style_key in allowed_unsupported:
-                continue
-            errors.append(
-                f"{cid}: unsupported style key {style_key!r}; remove it or use userRequirementFirst override"
-            )
+        is_text = ctype in {"Text", "RichText"}
+        allowed_keys = ALLOWED_COMMON_STYLE_KEYS | ALLOWED_TEXT_STYLE_KEYS if is_text else ALLOWED_COMMON_STYLE_KEYS
 
-        if ctype != "Text" or "font-size" not in styles:
-            continue
-        normalized = _normalize_px(styles.get("font-size"))
-        if normalized is None:
-            if not (user_requirement_first and str(styles.get("font-size")) in allowed_font_sizes):
+        for style_key, style_value in styles.items():
+            if style_key not in allowed_keys:
+                if user_requirement_first and style_key in allowed_extra_keys:
+                    continue
+                if not is_text and style_key in ALLOWED_TEXT_STYLE_KEYS:
+                    errors.append(
+                        f"{cid} ({ctype}): text-only style key {style_key!r} "
+                        f"is not allowed on non-Text components"
+                    )
+                else:
+                    errors.append(
+                        f"{cid}: unknown style key {style_key!r}; "
+                        f"not in the allowed style whitelist"
+                    )
+                continue
+
+            if not isinstance(style_value, str):
+                continue
+
+            if style_key in {"padding", "margin"}:
+                if not SHORTHAND_FOUR_VALUE_RE.match(style_value):
+                    errors.append(
+                        f"{cid}: {style_key} shorthand must use 4 px values "
+                        f"(e.g. '20px 20px 20px 20px'), got {style_value!r}"
+                    )
+
+            elif style_key in {"border-radius", "border-width"}:
+                if not SINGLE_PX_RE.match(style_value):
+                    errors.append(
+                        f"{cid}: {style_key} must be a single px value "
+                        f"(e.g. '16px'), got {style_value!r}"
+                    )
+
+            elif style_key in COLOR_STYLE_KEYS:
+                value_stripped = style_value.strip()
+                if not COLOR_RE.match(value_stripped):
+                    errors.append(
+                        f"{cid}: {style_key} must be #RGB, #RRGGBB, #RRGGBBAA, "
+                        f"rgb(...), rgba(...), transparent, or gradient(...), got {style_value!r}"
+                    )
+
+            if style_key == "font-weight":
+                _FONT_WEIGHT_KEYWORDS = {"normal", "bold"}
+                _FONT_WEIGHT_NUMERICS = {str(n) for n in range(100, 1000, 100)}
+                if style_value not in _FONT_WEIGHT_KEYWORDS and style_value not in _FONT_WEIGHT_NUMERICS:
+                    errors.append(
+                        f"{cid}: style font-weight value {style_value!r} "
+                        f"is not valid; allowed: 'normal', 'bold', or numeric 100-900"
+                    )
+            elif style_key in STYLE_ENUMS:
+                allowed_values = STYLE_ENUMS[style_key]
+                if style_value not in allowed_values:
+                    errors.append(
+                        f"{cid}: style {style_key} value {style_value!r} "
+                        f"is not valid; allowed: {sorted(allowed_values)}"
+                    )
+
+        if is_text and "font-size" in styles:
+            normalized = _normalize_px(styles.get("font-size"))
+            if normalized is None:
                 errors.append(
-                    f"{cid} (Text): invalid font-size {styles.get('font-size')!r}; expected px string"
+                    f"{cid} ({ctype}): invalid font-size {styles.get('font-size')!r}; "
+                    f"expected a px value (e.g. '16px')"
                 )
+
+
+def _validate_component_enums(components: list[dict], errors: list[str]) -> None:
+    for component in components:
+        cid = component.get("id", "<unknown>")
+        ctype = component.get("component", "")
+        enum_defs = COMPONENT_ENUMS.get(ctype)
+        if not enum_defs:
             continue
-        if normalized in ALLOWED_FONT_SIZES:
+        for attr_name, allowed_values in enum_defs.items():
+            value = component.get(attr_name)
+            if value is None:
+                continue
+            if not isinstance(value, str):
+                errors.append(
+                    f"{cid} ({ctype}): {attr_name} must be a string, got {type(value).__name__}"
+                )
+                continue
+            if value not in allowed_values:
+                errors.append(
+                    f"{cid} ({ctype}): {attr_name} value {value!r} "
+                    f"is not valid; allowed: {sorted(allowed_values)}"
+                )
+
+
+def _validate_required_fields(components: list[dict], errors: list[str]) -> None:
+    for component in components:
+        cid = component.get("id", "<unknown>")
+        ctype = component.get("component", "")
+        required = COMPONENT_REQUIRED_FIELDS.get(ctype)
+        if not required:
             continue
-        if user_requirement_first and normalized in allowed_font_sizes:
-            continue
-        errors.append(
-            f"{cid} (Text): font-size {normalized} is out of allowed scale {sorted(ALLOWED_FONT_SIZES)}; "
-            "use userRequirementFirst override only for explicit user requirements"
-        )
+        for field in required:
+            if field not in component:
+                errors.append(f"{cid} ({ctype}): missing required field '{field}'")
 
 
 def _build_component_index(components: list[dict]) -> dict[str, dict]:
@@ -317,6 +493,17 @@ def collect_warnings(comp: dict) -> list[str]:
         styles = component.get("styles", {})
         width_px = _px_number(styles.get("width")) if isinstance(styles, dict) else None
 
+        if ctype == "Chart":
+            height_px = _px_number(styles.get("height")) if isinstance(styles, dict) else None
+            chart_type = component.get("chartType", "")
+            if height_px is None:
+                rec = "300px–400px" if chart_type == "donut" else "400px–500px"
+                warnings.append(
+                    f"{cid} (Chart): no styles.height specified; "
+                    f"Chart has no intrinsic height and needs an explicit value "
+                    f"(recommended for {chart_type or 'unknown'}: {rec})"
+                )
+
         if ctype == "Button" and width_px is not None and width_px <= 220:
             child_id = component.get("child")
             text_descendants = (
@@ -368,13 +555,82 @@ def collect_warnings(comp: dict) -> list[str]:
     return warnings
 
 
+def _collect_all_urls(node: Any, path: str = "") -> list[tuple[str, str]]:
+    """Walk a data value tree and collect all URL strings."""
+    found: list[tuple[str, str]] = []
+    if isinstance(node, str) and re.match(r"https?://", node, re.IGNORECASE):
+        found.append((path, node))
+    elif isinstance(node, dict):
+        for k, v in node.items():
+            found.extend(_collect_all_urls(v, f"{path}/{k}"))
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            found.extend(_collect_all_urls(v, f"{path}[{i}]"))
+    return found
+
+
+def _check_url_reachable(url: str, timeout: int = 5) -> tuple[bool, str]:
+    """Send HTTP GET request with Range header to verify URL serves real media."""
+    try:
+        req = Request(url, method="GET")
+        req.add_header("User-Agent", "A2UI-Validator/1.0")
+        req.add_header("Range", "bytes=0-1023")
+        with urlopen(req, timeout=timeout) as resp:
+            if resp.status >= 400:
+                return False, f"HTTP {resp.status}"
+            ct = resp.headers.get("Content-Type", "")
+            if ct.startswith("text/html"):
+                return False, "server returned HTML instead of media (likely soft 404)"
+            return True, ""
+    except HTTPError as e:
+        return False, f"HTTP {e.code}"
+    except URLError as e:
+        return False, str(e.reason)
+    except Exception as e:
+        return False, str(e)
+
+
+def collect_data_warnings(data: dict) -> list[str]:
+    """Warn about placeholder or unreachable URLs in updateDataModel values."""
+    warnings: list[str] = []
+    value = data.get("updateDataModel", {}).get("value", {})
+    url_entries = _collect_all_urls(value)
+    if not url_entries:
+        return warnings
+
+    unreachable_count = 0
+    for data_path, url in url_entries:
+        if PLACEHOLDER_URL_RE.search(url):
+            warnings.append(
+                f"dataModel{data_path}: placeholder URL detected ({url}); "
+                f"URLs must be real and loadable — omit the component if no real URL is available"
+            )
+            unreachable_count += 1
+            continue
+
+        ok, reason = _check_url_reachable(url)
+        if not ok:
+            unreachable_count += 1
+            warnings.append(
+                f"dataModel{data_path}: URL unreachable ({url}); {reason} — "
+                f"the resource may fail to load at runtime"
+            )
+
+    if unreachable_count == len(url_entries) and len(url_entries) >= 2:
+        warnings.append(
+            "all URLs in dataModel are unreachable — you may be offline; "
+            "re-run with network access to get accurate results"
+        )
+
+    return warnings
+
+
 def validate(comp: dict, data: dict, overrides: dict[str, Any] | None = None) -> list[str]:
     """Return validation errors for an A2UI JSON pair."""
     errors: list[str] = []
     overrides = overrides or {
         "user_requirement_first": False,
         "allow_unsupported_styles": set(),
-        "allow_font_sizes": set(),
     }
 
     for label, payload in [("updateComponents", comp), ("updateDataModel", data)]:
@@ -403,6 +659,20 @@ def validate(comp: dict, data: dict, overrides: dict[str, Any] | None = None) ->
         cid = component.get("id", "")
         ctype = component.get("component", "")
 
+        if ctype and ctype not in ALLOWED_COMPONENTS:
+            errors.append(
+                f"{cid or '?'}: unknown component '{ctype}'; "
+                f"allowed: {sorted(ALLOWED_COMPONENTS)}"
+            )
+
+        if ctype == "Chart":
+            chart_type = component.get("chartType", "")
+            if chart_type not in {"bar", "line", "donut", "bar_grouped"}:
+                errors.append(
+                    f"{cid} (Chart): chartType must be one of "
+                    f"'bar', 'line', 'donut', 'bar_grouped', got {chart_type!r}"
+                )
+
         if not cid:
             preview = json.dumps(component, ensure_ascii=False)[:120]
             errors.append(f"component missing id: {preview}")
@@ -424,15 +694,6 @@ def validate(comp: dict, data: dict, overrides: dict[str, Any] | None = None) ->
                 errors.append(f"{cid} (Button): missing child")
             if "action" not in component:
                 errors.append(f"{cid} (Button): missing action")
-        if ctype == "Card":
-            child = component.get("child")
-            if not child:
-                errors.append(f"{cid} (Card): missing child")
-            elif isinstance(child, list):
-                errors.append(f"{cid} (Card): child must be a single id, not a list")
-            else:
-                referenced_ids.add(child)
-
         children = component.get("children")
         if isinstance(children, list):
             for child in children:
@@ -492,7 +753,50 @@ def validate(comp: dict, data: dict, overrides: dict[str, Any] | None = None) ->
 
     _validate_binding_paths(comp, data_root, errors)
     _validate_button_patterns(components, errors)
-    _validate_style_keys_and_font_sizes(components, overrides, errors)
+    _validate_style_keys_and_values(components, overrides, errors)
+    _validate_component_enums(components, errors)
+    _validate_required_fields(components, errors)
+
+    for component in components:
+        cid = component.get("id", "<unknown>")
+        if component.get("component") == "Icon":
+            name = component.get("name")
+            if isinstance(name, str) and name not in ALLOWED_ICON_NAMES:
+                errors.append(
+                    f"{cid} (Icon): name {name!r} is not in the allowed icon set; "
+                    f"see component-catalog.md for the full list"
+                )
+
+        ctype = component.get("component", "")
+        children = component.get("children")
+        if ctype == "Row" and isinstance(children, list) and len(children) > 3:
+            errors.append(
+                f"{cid} (Row): {len(children)} direct children exceeds the maximum of 3 "
+                f"for horizontal layout — split into multiple rows or switch to vertical layout"
+            )
+        if ctype == "List" and component.get("direction") == "horizontal":
+            if isinstance(children, list) and len(children) > 3:
+                errors.append(
+                    f"{cid} (List horizontal): {len(children)} static children exceeds the "
+                    f"maximum of 3 — split into multiple rows or switch to vertical layout"
+                )
+            elif isinstance(children, dict):
+                binding_path = children.get("path")
+                if isinstance(binding_path, str) and data_root and binding_path.startswith(data_root):
+                    relative = binding_path[len(data_root):].lstrip("/")
+                    node = data_model.get("value", {})
+                    for segment in relative.split("/"):
+                        if isinstance(node, dict):
+                            node = node.get(segment)
+                        else:
+                            node = None
+                            break
+                    if isinstance(node, list) and len(node) > 3:
+                        errors.append(
+                            f"{cid} (List horizontal): data-driven children at "
+                            f"{binding_path!r} has {len(node)} items, exceeds the maximum "
+                            f"of 3 — reduce data items or switch to vertical layout"
+                        )
 
     return errors
 
@@ -539,7 +843,6 @@ def main() -> int:
         overrides: dict[str, Any] = {
             "user_requirement_first": False,
             "allow_unsupported_styles": set(),
-            "allow_font_sizes": set(),
         }
 
         if len(sys.argv) == 2:
@@ -568,7 +871,7 @@ def main() -> int:
             print(f" - {error}")
         return 1
 
-    warnings = collect_warnings(comp)
+    warnings = collect_warnings(comp) + collect_data_warnings(data)
     if warnings:
         print(f"Found {len(warnings)} warning(s):")
         for warning in warnings:
