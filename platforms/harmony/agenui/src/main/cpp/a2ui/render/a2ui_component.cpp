@@ -27,7 +27,7 @@ using colors::kColorTransparent;
 
 namespace {
 
-constexpr int32_t kDefaultAppearDurationMs = 800;
+constexpr int32_t kDefaultAppearDurationMs = 400;
 
 float parseOpacityValue(const nlohmann::json& value, float fallback = 1.0f) {
     if (value.is_number()) {
