@@ -4,6 +4,8 @@
 
 **AGenUI: 同步支持 iOS、Android 和 HarmonyOS 的高性能 A2UI 渲染引擎**
 
+<img src="docs/images/hero.gif" alt="AGenUI 跨 iOS / Android / HarmonyOS 流式渲染生成式 UI" width="640"/>
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20HarmonyOS-blue)](#)
 [![Android SDK](https://img.shields.io/badge/Android-API%2021%2B-green)](#)

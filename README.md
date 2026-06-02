@@ -4,6 +4,8 @@
 
 **AGenUI is a high-performance A2UI SDK for building native generative UI experiences across iOS, Android, and HarmonyOS.**
 
+<img src="docs/images/hero.gif" alt="AGenUI streaming generative UI across iOS, Android, and HarmonyOS" width="640"/>
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20HarmonyOS-blue)](#)
 [![Android SDK](https://img.shields.io/badge/Android-API%2021%2B-green)](#)
