@@ -19,7 +19,8 @@ set -euo pipefail
 #   --device-id <id>        (iOS only) Specify device UDID
 #   --scenario <name>       Scenario: session_storm|stream_marathon|multi_surface|
 #                           action_flood|theme_switch|interrupt_recover|
-#                           extreme_render|all_combined (default: all_combined)
+#                           extreme_render|sdk_robustness|jni_bridge_race|
+#                           all_combined (default: all_combined)
 #   --duration <minutes>    Run duration in minutes (default: 480)
 #   --rounds <n>            Max rounds, 0=unlimited (default: 0)
 #   --interval <ms>         Delay between rounds in ms (default: 100)
@@ -31,6 +32,7 @@ set -euo pipefail
 #   ./tests/stability/run.sh --ios --simulator --duration 30
 #   ./tests/stability/run.sh --harmony --install --duration 120
 #   ./tests/stability/run.sh --scenario extreme_render --duration 1440
+#   ./tests/stability/run.sh --android --scenario jni_bridge_race --duration 60
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -72,7 +74,7 @@ while [[ $# -gt 0 ]]; do
         --interval)         INTERVAL_MS="$2"; shift 2 ;;
         --crash-threshold)  CRASH_THRESHOLD="$2"; shift 2 ;;
         --install)          DO_INSTALL=true; shift ;;
-        -h|--help)          sed -n '5,34p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        -h|--help)          sed -n '5,36p' "$0" | sed 's/^# \?//'; exit 0 ;;
         *)                  error "Unknown argument: $1" ;;
     esac
 done

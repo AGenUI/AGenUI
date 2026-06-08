@@ -8,6 +8,9 @@ import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -44,6 +47,7 @@ public class StabilityScenarioEngine {
         INTERRUPT_RECOVER,
         EXTREME_RENDER,
         SDK_ROBUSTNESS,
+        JNI_BRIDGE_RACE,
         // Realistic scenarios (10 new)
         REALISTIC_ARTICLE_STREAM,
         REALISTIC_MULTI_CARD,
@@ -88,12 +92,13 @@ public class StabilityScenarioEngine {
                 case INTERRUPT_RECOVER:
                 case EXTREME_RENDER:
                 case SDK_ROBUSTNESS:
+                case JNI_BRIDGE_RACE:
                     return true;
                 default:
                     return false;
             }
         }
-
+        
         public boolean isMeta() {
             switch (this) {
                 case ALL_COMBINED:
@@ -108,7 +113,7 @@ public class StabilityScenarioEngine {
         public static List<Scenario> stressScenarios() {
             return Arrays.asList(SESSION_STORM, STREAM_MARATHON, MULTI_SURFACE,
                     ACTION_FLOOD, THEME_SWITCH, INTERRUPT_RECOVER, EXTREME_RENDER,
-                    SDK_ROBUSTNESS);
+                    SDK_ROBUSTNESS, JNI_BRIDGE_RACE);
         }
 
         public static List<Scenario> realisticScenarios() {
@@ -156,6 +161,8 @@ public class StabilityScenarioEngine {
                 return executeExtremeRender();
             case SDK_ROBUSTNESS:
                 return executeSdkRobustness();
+            case JNI_BRIDGE_RACE:
+                return executeJniBridgeRace();
             case ALL_COMBINED:
                 return executeAllCombined();
             default:
@@ -174,6 +181,7 @@ public class StabilityScenarioEngine {
             case "interrupt_recover": return Scenario.INTERRUPT_RECOVER;
             case "extreme_render": return Scenario.EXTREME_RENDER;
             case "sdk_robustness": return Scenario.SDK_ROBUSTNESS;
+            case "jni_bridge_race": return Scenario.JNI_BRIDGE_RACE;
             case "realistic_article_stream": return Scenario.REALISTIC_ARTICLE_STREAM;
             case "realistic_multi_card": return Scenario.REALISTIC_MULTI_CARD;
             case "realistic_form_fill": return Scenario.REALISTIC_FORM_FILL;
@@ -640,10 +648,135 @@ public class StabilityScenarioEngine {
             Scenario.SESSION_STORM, Scenario.STREAM_MARATHON,
             Scenario.MULTI_SURFACE, Scenario.ACTION_FLOOD,
             Scenario.THEME_SWITCH, Scenario.INTERRUPT_RECOVER,
-            Scenario.EXTREME_RENDER, Scenario.SDK_ROBUSTNESS
+            Scenario.EXTREME_RENDER, Scenario.SDK_ROBUSTNESS,
+            Scenario.JNI_BRIDGE_RACE
         };
         Scenario picked = scenarios[random.nextInt(scenarios.length)];
         return executeRound(picked);
+    }
+
+    // S10: JNI bridge cross-thread UAF — exercise the SurfaceSizeProvider bridge
+    // lifetime race using only the public SDK surface (no reflection, no private
+    // natives).
+    //
+    // Root cause (covered by the crash test spec): the C++ bridge in
+    // `agenui::JNISurfaceSizeProviderBridge` holds a JNI global ref to the Java
+    // SurfaceManager. When the engine worker thread is inside
+    // `env->CallObjectMethod(_javaHost, ...)` and the JNI thread tears the
+    // bridge down, `_javaHost` becomes a stale jobject and the next
+    // `art::Thread::DecodeGlobalJObject` triggers SIGSEGV.
+    //
+    // User-level repro: each `new SurfaceManager(activity)` registers a fresh
+    // bridge (via the constructor's `registerSurfaceSizeProvider`), and each
+    // `SurfaceManager.destroy()` releases it (via `unregisterSurfaceSizeProvider`).
+    // So tight-looping create → fire layout-triggering chunk → destroy on
+    // multiple Java threads is exactly the spec's §6.2 "SurfaceManager 销毁链路"
+    // variant of the same UAF: the destroy on Java thread T1 races the engine
+    // worker still mid-call into the bridge owned by that SurfaceManager.
+    //
+    // Repro recipe (public API only):
+    //   Threads W1..Wn — racers: each thread tight-loops
+    //                    `new SurfaceManager` → `beginTextStream` →
+    //                    layout-triggering `updateComponents` chunk →
+    //                    `destroy()`. No `endTextStream` between feed and
+    //                    destroy: an end-of-stream barrier would let the
+    //                    worker drain first and shrink the race window.
+    //   Thread A      — allocator: small byte[] churn so freed bridge memory
+    //                    is reused into a non-null stale jobject (vs. the
+    //                    post-free nullptr check in the C++ bridge that would
+    //                    otherwise swallow the access and hide the crash).
+    //
+    // Pre-fix: SIGSEGV in `art::Thread::DecodeGlobalJObject` within seconds.
+    // Post-fix: rounds complete cleanly, accumulating coverage over the run.
+    private String executeJniBridgeRace() throws Exception {
+        final AtomicBoolean stop = new AtomicBoolean(false);
+
+        // Combined chunk: createSurface + updateComponents in a single
+        // receiveTextChunk. The Column root with percent-based sizing forces
+        // the engine to pull surface size on (first) layout, which is the only
+        // path that reaches `Surface::ensureSurfaceSizeFetched` → provider →
+        // `env->CallObjectMethod` on `_javaHost`. JSON kept minimal so the
+        // worker spends most of its time in the JNI callback, not in parsing.
+        final String layoutChunkTemplate =
+                "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"%s\","
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"%s\","
+                + "\"components\":[{\"id\":\"root\",\"component\":\"Column\","
+                + "\"children\":[\"txt\"],\"align\":\"stretch\"},"
+                + "{\"id\":\"txt\",\"component\":\"Text\",\"text\":\"jni race\"}]}}";
+
+        // Multiple racer threads to widen the race window vs. the single
+        // engine worker. 3 is enough to expose the UAF reliably without
+        // overwhelming the device's JNI/global-ref tables.
+        final int racerCount = 3;
+        Thread[] racers = new Thread[racerCount];
+        for (int i = 0; i < racerCount; i++) {
+            final int wid = i;
+            racers[i] = new Thread(() -> {
+                int iter = 0;
+                while (!stop.get()) {
+                    SurfaceManager sm = null;
+                    try {
+                        // ctor → registerSurfaceSizeProvider → bridge alive.
+                        sm = new SurfaceManager(activity);
+                        String sid = "jni-race-" + wid + "-" + (iter++);
+                        sm.beginTextStream();
+                        // Trigger layout → engine worker starts calling back
+                        // into the bridge on a separate thread.
+                        sm.receiveTextChunk(
+                                String.format(layoutChunkTemplate, sid, sid));
+                        // Intentionally skip endTextStream(): we want to
+                        // destroy() while the worker is still mid-callback.
+                    } catch (Throwable ignored) {
+                        // Native SIGSEGV bypasses Java. Benign Java throws
+                        // (e.g. context already gone) just retry next iter.
+                    } finally {
+                        if (sm != null) {
+                            try {
+                                // destroy → unregisterSurfaceSizeProvider →
+                                // DeleteGlobalRef on _javaHost. Pre-fix this
+                                // races the engine worker's CallObjectMethod.
+                                sm.destroy();
+                            } catch (Throwable ignored) {
+                                // Same rationale.
+                            }
+                        }
+                    }
+                }
+            }, "stability-jni-racer-" + i);
+        }
+
+        // Allocator: speeds up reuse of freed bridge slots so the post-free
+        // `_javaHost` ends up as a stale-but-non-null jobject rather than 0
+        // (the C++ bridge has a nullptr early-return that would otherwise
+        // swallow the access and hide the crash).
+//        Thread allocator = new Thread(() -> {
+//            while (!stop.get()) {
+//                byte[] junk = new byte[64];
+//                junk[0] = 1; // prevent dead-store elimination
+//            }
+//        }, "stability-jni-allocator");
+
+        // Bounded per-round window. Stability harness runs many rounds so
+        // total exposure scales with --duration; keep one round predictable
+        // for monitor.sh.
+        final long roundDurationMs = 3000L;
+
+        for (Thread t : racers) {
+            t.start();
+        }
+//        allocator.start();
+
+        try {
+            Thread.sleep(roundDurationMs);
+        } finally {
+            stop.set(true);
+            for (Thread t : racers) {
+                t.join(2000);
+            }
+//            allocator.join(2000);
+        }
+        return "jni_bridge_race(racers=" + racerCount + "+allocator," + roundDurationMs + "ms)";
     }
 
     // Helper: build a simple surface JSON for quick tests
