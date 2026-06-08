@@ -39,8 +39,7 @@
         "styles": {
           "font-size": "32px",
           "line-height": "44px",
-          "text-align": "center",
-          "color": "#000000"
+          "text-align": "center"
         }
       }
     ]
