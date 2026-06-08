@@ -212,6 +212,9 @@ All build scripts live in the `scripts/` directory. The C++ engine in `core/` is
 # Debug AAR
 ./scripts/android/build.sh --debug
 
+# Release AAR + native debug-symbol companion (see "Native debug symbols" below)
+./scripts/android/build.sh --with-symbols
+
 # Publish to local Maven (~/.m2)
 ./scripts/android/build.sh --publish-local
 
@@ -223,6 +226,32 @@ All build scripts live in the `scripts/` directory. The C++ engine in `core/` is
 ```
 
 The AAR is written to `dist/android/release/`.
+
+**Native debug symbols (Android, opt-in)**
+
+For symbolicating release crashes on the host, run `./scripts/android/build.sh --with-symbols`. The release build then:
+
+1. Skips `-Wl,--strip-all` so the linker output retains DWARF info.
+2. Splits DWARF into a sibling `lib<name>.so.debug` via `objcopy --only-keep-debug` (CMake POST_BUILD), then strips the `.so` and links them via `.gnu_debuglink`.
+3. Packages the `.so.debug` files into `<rootProject.name>-symbols.aar` alongside the regular release AAR, under `build/outputs/aar/`.
+
+The release AAR size is unaffected — AGP strips the `.so` before packaging anyway. The `.so.debug` suffix follows the GNU/LLVM convention (objcopy's default debug extension) and has no relation to Android's `debug` buildType.
+
+To symbolicate a crash address, unzip the symbols AAR and feed `.so.debug` to standard tools:
+
+```bash
+unzip -j <name>-symbols.aar 'jni/arm64-v8a/*.so.debug' -d ./symbols/
+
+# Single address
+$ANDROID_NDK/toolchains/llvm/prebuilt/<host>/bin/llvm-addr2line \
+    -e ./symbols/lib<name>.so.debug -f -C 0xADDR
+
+# Full backtrace from logcat
+$ANDROID_NDK/toolchains/llvm/prebuilt/<host>/bin/ndk-stack \
+    -sym ./symbols/ -dump crash.log
+```
+
+The flag is OFF by default — open-source builds see no change unless explicitly enabled.
 
 **iOS**
 

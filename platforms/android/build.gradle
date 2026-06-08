@@ -89,6 +89,14 @@ android {
                 if (resolvedYogaPrebuiltDir) {
                     cmakeArgs.add("-DYOGA_PREBUILT_DIR=" + resolvedYogaPrebuiltDir)
                 }
+                // -PagenuiEmitDebugSymbols=true on the Gradle CLI flips on the
+                // CMake post-build step that splits DWARF info into lib*.so.debug
+                // companion files (see CMakeLists.txt agenui_split_debug_symbols).
+                // No effect for debug builds even when the property is set.
+                if (project.hasProperty('agenuiEmitDebugSymbols')
+                        && project.property('agenuiEmitDebugSymbols').toString().toBoolean()) {
+                    cmakeArgs.add("-DAGENUI_EMIT_DEBUG_SYMBOLS=ON")
+                }
                 arguments(*cmakeArgs)
             }
         }
@@ -133,7 +141,6 @@ android {
             exclude '**/libc++_shared.so'
         }
     }
-
     sourceSets {
         main {
             res.srcDirs = ['src/main/res', 'src/main/res-icons']
@@ -163,20 +170,25 @@ afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
-                // Allow -PmavenVersion / -PmavenGroupId / -PmavenArtifactId to override defaults
+                // Allow -PmavenVersion / -PmavenGroupId / -PmavenArtifactId to override defaults.
+                // -PmavenAarPath overrides the AAR file path. Used by external wrappers that
+                // publish a previously-built sidecar AAR (e.g. the <name>-symbols.aar from
+                // --with-symbols) through this same publication with a suffixed version,
+                // without re-running assembleRelease.
                 def pubGroupId = project.hasProperty('mavenGroupId') ? project.property('mavenGroupId') : SDK_GROUP_ID
                 def pubArtifactId = project.hasProperty('mavenArtifactId') ? project.property('mavenArtifactId') : SDK_ARTIFACT_ID
                 def pubVersion = project.hasProperty('mavenVersion') ? project.property('mavenVersion') : SDK_VERSION
+                def pubAarPath = project.hasProperty('mavenAarPath') ? project.property('mavenAarPath') : "${buildDir}/outputs/aar/${project.name}-release.aar"
 
                 groupId    = pubGroupId
                 artifactId = pubArtifactId
                 version    = pubVersion
 
                 if (project.hasProperty('mavenVersion')) {
-                    logger.lifecycle("[maven] Publishing with version: ${pubVersion} (groupId=${pubGroupId}, artifactId=${pubArtifactId})")
+                    logger.lifecycle("[maven] Publishing with version: ${pubVersion} (groupId=${pubGroupId}, artifactId=${pubArtifactId}, aar=${pubAarPath})")
                 }
 
-                def normalAar = file("${buildDir}/outputs/aar/${project.name}-release.aar")
+                def normalAar = file(pubAarPath)
                 artifact(normalAar)
 
                 pom {
@@ -228,4 +240,103 @@ afterEvaluate {
             }
         }
     }
+}
+
+// ==================== afterEvaluate: Native debug symbols AAR ====================
+// When -PagenuiEmitDebugSymbols=true is passed on the Gradle CLI, the CMake
+// post-build step (CMakeLists.txt agenui_split_debug_symbols) produces a
+// lib<name>.so.debug companion file next to each .so under
+// build/intermediates/cxx/Release/<hash>/obj/<abi>/. This block bundles those
+// .so.debug files into <rootProject.name>-symbols.aar and chains it after
+// assembleRelease via finalizedBy.
+//
+// Note: ".so.debug" follows the GNU/LLVM convention (objcopy's default debug
+// file extension). It is NOT related to Android's "debug" buildType — both
+// release and the symbols AAR are produced from the same release compile.
+afterEvaluate {
+    if (!project.hasProperty('agenuiEmitDebugSymbols')
+            || !project.property('agenuiEmitDebugSymbols').toString().toBoolean()) {
+        return
+    }
+
+    def symbolsTask = tasks.register('assembleReleaseSymbols', Zip) {
+        group = 'build'
+        description = 'Bundle lib*.so.debug companion files into a separate <name>-symbols.aar'
+
+        // Best-effort dependency on the native build task so the .so.debug
+        // files exist before we zip. The task name has stayed stable across
+        // AGP 4.x–8.x for externalNativeBuild { cmake {} } projects.
+        def nativeTask = tasks.findByName('externalNativeBuildRelease')
+        if (nativeTask != null) {
+            dependsOn nativeTask
+        }
+
+        archiveBaseName = rootProject.name
+        archiveAppendix = 'symbols'
+        archiveExtension = 'aar'
+        destinationDirectory = file("${buildDir}/outputs/aar")
+
+        // AGP keeps a per-config hash subdirectory under intermediates/cxx/Release/.
+        // Old hashes are NOT pruned, so iterating "**/*.so.debug" across the whole
+        // tree would pick up stale duplicates and Zip would fail with
+        // "Entry ... is a duplicate". Always pick the freshest hash directory —
+        // i.e. the one just produced by the externalNativeBuildRelease task that
+        // runs immediately before this Zip task.
+        def cxxReleaseRoot = file("${buildDir}/intermediates/cxx/Release")
+        def pickFreshestCxxDir = {
+            if (!cxxReleaseRoot.exists()) return null
+            def candidates = cxxReleaseRoot.listFiles()?.findAll { it.isDirectory() }
+            if (!candidates) return null
+            // Rank by the freshest file mtime in each subtree (rather than the
+            // directory's own mtime, which is not always updated when files
+            // inside it change on some filesystems).
+            return candidates.max { dir ->
+                def files = fileTree(dir).files
+                files.isEmpty() ? 0L : files*.lastModified().max()
+            }
+        }
+
+        // from(Closure) is evaluated lazily at task execution — the freshest
+        // hash dir is decided after externalNativeBuildRelease writes its output.
+        from({
+            def freshest = pickFreshestCxxDir()
+            freshest == null ? files() : fileTree(freshest) { include '**/*.so.debug' }
+        }) {
+            // CMake output relative to <freshest>/: obj/<abi>/lib*.so.debug
+            // Remap inside the AAR to: jni/<abi>/lib*.so.debug
+            eachFile { fcd ->
+                def segs = fcd.relativePath.segments
+                fcd.relativePath = new RelativePath(true, 'jni', segs[-2], segs[-1])
+            }
+            includeEmptyDirs = false
+        }
+
+        // Reuse the library's real AndroidManifest.xml so the .aar passes
+        // basic structure checks even though it carries no code/resources.
+        from("${projectDir}/src/main/AndroidManifest.xml")
+
+        doFirst {
+            // Fail loudly if there are no .so.debug files in the freshest cxx
+            // dir — the agenui_split_debug_symbols CMake POST_BUILD step did
+            // not run. Most likely: assembleRelease wasn't invoked, or the
+            // -PagenuiEmitDebugSymbols flag was not piped through to CMake.
+            def freshest = pickFreshestCxxDir()
+            def found = freshest == null ? [] :
+                fileTree(freshest) { include '**/*.so.debug' }.files
+            if (found.isEmpty()) {
+                throw new GradleException(
+                    "[symbols] No lib*.so.debug files found in the freshest cxx dir " +
+                    "(${freshest ?: cxxReleaseRoot}). Make sure assembleRelease ran with " +
+                    "-PagenuiEmitDebugSymbols=true so CMake's agenui_split_debug_symbols " +
+                    "POST_BUILD step produced them.")
+            }
+            logger.lifecycle("[symbols] packaging ${found.size()} debug file(s) from ${freshest.name} into ${archiveFile.get().asFile.name}")
+        }
+
+        doLast {
+            logger.lifecycle("[symbols] wrote ${archiveFile.get().asFile}")
+        }
+    }
+
+    tasks.named('assembleRelease').configure { finalizedBy symbolsTask }
 }

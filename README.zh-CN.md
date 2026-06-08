@@ -211,6 +211,9 @@ cp -r AGenUI/skills/a2ui-generation ~/.claude/skills/
 # Debug AAR
 ./scripts/android/build.sh --debug
 
+# Release AAR + native 符号文件（用于反解，详见下文「Native debug symbols」）
+./scripts/android/build.sh --with-symbols
+
 # 发布到本地 Maven（~/.m2）
 ./scripts/android/build.sh --publish-local
 
@@ -222,6 +225,32 @@ cp -r AGenUI/skills/a2ui-generation ~/.claude/skills/
 ```
 
 AAR 输出到 `dist/android/release/`。
+
+**Native debug symbols（Android，opt-in）**
+
+`./scripts/android/build.sh --with-symbols` 会在 release 构建里额外产出 native 符号文件，用于反解线上崩溃栈：
+
+1. 去掉 `-Wl,--strip-all`，让 linker 输出带 DWARF 的 `.so`。
+2. CMake POST_BUILD 用 `objcopy --only-keep-debug` 把 DWARF 拆出来到 `lib<name>.so.debug`，再把原 `.so` strip 掉并用 `.gnu_debuglink` ELF section 关联回去。
+3. 所有 `.so.debug` 打包到 `<rootProject.name>-symbols.aar`，和 release AAR 并排放在 `build/outputs/aar/`。
+
+release AAR 体积不会变 —— AGP 本来就会在打包前 strip 一次。`.so.debug` 后缀是 GNU/LLVM 工具链约定（objcopy 默认的 debug 文件扩展名），**与 Android 的 `debug` buildType 无关**，两个 AAR 都是同一次 release 编译产物。
+
+反解某个崩溃地址，解压 symbols AAR 后直接用标准工具：
+
+```bash
+unzip -j <name>-symbols.aar 'jni/arm64-v8a/*.so.debug' -d ./symbols/
+
+# 单个地址
+$ANDROID_NDK/toolchains/llvm/prebuilt/<host>/bin/llvm-addr2line \
+    -e ./symbols/lib<name>.so.debug -f -C 0xADDR
+
+# 整段 logcat 栈
+$ANDROID_NDK/toolchains/llvm/prebuilt/<host>/bin/ndk-stack \
+    -sym ./symbols/ -dump crash.log
+```
+
+开关默认 OFF —— 开源构建不会受影响，需要时显式开启。
 
 **iOS**
 

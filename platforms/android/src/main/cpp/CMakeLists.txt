@@ -4,6 +4,47 @@ cmake_minimum_required(VERSION 3.18.1)
 project("amap_AGenUI")
 
 # ---------------------------------------------------------------------------
+# Native debug symbols (opt-in)
+# ---------------------------------------------------------------------------
+# When AGENUI_EMIT_DEBUG_SYMBOLS=ON (and CMAKE_BUILD_TYPE=Release):
+#   - DWARF symbol info is split out of each non-IMPORTED SHARED target into a
+#     companion file named lib<target>.so.debug, sitting next to the .so in the
+#     CMake output directory (build/intermediates/cxx/Release/<hash>/obj/<abi>/).
+#   - The original .so is then stripped and tagged with a .gnu_debuglink ELF
+#     section pointing at lib<target>.so.debug, so addr2line/llvm-symbolizer/
+#     ndk-stack can find the symbol file automatically by name.
+#   - The .so.debug suffix follows the GNU/LLVM convention (GDB doc: "The
+#     default file extension for objcopy is .debug"). It is NOT related to
+#     Android's "debug" buildType.
+# Defaults to OFF so open-source consumers see no change; the amap wrapper
+# scripts flip it on via -DAGENUI_EMIT_DEBUG_SYMBOLS=ON for release builds
+# whose symbols are uploaded alongside the AAR.
+option(AGENUI_EMIT_DEBUG_SYMBOLS
+       "Emit lib*.so.debug companion files alongside stripped .so for release builds" OFF)
+
+function(agenui_split_debug_symbols target)
+    if(NOT AGENUI_EMIT_DEBUG_SYMBOLS)
+        return()
+    endif()
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+        return()
+    endif()
+    if(NOT CMAKE_OBJCOPY OR NOT CMAKE_STRIP)
+        message(WARNING "agenui_split_debug_symbols(${target}): CMAKE_OBJCOPY or CMAKE_STRIP unavailable; skip.")
+        return()
+    endif()
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} --only-keep-debug
+                $<TARGET_FILE:${target}> $<TARGET_FILE:${target}>.debug
+        COMMAND ${CMAKE_STRIP} --strip-all $<TARGET_FILE:${target}>
+        COMMAND ${CMAKE_OBJCOPY} --add-gnu-debuglink=$<TARGET_FILE_NAME:${target}>.debug
+                $<TARGET_FILE:${target}>
+        WORKING_DIRECTORY $<TARGET_FILE_DIR:${target}>
+        COMMENT "[symbols] split: $<TARGET_FILE_NAME:${target}> -> $<TARGET_FILE_NAME:${target}>.debug"
+        VERBATIM)
+endfunction()
+
+# ---------------------------------------------------------------------------
 # yoga: prebuilt binary OR build from source via FetchContent
 # ---------------------------------------------------------------------------
 # Option: YOGA_PREBUILT_DIR - path to a directory containing prebuilt yoga artifacts
@@ -107,8 +148,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -flto")
     # Linker: remove unused code sections
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
-    # Strip symbol table (reduce .so size)
-    set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -Wl,--strip-all")
+    # NOTE: -Wl,--strip-all was removed so DWARF info reaches the post-build step
+    # that splits symbols into lib*.so.debug (see agenui_split_debug_symbols below).
+    # AGP runs its own strip on the .so before packaging, so the release AAR size
+    # is unaffected; .so.debug stays at the cxx intermediate output directory.
 else()
     add_definitions(-DDEBUG)
     add_definitions(-D_DEBUG)
@@ -206,3 +249,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
     -Wl,-z,max-page-size=16384
 )
+
+# Emit lib<name>.so.debug companion files when AGENUI_EMIT_DEBUG_SYMBOLS=ON.
+# See the comment block near the top of this file for behavior details.
+agenui_split_debug_symbols(${CMAKE_PROJECT_NAME})
+
+# yoga only needs the same treatment when it is built from source (FetchContent
+# path); the prebuilt path imports it as IMPORTED and has no .so we can rewrite.
+if(TARGET yoga)
+    get_target_property(_agenui_yoga_imported yoga IMPORTED)
+    if(NOT _agenui_yoga_imported)
+        agenui_split_debug_symbols(yoga)
+    endif()
+endif()

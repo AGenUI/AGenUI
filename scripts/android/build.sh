@@ -27,6 +27,11 @@ set -euo pipefail
 #                           Expected structure: {dir}/include/yoga/ + {dir}/libs/libyoga.so
 #                           If not specified, yoga is fetched from GitHub via FetchContent.
 #   --no-yoga-in-aar        Exclude libyoga.so from AAR output (use with --yoga-prebuilt)
+#   --with-symbols          Emit lib*.so.debug companion files for the release build
+#                           AND package them into <name>-symbols.aar. Wires up
+#                           CMake (-DAGENUI_EMIT_DEBUG_SYMBOLS=ON) + Gradle
+#                           (-PagenuiEmitDebugSymbols=true). Release builds only;
+#                           no effect for --debug.
 #   --clean                 Run ./gradlew clean before building
 #   -h, --help              Show this help message
 #
@@ -49,12 +54,13 @@ DO_CLEAN=false
 YOGA_PREBUILT_DIR=""
 YOGA_INCLUDE_IN_AAR=""
 PUBLISH_MAVEN=false
+WITH_SYMBOLS=false
 
 ANDROID_PROJECT_ROOT="${PLATFORMS_DIR}/android"
 
 # -------------------- Argument parsing --------------------
 show_help() {
-    sed -n '6,27p' "$0" | sed 's/^# \?//'
+    sed -n '5,42p' "$0" | sed -E 's/^#( |$)//'
     exit 0
 }
 
@@ -66,6 +72,7 @@ while [[ $# -gt 0 ]]; do
         --publish-maven)   PUBLISH_MAVEN=true; shift ;;
         --yoga-prebuilt)   YOGA_PREBUILT_DIR="$2"; shift 2 ;;
         --no-yoga-in-aar)  YOGA_INCLUDE_IN_AAR="false"; shift ;;
+        --with-symbols)    WITH_SYMBOLS=true; shift ;;
         --clean)           DO_CLEAN=true; shift ;;
         -h|--help)         show_help ;;
         *)                 error "Unknown argument: $1" ;;
@@ -121,6 +128,16 @@ if [[ -n "$YOGA_INCLUDE_IN_AAR" ]]; then
     info "Yoga include in AAR: ${YOGA_INCLUDE_IN_AAR}"
 fi
 
+# -------------------- Native debug symbols --------------------
+# --with-symbols turns on the symbol-splitting POST_BUILD step in CMake AND the
+# assembleReleaseSymbols Gradle task (finalized after assembleRelease). One
+# property pipes through both layers. Effective only for release builds; for
+# --debug, CMake skips the split internally.
+if [[ "$WITH_SYMBOLS" == true ]]; then
+    GRADLE_EXTRA_ARGS="${GRADLE_EXTRA_ARGS} -PagenuiEmitDebugSymbols=true"
+    info "Native debug symbols: enabled (lib*.so.debug companion + <name>-symbols.aar)"
+fi
+
 info "Running Gradle task: ${GRADLE_TASK}"
 ./gradlew $GRADLE_EXTRA_ARGS "$GRADLE_TASK" | cat
 
@@ -173,9 +190,18 @@ esac
 DIST_DIR="${AGENUI_ROOT}/dist/android/${BUILD_CONFIG}"
 mkdir -p "$DIST_DIR"
 
+# Filter by filename suffix so cross-config leftovers in AAR_DIR (which Gradle
+# accumulates across runs) don't bleed into this dist. The symbols sidecar is
+# only picked up when THIS invocation asked for it via --with-symbols — without
+# the gate, a stale <name>-symbols.aar from a previous --with-symbols run would
+# still match the glob and end up in the dist of a plain release build.
 shopt -s nullglob
 copied_count=0
-for aar in "$AAR_DIR"/*.aar; do
+aar_list=("${AAR_DIR}"/*-"${BUILD_CONFIG}".aar)
+if [[ "$BUILD_CONFIG" == "release" && "$WITH_SYMBOLS" == true ]]; then
+    aar_list+=("${AAR_DIR}"/*-symbols.aar)
+fi
+for aar in "${aar_list[@]}"; do
     cp -f "$aar" "$DIST_DIR/"
     copied_count=$((copied_count + 1))
     info "Published to dist: ${DIST_DIR}/$(basename "$aar")"
