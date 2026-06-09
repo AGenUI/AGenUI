@@ -156,7 +156,8 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
       "styles": {
         "default": {
           "orientation": "vertical",
-          "padding": "24px"
+          "padding": "24px",
+          "text-color": {"call": "token", "args": {"name": "Color_Black"}}
         }
       }
     },

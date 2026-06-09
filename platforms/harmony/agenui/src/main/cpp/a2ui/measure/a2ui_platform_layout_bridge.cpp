@@ -70,7 +70,7 @@ static const char* g_component_styles = R"JSON({
     "checkbox-border-width": "3px",
     "checkbox-border-radius": "12px",
     "text-margin": "16px",
-    "text-color": "#000000",
+    "text-color": {"call": "token", "args": {"name": "Color_Black"}},
     "text-size": "32px",
     "choice-gap": "40px",
     "chip-padding-horizontal": "28px",
