@@ -105,6 +105,21 @@ void TableComponent::parseStyles(const nlohmann::json& properties) {
         }
         HM_LOGI("border-radius from properties.styles: %.1f (not implemented yet)", borderRadius);
     }
+    
+    if (styles.find("header-bg-color") != styles.end() && styles["header-bg-color"].is_string()) {
+        m_headerBackground = parseColor(styles["header-bg-color"].get<std::string>());
+        HM_LOGI("Header-bg-color from styles: 0x%08X", m_headerBackground);
+    }
+
+    if (styles.find("body-bg-color-even") != styles.end() && styles["body-bg-color-even"].is_string()) {
+        m_bodyBgColorEven = parseColor(styles["body-bg-color-even"].get<std::string>());
+        HM_LOGI("Body-bg-color-even from styles: 0x%08X", m_bodyBgColorEven);
+    }
+
+    if (styles.find("body-bg-color-odd") != styles.end() && styles["body-bg-color-odd"].is_string()) {
+        m_bodyBgColorOdd = parseColor(styles["body-bg-color-odd"].get<std::string>());
+        HM_LOGI("Body-bg-color-odd from styles: 0x%08X", m_bodyBgColorOdd);
+    }
 }
 
 void TableComponent::loadComponentStyles() {
