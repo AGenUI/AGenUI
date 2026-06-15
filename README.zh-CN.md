@@ -217,6 +217,9 @@ cp -r AGenUI/skills/a2ui-generation ~/.claude/skills/
 # 发布到本地 Maven（~/.m2）
 ./scripts/android/build.sh --publish-local
 
+# 发布 debug AAR 到本地 Maven
+./scripts/android/build.sh --debug --publish-local
+
 # 发布到远程 Maven（需 MAVEN_URL / MAVEN_USERNAME / MAVEN_PASSWORD 环境变量）
 ./scripts/android/build.sh --publish-maven
 

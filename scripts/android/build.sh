@@ -17,8 +17,11 @@ set -euo pipefail
 #                           Other common values:
 #                             assembleDebug
 #                             publishReleasePublicationToLocalMavenRepository
-#   --debug                 Equivalent to --task assembleDebug
-#   --publish-local         Equivalent to --task publishReleasePublicationToLocalMavenRepository
+#   --debug                 Build the debug variant (default: release).
+#                           Can be combined with --publish-local.
+#   --publish-local         Publish AAR to local Maven (~/.m2). Respects --debug:
+#                           builds and publishes the debug variant if set,
+#                           otherwise the release variant.
 #   --publish-maven         Publish AAR to remote Maven repository.
 #                           Requires MAVEN_URL / MAVEN_USERNAME / MAVEN_PASSWORD env vars.
 #                           Optionally set AGENUI_MAVEN_GROUP / AGENUI_MAVEN_ARTIFACT env vars
@@ -39,6 +42,7 @@ set -euo pipefail
 #   ./scripts/android/build.sh                       # default assembleRelease
 #   ./scripts/android/build.sh --debug --clean
 #   ./scripts/android/build.sh --publish-local
+#   ./scripts/android/build.sh --debug --publish-local  # publish debug AAR to local Maven
 #   ./scripts/android/build.sh --yoga-prebuilt ./yoga_prebuilt/android/arm64-v8a/Test
 # ============================================================================
 
@@ -49,7 +53,8 @@ source "${SCRIPT_DIR}/../common/_common.sh"
 source "${SCRIPT_DIR}/../common/_build_id.sh"
 
 # -------------------- Defaults --------------------
-GRADLE_TASK="assembleRelease"
+GRADLE_TASK=""
+BUILD_VARIANT="release"
 DO_CLEAN=false
 YOGA_PREBUILT_DIR=""
 YOGA_INCLUDE_IN_AAR=""
@@ -60,15 +65,17 @@ ANDROID_PROJECT_ROOT="${PLATFORMS_DIR}/android"
 
 # -------------------- Argument parsing --------------------
 show_help() {
-    sed -n '5,42p' "$0" | sed -E 's/^#( |$)//'
+    sed -n '5,46p' "$0" | sed -E 's/^#( |$)//'
     exit 0
 }
+
+PUBLISH_LOCAL=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --task)            GRADLE_TASK="$2"; shift 2 ;;
-        --debug)           GRADLE_TASK="assembleDebug"; shift ;;
-        --publish-local)   GRADLE_TASK="publishReleasePublicationToLocalMavenRepository"; shift ;;
+        --debug)           BUILD_VARIANT="debug"; shift ;;
+        --publish-local)   PUBLISH_LOCAL=true; shift ;;
         --publish-maven)   PUBLISH_MAVEN=true; shift ;;
         --yoga-prebuilt)   YOGA_PREBUILT_DIR="$2"; shift 2 ;;
         --no-yoga-in-aar)  YOGA_INCLUDE_IN_AAR="false"; shift ;;
@@ -78,6 +85,20 @@ while [[ $# -gt 0 ]]; do
         *)                 error "Unknown argument: $1" ;;
     esac
 done
+
+# -------------------- Resolve GRADLE_TASK --------------------
+CAP_VARIANT="$(tr '[:lower:]' '[:upper:]' <<< "${BUILD_VARIANT:0:1}")${BUILD_VARIANT:1}"
+if [[ "$PUBLISH_LOCAL" == true ]]; then
+    if [[ -n "$GRADLE_TASK" ]]; then
+        error "--publish-local cannot be combined with --task"
+    fi
+    GRADLE_TASK="publish${CAP_VARIANT}PublicationToLocalMavenRepository"
+elif [[ -z "$GRADLE_TASK" ]]; then
+    GRADLE_TASK="assemble${CAP_VARIANT}"
+fi
+if [[ "$PUBLISH_MAVEN" == true && "$BUILD_VARIANT" != "release" ]]; then
+    error "--publish-maven only supports the release variant. Remove --debug and try again."
+fi
 
 [[ -d "$ANDROID_PROJECT_ROOT" ]] || error "Android project directory not found: ${ANDROID_PROJECT_ROOT}"
 [[ -x "${ANDROID_PROJECT_ROOT}/gradlew" ]] || error "Executable gradlew not found: ${ANDROID_PROJECT_ROOT}/gradlew"

@@ -218,6 +218,9 @@ All build scripts live in the `scripts/` directory. The C++ engine in `core/` is
 # Publish to local Maven (~/.m2)
 ./scripts/android/build.sh --publish-local
 
+# Publish debug AAR to local Maven
+./scripts/android/build.sh --debug --publish-local
+
 # Publish to remote Maven (requires MAVEN_URL / MAVEN_USERNAME / MAVEN_PASSWORD env vars)
 ./scripts/android/build.sh --publish-maven
 

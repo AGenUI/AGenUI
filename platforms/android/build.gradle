@@ -169,54 +169,65 @@ dependencies {
 afterEvaluate {
     publishing {
         publications {
-            release(MavenPublication) {
-                // Allow -PmavenVersion / -PmavenGroupId / -PmavenArtifactId to override defaults.
-                // -PmavenAarPath overrides the AAR file path. Used by external wrappers that
-                // publish a previously-built sidecar AAR (e.g. the <name>-symbols.aar from
-                // --with-symbols) through this same publication with a suffixed version,
-                // without re-running assembleRelease.
-                def pubGroupId = project.hasProperty('mavenGroupId') ? project.property('mavenGroupId') : SDK_GROUP_ID
-                def pubArtifactId = project.hasProperty('mavenArtifactId') ? project.property('mavenArtifactId') : SDK_ARTIFACT_ID
-                def pubVersion = project.hasProperty('mavenVersion') ? project.property('mavenVersion') : SDK_VERSION
-                def pubAarPath = project.hasProperty('mavenAarPath') ? project.property('mavenAarPath') : "${buildDir}/outputs/aar/${project.name}-release.aar"
+            ['release', 'debug'].each { variant ->
+                def capVariant = variant.capitalize()
 
-                groupId    = pubGroupId
-                artifactId = pubArtifactId
-                version    = pubVersion
+                create(variant, MavenPublication) {
+                    // Allow -PmavenVersion / -PmavenGroupId / -PmavenArtifactId to override defaults.
+                    // -PmavenAarPath overrides the AAR file path (release only). Used by external
+                    // wrappers that publish a previously-built sidecar AAR (e.g. the
+                    // <name>-symbols.aar from --with-symbols) through this same publication with
+                    // a suffixed version, without re-running assembleRelease.
+                    def pubGroupId = project.hasProperty('mavenGroupId') ? project.property('mavenGroupId') : SDK_GROUP_ID
+                    def pubArtifactId = project.hasProperty('mavenArtifactId') ? project.property('mavenArtifactId') : SDK_ARTIFACT_ID
+                    def pubVersion = project.hasProperty('mavenVersion') ? project.property('mavenVersion') : SDK_VERSION
+                    def defaultAarPath = "${buildDir}/outputs/aar/${project.name}-${variant}.aar"
+                    def pubAarPath = (variant == 'release' && project.hasProperty('mavenAarPath'))
+                            ? project.property('mavenAarPath') : defaultAarPath
 
-                if (project.hasProperty('mavenVersion')) {
-                    logger.lifecycle("[maven] Publishing with version: ${pubVersion} (groupId=${pubGroupId}, artifactId=${pubArtifactId}, aar=${pubAarPath})")
-                }
+                    groupId    = pubGroupId
+                    artifactId = pubArtifactId
+                    version    = pubVersion
 
-                def normalAar = file(pubAarPath)
-                artifact(normalAar)
+                    if (project.hasProperty('mavenVersion')) {
+                        logger.lifecycle("[maven] Publishing ${variant} with version: ${pubVersion} (groupId=${pubGroupId}, artifactId=${pubArtifactId}, aar=${pubAarPath})")
+                    }
 
-                pom {
-                    name        = 'AGenUI'
-                    description = 'A Native Renderer for A2UI - AGen UI SDK.'
-                    url         = 'https://github.com/AGenUI/AGenUI-Client-Android'
-
-                    licenses {
-                        license {
-                            name = 'Apache-2.0'
-                            url  = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    def normalAar = file(pubAarPath)
+                    if (variant == 'release' && project.hasProperty('mavenAarPath')) {
+                        artifact(normalAar)
+                    } else {
+                        artifact(normalAar) {
+                            builtBy tasks.named("assemble${capVariant}")
                         }
                     }
 
-                    // Transitive dependency declarations
-                    withXml {
-                        def deps = asNode().appendNode('dependencies')
-                        configurations.releaseRuntimeClasspath
-                            .resolvedConfiguration
-                            .resolvedArtifacts
-                            .findAll { it.moduleVersion.id.group != project.group }
-                            .each { artifact ->
-                                def dep = deps.appendNode('dependency')
-                                dep.appendNode('groupId',    artifact.moduleVersion.id.group)
-                                dep.appendNode('artifactId', artifact.moduleVersion.id.name)
-                                dep.appendNode('version',    artifact.moduleVersion.id.version)
-                                dep.appendNode('scope',      'runtime')
+                    pom {
+                        name        = 'AGenUI'
+                        description = 'A Native Renderer for A2UI - AGen UI SDK.'
+                        url         = 'https://github.com/AGenUI/AGenUI-Client-Android'
+
+                        licenses {
+                            license {
+                                name = 'Apache-2.0'
+                                url  = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
                             }
+                        }
+
+                        withXml {
+                            def deps = asNode().appendNode('dependencies')
+                            configurations["${variant}RuntimeClasspath"]
+                                .resolvedConfiguration
+                                .resolvedArtifacts
+                                .findAll { it.moduleVersion.id.group != project.group }
+                                .each { resolvedArtifact ->
+                                    def dep = deps.appendNode('dependency')
+                                    dep.appendNode('groupId',    resolvedArtifact.moduleVersion.id.group)
+                                    dep.appendNode('artifactId', resolvedArtifact.moduleVersion.id.name)
+                                    dep.appendNode('version',    resolvedArtifact.moduleVersion.id.version)
+                                    dep.appendNode('scope',      'runtime')
+                                }
+                        }
                     }
                 }
             }
