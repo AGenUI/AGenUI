@@ -1,12 +1,12 @@
 Pod::Spec.new do |s|
   s.name             = 'AGenUI'
-  s.version          = '1.0.0'
+  s.version          = '1.0.1'
   s.summary          = 'A Native Renderer for A2UI.'
   s.description      = 'A Native Renderer for A2UI.'
   s.homepage         = 'https://genui.amap.com'
   s.author           = 'AGenUI'
   s.license          = { :type => 'Apache License, Version 2.0', :file => 'LICENSE' }
-  s.source           = { :git => 'https://github.com/AGenUI/AGenUI.git', :tag => s.version.to_s }
+  s.source           = { :git => 'https://github.com/AGenUI/AGenUI.git', :tag => "AGenUI-#{s.version}" }
   s.swift_version         = '5.0'
   s.ios.deployment_target = '13.0'
 
