@@ -30,7 +30,7 @@ jobs:
     #   runs-on: [self-hosted, harmony]
     # and ensure DEVECO_HOME is set in the runner environment.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Check DevEco environment
         run: |
