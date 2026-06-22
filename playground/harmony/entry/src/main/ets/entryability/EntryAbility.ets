@@ -16,7 +16,7 @@ export default class EntryAbility extends UIAbility {
     }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
 
-    // Save test parameters to AppStorage
+    // Save test parameters to AppStorage for UITestPage
     const testCase = want.parameters?.testCase as string;
     if (testCase) {
       AppStorage.setOrCreate('testCase', testCase);
@@ -48,13 +48,18 @@ export default class EntryAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    // Always load main demo page
-    windowStage.loadContent('pages/AGenUIDemoPage', (err) => {
+    // Route to UITestPage if test parameters are present
+    const testCase = AppStorage.get<string>('testCase');
+    const testDataPath = AppStorage.get<string>('testDataPath');
+    const testBundleData = AppStorage.get<string>('testBundleData');
+    const page = (testCase || testDataPath || testBundleData) ? 'pages/UITestPage' : 'pages/AGenUIDemoPage';
+
+    windowStage.loadContent(page, (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
       }
-      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading: pages/AGenUIDemoPage');
+      hilog.info(DOMAIN, 'testTag', 'Succeeded in loading: %{public}s', page);
     });
   }
 

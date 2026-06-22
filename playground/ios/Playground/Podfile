@@ -8,4 +8,8 @@ target 'Playground' do
   pod 'DGCharts'
   pod 'lottie-ios'
 
+  target 'AGenUITests' do
+    inherit! :search_paths
+  end
+
 end

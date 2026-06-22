@@ -16,13 +16,15 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     
-    // Configure source sets to include SDK root resource directory as assets source, preserving the directory structure
+    // Configure source sets to include assets from multiple sources
     sourceSets {
         main {
             assets {
                 srcDirs = [
                     'src/main/assets',
-                    file('../../resource').absolutePath
+                    file('../../resource').absolutePath,               // stories/
+                    file('../../../tests/integration/fixtures').absolutePath,  // test_fixtures/
+                    file('../../../tests/stability/fixtures').absolutePath,    // stability_fixtures/
                 ]
             }
         }

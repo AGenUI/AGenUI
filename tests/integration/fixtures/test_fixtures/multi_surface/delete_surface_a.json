@@ -1,0 +1,16 @@
+{
+  "description": "Delete Surface A test case: used with surface_a/b.json, verifies that deleting A does not affect B",
+  "surfaceId": "test-surf-multi-a",
+  "messages": [
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "test-surf-multi-a"
+      }
+    }
+  ],
+  "expect": {
+    "onDeleteSurface": true,
+    "surfaceId": "test-surf-multi-a"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "description": "Stability: Creating same surfaceId twice without delete in between",
+  "surfaceId": "stability-double-create",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-double-create",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-double-create",
+        "components": [
+          {
+            "id": "root",
+            "component": "Text",
+            "text": "First create"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-double-create",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-double-create",
+        "components": [
+          {
+            "id": "root",
+            "component": "Text",
+            "text": "Second create (duplicate)"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

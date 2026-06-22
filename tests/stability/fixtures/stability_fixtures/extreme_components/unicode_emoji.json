@@ -1,0 +1,63 @@
+{
+  "description": "Stability: Unicode and emoji content in all text positions",
+  "surfaceId": "stability-unicode",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-unicode",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-unicode",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "t1",
+              "t2",
+              "t3",
+              "t4",
+              "t5"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t1",
+            "component": "Text",
+            "text": "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘😗😙😚"
+          },
+          {
+            "id": "t2",
+            "component": "Text",
+            "text": "中文测试：这是一段很长的中文文本，用于测试CJK字符集的渲染稳定性。包含繁體字：測試穩定性"
+          },
+          {
+            "id": "t3",
+            "component": "Text",
+            "text": "العربية مرحبا بالعالم - RTL text test עברית Hebrew"
+          },
+          {
+            "id": "t4",
+            "component": "Text",
+            "text": "Mixed: Hello🌍世界🌏مرحبا🌎こんにちは👋"
+          },
+          {
+            "id": "t5",
+            "component": "Text",
+            "text": "Special: \u0000\u0001\u0002 null-like chars and ZWJ: 👨‍👩‍👧‍👦 family"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

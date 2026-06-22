@@ -28,7 +28,9 @@ public class ShimmerTransition {
 
     private ValueAnimator shimmerAnimator;
     private ShimmerView shimmerView;
-    private ViewGroup shimmerParent; // Holds a reference to the parent
+    private ViewGroup shimmerParent;
+    private ImageView shimmerTarget;
+    private View.OnLayoutChangeListener layoutChangeListener;
 
     /**
      * Starts the shimmer loading animation on an ImageView.
@@ -63,11 +65,13 @@ public class ShimmerTransition {
         shimmerParent = parent;
 
         // Listen for layout changes to keep the shimmerView size correct
-        imageView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+        shimmerTarget = imageView;
+        layoutChangeListener = (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
             if (shimmerView != null) {
                 shimmerView.layout(left, top, right, bottom);
             }
-        });
+        };
+        imageView.addOnLayoutChangeListener(layoutChangeListener);
 
         // Start the shimmer animation
         startShimmerAnimation();
@@ -82,6 +86,12 @@ public class ShimmerTransition {
         if (shimmerAnimator != null) {
             shimmerAnimator.cancel();
             shimmerAnimator = null;
+        }
+
+        if (shimmerTarget != null && layoutChangeListener != null) {
+            shimmerTarget.removeOnLayoutChangeListener(layoutChangeListener);
+            layoutChangeListener = null;
+            shimmerTarget = null;
         }
 
         if (shimmerView != null && shimmerParent != null) {

@@ -1,0 +1,74 @@
+{
+  "description": "Multiple surfaces displayed simultaneously like chat bubbles",
+  "surfaceId": "realistic-multi",
+  "multi_surface": true,
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"card-1","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"card-1","components":[{"id":"root","component":"Card","child":"c1","styles":{"padding":"16px","border-radius":"12px","background-color":"#E3F2FD"}},{"id":"c1","component":"Text","text":"Good morning! How can I help you today?","styles":{"font-size":"15px","color":"#1565C0"}}]}}
+    },
+    {
+      "action": "createSurface",
+      "delay_ms": 1000,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"card-2","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"card-2","components":[{"id":"root","component":"Card","child":"c2","styles":{"padding":"16px","border-radius":"12px","background-color":"#FFF3E0"}},{"id":"c2","component":"Column","children":["t2","btn2"],"styles":{"gap":"8px"}},{"id":"t2","component":"Text","text":"Here are your route options for today:","styles":{"font-size":"15px","color":"#E65100"}},{"id":"btn2","component":"Button","text":"View Routes","styles":{"background-color":"#FF6D00","color":"#FFFFFF","border-radius":"8px"}}]}}
+    },
+    {
+      "action": "createSurface",
+      "delay_ms": 1000,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"card-3","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"card-3","components":[{"id":"root","component":"Card","child":"c3","styles":{"padding":"16px","border-radius":"12px","background-color":"#E8F5E9"}},{"id":"c3","component":"Column","children":["t3a","t3b","t3c"],"styles":{"gap":"4px"}},{"id":"t3a","component":"Text","text":"Route A: 25 min (fastest)","styles":{"font-size":"14px","color":"#2E7D32","font-weight":"bold"}},{"id":"t3b","component":"Text","text":"Route B: 32 min (scenic)","styles":{"font-size":"14px","color":"#388E3C"}},{"id":"t3c","component":"Text","text":"Route C: 28 min (toll-free)","styles":{"font-size":"14px","color":"#388E3C"}}]}}
+    },
+    {
+      "action": "createSurface",
+      "delay_ms": 1200,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"card-4","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"card-4","components":[{"id":"root","component":"Card","child":"c4","styles":{"padding":"12px","border-radius":"12px","background-color":"#FCE4EC"}},{"id":"c4","component":"Text","text":"Traffic alert: Accident on Route C, expect 15 min delay","styles":{"font-size":"13px","color":"#C62828"}}]}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 2000,
+      "description": "Remove first card",
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"card-1"}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 800,
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"card-2"}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 800,
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"card-3"}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 800,
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"card-4"}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 9100,
+    "components_used": ["Card", "Text", "Column", "Button"],
+    "stress_coverage": "MULTI_SURFACE+SESSION_STORM"
+  }
+}

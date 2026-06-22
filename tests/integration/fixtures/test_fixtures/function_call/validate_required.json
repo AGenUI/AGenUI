@@ -1,0 +1,124 @@
+{
+  "description": "SKILL-07: required non-empty validation function test, converts boolean result to string via formatString for display in Text, asserted by textContent",
+  "surfaceId": "test-surf-fc-07",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-07",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-07",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "text-07a", "text-07b", "text-07c", "text-07d",
+              "text-07e", "text-07f", "text-07g", "text-07h"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "text-07a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: 'hello')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-07b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: '')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-07c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: null)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-07d",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: [])}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-07e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: [1,2,3])}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-07f",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: 0)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-07g",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: false)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-07h",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: {})}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 9,
+    "componentIds": ["root", "text-07a", "text-07b", "text-07c", "text-07d", "text-07e", "text-07f", "text-07g", "text-07h"],
+    "textContent": [
+      { "componentId": "text-07a", "contains": "true",  "note": "SKILL-07-a: non-empty string → true" },
+      { "componentId": "text-07b", "contains": "false", "note": "SKILL-07-b: empty string → false" },
+      { "componentId": "text-07c", "contains": "false", "note": "SKILL-07-c: null → false" },
+      { "componentId": "text-07d", "contains": "false", "note": "SKILL-07-d: empty array → false" },
+      { "componentId": "text-07e", "contains": "true",  "note": "SKILL-07-e: non-empty array → true" },
+      { "componentId": "text-07f", "contains": "true",  "note": "SKILL-07-f: number 0 → true (0 is a valid value)" },
+      { "componentId": "text-07g", "contains": "true",  "note": "SKILL-07-g: boolean false → true (false is a valid value)" },
+      { "componentId": "text-07h", "contains": "false", "note": "SKILL-07-h: empty object → false" }
+    ]
+  }
+}

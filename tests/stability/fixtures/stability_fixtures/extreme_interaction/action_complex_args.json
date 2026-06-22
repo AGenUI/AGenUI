@@ -1,0 +1,89 @@
+{
+  "description": "Stability: Button actions with complex computed arguments",
+  "surfaceId": "stability-complex-action",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-complex-action",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-complex-action",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "btn-complex",
+              "btn-open"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "btn-complex",
+            "component": "Button",
+            "child": "btn-complex-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": {
+                    "call": "formatString",
+                    "args": {
+                      "value": "User: ${/user/name}, Date: ${formatDate(value: \"2026-12-31\", format: \"MM/dd\")}"
+                    },
+                    "returnType": "string"
+                  },
+                  "duration": 3
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-complex-txt",
+            "component": "Text",
+            "text": "Complex Toast"
+          },
+          {
+            "id": "btn-open",
+            "component": "Button",
+            "child": "btn-open-txt",
+            "action": {
+              "functionCall": {
+                "call": "openUrl",
+                "args": {
+                  "url": "https://example.com/path?q=test&page=1"
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-open-txt",
+            "component": "Text",
+            "text": "Open URL"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-complex-action",
+        "value": {
+          "user": {
+            "name": "StabilityBot"
+          }
+        }
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_interaction",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

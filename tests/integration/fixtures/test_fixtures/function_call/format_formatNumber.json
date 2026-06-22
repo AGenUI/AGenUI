@@ -1,0 +1,99 @@
+{
+  "description": "SKILL-03: formatNumber number formatting function test, verifies thousands separator and decimal precision via Text.text FunctionCall binding",
+  "surfaceId": "test-surf-fc-03",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-03",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-03",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-03a", "text-03b", "text-03c", "text-03d", "text-03e", "text-03f"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-03a",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": { "value": 1234567.89 },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-03b",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": { "value": 1000, "decimals": 0 },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-03c",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": { "value": 3.14159, "decimals": 4 },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-03d",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": { "value": 1234567.89, "grouping": false },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-03e",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": { "value": -9876.5, "decimals": 1 },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-03f",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": { "value": 0, "decimals": 2 },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 7,
+    "componentIds": ["root", "text-03a", "text-03b", "text-03c", "text-03d", "text-03e", "text-03f"],
+    "textContent": [
+      { "componentId": "text-03a", "contains": "1,234,567.89", "note": "SKILL-03-a: default format, thousands separator + 2 decimal places" },
+      { "componentId": "text-03b", "contains": "1,000",        "note": "SKILL-03-b: decimals=0, integer without decimals" },
+      { "componentId": "text-03c", "contains": "3.1416",       "note": "SKILL-03-c: decimals=4, rounded" },
+      { "componentId": "text-03d", "contains": "1234567.89",   "note": "SKILL-03-d: grouping=false, no thousands separator" },
+      { "componentId": "text-03e", "contains": "-9,876.5",     "note": "SKILL-03-e: negative number formatting" },
+      { "componentId": "text-03f", "contains": "0.00",         "note": "SKILL-03-f: zero value formatting" }
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "description": "Nested Column layout test case: outer Column contains two inner Columns, each inner Column has 2 Text components, verifies deeply nested component count and parent-child relationships",
+  "surfaceId": "test-surf-col-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-col-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-col-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["col-a", "col-b"],
+            "align": "stretch",
+            "styles": {
+              "padding": "16px",
+              "gap": "12px"
+            }
+          },
+          {
+            "id": "col-a",
+            "component": "Column",
+            "children": ["text-a1", "text-a2"],
+            "align": "stretch",
+            "styles": {
+              "background-color": "#F0F0F0",
+              "padding": "12px",
+              "border-radius": "8px"
+            }
+          },
+          {
+            "id": "text-a1",
+            "component": "Text",
+            "text": "Section A - Title",
+            "variant": "h3"
+          },
+          {
+            "id": "text-a2",
+            "component": "Text",
+            "text": "Section A - Description",
+            "variant": "body"
+          },
+          {
+            "id": "col-b",
+            "component": "Column",
+            "children": ["text-b1", "text-b2"],
+            "align": "stretch",
+            "styles": {
+              "background-color": "#E8F4FD",
+              "padding": "12px",
+              "border-radius": "8px"
+            }
+          },
+          {
+            "id": "text-b1",
+            "component": "Text",
+            "text": "Section B - Title",
+            "variant": "h3"
+          },
+          {
+            "id": "text-b2",
+            "component": "Text",
+            "text": "Section B - Description",
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 7,
+    "componentTypes": ["Column", "Column", "Text", "Text", "Column", "Text", "Text"],
+    "rootComponentId": "root",
+    "rootComponentType": "Column",
+    "componentIds": ["root", "col-a", "text-a1", "text-a2", "col-b", "text-b1", "text-b2"]
+  }
+}

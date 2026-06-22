@@ -204,6 +204,17 @@ protected:
      */
     static uint32_t parseColor(const std::string& colorStr);
 
+    /**
+     * Parse a color value that may be a FunctionCall token reference.
+     * Supported formats:
+     *   1. String: Direct color value (e.g., "#FFFFFF", "#RRGGBBAA")
+     *      -> Parsed directly by parseColor()
+     *   2. JSON object with {"call": "token", "args": {"name": "TokenName"}}
+     *      -> Extracts token name, resolves via TokenParser, then parsed by parseColor()
+     * Return fallbackValue on parse failure or empty string.
+     */
+    static uint32_t parseColorWithToken(const nlohmann::json& colorValue, uint32_t fallbackValue);
+
 public:
     float getX() const { return m_x; }
     float getY() const { return m_y; }

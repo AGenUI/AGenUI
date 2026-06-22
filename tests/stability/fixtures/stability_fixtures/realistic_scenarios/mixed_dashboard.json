@@ -1,0 +1,59 @@
+{
+  "description": "Complex dashboard with high-frequency data updates",
+  "surfaceId": "realistic-dashboard",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-dashboard","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json","sendDataModel":true}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Render complex dashboard layout",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-dashboard","components":[{"id":"root","component":"Column","children":["header","stats-row","chart","table-section"],"styles":{"width":"100%","padding":"12px","gap":"12px"}},{"id":"header","component":"Text","text":"Operations Dashboard","styles":{"font-size":"20px","font-weight":"bold","color":"#263238"}},{"id":"stats-row","component":"Row","children":["stat1","stat2","stat3"],"styles":{"gap":"8px"}},{"id":"stat1","component":"Card","child":"s1c","styles":{"flex":"1","padding":"12px","background-color":"#E3F2FD","border-radius":"8px","align-items":"center"}},{"id":"s1c","component":"Column","children":["s1v","s1l"],"styles":{"align-items":"center"}},{"id":"s1v","component":"Text","text":"2,847","dataBinding":"/sensors","styles":{"font-size":"20px","font-weight":"bold","color":"#1565C0"}},{"id":"s1l","component":"Text","text":"Active Sensors","styles":{"font-size":"11px","color":"#666"}},{"id":"stat2","component":"Card","child":"s2c","styles":{"flex":"1","padding":"12px","background-color":"#E8F5E9","border-radius":"8px","align-items":"center"}},{"id":"s2c","component":"Column","children":["s2v","s2l"],"styles":{"align-items":"center"}},{"id":"s2v","component":"Text","text":"42 km/h","dataBinding":"/speed","styles":{"font-size":"20px","font-weight":"bold","color":"#2E7D32"}},{"id":"s2l","component":"Text","text":"Avg Speed","styles":{"font-size":"11px","color":"#666"}},{"id":"stat3","component":"Card","child":"s3c","styles":{"flex":"1","padding":"12px","background-color":"#FFF3E0","border-radius":"8px","align-items":"center"}},{"id":"s3c","component":"Column","children":["s3v","s3l"],"styles":{"align-items":"center"}},{"id":"s3v","component":"Text","text":"3","dataBinding":"/incidents","styles":{"font-size":"20px","font-weight":"bold","color":"#E65100"}},{"id":"s3l","component":"Text","text":"Incidents","styles":{"font-size":"11px","color":"#666"}},{"id":"chart","component":"Chart","chartType":"bar","data":{"xAxis":["N","S","E","W","NE","NW"],"series":[{"name":"Load %","data":[{"value":65,"label":"65%"},{"value":82,"label":"82%"},{"value":45,"label":"45%"},{"value":71,"label":"71%"},{"value":55,"label":"55%"},{"value":38,"label":"38%"}]}]},"styles":{"width":"100%","height":"200px","chartConfig":{"colors":["#42A5F5"]}}},{"id":"table-section","component":"Column","children":["tbl-title","tbl-r1","tbl-r2","tbl-r3","tbl-r4"],"styles":{"gap":"4px"}},{"id":"tbl-title","component":"Text","text":"Recent Events","styles":{"font-size":"14px","font-weight":"bold","padding":"4px 0"}},{"id":"tbl-r1","component":"Text","text":"09:15 | Sensor 1042 | Speed drop detected","styles":{"font-size":"12px","padding":"6px","background-color":"#FAFAFA","border-radius":"4px"}},{"id":"tbl-r2","component":"Text","text":"09:12 | Sensor 0891 | Lane closure reported","styles":{"font-size":"12px","padding":"6px","background-color":"#FAFAFA","border-radius":"4px"}},{"id":"tbl-r3","component":"Text","text":"09:08 | Sensor 2201 | Normal flow restored","styles":{"font-size":"12px","padding":"6px","background-color":"#FAFAFA","border-radius":"4px"}},{"id":"tbl-r4","component":"Text","text":"09:01 | Sensor 1567 | Congestion building","styles":{"font-size":"12px","padding":"6px","background-color":"#FAFAFA","border-radius":"4px"}}]}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1000,
+      "description": "Update 1",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-dashboard","value":{"sensors":"2,851","speed":"44 km/h","incidents":"3"}}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1000,
+      "description": "Update 2",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-dashboard","value":{"sensors":"2,849","speed":"41 km/h","incidents":"4"}}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1000,
+      "description": "Update 3",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-dashboard","value":{"sensors":"2,852","speed":"46 km/h","incidents":"4"}}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1000,
+      "description": "Update 4",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-dashboard","value":{"sensors":"2,855","speed":"48 km/h","incidents":"2"}}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1000,
+      "description": "Update 5",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-dashboard","value":{"sensors":"2,853","speed":"50 km/h","incidents":"2"}}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1000,
+      "description": "Update 6 - final",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-dashboard","value":{"sensors":"2,856","speed":"52 km/h","incidents":"1"}}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 6300,
+    "components_used": ["Column", "Row", "Card", "Chart", "Text"],
+    "stress_coverage": "MULTI_SURFACE+ACTION_FLOOD"
+  }
+}

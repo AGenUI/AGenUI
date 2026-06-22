@@ -145,6 +145,32 @@ void VirtualDOMNode::setSnapshot(const ComponentSnapshot& snapshot, const std::s
     // Must be called before StyleDefaults loop to avoid being overwritten.
     TabsYogaHelper::injectFlexGrowIfNeeded(*_snapshot);
 
+    // Inject flex-shrink: 0 for children of scroll containers — Yoga's
+    // YGOverflowScroll does NOT inhibit flex-shrink unlike browser behavior.
+    if (_parent && _snapshot->styles.find("flex-shrink") == _snapshot->styles.end()) {
+        bool parentIsScrollable = false;
+        // Check parent Yoga node (valid after parent's applySnapshot)
+        if (_parent->_yogaNode) {
+            YGOverflow parentOverflow = YGNodeStyleGetOverflow(_parent->_yogaNode->get());
+            if (parentOverflow == YGOverflowScroll) {
+                parentIsScrollable = true;
+            }
+        }
+        // Fallback: check parent snapshot (before parent's Yoga conversion)
+        if (!parentIsScrollable && _parent->_snapshot) {
+            auto overflowIt = _parent->_snapshot->styles.find("overflow");
+            if (overflowIt != _parent->_snapshot->styles.end() &&
+                overflowIt->second.isString() &&
+                overflowIt->second.asString() == "scroll") {
+                parentIsScrollable = true;
+            }
+        }
+        if (parentIsScrollable) {
+            _snapshot->styles["flex-shrink"] =
+                SerializableData(SerializableData::Impl::parse("0"));
+        }
+    }
+
     // Apply StyleDefaults before Yoga conversion to ensure complete default layout styles are available
     const auto& styleDefaults = StyleDefaults::getDefaults();
     for (const auto& pair : styleDefaults) {

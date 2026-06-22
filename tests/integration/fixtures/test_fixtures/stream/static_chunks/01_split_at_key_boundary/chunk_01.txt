@@ -1,0 +1,1 @@
+{"version":"v0.9","createSurface":{"surfaceId":"test-surf-split-01","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}{"version":"v0.9","updateComponents":{"surf

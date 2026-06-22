@@ -1,0 +1,124 @@
+{
+  "description": "SKILL-08: numeric value range validation function test, converts boolean result to string via formatString for display in Text, asserted by textContent",
+  "surfaceId": "test-surf-fc-08",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-08",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-08",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "text-08a", "text-08b", "text-08c", "text-08d", "text-08e",
+              "text-08f", "text-08g", "text-08h"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "text-08a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: 5, min: 0, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-08b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: 0, min: 0, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-08c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: 10, min: 0, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-08d",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: -1, min: 0, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-08e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: 11, min: 0, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-08f",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: 100, min: 1)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-08g",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: 50, max: 100)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-08h",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${numeric(value: 99999)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 9,
+    "componentIds": ["root", "text-08a", "text-08b", "text-08c", "text-08d", "text-08e", "text-08f", "text-08g", "text-08h"],
+    "textContent": [
+      { "componentId": "text-08a", "contains": "true",  "note": "SKILL-08-a: value within min-max range → true" },
+      { "componentId": "text-08b", "contains": "true",  "note": "SKILL-08-b: equals min boundary → true" },
+      { "componentId": "text-08c", "contains": "true",  "note": "SKILL-08-c: equals max boundary → true" },
+      { "componentId": "text-08d", "contains": "false", "note": "SKILL-08-d: below min → false" },
+      { "componentId": "text-08e", "contains": "false", "note": "SKILL-08-e: exceeds max → false" },
+      { "componentId": "text-08f", "contains": "true",  "note": "SKILL-08-f: only min specified, value satisfies → true" },
+      { "componentId": "text-08g", "contains": "true",  "note": "SKILL-08-g: only max specified, value satisfies → true" },
+      { "componentId": "text-08h", "contains": "true",  "note": "SKILL-08-h: no min/max constraint → true" }
+    ]
+  }
+}

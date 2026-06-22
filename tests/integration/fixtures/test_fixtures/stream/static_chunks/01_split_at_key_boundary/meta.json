@@ -1,0 +1,11 @@
+{
+  "description": "Boundary chunking scenario metadata: documents the chunking method of 01_split_at_key_boundary, where chunk_01.json is truncated at a key boundary and chunk_02.json contains the remainder",
+  "surfaceId": "test-surf-split-01",
+  "splitStrategy": "split at JSON key boundary (cuts in the middle of a key name)",
+  "totalChunks": 2,
+  "expect": {
+    "componentCount": 2,
+    "componentIds": ["root", "split-text"],
+    "note": "Send chunk_01 then chunk_02 sequentially via receiveTextChunk; final componentTree must be identical to sending the full JSON at once"
+  }
+}

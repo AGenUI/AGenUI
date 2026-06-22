@@ -1,0 +1,79 @@
+{
+  "description": "Stream test case 01: simple Button component, verifies that the final component tree matches the complete JSON under various chunking strategies (chunkSize=10/500/1/full)",
+  "surfaceId": "test-surf-stream-01",
+  "streamCases": [
+    {
+      "id": "STREAM-01",
+      "description": "Small chunk streaming (chunkSize=10)",
+      "chunkSize": 10
+    },
+    {
+      "id": "STREAM-02",
+      "description": "Large chunk streaming (chunkSize=500)",
+      "chunkSize": 500
+    },
+    {
+      "id": "STREAM-03",
+      "description": "Single character streaming (chunkSize=1)",
+      "chunkSize": 1
+    },
+    {
+      "id": "STREAM-04",
+      "description": "Single send (chunkSize=json.length)",
+      "chunkSize": -1
+    }
+  ],
+  "payload": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-stream-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-stream-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["stream-btn"],
+            "align": "stretch"
+          },
+          {
+            "id": "stream-btn",
+            "component": "Button",
+            "child": "stream-btn-text",
+            "action": {
+              "event": {
+                "event": "click"
+              }
+            },
+            "styles": {
+              "width": "auto",
+              "height": "80px",
+              "border-radius": "12px"
+            }
+          },
+          {
+            "id": "stream-btn-text",
+            "component": "Text",
+            "text": "Stream Button",
+            "styles": {
+              "font-size": "28px",
+              "text-align": "center"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 3,
+    "componentTypes": ["Column", "Button", "Text"],
+    "componentIds": ["root", "stream-btn", "stream-btn-text"],
+    "note": "For each chunkSize strategy, stream the concatenated payload strings and verify final componentTree matches full JSON result"
+  }
+}

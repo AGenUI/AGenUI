@@ -1,0 +1,24 @@
+{
+  "description": "Stability: Create then immediately destroy without any update",
+  "surfaceId": "stability-immediate-destroy",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-immediate-destroy",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-immediate-destroy"
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

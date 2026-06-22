@@ -1,0 +1,73 @@
+{
+  "description": "Stream test case 03: complete three-message stream with DataModel, verifies full streaming of createSurface + updateComponents + updateDataModel",
+  "surfaceId": "test-surf-stream-03",
+  "streamCases": [
+    {
+      "id": "STREAM-03-dm-small",
+      "description": "Small chunk streaming (chunkSize=10), with DataModel",
+      "chunkSize": 10
+    },
+    {
+      "id": "STREAM-03-dm-full",
+      "description": "Single send of all three messages",
+      "chunkSize": -1
+    }
+  ],
+  "payload": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-stream-03",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json",
+        "sendDataModel": false
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-stream-03",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["dm-title", "dm-value-text"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px"
+            }
+          },
+          {
+            "id": "dm-title",
+            "component": "Text",
+            "text": "DataModel Test",
+            "variant": "h2"
+          },
+          {
+            "id": "dm-value-text",
+            "component": "Text",
+            "text": "${/user/name}",
+            "variant": "body"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "test-surf-stream-03",
+        "value": {
+          "user": {
+            "name": "Alice",
+            "age": 28
+          }
+        }
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 3,
+    "componentTypes": ["Column", "Text", "Text"],
+    "componentIds": ["root", "dm-title", "dm-value-text"],
+    "note": "Stream all three messages (concatenated as single string) using various chunkSizes; final componentTree must match full JSON"
+  }
+}

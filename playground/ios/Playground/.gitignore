@@ -3,3 +3,5 @@ Podfile.lock
 *.xcworkspace/
 build/
 
+# Synced by tests/integration/platforms/ios/ios.sh before test runs
+AGenUITests/test_fixtures/

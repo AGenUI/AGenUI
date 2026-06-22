@@ -1,0 +1,1036 @@
+{
+  "description": "Stability: 50 buttons each with functionCall action",
+  "surfaceId": "stability-many-buttons",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-many-buttons",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-many-buttons",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "btn-0",
+              "btn-1",
+              "btn-2",
+              "btn-3",
+              "btn-4",
+              "btn-5",
+              "btn-6",
+              "btn-7",
+              "btn-8",
+              "btn-9",
+              "btn-10",
+              "btn-11",
+              "btn-12",
+              "btn-13",
+              "btn-14",
+              "btn-15",
+              "btn-16",
+              "btn-17",
+              "btn-18",
+              "btn-19",
+              "btn-20",
+              "btn-21",
+              "btn-22",
+              "btn-23",
+              "btn-24",
+              "btn-25",
+              "btn-26",
+              "btn-27",
+              "btn-28",
+              "btn-29",
+              "btn-30",
+              "btn-31",
+              "btn-32",
+              "btn-33",
+              "btn-34",
+              "btn-35",
+              "btn-36",
+              "btn-37",
+              "btn-38",
+              "btn-39",
+              "btn-40",
+              "btn-41",
+              "btn-42",
+              "btn-43",
+              "btn-44",
+              "btn-45",
+              "btn-46",
+              "btn-47",
+              "btn-48",
+              "btn-49"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "4px"
+            }
+          },
+          {
+            "id": "btn-0",
+            "component": "Button",
+            "child": "btn-0-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 0 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-0-txt",
+            "component": "Text",
+            "text": "Action Button 0"
+          },
+          {
+            "id": "btn-1",
+            "component": "Button",
+            "child": "btn-1-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 1 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-1-txt",
+            "component": "Text",
+            "text": "Action Button 1"
+          },
+          {
+            "id": "btn-2",
+            "component": "Button",
+            "child": "btn-2-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 2 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-2-txt",
+            "component": "Text",
+            "text": "Action Button 2"
+          },
+          {
+            "id": "btn-3",
+            "component": "Button",
+            "child": "btn-3-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 3 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-3-txt",
+            "component": "Text",
+            "text": "Action Button 3"
+          },
+          {
+            "id": "btn-4",
+            "component": "Button",
+            "child": "btn-4-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 4 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-4-txt",
+            "component": "Text",
+            "text": "Action Button 4"
+          },
+          {
+            "id": "btn-5",
+            "component": "Button",
+            "child": "btn-5-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 5 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-5-txt",
+            "component": "Text",
+            "text": "Action Button 5"
+          },
+          {
+            "id": "btn-6",
+            "component": "Button",
+            "child": "btn-6-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 6 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-6-txt",
+            "component": "Text",
+            "text": "Action Button 6"
+          },
+          {
+            "id": "btn-7",
+            "component": "Button",
+            "child": "btn-7-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 7 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-7-txt",
+            "component": "Text",
+            "text": "Action Button 7"
+          },
+          {
+            "id": "btn-8",
+            "component": "Button",
+            "child": "btn-8-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 8 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-8-txt",
+            "component": "Text",
+            "text": "Action Button 8"
+          },
+          {
+            "id": "btn-9",
+            "component": "Button",
+            "child": "btn-9-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 9 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-9-txt",
+            "component": "Text",
+            "text": "Action Button 9"
+          },
+          {
+            "id": "btn-10",
+            "component": "Button",
+            "child": "btn-10-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 10 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-10-txt",
+            "component": "Text",
+            "text": "Action Button 10"
+          },
+          {
+            "id": "btn-11",
+            "component": "Button",
+            "child": "btn-11-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 11 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-11-txt",
+            "component": "Text",
+            "text": "Action Button 11"
+          },
+          {
+            "id": "btn-12",
+            "component": "Button",
+            "child": "btn-12-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 12 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-12-txt",
+            "component": "Text",
+            "text": "Action Button 12"
+          },
+          {
+            "id": "btn-13",
+            "component": "Button",
+            "child": "btn-13-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 13 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-13-txt",
+            "component": "Text",
+            "text": "Action Button 13"
+          },
+          {
+            "id": "btn-14",
+            "component": "Button",
+            "child": "btn-14-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 14 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-14-txt",
+            "component": "Text",
+            "text": "Action Button 14"
+          },
+          {
+            "id": "btn-15",
+            "component": "Button",
+            "child": "btn-15-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 15 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-15-txt",
+            "component": "Text",
+            "text": "Action Button 15"
+          },
+          {
+            "id": "btn-16",
+            "component": "Button",
+            "child": "btn-16-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 16 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-16-txt",
+            "component": "Text",
+            "text": "Action Button 16"
+          },
+          {
+            "id": "btn-17",
+            "component": "Button",
+            "child": "btn-17-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 17 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-17-txt",
+            "component": "Text",
+            "text": "Action Button 17"
+          },
+          {
+            "id": "btn-18",
+            "component": "Button",
+            "child": "btn-18-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 18 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-18-txt",
+            "component": "Text",
+            "text": "Action Button 18"
+          },
+          {
+            "id": "btn-19",
+            "component": "Button",
+            "child": "btn-19-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 19 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-19-txt",
+            "component": "Text",
+            "text": "Action Button 19"
+          },
+          {
+            "id": "btn-20",
+            "component": "Button",
+            "child": "btn-20-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 20 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-20-txt",
+            "component": "Text",
+            "text": "Action Button 20"
+          },
+          {
+            "id": "btn-21",
+            "component": "Button",
+            "child": "btn-21-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 21 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-21-txt",
+            "component": "Text",
+            "text": "Action Button 21"
+          },
+          {
+            "id": "btn-22",
+            "component": "Button",
+            "child": "btn-22-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 22 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-22-txt",
+            "component": "Text",
+            "text": "Action Button 22"
+          },
+          {
+            "id": "btn-23",
+            "component": "Button",
+            "child": "btn-23-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 23 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-23-txt",
+            "component": "Text",
+            "text": "Action Button 23"
+          },
+          {
+            "id": "btn-24",
+            "component": "Button",
+            "child": "btn-24-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 24 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-24-txt",
+            "component": "Text",
+            "text": "Action Button 24"
+          },
+          {
+            "id": "btn-25",
+            "component": "Button",
+            "child": "btn-25-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 25 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-25-txt",
+            "component": "Text",
+            "text": "Action Button 25"
+          },
+          {
+            "id": "btn-26",
+            "component": "Button",
+            "child": "btn-26-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 26 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-26-txt",
+            "component": "Text",
+            "text": "Action Button 26"
+          },
+          {
+            "id": "btn-27",
+            "component": "Button",
+            "child": "btn-27-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 27 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-27-txt",
+            "component": "Text",
+            "text": "Action Button 27"
+          },
+          {
+            "id": "btn-28",
+            "component": "Button",
+            "child": "btn-28-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 28 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-28-txt",
+            "component": "Text",
+            "text": "Action Button 28"
+          },
+          {
+            "id": "btn-29",
+            "component": "Button",
+            "child": "btn-29-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 29 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-29-txt",
+            "component": "Text",
+            "text": "Action Button 29"
+          },
+          {
+            "id": "btn-30",
+            "component": "Button",
+            "child": "btn-30-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 30 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-30-txt",
+            "component": "Text",
+            "text": "Action Button 30"
+          },
+          {
+            "id": "btn-31",
+            "component": "Button",
+            "child": "btn-31-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 31 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-31-txt",
+            "component": "Text",
+            "text": "Action Button 31"
+          },
+          {
+            "id": "btn-32",
+            "component": "Button",
+            "child": "btn-32-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 32 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-32-txt",
+            "component": "Text",
+            "text": "Action Button 32"
+          },
+          {
+            "id": "btn-33",
+            "component": "Button",
+            "child": "btn-33-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 33 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-33-txt",
+            "component": "Text",
+            "text": "Action Button 33"
+          },
+          {
+            "id": "btn-34",
+            "component": "Button",
+            "child": "btn-34-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 34 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-34-txt",
+            "component": "Text",
+            "text": "Action Button 34"
+          },
+          {
+            "id": "btn-35",
+            "component": "Button",
+            "child": "btn-35-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 35 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-35-txt",
+            "component": "Text",
+            "text": "Action Button 35"
+          },
+          {
+            "id": "btn-36",
+            "component": "Button",
+            "child": "btn-36-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 36 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-36-txt",
+            "component": "Text",
+            "text": "Action Button 36"
+          },
+          {
+            "id": "btn-37",
+            "component": "Button",
+            "child": "btn-37-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 37 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-37-txt",
+            "component": "Text",
+            "text": "Action Button 37"
+          },
+          {
+            "id": "btn-38",
+            "component": "Button",
+            "child": "btn-38-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 38 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-38-txt",
+            "component": "Text",
+            "text": "Action Button 38"
+          },
+          {
+            "id": "btn-39",
+            "component": "Button",
+            "child": "btn-39-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 39 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-39-txt",
+            "component": "Text",
+            "text": "Action Button 39"
+          },
+          {
+            "id": "btn-40",
+            "component": "Button",
+            "child": "btn-40-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 40 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-40-txt",
+            "component": "Text",
+            "text": "Action Button 40"
+          },
+          {
+            "id": "btn-41",
+            "component": "Button",
+            "child": "btn-41-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 41 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-41-txt",
+            "component": "Text",
+            "text": "Action Button 41"
+          },
+          {
+            "id": "btn-42",
+            "component": "Button",
+            "child": "btn-42-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 42 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-42-txt",
+            "component": "Text",
+            "text": "Action Button 42"
+          },
+          {
+            "id": "btn-43",
+            "component": "Button",
+            "child": "btn-43-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 43 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-43-txt",
+            "component": "Text",
+            "text": "Action Button 43"
+          },
+          {
+            "id": "btn-44",
+            "component": "Button",
+            "child": "btn-44-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 44 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-44-txt",
+            "component": "Text",
+            "text": "Action Button 44"
+          },
+          {
+            "id": "btn-45",
+            "component": "Button",
+            "child": "btn-45-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 45 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-45-txt",
+            "component": "Text",
+            "text": "Action Button 45"
+          },
+          {
+            "id": "btn-46",
+            "component": "Button",
+            "child": "btn-46-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 46 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-46-txt",
+            "component": "Text",
+            "text": "Action Button 46"
+          },
+          {
+            "id": "btn-47",
+            "component": "Button",
+            "child": "btn-47-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 47 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-47-txt",
+            "component": "Text",
+            "text": "Action Button 47"
+          },
+          {
+            "id": "btn-48",
+            "component": "Button",
+            "child": "btn-48-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 48 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-48-txt",
+            "component": "Text",
+            "text": "Action Button 48"
+          },
+          {
+            "id": "btn-49",
+            "component": "Button",
+            "child": "btn-49-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 49 clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-49-txt",
+            "component": "Text",
+            "text": "Action Button 49"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

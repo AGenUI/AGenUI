@@ -1,0 +1,49 @@
+{
+  "description": "Multi-Surface test case B: Surface-B renders Text component, verifies independent rendering of multiple surfaceIds within the same SM (used with surface_a.json)",
+  "surfaceId": "test-surf-multi-b",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-multi-b",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-multi-b",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-b1", "text-b2"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px"
+            }
+          },
+          {
+            "id": "text-b1",
+            "component": "Text",
+            "text": "Surface B - Title",
+            "variant": "h2"
+          },
+          {
+            "id": "text-b2",
+            "component": "Text",
+            "text": "Surface B - only text components, no Button",
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 3,
+    "componentTypes": ["Column", "Text", "Text"],
+    "rootComponentId": "root",
+    "componentIds": ["root", "text-b1", "text-b2"],
+    "note": "Surface B must be isolated from Surface A; Surface A's getComponentTree() must not contain text-b1"
+  }
+}

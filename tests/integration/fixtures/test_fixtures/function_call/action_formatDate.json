@@ -1,0 +1,113 @@
+{
+  "description": "SKILL-01: formatDate date formatting function test, verifies rendering result via Text.text FunctionCall binding",
+  "surfaceId": "test-surf-fc-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "text-01a", "text-01b", "text-01c", "text-01d",
+              "text-01e", "text-01f", "text-01g"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "text-01a",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": "2025-01-15", "format": "yyyy/MM/dd" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-01b",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": 1736899200000, "format": "yyyy-MM-dd" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-01c",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": "2025-12-15", "format": "EEEE, MMMM d" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-01d",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": "2025-12-15", "format": "EEE, MMM d, yyyy" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-01e",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": "2025-01-15", "format": "MM/dd/yy" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-01f",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": "2025-01-15T14:30:45", "format": "HH:mm:ss" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-01g",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": "2025-01-15T14:30:00", "format": "h:mm a" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 8,
+    "componentIds": ["root", "text-01a", "text-01b", "text-01c", "text-01d", "text-01e", "text-01f", "text-01g"],
+    "textContent": [
+      { "componentId": "text-01a", "contains": "2025/01/15",           "note": "SKILL-01-a: ISO date string → yyyy/MM/dd" },
+      { "componentId": "text-01b", "contains": "2025",                 "note": "SKILL-01-b: timestamp formatting, timezone-dependent, assert year exists" },
+      { "componentId": "text-01c", "contains": "Monday, December 15",  "note": "SKILL-01-c: EEEE,MMMM d full weekday + month" },
+      { "componentId": "text-01d", "contains": "Mon, Dec 15, 2025",    "note": "SKILL-01-d: EEE,MMM d,yyyy abbreviated" },
+      { "componentId": "text-01e", "contains": "01/15/25",             "note": "SKILL-01-e: MM/dd/yy 2-digit year" },
+      { "componentId": "text-01f", "contains": "14:30:45",             "note": "SKILL-01-f: HH:mm:ss 24-hour format" },
+      { "componentId": "text-01g", "contains": "2:30 PM",              "note": "SKILL-01-g: h:mm a 12-hour AM/PM format" }
+    ]
+  }
+}

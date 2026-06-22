@@ -1,0 +1,62 @@
+{
+  "description": "Stability: Special characters in data model keys and values",
+  "surfaceId": "stability-special-chars",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-special-chars",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-special-chars",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-special"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-special",
+            "component": "Text",
+            "text": {
+              "path": "/empty_string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-special-chars",
+        "value": {
+          "key with spaces": "value with spaces",
+          "key/with/slashes": "slash value",
+          "key~with~tilde": "tilde value",
+          "key\"with\"quotes": "quote value",
+          "key\\with\\backslash": "backslash value",
+          "empty_string": "",
+          "null_like": "null",
+          "number_string": "12345",
+          "bool_string": "true",
+          "newline_value": "line1\nline2\nline3",
+          "tab_value": "col1\tcol2\tcol3",
+          "html_like": "<div>test</div><script>alert(1)</script>",
+          "very_long_key_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": "long key test"
+        }
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_data",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

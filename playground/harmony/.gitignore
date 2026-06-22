@@ -6,7 +6,7 @@ output/
 *.har
 *.tgz
 
-# Auto-generated build profile (overwritten by hvigor on each build)
+# Auto-generated build profile (overwritten by hvigor on every build)
 **/BuildProfile.ets
 
 # Dependencies
@@ -27,3 +27,6 @@ oh-package-lock.json5
 
 # Local config
 local.properties
+
+# Synced by tests/integration/platforms/harmony/harmony.sh before test runs
+entry/src/main/resources/rawfile/test_fixtures/

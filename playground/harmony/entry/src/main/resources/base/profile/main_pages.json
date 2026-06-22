@@ -1,5 +1,7 @@
 {
   "src": [
-    "pages/AGenUIDemoPage"
+    "pages/AGenUIDemoPage",
+    "pages/UITestPage",
+    "stability/StabilityTestPage"
   ]
 }

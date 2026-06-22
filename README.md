@@ -4,6 +4,8 @@
 
 **AGenUI is a high-performance A2UI SDK for building native generative UI experiences across iOS, Android, and HarmonyOS.**
 
+<img src="docs/images/hero.gif" alt="AGenUI streaming generative UI across iOS, Android, and HarmonyOS" width="640"/>
+
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20HarmonyOS-blue)](#)
 [![Android SDK](https://img.shields.io/badge/Android-API%2021%2B-green)](#)
@@ -151,11 +153,30 @@ When integrating an LLM Agent, supply this file's content or its hosted URL as t
 
 ## A2UI Generation Skill
 
-The `skills/a2ui-generation/` directory ships a standalone **A2UI generation Skill** that can be mounted into any Agent that supports the [Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills) mechanism (e.g. Claude Code, Codex, Qoder). It guides the LLM — via the Skill's built-in design rules and constraints — to turn a natural-language query into A2UI protocol messages (`updateComponents` / `updateDataModel`) that AGenUI can render directly.
+The `skills/a2ui-generation/` directory ships a standalone **A2UI generation Skill** that can be mounted into any Agent that supports the [Agent Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills) mechanism (e.g. Claude Code, Cursor, Codex, Gemini CLI, Windsurf, GitHub Copilot, etc.). It guides the LLM — via the Skill's built-in design rules and constraints — to turn a natural-language query into A2UI protocol messages (`updateComponents` / `updateDataModel`) that AGenUI can render directly.
+
+### Installation
+
+**One-command install (recommended)**
+
+```bash
+npx skills add AGenUI/AGenUI
+```
+
+Supports 55+ AI coding agent runtimes, including Claude Code, Cursor, Codex, Gemini CLI, Windsurf, GitHub Copilot, and more.
+
+**Manual install**
+
+```bash
+git clone https://github.com/AGenUI/AGenUI.git
+cp -r AGenUI/skills/a2ui-generation ~/.claude/skills/
+```
+
+> For other runtimes, copy the `skills/a2ui-generation/` directory to the corresponding skills directory (e.g. `~/.cursor/skills/`, `~/.codex/skills/`).
 
 ### How to use
 
-Register `skills/a2ui-generation/` as a Skill in your Agent, then describe the UI you want through a query. The Skill drives the LLM to emit A2UI v0.9–conformant JSON protocol.
+After installation, describe the UI you want through a query in your agent. The Skill drives the LLM to emit A2UI v0.9–conformant JSON protocol.
 
 ### Layout & styling
 
@@ -191,8 +212,14 @@ All build scripts live in the `scripts/` directory. The C++ engine in `core/` is
 # Debug AAR
 ./scripts/android/build.sh --debug
 
+# Release AAR + native debug-symbol companion (see "Native debug symbols" below)
+./scripts/android/build.sh --with-symbols
+
 # Publish to local Maven (~/.m2)
 ./scripts/android/build.sh --publish-local
+
+# Publish debug AAR to local Maven
+./scripts/android/build.sh --debug --publish-local
 
 # Publish to remote Maven (requires MAVEN_URL / MAVEN_USERNAME / MAVEN_PASSWORD env vars)
 ./scripts/android/build.sh --publish-maven
@@ -202,6 +229,32 @@ All build scripts live in the `scripts/` directory. The C++ engine in `core/` is
 ```
 
 The AAR is written to `dist/android/release/`.
+
+**Native debug symbols (Android, opt-in)**
+
+For symbolicating release crashes on the host, run `./scripts/android/build.sh --with-symbols`. The release build then:
+
+1. Skips `-Wl,--strip-all` so the linker output retains DWARF info.
+2. Splits DWARF into a sibling `lib<name>.so.debug` via `objcopy --only-keep-debug` (CMake POST_BUILD), then strips the `.so` and links them via `.gnu_debuglink`.
+3. Packages the `.so.debug` files into `<rootProject.name>-symbols.aar` alongside the regular release AAR, under `build/outputs/aar/`.
+
+The release AAR size is unaffected — AGP strips the `.so` before packaging anyway. The `.so.debug` suffix follows the GNU/LLVM convention (objcopy's default debug extension) and has no relation to Android's `debug` buildType.
+
+To symbolicate a crash address, unzip the symbols AAR and feed `.so.debug` to standard tools:
+
+```bash
+unzip -j <name>-symbols.aar 'jni/arm64-v8a/*.so.debug' -d ./symbols/
+
+# Single address
+$ANDROID_NDK/toolchains/llvm/prebuilt/<host>/bin/llvm-addr2line \
+    -e ./symbols/lib<name>.so.debug -f -C 0xADDR
+
+# Full backtrace from logcat
+$ANDROID_NDK/toolchains/llvm/prebuilt/<host>/bin/ndk-stack \
+    -sym ./symbols/ -dump crash.log
+```
+
+The flag is OFF by default — open-source builds see no change unless explicitly enabled.
 
 **iOS**
 

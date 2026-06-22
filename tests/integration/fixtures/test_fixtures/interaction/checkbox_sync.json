@@ -1,0 +1,74 @@
+{
+  "description": "CheckBox state sync test case: verifies that submitUIDataModel is correctly called after CheckBox checked state changes",
+  "surfaceId": "test-surf-checkbox-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-checkbox-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-checkbox-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["cb-agree"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px"
+            }
+          },
+          {
+            "id": "cb-agree",
+            "component": "CheckBox",
+            "label": "I agree to the terms and conditions",
+            "value": false
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 2,
+    "componentTypes": ["Column", "CheckBox"],
+    "componentIds": ["root", "cb-agree"],
+    "interaction": {
+      "type": "toggle",
+      "componentId": "cb-agree",
+      "cases": [
+        {
+          "id": "SYNC-02-a",
+          "description": "CheckBox toggled from false to true",
+          "initialValue": false,
+          "toggleTo": true,
+          "submitUIDataModel": {
+            "surfaceId": "test-surf-checkbox-01",
+            "componentId": "cb-agree",
+            "dataContains": {
+              "checked": true
+            }
+          }
+        },
+        {
+          "id": "SYNC-02-b",
+          "description": "CheckBox toggled from true to false",
+          "initialValue": true,
+          "toggleTo": false,
+          "submitUIDataModel": {
+            "surfaceId": "test-surf-checkbox-01",
+            "componentId": "cb-agree",
+            "dataContains": {
+              "checked": false
+            }
+          }
+        }
+      ],
+      "note": "Android: must run in ActivityScenario with real View; toggle via performClick or setChecked; spy ComponentEventDispatcher.submitUIDataModel()"
+    }
+  }
+}

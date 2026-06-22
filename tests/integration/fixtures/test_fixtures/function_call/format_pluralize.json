@@ -1,0 +1,99 @@
+{
+  "description": "SKILL-05: pluralize localization function test, verifies branch (zero/one/two/other) selection logic via Text.text FunctionCall binding",
+  "surfaceId": "test-surf-fc-05",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-05",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-05",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-05a", "text-05b", "text-05c", "text-05d", "text-05e", "text-05f"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-05a",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": 0, "zero": "No items", "one": "1 item", "other": "items" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-05b",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": 1, "one": "1 item", "other": "items" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-05c",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": 2, "two": "2 items", "other": "items" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-05d",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": 5, "one": "item", "other": "items" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-05e",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": 0, "one": "item", "other": "items" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-05f",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": 1.6, "one": "one item", "two": "two items", "other": "many items" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 7,
+    "componentIds": ["root", "text-05a", "text-05b", "text-05c", "text-05d", "text-05e", "text-05f"],
+    "textContent": [
+      { "componentId": "text-05a", "contains": "No items",   "note": "SKILL-05-a: count=0 uses zero branch" },
+      { "componentId": "text-05b", "contains": "1 item",     "note": "SKILL-05-b: count=1 uses one branch" },
+      { "componentId": "text-05c", "contains": "2 items",    "note": "SKILL-05-c: count=2 uses two branch" },
+      { "componentId": "text-05d", "contains": "items",      "note": "SKILL-05-d: count=5 no matching branch, falls back to other" },
+      { "componentId": "text-05e", "contains": "items",      "note": "SKILL-05-e: count=0 no zero branch, falls back to other" },
+      { "componentId": "text-05f", "contains": "two items",  "note": "SKILL-05-f: float 1.6 rounded to 2, uses two branch" }
+    ]
+  }
+}

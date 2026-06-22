@@ -1,0 +1,51 @@
+{
+  "description": "Stability: Send dataModel before updateComponents (out of order)",
+  "surfaceId": "stability-dm-first",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-dm-first",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-dm-first",
+        "value": {
+          "greeting": "Hello World",
+          "count": 42
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-dm-first",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-greeting"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-greeting",
+            "component": "Text",
+            "text": {
+              "path": "/greeting"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_data",
+    "stress_level": "low",
+    "expected_behavior": "no_crash"
+  }
+}

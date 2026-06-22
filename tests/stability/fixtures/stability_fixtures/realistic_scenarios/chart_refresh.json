@@ -1,0 +1,41 @@
+{
+  "description": "Chart dashboard with periodic data refresh including empty data injection",
+  "surfaceId": "realistic-chart",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-chart","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Render chart dashboard",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-chart","components":[{"id":"root","component":"Column","children":["header","chart_bar","chart_line"],"styles":{"width":"100%","padding":"16px","gap":"16px"}},{"id":"header","component":"Text","text":"Real-time Traffic Dashboard","styles":{"font-size":"20px","font-weight":"bold","color":"#263238"}},{"id":"chart_bar","component":"Chart","chartType":"bar","data":{"xAxis":["Mon","Tue","Wed","Thu","Fri"],"series":[{"name":"Delay (min)","data":[{"value":12,"label":"12 min"},{"value":8,"label":"8 min"},{"value":15,"label":"15 min"},{"value":10,"label":"10 min"},{"value":14,"label":"14 min"}]}]},"styles":{"width":"100%","height":"250px","chartConfig":{"colors":["#FF6B6B"]}}},{"id":"chart_line","component":"Chart","chartType":"line","data":{"xAxis":["6AM","8AM","10AM","12PM","2PM","4PM"],"series":[{"name":"Speed km/h","data":[{"value":60,"label":""},{"value":35,"label":""},{"value":45,"label":""},{"value":50,"label":""},{"value":42,"label":""},{"value":55,"label":""}]}]},"styles":{"width":"100%","height":"250px","chartConfig":{"colors":["#4ECDC4"]}}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 2000,
+      "description": "Data refresh 1 - updated values",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-chart","components":[{"id":"root","component":"Column","children":["header","chart_bar","chart_line"],"styles":{"width":"100%","padding":"16px","gap":"16px"}},{"id":"header","component":"Text","text":"Real-time Traffic Dashboard (Updated)","styles":{"font-size":"20px","font-weight":"bold","color":"#263238"}},{"id":"chart_bar","component":"Chart","chartType":"bar","data":{"xAxis":["Mon","Tue","Wed","Thu","Fri"],"series":[{"name":"Delay (min)","data":[{"value":10,"label":"10 min"},{"value":12,"label":"12 min"},{"value":9,"label":"9 min"},{"value":11,"label":"11 min"},{"value":7,"label":"7 min"}]}]},"styles":{"width":"100%","height":"250px","chartConfig":{"colors":["#FF6B6B"]}}},{"id":"chart_line","component":"Chart","chartType":"line","data":{"xAxis":["6AM","8AM","10AM","12PM","2PM","4PM"],"series":[{"name":"Speed km/h","data":[{"value":65,"label":""},{"value":40,"label":""},{"value":50,"label":""},{"value":48,"label":""},{"value":55,"label":""},{"value":62,"label":""}]}]},"styles":{"width":"100%","height":"250px","chartConfig":{"colors":["#4ECDC4"]}}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 2000,
+      "description": "INJECT ABNORMAL: empty components array",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-chart","components":[]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Recovery: restore dashboard with new data",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-chart","components":[{"id":"root","component":"Column","children":["header","chart_bar","status"],"styles":{"width":"100%","padding":"16px","gap":"16px"}},{"id":"header","component":"Text","text":"Real-time Traffic Dashboard (Recovered)","styles":{"font-size":"20px","font-weight":"bold","color":"#263238"}},{"id":"chart_bar","component":"Chart","chartType":"bar","data":{"xAxis":["Mon","Tue","Wed","Thu","Fri"],"series":[{"name":"Delay (min)","data":[{"value":8,"label":"8 min"},{"value":6,"label":"6 min"},{"value":11,"label":"11 min"},{"value":9,"label":"9 min"},{"value":5,"label":"5 min"}]}]},"styles":{"width":"100%","height":"300px","chartConfig":{"colors":["#66BB6A"]}}},{"id":"status","component":"Text","text":"All systems operational","styles":{"font-size":"14px","color":"#4CAF50","text-align":"center"}}]}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 6100,
+    "components_used": ["Chart", "Text", "Column"],
+    "stress_coverage": "EXTREME_RENDER+ABNORMAL_DATA"
+  }
+}

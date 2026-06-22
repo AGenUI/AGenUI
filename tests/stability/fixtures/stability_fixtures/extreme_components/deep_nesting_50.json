@@ -1,0 +1,76 @@
+{
+  "description": "Stability: 50-level deep nesting to test stack overflow resistance",
+  "surfaceId": "stability-deep-50",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-deep-50",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-deep-50",
+        "components": [
+          {"id": "n-0", "component": "Column", "children": ["n-1"], "align": "stretch"},
+          {"id": "n-1", "component": "Column", "children": ["n-2"], "align": "stretch"},
+          {"id": "n-2", "component": "Column", "children": ["n-3"], "align": "stretch"},
+          {"id": "n-3", "component": "Column", "children": ["n-4"], "align": "stretch"},
+          {"id": "n-4", "component": "Column", "children": ["n-5"], "align": "stretch"},
+          {"id": "n-5", "component": "Column", "children": ["n-6"], "align": "stretch"},
+          {"id": "n-6", "component": "Column", "children": ["n-7"], "align": "stretch"},
+          {"id": "n-7", "component": "Column", "children": ["n-8"], "align": "stretch"},
+          {"id": "n-8", "component": "Column", "children": ["n-9"], "align": "stretch"},
+          {"id": "n-9", "component": "Column", "children": ["n-10"], "align": "stretch"},
+          {"id": "n-10", "component": "Column", "children": ["n-11"], "align": "stretch"},
+          {"id": "n-11", "component": "Column", "children": ["n-12"], "align": "stretch"},
+          {"id": "n-12", "component": "Column", "children": ["n-13"], "align": "stretch"},
+          {"id": "n-13", "component": "Column", "children": ["n-14"], "align": "stretch"},
+          {"id": "n-14", "component": "Column", "children": ["n-15"], "align": "stretch"},
+          {"id": "n-15", "component": "Column", "children": ["n-16"], "align": "stretch"},
+          {"id": "n-16", "component": "Column", "children": ["n-17"], "align": "stretch"},
+          {"id": "n-17", "component": "Column", "children": ["n-18"], "align": "stretch"},
+          {"id": "n-18", "component": "Column", "children": ["n-19"], "align": "stretch"},
+          {"id": "n-19", "component": "Column", "children": ["n-20"], "align": "stretch"},
+          {"id": "n-20", "component": "Column", "children": ["n-21"], "align": "stretch"},
+          {"id": "n-21", "component": "Column", "children": ["n-22"], "align": "stretch"},
+          {"id": "n-22", "component": "Column", "children": ["n-23"], "align": "stretch"},
+          {"id": "n-23", "component": "Column", "children": ["n-24"], "align": "stretch"},
+          {"id": "n-24", "component": "Column", "children": ["n-25"], "align": "stretch"},
+          {"id": "n-25", "component": "Column", "children": ["n-26"], "align": "stretch"},
+          {"id": "n-26", "component": "Column", "children": ["n-27"], "align": "stretch"},
+          {"id": "n-27", "component": "Column", "children": ["n-28"], "align": "stretch"},
+          {"id": "n-28", "component": "Column", "children": ["n-29"], "align": "stretch"},
+          {"id": "n-29", "component": "Column", "children": ["n-30"], "align": "stretch"},
+          {"id": "n-30", "component": "Column", "children": ["n-31"], "align": "stretch"},
+          {"id": "n-31", "component": "Column", "children": ["n-32"], "align": "stretch"},
+          {"id": "n-32", "component": "Column", "children": ["n-33"], "align": "stretch"},
+          {"id": "n-33", "component": "Column", "children": ["n-34"], "align": "stretch"},
+          {"id": "n-34", "component": "Column", "children": ["n-35"], "align": "stretch"},
+          {"id": "n-35", "component": "Column", "children": ["n-36"], "align": "stretch"},
+          {"id": "n-36", "component": "Column", "children": ["n-37"], "align": "stretch"},
+          {"id": "n-37", "component": "Column", "children": ["n-38"], "align": "stretch"},
+          {"id": "n-38", "component": "Column", "children": ["n-39"], "align": "stretch"},
+          {"id": "n-39", "component": "Column", "children": ["n-40"], "align": "stretch"},
+          {"id": "n-40", "component": "Column", "children": ["n-41"], "align": "stretch"},
+          {"id": "n-41", "component": "Column", "children": ["n-42"], "align": "stretch"},
+          {"id": "n-42", "component": "Column", "children": ["n-43"], "align": "stretch"},
+          {"id": "n-43", "component": "Column", "children": ["n-44"], "align": "stretch"},
+          {"id": "n-44", "component": "Column", "children": ["n-45"], "align": "stretch"},
+          {"id": "n-45", "component": "Column", "children": ["n-46"], "align": "stretch"},
+          {"id": "n-46", "component": "Column", "children": ["n-47"], "align": "stretch"},
+          {"id": "n-47", "component": "Column", "children": ["n-48"], "align": "stretch"},
+          {"id": "n-48", "component": "Column", "children": ["n-49"], "align": "stretch"},
+          {"id": "n-49", "component": "Text", "text": "Leaf at depth 50", "styles": {"font-size": "20px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "very_high",
+    "expected_behavior": "no_crash"
+  }
+}

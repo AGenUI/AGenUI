@@ -1,0 +1,90 @@
+{
+  "description": "Stream test case 02: nested layout (Column containing Card and multiple Text), verifies component tree integrity of complex structures after chunked transmission",
+  "surfaceId": "test-surf-stream-02",
+  "streamCases": [
+    {
+      "id": "STREAM-01-nested",
+      "description": "Small chunk streaming (chunkSize=10)",
+      "chunkSize": 10
+    },
+    {
+      "id": "STREAM-02-nested",
+      "description": "Single character streaming (chunkSize=1)",
+      "chunkSize": 1
+    },
+    {
+      "id": "STREAM-03-nested",
+      "description": "Mid-stream reset: calls beginTextStream() to resend after sending half of createSurface",
+      "chunkSize": 10,
+      "resetMidway": true,
+      "resetAtByte": 50
+    }
+  ],
+  "payload": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-stream-02",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-stream-02",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["layout-card", "layout-footer"],
+            "align": "stretch",
+            "styles": {
+              "padding": "16px",
+              "gap": "12px"
+            }
+          },
+          {
+            "id": "layout-card",
+            "component": "Card",
+            "child": "card-content",
+            "styles": {
+              "padding": "20px",
+              "border-radius": "12px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-content",
+            "component": "Column",
+            "children": ["card-title", "card-desc"],
+            "align": "stretch"
+          },
+          {
+            "id": "card-title",
+            "component": "Text",
+            "text": "Nested Layout Card",
+            "variant": "h2"
+          },
+          {
+            "id": "card-desc",
+            "component": "Text",
+            "text": "This card tests nested layout streaming.",
+            "variant": "body"
+          },
+          {
+            "id": "layout-footer",
+            "component": "Text",
+            "text": "Footer text below card",
+            "variant": "caption"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 6,
+    "componentTypes": ["Column", "Card", "Column", "Text", "Text", "Text"],
+    "componentIds": ["root", "layout-card", "card-content", "card-title", "card-desc", "layout-footer"],
+    "note": "resetMidway case: after beginTextStream() reset, only the last complete stream counts; final tree must match full JSON"
+  }
+}

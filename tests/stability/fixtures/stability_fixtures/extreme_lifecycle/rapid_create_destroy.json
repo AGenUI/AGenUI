@@ -1,0 +1,691 @@
+{
+  "description": "Stability: 20 rapid create-update-destroy cycles in sequence",
+  "surfaceId": "stability-lifecycle-0",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-0",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-0",
+        "components": [
+          {
+            "id": "r-0",
+            "component": "Column",
+            "children": [
+              "t-0"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-0",
+            "component": "Text",
+            "text": "Lifecycle test 0"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-0"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-1",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-1",
+        "components": [
+          {
+            "id": "r-1",
+            "component": "Column",
+            "children": [
+              "t-1"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-1",
+            "component": "Text",
+            "text": "Lifecycle test 1"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-1"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-2",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-2",
+        "components": [
+          {
+            "id": "r-2",
+            "component": "Column",
+            "children": [
+              "t-2"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-2",
+            "component": "Text",
+            "text": "Lifecycle test 2"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-2"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-3",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-3",
+        "components": [
+          {
+            "id": "r-3",
+            "component": "Column",
+            "children": [
+              "t-3"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-3",
+            "component": "Text",
+            "text": "Lifecycle test 3"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-3"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-4",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-4",
+        "components": [
+          {
+            "id": "r-4",
+            "component": "Column",
+            "children": [
+              "t-4"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-4",
+            "component": "Text",
+            "text": "Lifecycle test 4"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-4"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-5",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-5",
+        "components": [
+          {
+            "id": "r-5",
+            "component": "Column",
+            "children": [
+              "t-5"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-5",
+            "component": "Text",
+            "text": "Lifecycle test 5"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-5"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-6",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-6",
+        "components": [
+          {
+            "id": "r-6",
+            "component": "Column",
+            "children": [
+              "t-6"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-6",
+            "component": "Text",
+            "text": "Lifecycle test 6"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-6"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-7",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-7",
+        "components": [
+          {
+            "id": "r-7",
+            "component": "Column",
+            "children": [
+              "t-7"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-7",
+            "component": "Text",
+            "text": "Lifecycle test 7"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-7"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-8",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-8",
+        "components": [
+          {
+            "id": "r-8",
+            "component": "Column",
+            "children": [
+              "t-8"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-8",
+            "component": "Text",
+            "text": "Lifecycle test 8"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-8"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-9",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-9",
+        "components": [
+          {
+            "id": "r-9",
+            "component": "Column",
+            "children": [
+              "t-9"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-9",
+            "component": "Text",
+            "text": "Lifecycle test 9"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-9"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-10",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-10",
+        "components": [
+          {
+            "id": "r-10",
+            "component": "Column",
+            "children": [
+              "t-10"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-10",
+            "component": "Text",
+            "text": "Lifecycle test 10"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-10"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-11",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-11",
+        "components": [
+          {
+            "id": "r-11",
+            "component": "Column",
+            "children": [
+              "t-11"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-11",
+            "component": "Text",
+            "text": "Lifecycle test 11"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-11"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-12",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-12",
+        "components": [
+          {
+            "id": "r-12",
+            "component": "Column",
+            "children": [
+              "t-12"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-12",
+            "component": "Text",
+            "text": "Lifecycle test 12"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-12"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-13",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-13",
+        "components": [
+          {
+            "id": "r-13",
+            "component": "Column",
+            "children": [
+              "t-13"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-13",
+            "component": "Text",
+            "text": "Lifecycle test 13"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-13"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-14",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-14",
+        "components": [
+          {
+            "id": "r-14",
+            "component": "Column",
+            "children": [
+              "t-14"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-14",
+            "component": "Text",
+            "text": "Lifecycle test 14"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-14"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-15",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-15",
+        "components": [
+          {
+            "id": "r-15",
+            "component": "Column",
+            "children": [
+              "t-15"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-15",
+            "component": "Text",
+            "text": "Lifecycle test 15"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-15"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-16",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-16",
+        "components": [
+          {
+            "id": "r-16",
+            "component": "Column",
+            "children": [
+              "t-16"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-16",
+            "component": "Text",
+            "text": "Lifecycle test 16"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-16"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-17",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-17",
+        "components": [
+          {
+            "id": "r-17",
+            "component": "Column",
+            "children": [
+              "t-17"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-17",
+            "component": "Text",
+            "text": "Lifecycle test 17"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-17"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-18",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-18",
+        "components": [
+          {
+            "id": "r-18",
+            "component": "Column",
+            "children": [
+              "t-18"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-18",
+            "component": "Text",
+            "text": "Lifecycle test 18"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-18"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-lifecycle-19",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-lifecycle-19",
+        "components": [
+          {
+            "id": "r-19",
+            "component": "Column",
+            "children": [
+              "t-19"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t-19",
+            "component": "Text",
+            "text": "Lifecycle test 19"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-lifecycle-19"
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "very_high",
+    "expected_behavior": "no_crash"
+  }
+}

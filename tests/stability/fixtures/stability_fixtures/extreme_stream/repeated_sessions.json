@@ -1,0 +1,40 @@
+{
+  "description": "Stability: Multiple begin/end stream sessions with same surface (to be replayed programmatically)",
+  "surfaceId": "stability-repeated-session",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-repeated-session",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-repeated-session",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "session-txt"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "session-txt",
+            "component": "Text",
+            "text": "Session content"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_stream",
+    "stress_level": "high",
+    "expected_behavior": "no_crash",
+    "note": "This fixture should be used in a loop: begin->send->end repeated N times"
+  }
+}

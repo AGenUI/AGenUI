@@ -1,0 +1,127 @@
+{
+  "description": "Stability: All component types mixed in one surface",
+  "surfaceId": "stability-all-types",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-all-types",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-all-types",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "row-1",
+              "card-1",
+              "cb-1",
+              "tf-1",
+              "btn-1",
+              "txt-1",
+              "img-1"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "row-1",
+            "component": "Row",
+            "children": [
+              "row-txt-1",
+              "row-txt-2",
+              "row-txt-3"
+            ],
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "row-txt-1",
+            "component": "Text",
+            "text": "Row item 1"
+          },
+          {
+            "id": "row-txt-2",
+            "component": "Text",
+            "text": "Row item 2"
+          },
+          {
+            "id": "row-txt-3",
+            "component": "Text",
+            "text": "Row item 3"
+          },
+          {
+            "id": "card-1",
+            "component": "Card",
+            "child": "card-inner",
+            "styles": {
+              "padding": "16px",
+              "border-radius": "12px"
+            }
+          },
+          {
+            "id": "card-inner",
+            "component": "Text",
+            "text": "Card content"
+          },
+          {
+            "id": "cb-1",
+            "component": "CheckBox",
+            "label": "Accept terms",
+            "value": false
+          },
+          {
+            "id": "tf-1",
+            "component": "TextField",
+            "label": "Enter name",
+            "value": ""
+          },
+          {
+            "id": "btn-1",
+            "component": "Button",
+            "child": "btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "clicked",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-txt",
+            "component": "Text",
+            "text": "Click Me"
+          },
+          {
+            "id": "txt-1",
+            "component": "Text",
+            "text": "Plain text",
+            "variant": "body"
+          },
+          {
+            "id": "img-1",
+            "component": "Image",
+            "properties": {
+              "url": "https://example.com/test.png",
+              "width": 200,
+              "height": 200
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

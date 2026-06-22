@@ -35,6 +35,14 @@
             ]
           }
         ]
+      },
+      {
+        "name": "StabilityTestAbility",
+        "srcEntry": "./ets/stability/StabilityTestAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true
       }
     ],
     "extensionAbilities": [

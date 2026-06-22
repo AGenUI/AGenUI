@@ -37,6 +37,16 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "357E18CEC1B445F713559E92"
+               BuildableName = "AGenUITests.xctest"
+               BlueprintName = "AGenUITests"
+               ReferencedContainer = "container:Playground.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

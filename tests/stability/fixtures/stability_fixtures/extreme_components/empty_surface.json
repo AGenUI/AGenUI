@@ -1,0 +1,25 @@
+{
+  "description": "Stability: Create surface with no components then immediately update with empty array",
+  "surfaceId": "stability-empty",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-empty",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-empty",
+        "components": []
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "low",
+    "expected_behavior": "no_crash"
+  }
+}

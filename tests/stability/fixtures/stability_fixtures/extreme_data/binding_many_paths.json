@@ -1,0 +1,313 @@
+{
+  "description": "Stability: 30 components each bound to different data paths",
+  "surfaceId": "stability-many-bindings",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-many-bindings",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-many-bindings",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "bound-0",
+              "bound-1",
+              "bound-2",
+              "bound-3",
+              "bound-4",
+              "bound-5",
+              "bound-6",
+              "bound-7",
+              "bound-8",
+              "bound-9",
+              "bound-10",
+              "bound-11",
+              "bound-12",
+              "bound-13",
+              "bound-14",
+              "bound-15",
+              "bound-16",
+              "bound-17",
+              "bound-18",
+              "bound-19",
+              "bound-20",
+              "bound-21",
+              "bound-22",
+              "bound-23",
+              "bound-24",
+              "bound-25",
+              "bound-26",
+              "bound-27",
+              "bound-28",
+              "bound-29"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "bound-0",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_0"
+            }
+          },
+          {
+            "id": "bound-1",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_1"
+            }
+          },
+          {
+            "id": "bound-2",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_2"
+            }
+          },
+          {
+            "id": "bound-3",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_3"
+            }
+          },
+          {
+            "id": "bound-4",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_4"
+            }
+          },
+          {
+            "id": "bound-5",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_5"
+            }
+          },
+          {
+            "id": "bound-6",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_6"
+            }
+          },
+          {
+            "id": "bound-7",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_7"
+            }
+          },
+          {
+            "id": "bound-8",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_8"
+            }
+          },
+          {
+            "id": "bound-9",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_9"
+            }
+          },
+          {
+            "id": "bound-10",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_10"
+            }
+          },
+          {
+            "id": "bound-11",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_11"
+            }
+          },
+          {
+            "id": "bound-12",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_12"
+            }
+          },
+          {
+            "id": "bound-13",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_13"
+            }
+          },
+          {
+            "id": "bound-14",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_14"
+            }
+          },
+          {
+            "id": "bound-15",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_15"
+            }
+          },
+          {
+            "id": "bound-16",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_16"
+            }
+          },
+          {
+            "id": "bound-17",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_17"
+            }
+          },
+          {
+            "id": "bound-18",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_18"
+            }
+          },
+          {
+            "id": "bound-19",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_19"
+            }
+          },
+          {
+            "id": "bound-20",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_20"
+            }
+          },
+          {
+            "id": "bound-21",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_21"
+            }
+          },
+          {
+            "id": "bound-22",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_22"
+            }
+          },
+          {
+            "id": "bound-23",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_23"
+            }
+          },
+          {
+            "id": "bound-24",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_24"
+            }
+          },
+          {
+            "id": "bound-25",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_25"
+            }
+          },
+          {
+            "id": "bound-26",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_26"
+            }
+          },
+          {
+            "id": "bound-27",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_27"
+            }
+          },
+          {
+            "id": "bound-28",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_28"
+            }
+          },
+          {
+            "id": "bound-29",
+            "component": "Text",
+            "text": {
+              "path": "/data/item_29"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-many-bindings",
+        "value": {
+          "data": {
+            "item_0": "Bound value 0",
+            "item_1": "Bound value 1",
+            "item_2": "Bound value 2",
+            "item_3": "Bound value 3",
+            "item_4": "Bound value 4",
+            "item_5": "Bound value 5",
+            "item_6": "Bound value 6",
+            "item_7": "Bound value 7",
+            "item_8": "Bound value 8",
+            "item_9": "Bound value 9",
+            "item_10": "Bound value 10",
+            "item_11": "Bound value 11",
+            "item_12": "Bound value 12",
+            "item_13": "Bound value 13",
+            "item_14": "Bound value 14",
+            "item_15": "Bound value 15",
+            "item_16": "Bound value 16",
+            "item_17": "Bound value 17",
+            "item_18": "Bound value 18",
+            "item_19": "Bound value 19",
+            "item_20": "Bound value 20",
+            "item_21": "Bound value 21",
+            "item_22": "Bound value 22",
+            "item_23": "Bound value 23",
+            "item_24": "Bound value 24",
+            "item_25": "Bound value 25",
+            "item_26": "Bound value 26",
+            "item_27": "Bound value 27",
+            "item_28": "Bound value 28",
+            "item_29": "Bound value 29"
+          }
+        }
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_data",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

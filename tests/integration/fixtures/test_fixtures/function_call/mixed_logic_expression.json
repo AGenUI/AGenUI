@@ -1,0 +1,116 @@
+{
+  "description": "SCENE-03: DataBinding combined with multi-parameter validation functions (length, regex), passing DataBinding value and static min/max/pattern parameters via JSON FunctionCall format",
+  "surfaceId": "test-surf-scene-03",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-scene-03",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-scene-03",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-s3a", "text-s3b", "text-s3c", "text-s3d", "text-s3e", "text-s3f"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-s3a",
+            "component": "Text",
+            "text": {
+              "call": "length",
+              "args": { "value": { "path": "/form/username" }, "min": 2, "max": 20 },
+              "returnType": "boolean"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s3b",
+            "component": "Text",
+            "text": {
+              "call": "length",
+              "args": { "value": { "path": "/form/shortName" }, "min": 3, "max": 20 },
+              "returnType": "boolean"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s3c",
+            "component": "Text",
+            "text": {
+              "call": "length",
+              "args": { "value": { "path": "/form/longName" }, "min": 2, "max": 10 },
+              "returnType": "boolean"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s3d",
+            "component": "Text",
+            "text": {
+              "call": "regex",
+              "args": { "value": { "path": "/form/zipCode" }, "pattern": "^\\d{6}$" },
+              "returnType": "boolean"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s3e",
+            "component": "Text",
+            "text": {
+              "call": "regex",
+              "args": { "value": { "path": "/form/invalidZip" }, "pattern": "^\\d{6}$" },
+              "returnType": "boolean"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s3f",
+            "component": "Text",
+            "text": {
+              "call": "required",
+              "args": { "value": { "path": "/form/emptyField" } },
+              "returnType": "boolean"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "test-surf-scene-03",
+        "value": {
+          "form": {
+            "username": "Alice",
+            "shortName": "Al",
+            "longName": "ThisNameIsWayTooLong",
+            "zipCode": "100000",
+            "invalidZip": "ABCDEF",
+            "email": "user@example.com",
+            "emptyField": ""
+          }
+        }
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 7,
+    "componentIds": ["root", "text-s3a", "text-s3b", "text-s3c", "text-s3d", "text-s3e", "text-s3f"],
+    "textContent": [
+      { "componentId": "text-s3a", "contains": "true",  "note": "SCENE-03-a: DataBinding /form/username='Alice'(5 chars) length(2-20) → true" },
+      { "componentId": "text-s3b", "contains": "false", "note": "SCENE-03-b: DataBinding /form/shortName='Al'(2 chars) length(min:3) → false" },
+      { "componentId": "text-s3c", "contains": "false", "note": "SCENE-03-c: DataBinding /form/longName(20 chars) length(max:10) → false" },
+      { "componentId": "text-s3d", "contains": "true",  "note": "SCENE-03-d: DataBinding /form/zipCode='100000' regex(^\\d{6}$) → true" },
+      { "componentId": "text-s3e", "contains": "false", "note": "SCENE-03-e: DataBinding /form/invalidZip='ABCDEF' regex(^\\d{6}$) → false" },
+      { "componentId": "text-s3f", "contains": "false", "note": "SCENE-03-f: DataBinding /form/emptyField='' required → false" }
+    ]
+  }
+}

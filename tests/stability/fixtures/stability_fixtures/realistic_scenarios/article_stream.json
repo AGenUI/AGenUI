@@ -1,0 +1,47 @@
+{
+  "description": "AI streaming a long markdown article progressively",
+  "surfaceId": "realistic-article",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-article","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json","animated":true}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Initial article header",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-article","components":[{"id":"root","component":"Column","children":["md"],"styles":{"width":"100%","padding":"16px"}},{"id":"md","component":"Markdown","content":"# Traffic Analysis Report\n\nGenerating analysis..."}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Stream paragraph 1",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-article","components":[{"id":"root","component":"Column","children":["md"],"styles":{"width":"100%","padding":"16px"}},{"id":"md","component":"Markdown","content":"# Traffic Analysis Report\n\n## Overview\n\nBased on real-time data collected from **2,847 sensors** across the metropolitan area, we observe significant patterns in commuter behavior during peak hours.\n\n> Peak congestion occurs between 7:30-9:00 AM on weekdays"}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Stream paragraph 2",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-article","components":[{"id":"root","component":"Column","children":["md"],"styles":{"width":"100%","padding":"16px"}},{"id":"md","component":"Markdown","content":"# Traffic Analysis Report\n\n## Overview\n\nBased on real-time data collected from **2,847 sensors** across the metropolitan area, we observe significant patterns in commuter behavior during peak hours.\n\n> Peak congestion occurs between 7:30-9:00 AM on weekdays\n\n## Key Findings\n\n1. **Route A** - Average delay: 12 minutes\n2. **Route B** - Average delay: 8 minutes\n3. **Route C** - Average delay: 15 minutes\n\n### Recommendations\n\n- Consider departing before 7:00 AM\n- Alternative routes via highway reduce time by 30%\n- Public transport is 2x faster during peak hours"}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Stream paragraph 3 with code block",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-article","components":[{"id":"root","component":"Column","children":["md"],"styles":{"width":"100%","padding":"16px"}},{"id":"md","component":"Markdown","content":"# Traffic Analysis Report\n\n## Overview\n\nBased on real-time data collected from **2,847 sensors** across the metropolitan area, we observe significant patterns in commuter behavior during peak hours.\n\n> Peak congestion occurs between 7:30-9:00 AM on weekdays\n\n## Key Findings\n\n1. **Route A** - Average delay: 12 minutes\n2. **Route B** - Average delay: 8 minutes\n3. **Route C** - Average delay: 15 minutes\n\n### Recommendations\n\n- Consider departing before 7:00 AM\n- Alternative routes via highway reduce time by 30%\n- Public transport is 2x faster during peak hours\n\n## Data Summary\n\n| Metric | Value |\n|--------|-------|\n| Total Sensors | 2,847 |\n| Active Routes | 156 |\n| Avg Speed | 42 km/h |\n| Incidents Today | 3 |\n\n```json\n{\"status\": \"complete\", \"confidence\": 0.95}\n```\n\n---\n*Report generated at 2024-03-15 09:30 UTC*"}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 2000,
+      "description": "Final complete article",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-article","components":[{"id":"root","component":"Column","children":["md","footer"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"md","component":"Markdown","content":"# Traffic Analysis Report\n\n## Overview\n\nBased on real-time data collected from **2,847 sensors** across the metropolitan area, we observe significant patterns in commuter behavior during peak hours.\n\n> Peak congestion occurs between 7:30-9:00 AM on weekdays\n\n## Key Findings\n\n1. **Route A** - Average delay: 12 minutes\n2. **Route B** - Average delay: 8 minutes\n3. **Route C** - Average delay: 15 minutes\n\n### Recommendations\n\n- Consider departing before 7:00 AM\n- Alternative routes via highway reduce time by 30%\n- Public transport is 2x faster during peak hours\n\n## Data Summary\n\n| Metric | Value |\n|--------|-------|\n| Total Sensors | 2,847 |\n| Active Routes | 156 |\n| Avg Speed | 42 km/h |\n| Incidents Today | 3 |\n\n```json\n{\"status\": \"complete\", \"confidence\": 0.95}\n```\n\n---\n*Report generated at 2024-03-15 09:30 UTC*"},{"id":"footer","component":"Text","text":"Analysis complete","styles":{"color":"#4CAF50","font-size":"14px","text-align":"center"}}]}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 7300,
+    "components_used": ["Markdown", "Text", "Column"],
+    "stress_coverage": "STREAM_MARATHON"
+  }
+}

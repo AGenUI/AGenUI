@@ -1,0 +1,41 @@
+{
+  "description": "Long list with incremental loading and abnormal component injection",
+  "surfaceId": "realistic-list",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-list","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Initial 10 items",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-list","components":[{"id":"root","component":"Column","children":["header","list-container"],"styles":{"width":"100%","padding":"12px","gap":"8px"}},{"id":"header","component":"Text","text":"News Feed (10 items)","styles":{"font-size":"18px","font-weight":"bold","padding":"8px"}},{"id":"list-container","component":"Column","children":["item-1","item-2","item-3","item-4","item-5","item-6","item-7","item-8","item-9","item-10"],"styles":{"gap":"8px"}},{"id":"item-1","component":"Card","child":"t1","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t1","component":"Text","text":"Breaking: New metro line opens ahead of schedule","styles":{"font-size":"14px"}},{"id":"item-2","component":"Card","child":"t2","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t2","component":"Text","text":"Weather forecast: Clear skies expected all week","styles":{"font-size":"14px"}},{"id":"item-3","component":"Card","child":"t3","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t3","component":"Text","text":"Tech: AI assistants now handle 60% of navigation queries","styles":{"font-size":"14px"}},{"id":"item-4","component":"Card","child":"t4","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t4","component":"Text","text":"Sports: Marathon registration breaks record numbers","styles":{"font-size":"14px"}},{"id":"item-5","component":"Card","child":"t5","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t5","component":"Text","text":"Local: Community garden project receives funding","styles":{"font-size":"14px"}},{"id":"item-6","component":"Card","child":"t6","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t6","component":"Text","text":"Finance: Electric vehicle subsidies extended to 2025","styles":{"font-size":"14px"}},{"id":"item-7","component":"Card","child":"t7","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t7","component":"Text","text":"Health: New bike lanes reduce accidents by 40%","styles":{"font-size":"14px"}},{"id":"item-8","component":"Card","child":"t8","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t8","component":"Text","text":"Culture: Street art festival transforms downtown","styles":{"font-size":"14px"}},{"id":"item-9","component":"Card","child":"t9","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t9","component":"Text","text":"Travel: High-speed rail expansion connects 3 new cities","styles":{"font-size":"14px"}},{"id":"item-10","component":"Card","child":"t10","styles":{"padding":"12px","border-radius":"8px","background-color":"#FAFAFA"}},{"id":"t10","component":"Text","text":"Science: Solar-powered charging stations triple in number","styles":{"font-size":"14px"}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 2000,
+      "description": "Load more: add 5 items",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-list","components":[{"id":"header","component":"Text","text":"News Feed (15 items)","styles":{"font-size":"18px","font-weight":"bold","padding":"8px"}},{"id":"list-container","component":"Column","children":["item-1","item-2","item-3","item-4","item-5","item-6","item-7","item-8","item-9","item-10","item-11","item-12","item-13","item-14","item-15"],"styles":{"gap":"8px"}},{"id":"item-11","component":"Card","child":"t11","styles":{"padding":"12px","border-radius":"8px","background-color":"#E8F5E9"}},{"id":"t11","component":"Text","text":"New: Autonomous shuttle service launches pilot program","styles":{"font-size":"14px","color":"#2E7D32"}},{"id":"item-12","component":"Card","child":"t12","styles":{"padding":"12px","border-radius":"8px","background-color":"#E8F5E9"}},{"id":"t12","component":"Text","text":"New: City approves 100km protected cycling network","styles":{"font-size":"14px","color":"#2E7D32"}},{"id":"item-13","component":"Card","child":"t13","styles":{"padding":"12px","border-radius":"8px","background-color":"#E8F5E9"}},{"id":"t13","component":"Text","text":"New: Smart traffic lights reduce wait times by 25%","styles":{"font-size":"14px","color":"#2E7D32"}},{"id":"item-14","component":"Card","child":"t14","styles":{"padding":"12px","border-radius":"8px","background-color":"#E8F5E9"}},{"id":"t14","component":"Text","text":"New: Electric bus fleet fully operational","styles":{"font-size":"14px","color":"#2E7D32"}},{"id":"item-15","component":"Card","child":"t15","styles":{"padding":"12px","border-radius":"8px","background-color":"#E8F5E9"}},{"id":"t15","component":"Text","text":"New: Parking app integrates real-time availability","styles":{"font-size":"14px","color":"#2E7D32"}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 2000,
+      "description": "INJECT ABNORMAL: unknown component type",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-list","components":[{"id":"item-bad","component":"NonExistentWidget","text":"This should not crash","styles":{"width":"100%"}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Recovery: add more normal items",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-list","components":[{"id":"header","component":"Text","text":"News Feed (18 items - recovered)","styles":{"font-size":"18px","font-weight":"bold","padding":"8px","color":"#4CAF50"}},{"id":"item-16","component":"Card","child":"t16","styles":{"padding":"12px","border-radius":"8px","background-color":"#FFF3E0"}},{"id":"t16","component":"Text","text":"Latest: Weekend road closures announced for event","styles":{"font-size":"14px","color":"#E65100"}},{"id":"item-17","component":"Card","child":"t17","styles":{"padding":"12px","border-radius":"8px","background-color":"#FFF3E0"}},{"id":"t17","component":"Text","text":"Latest: Rideshare prices drop during off-peak hours","styles":{"font-size":"14px","color":"#E65100"}},{"id":"item-18","component":"Card","child":"t18","styles":{"padding":"12px","border-radius":"8px","background-color":"#FFF3E0"}},{"id":"t18","component":"Text","text":"Latest: Navigation AI now supports voice commands in 5 languages","styles":{"font-size":"14px","color":"#E65100"}}]}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 6100,
+    "components_used": ["Column", "Card", "Text"],
+    "stress_coverage": "STREAM_MARATHON+ABNORMAL_DATA"
+  }
+}

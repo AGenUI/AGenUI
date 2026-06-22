@@ -1,0 +1,68 @@
+{
+  "description": "Platform Skill toast invocation test case: verifies correct parameter passing by registering IFunction to intercept toast callback",
+  "skillName": "toast",
+  "type": "platform",
+  "surfaceId": "test-surf-toast-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-toast-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-toast-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["toast-btn"],
+            "align": "stretch"
+          },
+          {
+            "id": "toast-btn",
+            "component": "Button",
+            "child": "toast-btn-text",
+            "styles": {
+              "width": "auto",
+              "height": "80px",
+              "border-radius": "12px"
+            },
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Operation successful",
+                  "duration": 3
+                }
+              }
+            }
+          },
+          {
+            "id": "toast-btn-text",
+            "component": "Text",
+            "text": "Trigger Toast",
+            "styles": {
+              "font-size": "28px",
+              "text-align": "center"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 3,
+    "componentIds": ["root", "toast-btn", "toast-btn-text"],
+    "platformCallback": {
+      "functionName": "toast",
+      "argsContains": {
+        "message": "Operation successful"
+      },
+      "note": "Register IFunction(toast) before sending JSON, then trigger action via performClick on toast-btn's View; verify IFunction.execute() is called with args containing message=Operation successful"
+    }
+  }
+}

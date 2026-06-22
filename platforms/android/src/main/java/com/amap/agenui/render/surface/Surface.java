@@ -46,9 +46,9 @@ public class Surface {
     private final String surfaceId;
 
     // ---- Blank Screen Detection ----
-    /** Handler used for blank screen detection (lazily created) */
+    /** Handler used for blank-screen detection (lazily created) */
     private Handler mBlankCheckHandler;
-    /** Pending blank screen detection task (used for cancel) */
+    /** Pending blank-screen detection task (used for cancellation) */
     private Runnable mBlankCheckRunnable;
 
     /**
@@ -60,7 +60,7 @@ public class Surface {
     private final ComponentEventDispatcher componentEventDispatcher;
     private final SurfaceLayoutDispatcher surfaceLayoutDispatcher;
 
-    private boolean destroyed = false;
+    private volatile boolean destroyed = false;
     private A2UIComponent rootComponent;
     private final Map<String, A2UIComponent> componentTree = new HashMap<>();
 
@@ -173,12 +173,12 @@ public class Surface {
         View existing = component.getView();
         if (existing != null) {
             ViewParent parent = existing.getParent();
-            // Only when it is already inside container do we skip the add
+            // Only when it is already in container do we do nothing
             if (parent != container) {
                 if (parent instanceof ViewGroup) {
                     ((ViewGroup) parent).removeView(existing);
                 }
-                container.addView(existing); // Regardless of whether parent is null or another ViewGroup, it must be added in the end
+                container.addView(existing); // Whether parent is null or another ViewGroup, in the end we still need to add
                 AGenUILogger.e(TAG, "surface root view already has parent: " + surfaceId);
             }
             return;
@@ -383,15 +383,14 @@ public class Surface {
     }
 
     /**
-     * Start blank screen detection on this Surface's component tree.
+     * Start blank-screen detection on this Surface's component tree.
      * <p>
-     * After {@code delayMs} milliseconds, recursively traverses the component tree
-     * and counts components whose view width and height are both &gt; 0 (lcpX).
-     * If the count is less than {@code validComponentCount}, reports via
+     * After {@code delayMs} ms, recursively traverse the component tree and count components whose view width and height are both &gt; 0
+     * (lcpX). If the count is less than {@code validComponentCount}, report it via
      * {@code ComponentEventDispatcher.onSurfaceError}.
      * </p>
      *
-     * @param delayMs             detection delay in milliseconds
+     * @param delayMs             detection delay (ms)
      * @param validComponentCount minimum lcpX component count required to consider the screen non-blank
      */
     public void startBlankCheck(long delayMs, int validComponentCount) {
@@ -430,7 +429,7 @@ public class Surface {
     }
 
     /**
-     * Cancel any pending blank screen detection task. Automatically invoked on destroy.
+     * Cancel the pending blank-screen detection task. Called automatically on destroy.
      */
     public void cancelBlankCheck() {
         if (mBlankCheckHandler != null && mBlankCheckRunnable != null) {

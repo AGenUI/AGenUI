@@ -102,7 +102,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.i(TAG, "onError: code=" + code + ", surfaceId=" + surfaceId + ", message=" + message);
         }
-        // Map to the SDKInternal type specified by the design doc; message is reported as the reason field
+        // Map to the SDKInternal type defined in the design doc; message is reported as the reason field
         mainHandler.post(() -> surfaceManager.notifyError(code, message, surfaceId));
     }
 

@@ -1,0 +1,99 @@
+{
+  "description": "SKILL-04: formatCurrency currency formatting function test, verifies currency symbol and numeric format via Text.text FunctionCall binding",
+  "surfaceId": "test-surf-fc-04",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-04",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-04",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-04a", "text-04b", "text-04c", "text-04d", "text-04e", "text-04f"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-04a",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": 1234.5, "currency": "USD" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-04b",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": 9999.99, "currency": "CNY" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-04c",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": 500, "currency": "EUR" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-04d",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": 1000, "currency": "USD", "decimals": 0 },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-04e",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": 1234567.89, "currency": "USD", "grouping": false },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-04f",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": -250.75, "currency": "USD" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 7,
+    "componentIds": ["root", "text-04a", "text-04b", "text-04c", "text-04d", "text-04e", "text-04f"],
+    "textContent": [
+      { "componentId": "text-04a", "contains": "1,234.50",    "note": "SKILL-04-a: USD currency format, thousands separator + 2 decimal places" },
+      { "componentId": "text-04b", "contains": "9,999.99",    "note": "SKILL-04-b: CNY currency format" },
+      { "componentId": "text-04c", "contains": "500.00",      "note": "SKILL-04-c: EUR currency format" },
+      { "componentId": "text-04d", "contains": "1,000",       "note": "SKILL-04-d: decimals=0, no decimal part" },
+      { "componentId": "text-04e", "contains": "1234567.89",  "note": "SKILL-04-e: grouping=false, no thousands separator" },
+      { "componentId": "text-04f", "contains": "-250.75",     "note": "SKILL-04-f: negative currency value" }
+    ]
+  }
+}

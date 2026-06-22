@@ -58,9 +58,10 @@ export struct AGenUIContainer {
     .width('100%')
     .onSizeChange((oldValue: SizeOptions, newValue: SizeOptions) => {
       const newWidth = Math.round(newValue.width as number);
+      const oldWidth = Math.round(oldValue.width as number);
 
       // Notify the native layer only once after the first valid width is available.
-      if (this.widthNotified || newWidth <= 0) {
+      if ((this.widthNotified && newWidth === oldWidth) || newWidth <= 0) {
         return;
       }
 

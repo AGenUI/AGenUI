@@ -1,0 +1,47 @@
+{
+  "description": "Tab navigation with empty components injection",
+  "surfaceId": "realistic-tabs",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-tabs","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Render tabs - Tab 1 active",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-tabs","components":[{"id":"root","component":"Column","children":["tabs","content-1"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"tabs","component":"Row","children":["tab1","tab2","tab3","tab4"],"styles":{"gap":"8px","padding":"8px","background-color":"#F5F5F5","border-radius":"8px"}},{"id":"tab1","component":"Button","text":"Overview","styles":{"background-color":"#1976D2","color":"#FFFFFF","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab2","component":"Button","text":"Routes","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab3","component":"Button","text":"Alerts","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab4","component":"Button","text":"Settings","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"content-1","component":"Column","children":["c1-title","c1-text"],"styles":{"padding":"12px"}},{"id":"c1-title","component":"Text","text":"Overview","styles":{"font-size":"22px","font-weight":"bold"}},{"id":"c1-text","component":"Text","text":"Today's traffic conditions are moderate. Average commute time is 28 minutes.","styles":{"font-size":"14px","color":"#555"}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Switch to Tab 2",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-tabs","components":[{"id":"root","component":"Column","children":["tabs","content-2"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"tabs","component":"Row","children":["tab1","tab2","tab3","tab4"],"styles":{"gap":"8px","padding":"8px","background-color":"#F5F5F5","border-radius":"8px"}},{"id":"tab1","component":"Button","text":"Overview","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab2","component":"Button","text":"Routes","styles":{"background-color":"#1976D2","color":"#FFFFFF","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab3","component":"Button","text":"Alerts","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab4","component":"Button","text":"Settings","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"content-2","component":"Column","children":["r1","r2","r3"],"styles":{"padding":"12px","gap":"8px"}},{"id":"r1","component":"Card","child":"r1t","styles":{"padding":"12px","background-color":"#E8F5E9","border-radius":"8px"}},{"id":"r1t","component":"Text","text":"Highway 101 - 25 min - Clear","styles":{"font-size":"14px"}},{"id":"r2","component":"Card","child":"r2t","styles":{"padding":"12px","background-color":"#FFF3E0","border-radius":"8px"}},{"id":"r2t","component":"Text","text":"Downtown Blvd - 35 min - Moderate","styles":{"font-size":"14px"}},{"id":"r3","component":"Card","child":"r3t","styles":{"padding":"12px","background-color":"#FFEBEE","border-radius":"8px"}},{"id":"r3t","component":"Text","text":"Ring Road - 42 min - Congested","styles":{"font-size":"14px"}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "INJECT ABNORMAL: empty components",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-tabs","components":[]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Recovery: Tab 3",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-tabs","components":[{"id":"root","component":"Column","children":["tabs","content-3"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"tabs","component":"Row","children":["tab1","tab2","tab3","tab4"],"styles":{"gap":"8px","padding":"8px","background-color":"#F5F5F5","border-radius":"8px"}},{"id":"tab1","component":"Button","text":"Overview","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab2","component":"Button","text":"Routes","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab3","component":"Button","text":"Alerts","styles":{"background-color":"#FF5722","color":"#FFFFFF","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab4","component":"Button","text":"Settings","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"content-3","component":"Column","children":["alert1","alert2"],"styles":{"padding":"12px","gap":"8px"}},{"id":"alert1","component":"Card","child":"a1","styles":{"padding":"12px","background-color":"#FFEBEE","border-radius":"8px"}},{"id":"a1","component":"Text","text":"⚠ Accident on Ring Road - Expect 20min delay","styles":{"font-size":"14px","color":"#C62828"}},{"id":"alert2","component":"Card","child":"a2","styles":{"padding":"12px","background-color":"#FFF8E1","border-radius":"8px"}},{"id":"a2","component":"Text","text":"Construction on 5th Ave until Friday","styles":{"font-size":"14px","color":"#F57F17"}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "Tab 4: Settings",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-tabs","components":[{"id":"root","component":"Column","children":["tabs","content-4"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"tabs","component":"Row","children":["tab1","tab2","tab3","tab4"],"styles":{"gap":"8px","padding":"8px","background-color":"#F5F5F5","border-radius":"8px"}},{"id":"tab1","component":"Button","text":"Overview","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab2","component":"Button","text":"Routes","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab3","component":"Button","text":"Alerts","styles":{"background-color":"transparent","color":"#666","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"tab4","component":"Button","text":"Settings","styles":{"background-color":"#1976D2","color":"#FFFFFF","border-radius":"6px","padding":"8px 16px","font-size":"13px"}},{"id":"content-4","component":"Column","children":["s1","s2"],"styles":{"padding":"12px","gap":"12px"}},{"id":"s1","component":"CheckBox","label":"Enable notifications","dataBinding":"/notifications"},{"id":"s2","component":"CheckBox","label":"Show traffic overlay","dataBinding":"/overlay"}]}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 6800,
+    "components_used": ["Column", "Row", "Button", "Text", "Card", "CheckBox"],
+    "stress_coverage": "THEME_SWITCH+ABNORMAL_DATA"
+  }
+}

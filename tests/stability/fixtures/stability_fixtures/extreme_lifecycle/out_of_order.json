@@ -1,0 +1,70 @@
+{
+  "description": "Stability: Messages sent in wrong order (update before create, delete non-existent)",
+  "surfaceId": "stability-ooo",
+  "messages": [
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-ooo",
+        "components": [
+          {
+            "id": "root",
+            "component": "Text",
+            "text": "Before create"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-nonexistent"
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-ooo",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-ooo",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "ooo-txt"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "ooo-txt",
+            "component": "Text",
+            "text": "After create (correct order)"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-ooo"
+      }
+    },
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "stability-ooo"
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

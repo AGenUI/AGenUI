@@ -1,0 +1,533 @@
+{
+  "description": "Stability: 10 buttons each with 2 validation checks",
+  "surfaceId": "stability-validation",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-validation",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-validation",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "vbtn-0",
+              "vbtn-1",
+              "vbtn-2",
+              "vbtn-3",
+              "vbtn-4",
+              "vbtn-5",
+              "vbtn-6",
+              "vbtn-7",
+              "vbtn-8",
+              "vbtn-9"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "vbtn-0",
+            "component": "Button",
+            "child": "vbtn-0-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f0"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 0 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f0"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 0 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 0 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-0-txt",
+            "component": "Text",
+            "text": "Validate 0"
+          },
+          {
+            "id": "vbtn-1",
+            "component": "Button",
+            "child": "vbtn-1-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f1"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 1 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f1"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 1 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 1 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-1-txt",
+            "component": "Text",
+            "text": "Validate 1"
+          },
+          {
+            "id": "vbtn-2",
+            "component": "Button",
+            "child": "vbtn-2-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f2"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 2 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f2"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 2 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 2 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-2-txt",
+            "component": "Text",
+            "text": "Validate 2"
+          },
+          {
+            "id": "vbtn-3",
+            "component": "Button",
+            "child": "vbtn-3-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f3"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 3 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f3"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 3 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 3 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-3-txt",
+            "component": "Text",
+            "text": "Validate 3"
+          },
+          {
+            "id": "vbtn-4",
+            "component": "Button",
+            "child": "vbtn-4-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f4"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 4 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f4"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 4 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 4 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-4-txt",
+            "component": "Text",
+            "text": "Validate 4"
+          },
+          {
+            "id": "vbtn-5",
+            "component": "Button",
+            "child": "vbtn-5-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f5"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 5 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f5"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 5 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 5 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-5-txt",
+            "component": "Text",
+            "text": "Validate 5"
+          },
+          {
+            "id": "vbtn-6",
+            "component": "Button",
+            "child": "vbtn-6-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f6"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 6 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f6"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 6 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 6 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-6-txt",
+            "component": "Text",
+            "text": "Validate 6"
+          },
+          {
+            "id": "vbtn-7",
+            "component": "Button",
+            "child": "vbtn-7-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f7"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 7 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f7"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 7 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 7 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-7-txt",
+            "component": "Text",
+            "text": "Validate 7"
+          },
+          {
+            "id": "vbtn-8",
+            "component": "Button",
+            "child": "vbtn-8-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f8"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 8 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f8"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 8 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 8 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-8-txt",
+            "component": "Text",
+            "text": "Validate 8"
+          },
+          {
+            "id": "vbtn-9",
+            "component": "Button",
+            "child": "vbtn-9-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f9"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 9 required"
+              },
+              {
+                "condition": {
+                  "call": "length",
+                  "args": {
+                    "value": {
+                      "path": "/fields/f9"
+                    },
+                    "min": 3,
+                    "max": 100
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Field 9 length invalid"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Button 9 valid",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "vbtn-9-txt",
+            "component": "Text",
+            "text": "Validate 9"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-validation",
+        "value": {
+          "fields": {
+            "f0": "val0",
+            "f1": "val1",
+            "f2": "val2",
+            "f3": "val3",
+            "f4": "val4",
+            "f5": "val5",
+            "f6": "val6",
+            "f7": "val7",
+            "f8": "val8",
+            "f9": "val9"
+          }
+        }
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_interaction",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "description": "Stability: Stream with chunkSize=1 (single byte) to stress parser incrementality",
+  "surfaceId": "stability-tiny-chunk",
+  "streamCases": [
+    {
+      "id": "STABILITY-STREAM-01",
+      "description": "Single byte chunks",
+      "chunkSize": 1
+    },
+    {
+      "id": "STABILITY-STREAM-02",
+      "description": "Two byte chunks",
+      "chunkSize": 2
+    },
+    {
+      "id": "STABILITY-STREAM-03",
+      "description": "Five byte chunks",
+      "chunkSize": 5
+    }
+  ],
+  "payload": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-tiny-chunk",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-tiny-chunk",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-stream"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stream",
+            "component": "Text",
+            "text": "Streamed via single-byte chunks",
+            "styles": {
+              "font-size": "24px"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_stream",
+    "stress_level": "very_high",
+    "expected_behavior": "no_crash"
+  }
+}

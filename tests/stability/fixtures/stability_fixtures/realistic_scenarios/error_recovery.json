@@ -1,0 +1,61 @@
+{
+  "description": "Error recovery: inject various abnormal data then recover",
+  "surfaceId": "realistic-error",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-error","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Render normal page",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-error","components":[{"id":"root","component":"Column","children":["title","content","status"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"title","component":"Text","text":"Error Recovery Test","styles":{"font-size":"20px","font-weight":"bold"}},{"id":"content","component":"Card","child":"ct","styles":{"padding":"16px","background-color":"#E3F2FD","border-radius":"8px"}},{"id":"ct","component":"Text","text":"This page will receive various abnormal data to test SDK resilience.","styles":{"font-size":"14px","color":"#1565C0"}},{"id":"status","component":"Text","text":"Status: Normal","styles":{"font-size":"12px","color":"#4CAF50"}}]}}
+    },
+    {
+      "action": "rawChunk",
+      "delay_ms": 1500,
+      "description": "ERROR 1: Malformed JSON",
+      "raw": "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"realistic-error\",\"components\":[{\"id\":\"broken\",\"compon"
+    },
+    {
+      "action": "rawChunk",
+      "delay_ms": 1000,
+      "description": "ERROR 2: Super long text field (10KB)",
+      "raw_generator": "repeat_string",
+      "raw_template": "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"realistic-error\",\"components\":[{\"id\":\"longtext\",\"component\":\"Text\",\"text\":\"${REPEAT:A:10000}\"}]}}",
+      "raw": "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"realistic-error\",\"components\":[{\"id\":\"longtext\",\"component\":\"Text\",\"text\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"}]}}"
+    },
+    {
+      "action": "rawChunk",
+      "delay_ms": 1000,
+      "description": "ERROR 3: Reference non-existent surfaceId",
+      "raw": "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"non-existent-surface-xyz\",\"components\":[{\"id\":\"ghost\",\"component\":\"Text\",\"text\":\"I should not appear\"}]}}"
+    },
+    {
+      "action": "rawChunk",
+      "delay_ms": 1000,
+      "description": "ERROR 4: Empty updateComponents",
+      "raw": "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"realistic-error\",\"components\":[]}}"
+    },
+    {
+      "action": "rawChunk",
+      "delay_ms": 1000,
+      "description": "ERROR 5: Invalid version",
+      "raw": "{\"version\":\"v99.99\",\"updateComponents\":{\"surfaceId\":\"realistic-error\",\"components\":[{\"id\":\"test\",\"component\":\"Text\",\"text\":\"Wrong version\"}]}}"
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1500,
+      "description": "RECOVERY: Normal render after all errors",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-error","components":[{"id":"root","component":"Column","children":["title","result","details"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"title","component":"Text","text":"Error Recovery Test","styles":{"font-size":"20px","font-weight":"bold"}},{"id":"result","component":"Card","child":"rt","styles":{"padding":"16px","background-color":"#E8F5E9","border-radius":"8px"}},{"id":"rt","component":"Text","text":"All 5 error injections handled without crash! SDK recovered successfully.","styles":{"font-size":"14px","color":"#2E7D32","font-weight":"bold"}},{"id":"details","component":"Column","children":["d1","d2","d3","d4","d5"],"styles":{"gap":"4px"}},{"id":"d1","component":"Text","text":"1. Malformed JSON - handled","styles":{"font-size":"12px","color":"#666"}},{"id":"d2","component":"Text","text":"2. 10KB text field - handled","styles":{"font-size":"12px","color":"#666"}},{"id":"d3","component":"Text","text":"3. Non-existent surfaceId - handled","styles":{"font-size":"12px","color":"#666"}},{"id":"d4","component":"Text","text":"4. Empty components - handled","styles":{"font-size":"12px","color":"#666"}},{"id":"d5","component":"Text","text":"5. Invalid version - handled","styles":{"font-size":"12px","color":"#666"}}]}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 7800,
+    "components_used": ["Column", "Card", "Text"],
+    "stress_coverage": "ALL_ABNORMAL_DATA"
+  }
+}

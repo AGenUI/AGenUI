@@ -1,0 +1,113 @@
+{
+  "description": "Complex Card component test case: Card containing Column with title Text, body Text, and action Button, verifies multi-level nested structure and complete component tree",
+  "surfaceId": "test-surf-card-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-card-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-card-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["card-wrapper"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px",
+              "background-color": "#F5F5F5"
+            }
+          },
+          {
+            "id": "card-wrapper",
+            "component": "Card",
+            "child": "card-inner",
+            "styles": {
+              "width": "auto",
+              "height": "auto",
+              "padding": "24px",
+              "border-radius": "16px",
+              "background-color": "#FFFFFF",
+              "filter": "drop-shadow(0px 6px 24px 0px rgba(0, 0, 0, 0.08))"
+            }
+          },
+          {
+            "id": "card-inner",
+            "component": "Column",
+            "children": ["card-title", "card-body", "card-btn"],
+            "align": "stretch",
+            "styles": {
+              "gap": "12px"
+            }
+          },
+          {
+            "id": "card-title",
+            "component": "Text",
+            "text": "Card Title",
+            "styles": {
+              "font-size": "32px",
+              "font-weight": "bold",
+              "color": "#000000"
+            }
+          },
+          {
+            "id": "card-body",
+            "component": "Text",
+            "text": "This is the card body text with detailed information for testing purposes.",
+            "styles": {
+              "font-size": "28px",
+              "color": "#666666",
+              "line-clamp": 3
+            }
+          },
+          {
+            "id": "card-btn",
+            "component": "Button",
+            "child": "card-btn-text",
+            "styles": {
+              "width": "auto",
+              "height": "64px",
+              "border-radius": "8px"
+            },
+            "action": {
+              "functionCall": {
+                "call": "openUrl",
+                "args": {
+                  "url": "https://a2ui.org/"
+                }
+              }
+            }
+          },
+          {
+            "id": "card-btn-text",
+            "component": "Text",
+            "text": "Learn More",
+            "styles": {
+              "font-size": "28px",
+              "color": "#0066CC",
+              "text-align": "center"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 7,
+    "componentTypes": ["Column", "Card", "Column", "Text", "Text", "Button", "Text"],
+    "rootComponentId": "root",
+    "componentIds": ["root", "card-wrapper", "card-inner", "card-title", "card-body", "card-btn", "card-btn-text"],
+    "actions": {
+      "card-btn": {
+        "type": "functionCall",
+        "call": "openUrl"
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "description": "Stability: 10-level deep nesting of Column > Card > Column > Card... to stress tree traversal",
+  "surfaceId": "stability-deep-10",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-deep-10",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-deep-10",
+        "components": [
+          {"id": "level-0", "component": "Column", "children": ["level-1"], "align": "stretch", "styles": {"padding": "4px"}},
+          {"id": "level-1", "component": "Card", "child": "level-2", "styles": {"padding": "4px", "border-radius": "8px"}},
+          {"id": "level-2", "component": "Column", "children": ["level-3"], "align": "stretch", "styles": {"padding": "4px"}},
+          {"id": "level-3", "component": "Card", "child": "level-4", "styles": {"padding": "4px", "border-radius": "8px"}},
+          {"id": "level-4", "component": "Column", "children": ["level-5"], "align": "stretch", "styles": {"padding": "4px"}},
+          {"id": "level-5", "component": "Card", "child": "level-6", "styles": {"padding": "4px", "border-radius": "8px"}},
+          {"id": "level-6", "component": "Column", "children": ["level-7"], "align": "stretch", "styles": {"padding": "4px"}},
+          {"id": "level-7", "component": "Card", "child": "level-8", "styles": {"padding": "4px", "border-radius": "8px"}},
+          {"id": "level-8", "component": "Column", "children": ["level-9"], "align": "stretch", "styles": {"padding": "4px"}},
+          {"id": "level-9", "component": "Card", "child": "leaf-text", "styles": {"padding": "4px", "border-radius": "8px"}},
+          {"id": "leaf-text", "component": "Text", "text": "Deepest leaf at level 10", "styles": {"font-size": "24px", "color": "#FF0000"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "description": "Page switching: create/render/destroy surfaces in rapid succession",
+  "surfaceId": "realistic-page",
+  "multi_surface": true,
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-1","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 200,
+      "description": "Page 1: Table view",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"page-1","components":[{"id":"root","component":"Column","children":["title","tbl"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"title","component":"Text","text":"Page 1: Route Comparison","styles":{"font-size":"20px","font-weight":"bold"}},{"id":"tbl","component":"Column","children":["r1","r2","r3"],"styles":{"gap":"8px"}},{"id":"r1","component":"Text","text":"Route A | 25 min | Low traffic","styles":{"font-size":"14px","padding":"8px","background-color":"#E8F5E9","border-radius":"4px"}},{"id":"r2","component":"Text","text":"Route B | 32 min | Moderate","styles":{"font-size":"14px","padding":"8px","background-color":"#FFF3E0","border-radius":"4px"}},{"id":"r3","component":"Text","text":"Route C | 45 min | Heavy traffic","styles":{"font-size":"14px","padding":"8px","background-color":"#FFEBEE","border-radius":"4px"}}]}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 2000,
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"page-1"}}
+    },
+    {
+      "action": "createSurface",
+      "delay_ms": 300,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-2","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 200,
+      "description": "Page 2: Chart view",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"page-2","components":[{"id":"root","component":"Column","children":["title","chart"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"title","component":"Text","text":"Page 2: Traffic Trends","styles":{"font-size":"20px","font-weight":"bold"}},{"id":"chart","component":"Chart","chartType":"line","data":{"xAxis":["Mon","Tue","Wed","Thu","Fri"],"series":[{"name":"Avg Speed","data":[{"value":45,"label":""},{"value":38,"label":""},{"value":42,"label":""},{"value":50,"label":""},{"value":55,"label":""}]}]},"styles":{"width":"100%","height":"300px","chartConfig":{"colors":["#42A5F5"]}}}]}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 2000,
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"page-2"}}
+    },
+    {
+      "action": "createSurface",
+      "delay_ms": 300,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-3","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 200,
+      "description": "Page 3: Article",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"page-3","components":[{"id":"root","component":"Column","children":["title","content"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"title","component":"Text","text":"Page 3: Daily Summary","styles":{"font-size":"20px","font-weight":"bold"}},{"id":"content","component":"Markdown","content":"## Today's Highlights\n\n- **3 incidents** resolved\n- Average commute: **28 min** (↓ 5%)\n- Busiest route: Highway 101\n\n> All routes are currently clear."}]}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 2000,
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"page-3"}}
+    },
+    {
+      "action": "createSurface",
+      "delay_ms": 300,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-4","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 200,
+      "description": "Page 4: Form",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"page-4","components":[{"id":"root","component":"Column","children":["title","field","btn"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},{"id":"title","component":"Text","text":"Page 4: Quick Feedback","styles":{"font-size":"20px","font-weight":"bold"}},{"id":"field","component":"TextField","placeholder":"How was your commute?","label":"Feedback"},{"id":"btn","component":"Button","text":"Submit","styles":{"background-color":"#1976D2","color":"#FFFFFF","border-radius":"8px"}}]}}
+    },
+    {
+      "action": "deleteSurface",
+      "delay_ms": 2000,
+      "message": {"version":"v0.9","deleteSurface":{"surfaceId":"page-4"}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 10200,
+    "components_used": ["Column", "Text", "Chart", "Markdown", "TextField", "Button"],
+    "stress_coverage": "SESSION_STORM+INTERRUPT_RECOVER"
+  }
+}

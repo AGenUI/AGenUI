@@ -129,7 +129,8 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
       "styles": {
         "default": {
           "font-size": "32px",
-          "color": "#000000"
+          "color": "#000000",
+          "text-color": {"call": "token", "args": {"name": "Color_Black"}}
         }
       }
     },
@@ -155,7 +156,16 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
       "styles": {
         "default": {
           "orientation": "vertical",
-          "padding": "24px"
+          "padding": "24px",
+          "text-color": {"call": "token", "args": {"name": "Color_Black"}}
+        }
+      }
+    },
+    "Tabs": {
+      "styles": {
+        "default": {
+          "tab-font-color": {"call": "token", "args": {"name": "Color_Black"}},
+          "tab-font-color-selected": {"call": "token", "args": {"name": "Color_Text_Brand"}}
         }
       }
     },
@@ -166,7 +176,10 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
         "default": {
             "border-width": "1px",
             "border-radius": "16px",
-            "border-color": "#E1E4E9"
+            "border-color": "#E1E4E9",
+            "header-bg-color": {"call": "token", "args": {"name": "Color_Ink_L2"}},
+            "body-bg-color-even": {"call": "token", "args": {"name": "Color_White"}},
+            "body-bg-color-odd": {"call": "token", "args": {"name": "Color_BG_L1"}}
         }
       }
     },
@@ -213,7 +226,7 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
         "default": {
           "width": "auto",
           "height": "auto",
-          "background-color": "#FFFFFF",
+          "background-color": {"call": "token", "args": {"name": "Color_BG_L5"}},
           "border-radius": "16px",
           "border-width": "1px",
           "border-color": "rgba(0, 0, 0, 0.06)"

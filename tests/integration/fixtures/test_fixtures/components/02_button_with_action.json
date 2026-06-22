@@ -1,0 +1,72 @@
+{
+  "description": "Button with Action test case: Button bound to toast functionCall, verifies component count, types, component IDs, and Action configuration",
+  "surfaceId": "test-surf-btn-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-btn-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-btn-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["btn-submit"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px"
+            }
+          },
+          {
+            "id": "btn-submit",
+            "component": "Button",
+            "child": "btn-label",
+            "styles": {
+              "width": "670px",
+              "height": "80px",
+              "padding": "18px 24px",
+              "border-radius": "16px"
+            },
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Operation successful",
+                  "duration": 3
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-label",
+            "component": "Text",
+            "text": "Submit",
+            "styles": {
+              "font-size": "32px",
+              "text-align": "center",
+              "color": "#FFFFFF"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 3,
+    "componentTypes": ["Column", "Button", "Text"],
+    "rootComponentId": "root",
+    "componentIds": ["root", "btn-submit", "btn-label"],
+    "actions": {
+      "btn-submit": {
+        "type": "functionCall",
+        "call": "toast"
+      }
+    }
+  }
+}

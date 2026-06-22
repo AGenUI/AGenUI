@@ -1,0 +1,16 @@
+{
+  "description": "Delete Surface basic test case: verifies that a deleteSurface message triggers the onDeleteSurface callback",
+  "surfaceId": "test-surf-init-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "deleteSurface": {
+        "surfaceId": "test-surf-init-01"
+      }
+    }
+  ],
+  "expect": {
+    "onDeleteSurface": true,
+    "surfaceId": "test-surf-init-01"
+  }
+}

@@ -2,10 +2,34 @@
   "module": {
     "name": "entry_test",
     "type": "feature",
+    "description": "$string:module_test_desc",
+    "mainElement": "TestAbility",
     "deviceTypes": [
       "phone"
     ],
     "deliveryWithInstall": true,
-    "installationFree": false
+    "installationFree": false,
+    "pages": "$profile:test_pages",
+    "abilities": [
+      {
+        "name": "TestAbility",
+        "srcEntry": "./ets/testability/TestAbility.ets",
+        "description": "$string:TestAbility_desc",
+        "label": "$string:TestAbility_label",
+        "exported": true,
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background"
+      }
+    ],
+    "testRunner": {
+      "name": "OpenHarmonyTestRunner",
+      "srcPath": "ets/testrunner/OpenHarmonyTestRunner.ets"
+    },
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET",
+        "reason": "$string:use_network"
+      }
+    ]
   }
 }

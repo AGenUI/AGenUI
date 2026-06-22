@@ -1,0 +1,113 @@
+{
+  "description": "SKILL-10: regex full-match validation function test, converts boolean result to string via formatString for display in Text, asserted by textContent",
+  "surfaceId": "test-surf-fc-10",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-10",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-10",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "text-10a", "text-10b", "text-10c", "text-10d",
+              "text-10e", "text-10f", "text-10g"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "text-10a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${regex(value: '13812345678', pattern: '^1[3-9]\\\\d{9}$')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-10b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${regex(value: '12345678901', pattern: '^1[3-9]\\\\d{9}$')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-10c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${regex(value: 'user@example.com', pattern: '^[a-zA-Z0-9._%+\\\\-]+@[a-zA-Z0-9.\\\\-]+\\\\.[a-zA-Z]{2,}$')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-10d",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${regex(value: 'userexample.com', pattern: '^[a-zA-Z0-9._%+\\\\-]+@[a-zA-Z0-9.\\\\-]+\\\\.[a-zA-Z]{2,}$')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-10e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${regex(value: '123456', pattern: '^\\\\d+$')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-10f",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${regex(value: '123abc', pattern: '^\\\\d+$')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-10g",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${regex(value: '', pattern: '^$')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 8,
+    "componentIds": ["root", "text-10a", "text-10b", "text-10c", "text-10d", "text-10e", "text-10f", "text-10g"],
+    "textContent": [
+      { "componentId": "text-10a", "contains": "true",  "note": "SKILL-10-a: phone number regex matches → true" },
+      { "componentId": "text-10b", "contains": "false", "note": "SKILL-10-b: phone number regex does not match → false" },
+      { "componentId": "text-10c", "contains": "true",  "note": "SKILL-10-c: email regex matches → true" },
+      { "componentId": "text-10d", "contains": "false", "note": "SKILL-10-d: email regex does not match (no @) → false" },
+      { "componentId": "text-10e", "contains": "true",  "note": "SKILL-10-e: pure numeric string matches → true" },
+      { "componentId": "text-10f", "contains": "false", "note": "SKILL-10-f: contains non-numeric characters → false" },
+      { "componentId": "text-10g", "contains": "true",  "note": "SKILL-10-g: empty string matches empty regex → true" }
+    ]
+  }
+}

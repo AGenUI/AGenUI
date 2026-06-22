@@ -29,6 +29,14 @@
 # Configuration:
 #   AGENUI_BUILD_ID_URL - Set to the build ID service URL (e.g. http://host:port)
 #                         to enable service mode. Leave unset for local mode.
+#
+# Idempotency:
+#   fetch_build_id is a no-op when AGENUI_FULL_VERSION is already exported in
+#   the environment. This lets wrappers that drive multiple build.sh invocations
+#   in sequence (e.g. publishing a main artifact + a same-version symbols sidecar)
+#   pin both to the same base version without consuming an extra build ID from
+#   the service. Standalone build.sh invocations are unaffected — the variable
+#   is empty by default.
 # =============================================================================
 
 if [[ -z "${_AGENUI_BUILD_ID_LOADED:-}" ]]; then
@@ -49,6 +57,14 @@ if [[ -z "${_AGENUI_BUILD_ID_LOADED:-}" ]]; then
 
         if [[ -z "${AGENUI_SDK_VERSION:-}" ]]; then
             error "fetch_build_id: AGENUI_SDK_VERSION is not set (call check_version_consistency first)"
+        fi
+
+        # Idempotent: if the caller already set AGENUI_FULL_VERSION (e.g. a wrapper
+        # that wants to publish multiple artifacts under the same base version),
+        # reuse it instead of consuming a fresh build ID from the service.
+        if [[ -n "${AGENUI_FULL_VERSION:-}" ]]; then
+            info "Reusing pre-set AGENUI_FULL_VERSION=${AGENUI_FULL_VERSION} (${platform})"
+            return 0
         fi
 
         local build_id=""

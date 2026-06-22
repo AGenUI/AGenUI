@@ -1,0 +1,168 @@
+{
+  "description": "SCENE-04: FunctionCall used in Action parameters and component properties, including Button.action.toast (dynamic message) and Button.checks (logic expression validation) scenarios",
+  "surfaceId": "test-surf-scene-04",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-scene-04",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-scene-04",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-s4a", "text-s4b", "text-s4c", "text-s4d", "text-s4e", "btn-s4f", "btn-s4g"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-s4a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Hello, ${/user/name}! Welcome back." },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s4b",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": { "path": "/activity/deadline" }, "format": "yyyy/MM/dd" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s4c",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": { "path": "/product/price" }, "currency": "CNY" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s4d",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": { "path": "/cart/count" }, "one": "item in cart", "other": "items in cart" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s4e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "valid form: ${required(value: ${/form/validEmail}) && email(value: ${/form/validEmail})}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "btn-s4f",
+            "component": "Button",
+            "child": "btn-s4f-label",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": {
+                    "call": "formatString",
+                    "args": { "value": "Deadline: ${formatDate(value: '2025-12-31', format: 'yyyy/MM/dd')}" },
+                    "returnType": "string"
+                  },
+                  "duration": 2
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-s4f-label",
+            "component": "Text",
+            "text": "Show Deadline"
+          },
+          {
+            "id": "btn-s4g",
+            "component": "Button",
+            "child": "btn-s4g-label",
+            "checks": [
+              {
+                "condition": {
+                  "call": "email",
+                  "args": { "value": { "path": "/form/validEmail" } },
+                  "returnType": "boolean"
+                },
+                "message": "Invalid email address"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": { "message": "Form submitted!", "duration": 2 }
+              }
+            }
+          },
+          {
+            "id": "btn-s4g-label",
+            "component": "Text",
+            "text": "Submit"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "test-surf-scene-04",
+        "value": {
+          "user": { "name": "Alice" },
+          "activity": { "deadline": "2025-12-31" },
+          "product": { "price": 1299.0 },
+          "cart": { "count": 1 },
+          "form": {
+            "validEmail": "valid@test.com",
+            "invalidEmail": "bad-email"
+          }
+        }
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 10,
+    "componentIds": ["root", "text-s4a", "text-s4b", "text-s4c", "text-s4d", "text-s4e", "btn-s4f", "btn-s4f-label", "btn-s4g", "btn-s4g-label"],
+    "textContent": [
+      { "componentId": "text-s4a", "contains": "Alice",          "note": "SCENE-04-a: formatString with nested DataBinding /user/name" },
+      { "componentId": "text-s4b", "contains": "2025/12/31",     "note": "SCENE-04-b: DataBinding /activity/deadline → formatDate" },
+      { "componentId": "text-s4c", "contains": "1,299.00",       "note": "SCENE-04-c: DataBinding /product/price → formatCurrency CNY" },
+      { "componentId": "text-s4d", "contains": "item in cart",   "note": "SCENE-04-d: DataBinding /cart/count=1 → pluralize one branch" },
+      { "componentId": "text-s4e", "contains": "true",           "note": "SCENE-04-e: valid email required AND email → true" }
+    ],
+    "componentProperties": [
+      {
+        "componentId": "btn-s4g",
+        "property": "enabled",
+        "equals": true,
+        "note": "SCENE-04-g: validEmail valid, email FunctionCall returns true, Button.enabled=true"
+      }
+    ],
+    "platformCallback": {
+      "componentId": "btn-s4f",
+      "trigger": "click",
+      "functionName": "toast",
+      "argsContains": { "message": "2025/12/31" },
+      "note": "SCENE-04-f: click button triggers toast, message dynamically computed by formatString+formatDate, should contain 2025/12/31"
+    }
+  }
+}

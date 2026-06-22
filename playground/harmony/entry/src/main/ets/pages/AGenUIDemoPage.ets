@@ -42,6 +42,10 @@ const COLOR_OVERLAY = 'rgba(0, 0, 0, 0.5)';
 const API_VERSION = 'v0.9';
 const STANDARD_CATALOG_URL = 'https://a2ui.org/specification/v0_9/standard_catalog.json';
 
+const STREAMING_MODE_ENABLED = true;
+const DEFAULT_STREAMING_CHUNK_COUNT = 30;
+const STREAMING_MIN_BYTES = 10000;
+
 // UI layout constants
 const TAB_WIDTH = 120;
 
@@ -631,9 +635,11 @@ struct Index {
     // Update the editor contents immediately without waiting for C++ rendering to finish.
     this.currentContent = `Components:\n${this.componentsJson}\n\nDataModel:\n${this.dataModelJson}`;
 
-    // Send the updateComponents payload loaded from file.
+    // Send the updateComponents payload loaded from file. Large payloads are
+    // chunked so C++ can start parsing before the whole string arrives,
+    // avoiding the brief blank flash on heavy cases like Gallery.
     if (this.componentsJson !== '{}') {
-      this.surfaceManager.receiveTextChunk(this.componentsJson);
+      this.sendComponentsJson(this.componentsJson);
       hilog.info(DOMAIN, TAG, '2/3 updateComponents sent');
     }
 
@@ -644,6 +650,27 @@ struct Index {
     }
 
     this.surfaceManager.endTextStream();
+  }
+
+  private sendComponentsJson(componentsJson: string) {
+    if (this.surfaceManager === null) {
+      return;
+    }
+    if (!STREAMING_MODE_ENABLED || componentsJson.length <= STREAMING_MIN_BYTES) {
+      this.surfaceManager.receiveTextChunk(componentsJson);
+      return;
+    }
+    const totalLength = componentsJson.length;
+    const chunkSize = Math.max(1, Math.ceil(totalLength / DEFAULT_STREAMING_CHUNK_COUNT));
+    let offset = 0;
+    let chunkIndex = 0;
+    while (offset < totalLength) {
+      const end = Math.min(offset + chunkSize, totalLength);
+      this.surfaceManager.receiveTextChunk(componentsJson.substring(offset, end));
+      offset = end;
+      chunkIndex++;
+    }
+    hilog.info(DOMAIN, TAG, 'updateComponents streamed in %{public}d chunks', chunkIndex);
   }
 
   /** Toggles the left navigation drawer open or closed. */
@@ -744,7 +771,7 @@ struct Index {
     this.currentContent = `Components:\n${this.componentsJson}\n\nDataModel:\n${this.dataModelJson}`;
 
     if (this.componentsJson !== '{}') {
-      this.surfaceManager.receiveTextChunk(this.componentsJson);
+      this.sendComponentsJson(this.componentsJson);
       hilog.info(DOMAIN, TAG, 'updateComponents sent (from editor)');
     }
     if (this.dataModelJson !== '{}') {

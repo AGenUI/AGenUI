@@ -110,13 +110,14 @@ public class MagicRevealTransition implements ImageTransition {
         parent.getOverlay().add(glassView);
 
         // Listen for layout changes to keep overlay sizes correct
-        imageView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+        View.OnLayoutChangeListener layoutListener = (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
             maskView.layout(left, top, right, bottom);
             glassView.layout(left, top, right, bottom);
-        });
+        };
+        imageView.addOnLayoutChangeListener(layoutListener);
 
         // Execute the animation
-        executeRevealAnimation(imageView, maskView, glassView, duration, completion, parent);
+        executeRevealAnimation(imageView, maskView, glassView, duration, completion, parent, layoutListener);
     }
 
     @Override
@@ -129,7 +130,8 @@ public class MagicRevealTransition implements ImageTransition {
      */
     private void executeRevealAnimation(ImageView imageView, RevealMaskView maskView,
                                         GlassLightBandView glassView, long duration,
-                                        Runnable completion, ViewGroup parent) {
+                                        Runnable completion, ViewGroup parent,
+                                        View.OnLayoutChangeListener layoutListener) {
         // Mask animation: diagonal sweep
         ValueAnimator maskAnimator = ValueAnimator.ofFloat(0f, 1f);
         maskAnimator.setDuration(duration);
@@ -163,11 +165,11 @@ public class MagicRevealTransition implements ImageTransition {
         maskAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                // Remove the mask and light band views from the Overlay
+                imageView.removeOnLayoutChangeListener(layoutListener);
+
                 parent.getOverlay().remove(maskView);
                 parent.getOverlay().remove(glassView);
 
-                // Restore the imageView state
                 imageView.setScaleX(1f);
                 imageView.setScaleY(1f);
                 imageView.setAlpha(1f);

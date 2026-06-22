@@ -1,0 +1,88 @@
+{
+  "description": "SCENE-01: formatString with nested function calls, using ${...} template syntax to nest formatDate/formatNumber/formatCurrency/pluralize, rendered to Text componentsand asserts content",
+  "surfaceId": "test-surf-scene-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-scene-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-scene-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-s1a", "text-s1b", "text-s1c", "text-s1d", "text-s1e"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-s1a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Today is ${formatDate(value: '2025-12-15', format: 'EEEE, MMMM d')}." },
+              "returnType": "string"
+            },
+            "variant": "h3"
+          },
+          {
+            "id": "text-s1b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Price is ${formatNumber(value: 1234567.89, decimals: 2)}." },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s1c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Total: ${formatCurrency(value: 99.9, currency: 'CNY')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s1d",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "You have ${pluralize(value: 3, one: 'item', other: 'items')} in cart." },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s1e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${formatDate(value: '2025-01-01', format: 'yyyy')} has ${pluralize(value: 365, one: 'day', other: 'days')}." },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 6,
+    "componentIds": ["root", "text-s1a", "text-s1b", "text-s1c", "text-s1d", "text-s1e"],
+    "textContent": [
+      { "componentId": "text-s1a", "contains": "Monday, December 15",  "note": "SCENE-01-a: formatString with nested formatDate" },
+      { "componentId": "text-s1b", "contains": "1,234,567.89",         "note": "SCENE-01-b: formatString with nested formatNumber" },
+      { "componentId": "text-s1c", "contains": "99.90",                "note": "SCENE-01-c: formatString with nested formatCurrency (CNY currency value）" },
+      { "componentId": "text-s1d", "contains": "items in cart",        "note": "SCENE-01-d: formatString with nested pluralize (count=3,other branch）" },
+      { "componentId": "text-s1e", "contains": "2025",                 "note": "SCENE-01-e: multiple nested expressions (formatDate + pluralize)" }
+    ]
+  }
+}

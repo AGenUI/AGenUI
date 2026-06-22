@@ -1,0 +1,241 @@
+{
+  "description": "Stability: 20 sequential dataModel updates to same surface",
+  "surfaceId": "stability-multi-update",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-update",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-update",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "counter-text"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "counter-text",
+            "component": "Text",
+            "text": {
+              "path": "/counter"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #0",
+          "timestamp": "2026-01-01T00:00:00"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #1",
+          "timestamp": "2026-01-01T00:00:01"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #2",
+          "timestamp": "2026-01-01T00:00:02"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #3",
+          "timestamp": "2026-01-01T00:00:03"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #4",
+          "timestamp": "2026-01-01T00:00:04"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #5",
+          "timestamp": "2026-01-01T00:00:05"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #6",
+          "timestamp": "2026-01-01T00:00:06"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #7",
+          "timestamp": "2026-01-01T00:00:07"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #8",
+          "timestamp": "2026-01-01T00:00:08"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #9",
+          "timestamp": "2026-01-01T00:00:09"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #10",
+          "timestamp": "2026-01-01T00:00:10"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #11",
+          "timestamp": "2026-01-01T00:00:11"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #12",
+          "timestamp": "2026-01-01T00:00:12"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #13",
+          "timestamp": "2026-01-01T00:00:13"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #14",
+          "timestamp": "2026-01-01T00:00:14"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #15",
+          "timestamp": "2026-01-01T00:00:15"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #16",
+          "timestamp": "2026-01-01T00:00:16"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #17",
+          "timestamp": "2026-01-01T00:00:17"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #18",
+          "timestamp": "2026-01-01T00:00:18"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-multi-update",
+        "value": {
+          "counter": "Update #19",
+          "timestamp": "2026-01-01T00:00:19"
+        }
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_data",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

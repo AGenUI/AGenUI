@@ -17,8 +17,11 @@ set -euo pipefail
 #                           Other common values:
 #                             assembleDebug
 #                             publishReleasePublicationToLocalMavenRepository
-#   --debug                 Equivalent to --task assembleDebug
-#   --publish-local         Equivalent to --task publishReleasePublicationToLocalMavenRepository
+#   --debug                 Build the debug variant (default: release).
+#                           Can be combined with --publish-local.
+#   --publish-local         Publish AAR to local Maven (~/.m2). Respects --debug:
+#                           builds and publishes the debug variant if set,
+#                           otherwise the release variant.
 #   --publish-maven         Publish AAR to remote Maven repository.
 #                           Requires MAVEN_URL / MAVEN_USERNAME / MAVEN_PASSWORD env vars.
 #                           Optionally set AGENUI_MAVEN_GROUP / AGENUI_MAVEN_ARTIFACT env vars
@@ -27,6 +30,11 @@ set -euo pipefail
 #                           Expected structure: {dir}/include/yoga/ + {dir}/libs/libyoga.so
 #                           If not specified, yoga is fetched from GitHub via FetchContent.
 #   --no-yoga-in-aar        Exclude libyoga.so from AAR output (use with --yoga-prebuilt)
+#   --with-symbols          Emit lib*.so.debug companion files for the release build
+#                           AND package them into <name>-symbols.aar. Wires up
+#                           CMake (-DAGENUI_EMIT_DEBUG_SYMBOLS=ON) + Gradle
+#                           (-PagenuiEmitDebugSymbols=true). Release builds only;
+#                           no effect for --debug.
 #   --clean                 Run ./gradlew clean before building
 #   -h, --help              Show this help message
 #
@@ -34,6 +42,7 @@ set -euo pipefail
 #   ./scripts/android/build.sh                       # default assembleRelease
 #   ./scripts/android/build.sh --debug --clean
 #   ./scripts/android/build.sh --publish-local
+#   ./scripts/android/build.sh --debug --publish-local  # publish debug AAR to local Maven
 #   ./scripts/android/build.sh --yoga-prebuilt ./yoga_prebuilt/android/arm64-v8a/Test
 # ============================================================================
 
@@ -44,33 +53,52 @@ source "${SCRIPT_DIR}/../common/_common.sh"
 source "${SCRIPT_DIR}/../common/_build_id.sh"
 
 # -------------------- Defaults --------------------
-GRADLE_TASK="assembleRelease"
+GRADLE_TASK=""
+BUILD_VARIANT="release"
 DO_CLEAN=false
 YOGA_PREBUILT_DIR=""
 YOGA_INCLUDE_IN_AAR=""
 PUBLISH_MAVEN=false
+WITH_SYMBOLS=false
 
 ANDROID_PROJECT_ROOT="${PLATFORMS_DIR}/android"
 
 # -------------------- Argument parsing --------------------
 show_help() {
-    sed -n '6,27p' "$0" | sed 's/^# \?//'
+    sed -n '5,46p' "$0" | sed -E 's/^#( |$)//'
     exit 0
 }
+
+PUBLISH_LOCAL=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --task)            GRADLE_TASK="$2"; shift 2 ;;
-        --debug)           GRADLE_TASK="assembleDebug"; shift ;;
-        --publish-local)   GRADLE_TASK="publishReleasePublicationToLocalMavenRepository"; shift ;;
+        --debug)           BUILD_VARIANT="debug"; shift ;;
+        --publish-local)   PUBLISH_LOCAL=true; shift ;;
         --publish-maven)   PUBLISH_MAVEN=true; shift ;;
         --yoga-prebuilt)   YOGA_PREBUILT_DIR="$2"; shift 2 ;;
         --no-yoga-in-aar)  YOGA_INCLUDE_IN_AAR="false"; shift ;;
+        --with-symbols)    WITH_SYMBOLS=true; shift ;;
         --clean)           DO_CLEAN=true; shift ;;
         -h|--help)         show_help ;;
         *)                 error "Unknown argument: $1" ;;
     esac
 done
+
+# -------------------- Resolve GRADLE_TASK --------------------
+CAP_VARIANT="$(tr '[:lower:]' '[:upper:]' <<< "${BUILD_VARIANT:0:1}")${BUILD_VARIANT:1}"
+if [[ "$PUBLISH_LOCAL" == true ]]; then
+    if [[ -n "$GRADLE_TASK" ]]; then
+        error "--publish-local cannot be combined with --task"
+    fi
+    GRADLE_TASK="publish${CAP_VARIANT}PublicationToLocalMavenRepository"
+elif [[ -z "$GRADLE_TASK" ]]; then
+    GRADLE_TASK="assemble${CAP_VARIANT}"
+fi
+if [[ "$PUBLISH_MAVEN" == true && "$BUILD_VARIANT" != "release" ]]; then
+    error "--publish-maven only supports the release variant. Remove --debug and try again."
+fi
 
 [[ -d "$ANDROID_PROJECT_ROOT" ]] || error "Android project directory not found: ${ANDROID_PROJECT_ROOT}"
 [[ -x "${ANDROID_PROJECT_ROOT}/gradlew" ]] || error "Executable gradlew not found: ${ANDROID_PROJECT_ROOT}/gradlew"
@@ -119,6 +147,16 @@ fi
 if [[ -n "$YOGA_INCLUDE_IN_AAR" ]]; then
     GRADLE_EXTRA_ARGS="${GRADLE_EXTRA_ARGS} -PYOGA_INCLUDE_IN_AAR=${YOGA_INCLUDE_IN_AAR}"
     info "Yoga include in AAR: ${YOGA_INCLUDE_IN_AAR}"
+fi
+
+# -------------------- Native debug symbols --------------------
+# --with-symbols turns on the symbol-splitting POST_BUILD step in CMake AND the
+# assembleReleaseSymbols Gradle task (finalized after assembleRelease). One
+# property pipes through both layers. Effective only for release builds; for
+# --debug, CMake skips the split internally.
+if [[ "$WITH_SYMBOLS" == true ]]; then
+    GRADLE_EXTRA_ARGS="${GRADLE_EXTRA_ARGS} -PagenuiEmitDebugSymbols=true"
+    info "Native debug symbols: enabled (lib*.so.debug companion + <name>-symbols.aar)"
 fi
 
 info "Running Gradle task: ${GRADLE_TASK}"
@@ -173,9 +211,18 @@ esac
 DIST_DIR="${AGENUI_ROOT}/dist/android/${BUILD_CONFIG}"
 mkdir -p "$DIST_DIR"
 
+# Filter by filename suffix so cross-config leftovers in AAR_DIR (which Gradle
+# accumulates across runs) don't bleed into this dist. The symbols sidecar is
+# only picked up when THIS invocation asked for it via --with-symbols — without
+# the gate, a stale <name>-symbols.aar from a previous --with-symbols run would
+# still match the glob and end up in the dist of a plain release build.
 shopt -s nullglob
 copied_count=0
-for aar in "$AAR_DIR"/*.aar; do
+aar_list=("${AAR_DIR}"/*-"${BUILD_CONFIG}".aar)
+if [[ "$BUILD_CONFIG" == "release" && "$WITH_SYMBOLS" == true ]]; then
+    aar_list+=("${AAR_DIR}"/*-symbols.aar)
+fi
+for aar in "${aar_list[@]}"; do
     cp -f "$aar" "$DIST_DIR/"
     copied_count=$((copied_count + 1))
     info "Published to dist: ${DIST_DIR}/$(basename "$aar")"

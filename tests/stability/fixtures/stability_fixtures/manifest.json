@@ -1,0 +1,84 @@
+{
+  "version": "1.0",
+  "description": "AGenUI SDK Stability Test Fixtures - Extreme scenarios for long-running stability testing",
+  "categories": {
+    "extreme_components": {
+      "count": 10,
+      "files": [
+        "100_components.json",
+        "all_types_mixed.json",
+        "deep_nesting_10.json",
+        "deep_nesting_50.json",
+        "empty_surface.json",
+        "long_text_10k.json",
+        "many_buttons_50.json",
+        "nested_cards_10.json",
+        "unicode_emoji.json",
+        "wide_row_30.json"
+      ]
+    },
+    "extreme_data": {
+      "count": 8,
+      "files": [
+        "array_1000.json",
+        "binding_many_paths.json",
+        "datamodel_before_components.json",
+        "deep_path_20.json",
+        "large_datamodel.json",
+        "multiple_updates_20.json",
+        "overwrite_components_10.json",
+        "special_chars.json"
+      ]
+    },
+    "extreme_stream": {
+      "count": 6,
+      "files": [
+        "interleaved_surfaces.json",
+        "mega_payload.json",
+        "mixed_chunk_sizes.json",
+        "rapid_updates.json",
+        "repeated_sessions.json",
+        "tiny_chunks.json"
+      ]
+    },
+    "extreme_lifecycle": {
+      "count": 6,
+      "files": [
+        "concurrent_operations.json",
+        "double_create.json",
+        "immediate_destroy.json",
+        "multi_surface_20.json",
+        "out_of_order.json",
+        "rapid_create_destroy.json"
+      ]
+    },
+    "extreme_interaction": {
+      "count": 6,
+      "files": [
+        "action_complex_args.json",
+        "concurrent_sync.json",
+        "many_function_types.json",
+        "nested_functions_10.json",
+        "rapid_actions.json",
+        "validation_storm.json"
+      ]
+    },
+    "realistic_scenarios": {
+      "count": 10,
+      "description": "Realistic user scenarios with visible UI rendering and timed steps",
+      "files": [
+        "article_stream.json",
+        "multi_card.json",
+        "form_fill.json",
+        "chart_refresh.json",
+        "long_list.json",
+        "page_switch.json",
+        "tab_navigation.json",
+        "lottie_carousel.json",
+        "mixed_dashboard.json",
+        "error_recovery.json"
+      ]
+    }
+  },
+  "total_fixtures": 46
+}

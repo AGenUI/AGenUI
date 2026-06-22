@@ -1,0 +1,151 @@
+{
+  "description": "Stability: 5 surfaces created and updated interleaved in a single stream",
+  "surfaceId": "stability-interleaved-0",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-interleaved-0",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-interleaved-0",
+        "components": [
+          {
+            "id": "root-0",
+            "component": "Column",
+            "children": [
+              "txt-0"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-0",
+            "component": "Text",
+            "text": "Surface 0 content"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-interleaved-1",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-interleaved-1",
+        "components": [
+          {
+            "id": "root-1",
+            "component": "Column",
+            "children": [
+              "txt-1"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-1",
+            "component": "Text",
+            "text": "Surface 1 content"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-interleaved-2",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-interleaved-2",
+        "components": [
+          {
+            "id": "root-2",
+            "component": "Column",
+            "children": [
+              "txt-2"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-2",
+            "component": "Text",
+            "text": "Surface 2 content"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-interleaved-3",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-interleaved-3",
+        "components": [
+          {
+            "id": "root-3",
+            "component": "Column",
+            "children": [
+              "txt-3"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-3",
+            "component": "Text",
+            "text": "Surface 3 content"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-interleaved-4",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-interleaved-4",
+        "components": [
+          {
+            "id": "root-4",
+            "component": "Column",
+            "children": [
+              "txt-4"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-4",
+            "component": "Text",
+            "text": "Surface 4 content"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_stream",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

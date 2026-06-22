@@ -1,0 +1,113 @@
+{
+  "description": "SKILL-11: email format validation function test, converts boolean result to string via formatString for display in Text, asserted by textContent",
+  "surfaceId": "test-surf-fc-11",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-11",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-11",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "text-11a", "text-11b", "text-11c", "text-11d",
+              "text-11e", "text-11f", "text-11g"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "text-11a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: 'user@example.com')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-11b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: 'user.name+tag@sub.domain.org')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-11c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: 'userexample.com')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-11d",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: 'user@')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-11e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: 'user@example')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-11f",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: '')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-11g",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: 'user @example.com')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 8,
+    "componentIds": ["root", "text-11a", "text-11b", "text-11c", "text-11d", "text-11e", "text-11f", "text-11g"],
+    "textContent": [
+      { "componentId": "text-11a", "contains": "true",  "note": "SKILL-11-a: valid email address → true" },
+      { "componentId": "text-11b", "contains": "true",  "note": "SKILL-11-b: valid email with subdomain → true" },
+      { "componentId": "text-11c", "contains": "false", "note": "SKILL-11-c: no @ symbol → false" },
+      { "componentId": "text-11d", "contains": "false", "note": "SKILL-11-d: no domain part → false" },
+      { "componentId": "text-11e", "contains": "false", "note": "SKILL-11-e: no top-level domain suffix → false" },
+      { "componentId": "text-11f", "contains": "false", "note": "SKILL-11-f: empty string → false" },
+      { "componentId": "text-11g", "contains": "false", "note": "SKILL-11-g: contains spaces → false" }
+    ]
+  }
+}

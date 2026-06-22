@@ -1,0 +1,177 @@
+{
+  "description": "Stability: 10 checkboxes + 10 textfields for concurrent state sync testing",
+  "surfaceId": "stability-concurrent-sync",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-concurrent-sync",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent-sync",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "cb-0",
+              "cb-1",
+              "cb-2",
+              "cb-3",
+              "cb-4",
+              "cb-5",
+              "cb-6",
+              "cb-7",
+              "cb-8",
+              "cb-9",
+              "tf-0",
+              "tf-1",
+              "tf-2",
+              "tf-3",
+              "tf-4",
+              "tf-5",
+              "tf-6",
+              "tf-7",
+              "tf-8",
+              "tf-9"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "cb-0",
+            "component": "CheckBox",
+            "label": "Checkbox 0",
+            "value": true
+          },
+          {
+            "id": "cb-1",
+            "component": "CheckBox",
+            "label": "Checkbox 1",
+            "value": false
+          },
+          {
+            "id": "cb-2",
+            "component": "CheckBox",
+            "label": "Checkbox 2",
+            "value": true
+          },
+          {
+            "id": "cb-3",
+            "component": "CheckBox",
+            "label": "Checkbox 3",
+            "value": false
+          },
+          {
+            "id": "cb-4",
+            "component": "CheckBox",
+            "label": "Checkbox 4",
+            "value": true
+          },
+          {
+            "id": "cb-5",
+            "component": "CheckBox",
+            "label": "Checkbox 5",
+            "value": false
+          },
+          {
+            "id": "cb-6",
+            "component": "CheckBox",
+            "label": "Checkbox 6",
+            "value": true
+          },
+          {
+            "id": "cb-7",
+            "component": "CheckBox",
+            "label": "Checkbox 7",
+            "value": false
+          },
+          {
+            "id": "cb-8",
+            "component": "CheckBox",
+            "label": "Checkbox 8",
+            "value": true
+          },
+          {
+            "id": "cb-9",
+            "component": "CheckBox",
+            "label": "Checkbox 9",
+            "value": false
+          },
+          {
+            "id": "tf-0",
+            "component": "TextField",
+            "label": "Field 0",
+            "value": "initial_0"
+          },
+          {
+            "id": "tf-1",
+            "component": "TextField",
+            "label": "Field 1",
+            "value": "initial_1"
+          },
+          {
+            "id": "tf-2",
+            "component": "TextField",
+            "label": "Field 2",
+            "value": "initial_2"
+          },
+          {
+            "id": "tf-3",
+            "component": "TextField",
+            "label": "Field 3",
+            "value": "initial_3"
+          },
+          {
+            "id": "tf-4",
+            "component": "TextField",
+            "label": "Field 4",
+            "value": "initial_4"
+          },
+          {
+            "id": "tf-5",
+            "component": "TextField",
+            "label": "Field 5",
+            "value": "initial_5"
+          },
+          {
+            "id": "tf-6",
+            "component": "TextField",
+            "label": "Field 6",
+            "value": "initial_6"
+          },
+          {
+            "id": "tf-7",
+            "component": "TextField",
+            "label": "Field 7",
+            "value": "initial_7"
+          },
+          {
+            "id": "tf-8",
+            "component": "TextField",
+            "label": "Field 8",
+            "value": "initial_8"
+          },
+          {
+            "id": "tf-9",
+            "component": "TextField",
+            "label": "Field 9",
+            "value": "initial_9"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_interaction",
+    "stress_level": "high",
+    "expected_behavior": "no_crash",
+    "programmatic_action": {
+      "type": "toggle_all_checkboxes_and_update_textfields",
+      "repeat": 50
+    }
+  }
+}

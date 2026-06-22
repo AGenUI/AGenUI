@@ -1,0 +1,52 @@
+{
+  "description": "Stability: 10-level nested function call expressions",
+  "surfaceId": "stability-nested-func",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-nested-func",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-nested-func",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "nested-text"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "nested-text",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": {
+                "value": "L1: ${formatString(value: \"L2: ${formatString(value: \"L3: ${formatString(value: \"L4: ${formatString(value: \"L5: ${formatString(value: \"L6: ${formatString(value: \"L7: ${formatString(value: \"L8: ${formatString(value: \"L9: ${formatString(value: \"L10: done\")}\")}\")}\")}\")}\")}\")}\")}\")}"
+              },
+              "returnType": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-nested-func",
+        "value": {}
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_interaction",
+    "stress_level": "very_high",
+    "expected_behavior": "no_crash"
+  }
+}

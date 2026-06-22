@@ -1,0 +1,88 @@
+{
+  "description": "Verifies the reverse-order scenario where updateDataModel arrives before updateComponents: the engine should correctly resolve existing DataModel binding values when components are created",
+  "surfaceId": "test-surf-dm-before-comp",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-dm-before-comp",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "test-surf-dm-before-comp",
+        "value": {
+          "user": {
+            "name": "Bob",
+            "age": 30
+          },
+          "order": {
+            "total": 199.5,
+            "count": 3
+          }
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-dm-before-comp",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["title", "greeting", "order-summary", "item-count"],
+            "align": "stretch"
+          },
+          {
+            "id": "title",
+            "component": "Text",
+            "text": "Order Confirmation",
+            "variant": "h2"
+          },
+          {
+            "id": "greeting",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Hello, ${/user/name}!" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "order-summary",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": { "path": "/order/total" }, "currency": "USD" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "item-count",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": { "path": "/order/count" }, "one": "item", "other": "items" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 5,
+    "componentIds": ["root", "title", "greeting", "order-summary", "item-count"],
+    "textContent": [
+      { "componentId": "greeting", "contains": "Bob", "note": "updateDataModel arrives first, should correctly resolve /user/name=Bob when component is created" },
+      { "componentId": "order-summary", "contains": "199.50", "note": "DataBinding /order/total=199.5 → formatCurrency USD" },
+      { "componentId": "item-count", "contains": "items", "note": "DataBinding /order/count=3 → pluralize other branch" }
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "description": "SKILL-02: formatString string template function test, verified via Text.text FunctionCall binding, including nested expression cases",
+  "surfaceId": "test-surf-fc-02",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-02",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-02",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-02a", "text-02b", "text-02c", "text-02d", "text-02e", "text-02f"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-02a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Hello, AGenUI!" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-02b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "42" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-02c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Today is ${formatDate(value: '2025-12-15', format: 'EEEE, MMMM d')}." },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-02d",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "Total: ${formatNumber(value: 1234567.89, decimals: 2)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-02e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${formatDate(value: '2025-01-01', format: 'yyyy')} has ${pluralize(value: 365, one: 'day', other: 'days')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-02f",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 7,
+    "componentIds": ["root", "text-02a", "text-02b", "text-02c", "text-02d", "text-02e", "text-02f"],
+    "textContent": [
+      { "componentId": "text-02a", "contains": "Hello, AGenUI!",             "note": "SKILL-02-a: plain string direct passthrough" },
+      { "componentId": "text-02b", "contains": "42",                         "note": "SKILL-02-b: number string" },
+      { "componentId": "text-02c", "contains": "Monday, December 15",        "note": "SKILL-02-c: template with nested formatDate expression" },
+      { "componentId": "text-02d", "contains": "1,234,567.89",               "note": "SKILL-02-d: template with nested formatNumber expression" },
+      { "componentId": "text-02e", "contains": "2025",                       "note": "SKILL-02-e: multiple nested expressions (formatDate + pluralize)" },
+      { "componentId": "text-02f", "contains": "",                           "note": "SKILL-02-f: empty string input" }
+    ]
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "description": "Stability: 10 complete component tree overwrites to test cleanup",
+  "surfaceId": "stability-overwrite",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-overwrite",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v0"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v0",
+            "component": "Text",
+            "text": "Version 0 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v1"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v1",
+            "component": "Text",
+            "text": "Version 1 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v2"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v2",
+            "component": "Text",
+            "text": "Version 2 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v3"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v3",
+            "component": "Text",
+            "text": "Version 3 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v4"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v4",
+            "component": "Text",
+            "text": "Version 4 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v5"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v5",
+            "component": "Text",
+            "text": "Version 5 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v6"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v6",
+            "component": "Text",
+            "text": "Version 6 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v7"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v7",
+            "component": "Text",
+            "text": "Version 7 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v8"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v8",
+            "component": "Text",
+            "text": "Version 8 of components"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overwrite",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt-v9"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-v9",
+            "component": "Text",
+            "text": "Version 9 of components"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_data",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "description": "Create Surface basic test case: verifies that receiveTextChunk with a createSurface message triggers ISurfaceListener.onCreateSurface callback",
+  "surfaceId": "test-surf-init-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-init-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    }
+  ],
+  "expect": {
+    "onCreateSurface": true,
+    "surfaceId": "test-surf-init-01"
+  }
+}

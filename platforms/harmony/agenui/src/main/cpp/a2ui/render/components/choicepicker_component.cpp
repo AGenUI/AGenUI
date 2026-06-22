@@ -571,10 +571,10 @@ float ChoicePickerComponent::getStyleDimension(const char* key, float fallbackVa
 }
 
 uint32_t ChoicePickerComponent::getStyleColor(const char* key, uint32_t fallbackValue) const {
-    if (!m_styleConfig.is_object() || !m_styleConfig.contains(key) || !m_styleConfig[key].is_string()) {
+    if (!m_styleConfig.is_object() || !m_styleConfig.contains(key)) {
         return fallbackValue;
     }
-    return parseColor(m_styleConfig[key].get<std::string>());
+    return parseColorWithToken(m_styleConfig[key], fallbackValue);
 }
 
 std::string ChoicePickerComponent::getStyleString(const char* key, const std::string& fallbackValue) const {

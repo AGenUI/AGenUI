@@ -1,0 +1,61 @@
+{
+  "description": "Stability: Stream tested with various extreme chunk sizes",
+  "surfaceId": "stability-empty-stream",
+  "streamCases": [
+    {
+      "id": "STABILITY-MIXED-01",
+      "description": "Chunk size 3 (splits UTF-8)",
+      "chunkSize": 3
+    },
+    {
+      "id": "STABILITY-MIXED-02",
+      "description": "Chunk size 7 (odd boundary)",
+      "chunkSize": 7
+    },
+    {
+      "id": "STABILITY-MIXED-03",
+      "description": "Chunk size 13 (prime)",
+      "chunkSize": 13
+    },
+    {
+      "id": "STABILITY-MIXED-04",
+      "description": "Chunk size 100",
+      "chunkSize": 100
+    }
+  ],
+  "payload": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-empty-stream",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-empty-stream",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "txt"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt",
+            "component": "Text",
+            "text": "After empty-ish stream"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_stream",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

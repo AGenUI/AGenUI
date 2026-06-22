@@ -1,0 +1,571 @@
+{
+  "description": "Stability: 20 surfaces created simultaneously without deletion",
+  "surfaceId": "stability-multi-0",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-0",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-0",
+        "components": [
+          {
+            "id": "root-stability-multi-0",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-0"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-0",
+            "component": "Text",
+            "text": "Surface: stability-multi-0"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-1",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-1",
+        "components": [
+          {
+            "id": "root-stability-multi-1",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-1"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-1",
+            "component": "Text",
+            "text": "Surface: stability-multi-1"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-2",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-2",
+        "components": [
+          {
+            "id": "root-stability-multi-2",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-2"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-2",
+            "component": "Text",
+            "text": "Surface: stability-multi-2"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-3",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-3",
+        "components": [
+          {
+            "id": "root-stability-multi-3",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-3"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-3",
+            "component": "Text",
+            "text": "Surface: stability-multi-3"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-4",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-4",
+        "components": [
+          {
+            "id": "root-stability-multi-4",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-4"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-4",
+            "component": "Text",
+            "text": "Surface: stability-multi-4"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-5",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-5",
+        "components": [
+          {
+            "id": "root-stability-multi-5",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-5"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-5",
+            "component": "Text",
+            "text": "Surface: stability-multi-5"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-6",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-6",
+        "components": [
+          {
+            "id": "root-stability-multi-6",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-6"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-6",
+            "component": "Text",
+            "text": "Surface: stability-multi-6"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-7",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-7",
+        "components": [
+          {
+            "id": "root-stability-multi-7",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-7"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-7",
+            "component": "Text",
+            "text": "Surface: stability-multi-7"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-8",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-8",
+        "components": [
+          {
+            "id": "root-stability-multi-8",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-8"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-8",
+            "component": "Text",
+            "text": "Surface: stability-multi-8"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-9",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-9",
+        "components": [
+          {
+            "id": "root-stability-multi-9",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-9"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-9",
+            "component": "Text",
+            "text": "Surface: stability-multi-9"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-10",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-10",
+        "components": [
+          {
+            "id": "root-stability-multi-10",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-10"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-10",
+            "component": "Text",
+            "text": "Surface: stability-multi-10"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-11",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-11",
+        "components": [
+          {
+            "id": "root-stability-multi-11",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-11"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-11",
+            "component": "Text",
+            "text": "Surface: stability-multi-11"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-12",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-12",
+        "components": [
+          {
+            "id": "root-stability-multi-12",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-12"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-12",
+            "component": "Text",
+            "text": "Surface: stability-multi-12"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-13",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-13",
+        "components": [
+          {
+            "id": "root-stability-multi-13",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-13"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-13",
+            "component": "Text",
+            "text": "Surface: stability-multi-13"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-14",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-14",
+        "components": [
+          {
+            "id": "root-stability-multi-14",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-14"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-14",
+            "component": "Text",
+            "text": "Surface: stability-multi-14"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-15",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-15",
+        "components": [
+          {
+            "id": "root-stability-multi-15",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-15"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-15",
+            "component": "Text",
+            "text": "Surface: stability-multi-15"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-16",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-16",
+        "components": [
+          {
+            "id": "root-stability-multi-16",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-16"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-16",
+            "component": "Text",
+            "text": "Surface: stability-multi-16"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-17",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-17",
+        "components": [
+          {
+            "id": "root-stability-multi-17",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-17"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-17",
+            "component": "Text",
+            "text": "Surface: stability-multi-17"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-18",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-18",
+        "components": [
+          {
+            "id": "root-stability-multi-18",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-18"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-18",
+            "component": "Text",
+            "text": "Surface: stability-multi-18"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-19",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-19",
+        "components": [
+          {
+            "id": "root-stability-multi-19",
+            "component": "Column",
+            "children": [
+              "txt-stability-multi-19"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "txt-stability-multi-19",
+            "component": "Text",
+            "text": "Surface: stability-multi-19"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "very_high",
+    "expected_behavior": "no_crash"
+  }
+}

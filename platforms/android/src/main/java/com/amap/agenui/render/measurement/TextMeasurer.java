@@ -209,12 +209,12 @@ public final class TextMeasurer {
             int measuredWidthPx = resolveMeasuredSizePx(desiredWidthPx, constrainedWidthPx, widthMode);
             int measuredHeightPx = resolveMeasuredSizePx(desiredHeightPx, constrainedHeightPx, heightMode);
 
-            // On certain devices (e.g. Mi 11, density=2.625), when the Text component has padding,
-            // a single character may be ellipsized even though the text could actually fit. This is because properties like padding
-            // suffer precision loss during pixel conversion: Yoga computes exactly in A2UI float space as
-            // borderBox = contentWidth + paddingLeft + paddingRight, but each value is independently converted to
-            // integer pixels, shrinking the content area: round(borderBoxPx) - round(padPx) - round(padPx) < contentPx.
-            // +1 compensates for this precision loss to ensure the content area is not under-allocated.
+            // On certain devices (e.g. Mi 11, density=2.625), when a Text component has padding,
+            // a single character may be shown with an ellipsis even though the text could actually fit. This is because properties like padding
+            // lose precision during pixel conversion: Yoga computes precisely in A2UI's floating-point space,
+            // borderBox = contentWidth + paddingLeft + paddingRight, but each value is converted independently to
+            // integer pixels, so the content area shrinks: round(borderBoxPx) - round(padPx) - round(padPx) < contentPx.
+            // The +1 corrects this precision loss and ensures the content area is not under-allocated.
             int ceilW = (int) Math.ceil(StyleHelper.pxToA2ui(context, measuredWidthPx)) + 1;
             int ceilH = (int) Math.ceil(StyleHelper.pxToA2ui(context, measuredHeightPx)) + 1;
 

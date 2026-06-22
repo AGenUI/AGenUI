@@ -104,8 +104,8 @@ human_size() {
     fi
 }
 
-# -------------------- Run Key and Git Metadata --------------------
-# Generate unique run identifier: {sanitized_branch}_{commit_short}_{YYYYMMDD_HHMMSS}
+# -------------------- Run Key and Git metadata --------------------
+# Generate a unique run identifier: {sanitized_branch}_{commit_short}_{YYYYMMDD_HHMMSS}
 generate_run_key() {
     local branch commit ts branch_safe
 
@@ -120,7 +120,7 @@ generate_run_key() {
 
     ts=$(date +%Y%m%d_%H%M%S)
 
-    # Sanitize branch name: keep only alphanumerics, underscores and hyphens, truncate to 40 chars, strip trailing hyphens
+    # Sanitize the branch name: keep only letters, digits, underscores, and hyphens; truncate to 40 chars; trim trailing hyphens
     branch_safe=$(printf '%s' "$branch" | tr -c 'a-zA-Z0-9_-' '-' | cut -c1-40 | sed 's/-*$//')
     [[ -z "$branch_safe" ]] && branch_safe="unknown"
 

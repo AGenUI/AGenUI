@@ -16,9 +16,9 @@ import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -43,7 +43,7 @@ public class SurfaceManager implements ISurfaceSizeProviderHost {
     private final WeakReference<Context> contextRef;
     private final NativeEventBridge nativeEventBridge;
 
-    private final Map<String, Surface> surfaces = new HashMap<>();
+    private final Map<String, Surface> surfaces = new ConcurrentHashMap<>();
     private final List<ISurfaceManagerListener> listeners = new CopyOnWriteArrayList<>();
     private final int instanceId;
 

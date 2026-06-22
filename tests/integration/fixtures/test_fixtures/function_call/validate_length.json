@@ -1,0 +1,135 @@
+{
+  "description": "SKILL-09: length string length validation function test, converts boolean result to string via formatString for display in Text, asserted by textContent",
+  "surfaceId": "test-surf-fc-09",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-09",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-09",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "text-09a", "text-09b", "text-09c", "text-09d", "text-09e",
+              "text-09f", "text-09g", "text-09h", "text-09i"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "text-09a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: 'hello', min: 3, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: 'abc', min: 3, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: '1234567890', min: 1, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09d",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: 'ab', min: 3, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: '12345678901', min: 1, max: 10)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09f",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: 'long enough', min: 5)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09g",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: 'short', max: 20)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09h",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: 'any string')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-09i",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${length(value: '', min: 0)}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 10,
+    "componentIds": ["root", "text-09a", "text-09b", "text-09c", "text-09d", "text-09e", "text-09f", "text-09g", "text-09h", "text-09i"],
+    "textContent": [
+      { "componentId": "text-09a", "contains": "true",  "note": "SKILL-09-a: length within min-max range → true" },
+      { "componentId": "text-09b", "contains": "true",  "note": "SKILL-09-b: equals min boundary → true" },
+      { "componentId": "text-09c", "contains": "true",  "note": "SKILL-09-c: equals max boundary → true" },
+      { "componentId": "text-09d", "contains": "false", "note": "SKILL-09-d: below min → false" },
+      { "componentId": "text-09e", "contains": "false", "note": "SKILL-09-e: exceeds max → false" },
+      { "componentId": "text-09f", "contains": "true",  "note": "SKILL-09-f: only min specified, length satisfies → true" },
+      { "componentId": "text-09g", "contains": "true",  "note": "SKILL-09-g: only max specified, length satisfies → true" },
+      { "componentId": "text-09h", "contains": "true",  "note": "SKILL-09-h: no min/max constraint → true" },
+      { "componentId": "text-09i", "contains": "true",  "note": "SKILL-09-i: empty string, min=0 → true" }
+    ]
+  }
+}

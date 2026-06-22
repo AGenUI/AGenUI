@@ -1,0 +1,647 @@
+{
+  "description": "Stability: 10 complex cards each with title+body+button",
+  "surfaceId": "stability-nested-cards",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-nested-cards",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-nested-cards",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "card-0",
+              "card-1",
+              "card-2",
+              "card-3",
+              "card-4",
+              "card-5",
+              "card-6",
+              "card-7",
+              "card-8",
+              "card-9"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px",
+              "padding": "12px"
+            }
+          },
+          {
+            "id": "card-0",
+            "component": "Card",
+            "child": "card-0-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-0-col",
+            "component": "Column",
+            "children": [
+              "card-0-title",
+              "card-0-body",
+              "card-0-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-0-title",
+            "component": "Text",
+            "text": "Card 0 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-0-body",
+            "component": "Text",
+            "text": "This is card 0 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-0-btn",
+            "component": "Button",
+            "child": "card-0-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 0 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-0-btn-txt",
+            "component": "Text",
+            "text": "Action 0"
+          },
+          {
+            "id": "card-1",
+            "component": "Card",
+            "child": "card-1-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-1-col",
+            "component": "Column",
+            "children": [
+              "card-1-title",
+              "card-1-body",
+              "card-1-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-1-title",
+            "component": "Text",
+            "text": "Card 1 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-1-body",
+            "component": "Text",
+            "text": "This is card 1 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-1-btn",
+            "component": "Button",
+            "child": "card-1-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 1 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-1-btn-txt",
+            "component": "Text",
+            "text": "Action 1"
+          },
+          {
+            "id": "card-2",
+            "component": "Card",
+            "child": "card-2-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-2-col",
+            "component": "Column",
+            "children": [
+              "card-2-title",
+              "card-2-body",
+              "card-2-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-2-title",
+            "component": "Text",
+            "text": "Card 2 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-2-body",
+            "component": "Text",
+            "text": "This is card 2 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-2-btn",
+            "component": "Button",
+            "child": "card-2-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 2 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-2-btn-txt",
+            "component": "Text",
+            "text": "Action 2"
+          },
+          {
+            "id": "card-3",
+            "component": "Card",
+            "child": "card-3-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-3-col",
+            "component": "Column",
+            "children": [
+              "card-3-title",
+              "card-3-body",
+              "card-3-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-3-title",
+            "component": "Text",
+            "text": "Card 3 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-3-body",
+            "component": "Text",
+            "text": "This is card 3 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-3-btn",
+            "component": "Button",
+            "child": "card-3-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 3 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-3-btn-txt",
+            "component": "Text",
+            "text": "Action 3"
+          },
+          {
+            "id": "card-4",
+            "component": "Card",
+            "child": "card-4-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-4-col",
+            "component": "Column",
+            "children": [
+              "card-4-title",
+              "card-4-body",
+              "card-4-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-4-title",
+            "component": "Text",
+            "text": "Card 4 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-4-body",
+            "component": "Text",
+            "text": "This is card 4 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-4-btn",
+            "component": "Button",
+            "child": "card-4-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 4 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-4-btn-txt",
+            "component": "Text",
+            "text": "Action 4"
+          },
+          {
+            "id": "card-5",
+            "component": "Card",
+            "child": "card-5-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-5-col",
+            "component": "Column",
+            "children": [
+              "card-5-title",
+              "card-5-body",
+              "card-5-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-5-title",
+            "component": "Text",
+            "text": "Card 5 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-5-body",
+            "component": "Text",
+            "text": "This is card 5 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-5-btn",
+            "component": "Button",
+            "child": "card-5-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 5 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-5-btn-txt",
+            "component": "Text",
+            "text": "Action 5"
+          },
+          {
+            "id": "card-6",
+            "component": "Card",
+            "child": "card-6-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-6-col",
+            "component": "Column",
+            "children": [
+              "card-6-title",
+              "card-6-body",
+              "card-6-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-6-title",
+            "component": "Text",
+            "text": "Card 6 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-6-body",
+            "component": "Text",
+            "text": "This is card 6 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-6-btn",
+            "component": "Button",
+            "child": "card-6-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 6 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-6-btn-txt",
+            "component": "Text",
+            "text": "Action 6"
+          },
+          {
+            "id": "card-7",
+            "component": "Card",
+            "child": "card-7-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-7-col",
+            "component": "Column",
+            "children": [
+              "card-7-title",
+              "card-7-body",
+              "card-7-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-7-title",
+            "component": "Text",
+            "text": "Card 7 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-7-body",
+            "component": "Text",
+            "text": "This is card 7 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-7-btn",
+            "component": "Button",
+            "child": "card-7-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 7 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-7-btn-txt",
+            "component": "Text",
+            "text": "Action 7"
+          },
+          {
+            "id": "card-8",
+            "component": "Card",
+            "child": "card-8-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-8-col",
+            "component": "Column",
+            "children": [
+              "card-8-title",
+              "card-8-body",
+              "card-8-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-8-title",
+            "component": "Text",
+            "text": "Card 8 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-8-body",
+            "component": "Text",
+            "text": "This is card 8 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-8-btn",
+            "component": "Button",
+            "child": "card-8-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 8 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-8-btn-txt",
+            "component": "Text",
+            "text": "Action 8"
+          },
+          {
+            "id": "card-9",
+            "component": "Card",
+            "child": "card-9-col",
+            "styles": {
+              "padding": "12px",
+              "border-radius": "8px",
+              "background-color": "#FFFFFF"
+            }
+          },
+          {
+            "id": "card-9-col",
+            "component": "Column",
+            "children": [
+              "card-9-title",
+              "card-9-body",
+              "card-9-btn"
+            ],
+            "align": "stretch",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "card-9-title",
+            "component": "Text",
+            "text": "Card 9 Title",
+            "styles": {
+              "font-size": "28px",
+              "font-weight": "bold"
+            }
+          },
+          {
+            "id": "card-9-body",
+            "component": "Text",
+            "text": "This is card 9 body text with enough content to fill the area properly.",
+            "styles": {
+              "font-size": "24px",
+              "color": "#666666"
+            }
+          },
+          {
+            "id": "card-9-btn",
+            "component": "Button",
+            "child": "card-9-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Card 9 action",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "card-9-btn-txt",
+            "component": "Text",
+            "text": "Action 9"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

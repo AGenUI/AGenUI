@@ -1,0 +1,63 @@
+{
+  "description": "Multi-Surface test case A: Surface-A renders Button component, verifies independent rendering of multiple surfaceIds within the same SM (used with surface_b.json)",
+  "surfaceId": "test-surf-multi-a",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-multi-a",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-multi-a",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["btn-a"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px"
+            }
+          },
+          {
+            "id": "btn-a",
+            "component": "Button",
+            "child": "btn-a-text",
+            "action": {
+              "event": {
+                "event": "click"
+              }
+            },
+            "styles": {
+              "width": "auto",
+              "height": "80px",
+              "border-radius": "12px",
+              "background-color": "#FF6B35"
+            }
+          },
+          {
+            "id": "btn-a-text",
+            "component": "Text",
+            "text": "Surface A Button",
+            "styles": {
+              "font-size": "28px",
+              "color": "#FFFFFF",
+              "text-align": "center"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 3,
+    "componentTypes": ["Column", "Button", "Text"],
+    "rootComponentId": "root",
+    "componentIds": ["root", "btn-a", "btn-a-text"],
+    "note": "Surface A must be isolated from Surface B; Surface B's getComponentTree() must not contain btn-a"
+  }
+}

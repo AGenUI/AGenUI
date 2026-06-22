@@ -141,6 +141,10 @@ void TabsComponent::onUpdateProperties(const nlohmann::json& properties) {
     if (properties.contains("tabs") && properties["tabs"].is_array()) {
         buildTabBar(properties);
     }
+    
+    if (properties.contains("styles") && properties["styles"].is_object()) {
+        updateTabStyles();
+    }
 
     HM_LOGI( "id=%s, selectedIndex=%d",
                 m_id.c_str(), m_selectedIndex);
@@ -371,11 +375,11 @@ void TabsComponent::updateTabStyles() {
 
     const nlohmann::json tabsStyles = getComponentStylesFor("Tabs");
     if (tabsStyles.is_object()) {
-        if (tabsStyles.contains("tab-font-color") && tabsStyles["tab-font-color"].is_string()) {
-            fontColor = parseColor(tabsStyles["tab-font-color"].get<std::string>());
+        if (tabsStyles.contains("tab-font-color")) {
+            fontColor = parseColorWithToken(tabsStyles["tab-font-color"], fontColor);
         }
-        if (tabsStyles.contains("tab-font-color-selected") && tabsStyles["tab-font-color-selected"].is_string()) {
-            fontColorSelected = parseColor(tabsStyles["tab-font-color-selected"].get<std::string>());
+        if (tabsStyles.contains("tab-font-color-selected")) {
+            fontColorSelected = parseColorWithToken(tabsStyles["tab-font-color-selected"], fontColorSelected);
         }
 
         auto readFontSize = [&tabsStyles](const char* key, float& out) {

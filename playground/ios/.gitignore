@@ -1,5 +1,5 @@
-# iOS Playground - extends platforms/ios common rules
-# Only playground-specific ignores listed here
+# iOS Playground - reuses the common rules from platforms/ios
+# Only playground-specific entries are listed here
 
 # CocoaPods
 Pods/

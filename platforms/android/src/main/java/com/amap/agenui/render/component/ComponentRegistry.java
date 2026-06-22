@@ -138,7 +138,7 @@ public class ComponentRegistry {
         registerComponent("RichText", new com.amap.agenui.render.component.factory.RichTextComponentFactory());
 
         if (AGenUILogger.isLoggingEnabled()) {
-            AGenUILogger.d(TAG, "Built-in components registered: " + factories.size() + "/8 ✅ All done");
+            AGenUILogger.d(TAG, "Built-in components registered: " + factories.size() + "/22 ✅ All done");
         }
     }
 

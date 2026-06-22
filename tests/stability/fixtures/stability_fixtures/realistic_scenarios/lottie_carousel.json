@@ -1,0 +1,40 @@
+{
+  "description": "Lottie + Carousel with interrupt recovery mid-playback",
+  "surfaceId": "realistic-lottie",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-lottie","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json","animated":true}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Render carousel with Lottie",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-lottie","components":[{"id":"root","component":"Column","children":["title","carousel","lottie-section"],"styles":{"width":"100%","padding":"16px","gap":"16px"}},{"id":"title","component":"Text","text":"Featured Content","styles":{"font-size":"22px","font-weight":"bold","color":"#1A237E"}},{"id":"carousel","component":"Carousel","children":["slide1","slide2","slide3"],"autoplay":true,"interval":2000,"styles":{"width":"100%","height":"200px","border-radius":"12px"}},{"id":"slide1","component":"Card","child":"s1t","styles":{"width":"100%","height":"100%","background-color":"#E3F2FD","justify-content":"center","align-items":"center"}},{"id":"s1t","component":"Text","text":"Explore New Routes","styles":{"font-size":"24px","font-weight":"bold","color":"#1565C0","text-align":"center"}},{"id":"slide2","component":"Card","child":"s2t","styles":{"width":"100%","height":"100%","background-color":"#E8F5E9","justify-content":"center","align-items":"center"}},{"id":"s2t","component":"Text","text":"Real-time Traffic Updates","styles":{"font-size":"24px","font-weight":"bold","color":"#2E7D32","text-align":"center"}},{"id":"slide3","component":"Card","child":"s3t","styles":{"width":"100%","height":"100%","background-color":"#FFF3E0","justify-content":"center","align-items":"center"}},{"id":"s3t","component":"Text","text":"Smart Navigation AI","styles":{"font-size":"24px","font-weight":"bold","color":"#E65100","text-align":"center"}},{"id":"lottie-section","component":"Column","children":["lottie-title","lottie"],"styles":{"align-items":"center","gap":"8px"}},{"id":"lottie-title","component":"Text","text":"Loading animation","styles":{"font-size":"14px","color":"#666"}},{"id":"lottie","component":"Lottie","url":"https://lottie.host/embed/dotlottie/default-loading.lottie","autoplay":true,"loop":true,"styles":{"width":"120px","height":"120px"}}]}}
+    },
+    {
+      "action": "beginNewStream",
+      "delay_ms": 3000,
+      "description": "INTERRUPT: start new stream without ending previous (simulates crash recovery)"
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 500,
+      "description": "Recovery: render fresh content on same surface",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-lottie","components":[{"id":"root","component":"Column","children":["title","status","carousel"],"styles":{"width":"100%","padding":"16px","gap":"16px"}},{"id":"title","component":"Text","text":"Featured Content (Recovered)","styles":{"font-size":"22px","font-weight":"bold","color":"#4CAF50"}},{"id":"status","component":"Card","child":"st","styles":{"padding":"12px","background-color":"#E8F5E9","border-radius":"8px"}},{"id":"st","component":"Text","text":"Stream recovered successfully","styles":{"font-size":"14px","color":"#2E7D32"}},{"id":"carousel","component":"Carousel","children":["ns1","ns2"],"autoplay":true,"interval":2500,"styles":{"width":"100%","height":"180px","border-radius":"12px"}},{"id":"ns1","component":"Card","child":"n1t","styles":{"width":"100%","height":"100%","background-color":"#F3E5F5","justify-content":"center","align-items":"center"}},{"id":"n1t","component":"Text","text":"Recovered: Nearby Places","styles":{"font-size":"22px","font-weight":"bold","color":"#6A1B9A","text-align":"center"}},{"id":"ns2","component":"Card","child":"n2t","styles":{"width":"100%","height":"100%","background-color":"#E0F7FA","justify-content":"center","align-items":"center"}},{"id":"n2t","component":"Text","text":"Recovered: Favorites","styles":{"font-size":"22px","font-weight":"bold","color":"#00695C","text-align":"center"}}]}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 2500,
+      "description": "Final stable state",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-lottie","components":[{"id":"root","component":"Column","children":["title","done"],"styles":{"width":"100%","padding":"16px","gap":"16px","align-items":"center"}},{"id":"title","component":"Text","text":"Content Ready","styles":{"font-size":"22px","font-weight":"bold","color":"#1A237E"}},{"id":"done","component":"Text","text":"All content loaded and displayed correctly","styles":{"font-size":"16px","color":"#4CAF50"}}]}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 6800,
+    "components_used": ["Carousel", "Lottie", "Card", "Text", "Column"],
+    "stress_coverage": "INTERRUPT_RECOVER+EXTREME_RENDER"
+  }
+}

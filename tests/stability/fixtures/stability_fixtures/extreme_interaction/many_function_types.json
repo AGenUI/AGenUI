@@ -1,0 +1,209 @@
+{
+  "description": "Stability: All function call types used in one surface",
+  "surfaceId": "stability-all-funcs",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-all-funcs",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-all-funcs",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "t1",
+              "t2",
+              "t3",
+              "t4",
+              "t5",
+              "t6",
+              "t7",
+              "t8",
+              "btn-valid"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "t1",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": {
+                "value": {
+                  "path": "/date"
+                },
+                "format": "yyyy-MM-dd"
+              },
+              "returnType": "string"
+            }
+          },
+          {
+            "id": "t2",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": {
+                "value": "Hello ${/user/name}!"
+              },
+              "returnType": "string"
+            }
+          },
+          {
+            "id": "t3",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": {
+                "value": {
+                  "path": "/amount"
+                }
+              },
+              "returnType": "string"
+            }
+          },
+          {
+            "id": "t4",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": {
+                "value": {
+                  "path": "/price"
+                },
+                "currency": "USD"
+              },
+              "returnType": "string"
+            }
+          },
+          {
+            "id": "t5",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": {
+                "value": {
+                  "path": "/count"
+                },
+                "one": "1 item",
+                "other": "items"
+              },
+              "returnType": "string"
+            }
+          },
+          {
+            "id": "t6",
+            "component": "Text",
+            "text": {
+              "call": "required",
+              "args": {
+                "value": {
+                  "path": "/email"
+                }
+              },
+              "returnType": "boolean"
+            }
+          },
+          {
+            "id": "t7",
+            "component": "Text",
+            "text": {
+              "call": "email",
+              "args": {
+                "value": {
+                  "path": "/email"
+                }
+              },
+              "returnType": "boolean"
+            }
+          },
+          {
+            "id": "t8",
+            "component": "Text",
+            "text": {
+              "call": "numeric",
+              "args": {
+                "value": {
+                  "path": "/amount"
+                }
+              },
+              "returnType": "boolean"
+            }
+          },
+          {
+            "id": "btn-valid",
+            "component": "Button",
+            "child": "btn-valid-txt",
+            "checks": [
+              {
+                "condition": {
+                  "call": "required",
+                  "args": {
+                    "value": {
+                      "path": "/email"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Email required"
+              },
+              {
+                "condition": {
+                  "call": "email",
+                  "args": {
+                    "value": {
+                      "path": "/email"
+                    }
+                  },
+                  "returnType": "boolean"
+                },
+                "message": "Invalid email"
+              }
+            ],
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "All valid!",
+                  "duration": 2
+                }
+              }
+            }
+          },
+          {
+            "id": "btn-valid-txt",
+            "component": "Text",
+            "text": "Submit"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-all-funcs",
+        "value": {
+          "date": "2026-05-11",
+          "user": {
+            "name": "Tester"
+          },
+          "amount": 42.5,
+          "price": 99.99,
+          "count": 3,
+          "email": "test@example.com"
+        }
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_interaction",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

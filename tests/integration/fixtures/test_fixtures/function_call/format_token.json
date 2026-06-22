@@ -1,0 +1,66 @@
+{
+  "description": "SKILL-06: token design token resolution function test, verifies token reference resolution via Text.text FunctionCall binding",
+  "surfaceId": "test-surf-fc-06",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-fc-06",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-fc-06",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-06a", "text-06b", "text-06c"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-06a",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "primary color: ${token(name: 'color.primary')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-06b",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "body font size: ${token(name: 'font.size.body')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-06c",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "fallback: ${token(name: 'nonexistent.token.xyz')}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 4,
+    "componentIds": ["root", "text-06a", "text-06b", "text-06c"],
+    "textContent": [
+      { "componentId": "text-06a", "contains": "primary color:",   "note": "SKILL-06-a: registered color token resolution, prefix must exist, actual color value depends on registry" },
+      { "componentId": "text-06b", "contains": "body font size:",  "note": "SKILL-06-b: registered font token resolution, prefix must exist" },
+      { "componentId": "text-06c", "contains": "fallback:",        "note": "SKILL-06-c: unregistered token returns empty string or raw token name, prefix must exist" }
+    ]
+  }
+}

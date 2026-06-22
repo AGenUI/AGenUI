@@ -1,0 +1,139 @@
+{
+  "description": "SCENE-02: DataBinding combined with FunctionCall, FunctionCall args dynamically bound to updateDataModel data via JSON Pointer paths",
+  "surfaceId": "test-surf-scene-02",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-scene-02",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-scene-02",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-s2a", "text-s2b", "text-s2c", "text-s2d", "text-s2e", "text-s2f", "text-s2g", "text-s2h"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-s2a",
+            "component": "Text",
+            "text": {
+              "call": "formatDate",
+              "args": { "value": { "path": "/event/date" }, "format": "yyyy/MM/dd" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s2b",
+            "component": "Text",
+            "text": {
+              "call": "formatNumber",
+              "args": { "value": { "path": "/order/amount" }, "decimals": 2 },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s2c",
+            "component": "Text",
+            "text": {
+              "call": "formatCurrency",
+              "args": { "value": { "path": "/cart/total" }, "currency": "USD" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s2d",
+            "component": "Text",
+            "text": {
+              "call": "pluralize",
+              "args": { "value": { "path": "/inbox/count" }, "one": "message", "other": "messages" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s2e",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: ${/form/username})}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s2f",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${required(value: ${/form/emptyName})}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s2g",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: ${/form/email})}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          },
+          {
+            "id": "text-s2h",
+            "component": "Text",
+            "text": {
+              "call": "formatString",
+              "args": { "value": "${email(value: ${/form/badEmail})}" },
+              "returnType": "string"
+            },
+            "variant": "body"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "test-surf-scene-02",
+        "value": {
+          "event": { "date": "2025-06-18" },
+          "order": { "amount": 9876543.21 },
+          "cart": { "total": 299.99, "count": 1 },
+          "inbox": { "count": 5 },
+          "form": {
+            "username": "alice",
+            "emptyName": "",
+            "email": "test@example.com",
+            "badEmail": "not-an-email"
+          }
+        }
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 9,
+    "componentIds": ["root", "text-s2a", "text-s2b", "text-s2c", "text-s2d", "text-s2e", "text-s2f", "text-s2g", "text-s2h"],
+    "textContent": [
+      { "componentId": "text-s2a", "contains": "2025/06/18",     "note": "SCENE-02-a: DataBinding /event/date → formatDate yyyy/MM/dd" },
+      { "componentId": "text-s2b", "contains": "9,876,543.21",   "note": "SCENE-02-b: DataBinding /order/amount → formatNumber 2 decimal places" },
+      { "componentId": "text-s2c", "contains": "299.99",         "note": "SCENE-02-c: DataBinding /cart/total → formatCurrency USD" },
+      { "componentId": "text-s2d", "contains": "messages",       "note": "SCENE-02-d: DataBinding /inbox/count=5 → pluralize other branch" },
+      { "componentId": "text-s2e", "contains": "true",           "note": "SCENE-02-e: DataBinding /form/username='alice' → required → true" },
+      { "componentId": "text-s2f", "contains": "false",          "note": "SCENE-02-f: DataBinding /form/emptyName='' → required → false" },
+      { "componentId": "text-s2g", "contains": "true",           "note": "SCENE-02-g: DataBinding /form/email valid email → email → true" },
+      { "componentId": "text-s2h", "contains": "false",          "note": "SCENE-02-h: DataBinding /form/badEmail invalid email → email → false" }
+    ]
+  }
+}

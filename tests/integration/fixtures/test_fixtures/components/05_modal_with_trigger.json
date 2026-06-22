@@ -1,0 +1,72 @@
+{
+  "description": "Modal with trigger test case: Button triggers Modal display, verifies Modal component and its trigger/content reference relationships",
+  "surfaceId": "test-surf-modal-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-modal-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-modal-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["trigger-btn", "modal-dialog"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px"
+            }
+          },
+          {
+            "id": "trigger-btn",
+            "component": "Button",
+            "child": "trigger-btn-text",
+            "action": {
+              "event": {
+                "event": "click"
+              }
+            },
+            "styles": {
+              "width": "300px",
+              "height": "80px",
+              "border-radius": "12px"
+            }
+          },
+          {
+            "id": "trigger-btn-text",
+            "component": "Text",
+            "text": "Open Modal",
+            "styles": {
+              "font-size": "28px",
+              "text-align": "center"
+            }
+          },
+          {
+            "id": "modal-dialog",
+            "component": "Modal",
+            "trigger": "trigger-btn",
+            "content": "modal-body"
+          },
+          {
+            "id": "modal-body",
+            "component": "Text",
+            "text": "This is modal content for testing.",
+            "variant": "body"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 5,
+    "componentTypes": ["Column", "Button", "Text", "Modal", "Text"],
+    "rootComponentId": "root",
+    "componentIds": ["root", "trigger-btn", "trigger-btn-text", "modal-dialog", "modal-body"]
+  }
+}

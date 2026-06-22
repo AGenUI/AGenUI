@@ -1,0 +1,335 @@
+{
+  "description": "Stability: Very wide Row with 30 children to stress horizontal layout",
+  "surfaceId": "stability-wide-row",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-wide-row",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-wide-row",
+        "components": [
+          {
+            "id": "root",
+            "component": "Row",
+            "children": [
+              "ri-0",
+              "ri-1",
+              "ri-2",
+              "ri-3",
+              "ri-4",
+              "ri-5",
+              "ri-6",
+              "ri-7",
+              "ri-8",
+              "ri-9",
+              "ri-10",
+              "ri-11",
+              "ri-12",
+              "ri-13",
+              "ri-14",
+              "ri-15",
+              "ri-16",
+              "ri-17",
+              "ri-18",
+              "ri-19",
+              "ri-20",
+              "ri-21",
+              "ri-22",
+              "ri-23",
+              "ri-24",
+              "ri-25",
+              "ri-26",
+              "ri-27",
+              "ri-28",
+              "ri-29"
+            ],
+            "styles": {
+              "gap": "2px"
+            }
+          },
+          {
+            "id": "ri-0",
+            "component": "Text",
+            "text": "Col0",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-1",
+            "component": "Text",
+            "text": "Col1",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-2",
+            "component": "Text",
+            "text": "Col2",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-3",
+            "component": "Text",
+            "text": "Col3",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-4",
+            "component": "Text",
+            "text": "Col4",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-5",
+            "component": "Text",
+            "text": "Col5",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-6",
+            "component": "Text",
+            "text": "Col6",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-7",
+            "component": "Text",
+            "text": "Col7",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-8",
+            "component": "Text",
+            "text": "Col8",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-9",
+            "component": "Text",
+            "text": "Col9",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-10",
+            "component": "Text",
+            "text": "Col10",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-11",
+            "component": "Text",
+            "text": "Col11",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-12",
+            "component": "Text",
+            "text": "Col12",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-13",
+            "component": "Text",
+            "text": "Col13",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-14",
+            "component": "Text",
+            "text": "Col14",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-15",
+            "component": "Text",
+            "text": "Col15",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-16",
+            "component": "Text",
+            "text": "Col16",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-17",
+            "component": "Text",
+            "text": "Col17",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-18",
+            "component": "Text",
+            "text": "Col18",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-19",
+            "component": "Text",
+            "text": "Col19",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-20",
+            "component": "Text",
+            "text": "Col20",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-21",
+            "component": "Text",
+            "text": "Col21",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-22",
+            "component": "Text",
+            "text": "Col22",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-23",
+            "component": "Text",
+            "text": "Col23",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-24",
+            "component": "Text",
+            "text": "Col24",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-25",
+            "component": "Text",
+            "text": "Col25",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-26",
+            "component": "Text",
+            "text": "Col26",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-27",
+            "component": "Text",
+            "text": "Col27",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-28",
+            "component": "Text",
+            "text": "Col28",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          },
+          {
+            "id": "ri-29",
+            "component": "Text",
+            "text": "Col29",
+            "styles": {
+              "font-size": "20px",
+              "width": "100px"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "description": "Pure text rendering test case: Column containing 3 Text child components, verifies component count, types, and parent-child relationships",
+  "surfaceId": "test-surf-text-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-text-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-text-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["text-title", "text-body", "text-caption"],
+            "align": "stretch"
+          },
+          {
+            "id": "text-title",
+            "component": "Text",
+            "text": "Hello AGenUI",
+            "variant": "h1"
+          },
+          {
+            "id": "text-body",
+            "component": "Text",
+            "text": "This is a body text for testing.",
+            "variant": "body"
+          },
+          {
+            "id": "text-caption",
+            "component": "Text",
+            "text": "Caption text",
+            "variant": "caption"
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 4,
+    "componentTypes": ["Column", "Text", "Text", "Text"],
+    "rootComponentId": "root",
+    "rootComponentType": "Column",
+    "componentIds": ["root", "text-title", "text-body", "text-caption"]
+  }
+}

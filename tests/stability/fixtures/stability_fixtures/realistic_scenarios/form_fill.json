@@ -1,0 +1,59 @@
+{
+  "description": "Form fill with abnormal data injection mid-stream",
+  "surfaceId": "realistic-form",
+  "steps": [
+    {
+      "action": "createSurface",
+      "delay_ms": 0,
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-form","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json","sendDataModel":true}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 300,
+      "description": "Render form UI",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-form","components":[{"id":"root","component":"Column","children":["title","name-field","email-field","age-slider","agree-check","submit-btn"],"styles":{"width":"100%","padding":"20px","gap":"16px"}},{"id":"title","component":"Text","text":"User Registration","styles":{"font-size":"24px","font-weight":"bold","color":"#1A237E"}},{"id":"name-field","component":"TextField","placeholder":"Enter your name","label":"Full Name","dataBinding":"/name"},{"id":"email-field","component":"TextField","placeholder":"email@example.com","label":"Email","dataBinding":"/email"},{"id":"age-slider","component":"Slider","min":18,"max":80,"value":25,"label":"Age","dataBinding":"/age"},{"id":"agree-check","component":"CheckBox","label":"I agree to the terms","dataBinding":"/agreed"},{"id":"submit-btn","component":"Button","text":"Register","styles":{"background-color":"#1565C0","color":"#FFFFFF","border-radius":"8px","padding":"12px"}}]}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1500,
+      "description": "User types name",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-form","value":{"name":"John Smith"}}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1500,
+      "description": "User types email",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-form","value":{"name":"John Smith","email":"john@example.com"}}}
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1200,
+      "description": "User adjusts slider",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-form","value":{"name":"John Smith","email":"john@example.com","age":32}}}
+    },
+    {
+      "action": "rawChunk",
+      "delay_ms": 1000,
+      "description": "INJECT ABNORMAL: malformed JSON fragment",
+      "raw": "{\"version\":\"v0.9\",\"updateDataModel\":{\"surfaceId\":\"realistic-form\",\"value\":{\"name\":null,\"broken\":"
+    },
+    {
+      "action": "updateDataModel",
+      "delay_ms": 1500,
+      "description": "Recovery: normal update after error",
+      "message": {"version":"v0.9","updateDataModel":{"surfaceId":"realistic-form","value":{"name":"John Smith","email":"john@example.com","age":32,"agreed":true}}}
+    },
+    {
+      "action": "updateComponents",
+      "delay_ms": 1000,
+      "description": "Show success state",
+      "message": {"version":"v0.9","updateComponents":{"surfaceId":"realistic-form","components":[{"id":"root","component":"Column","children":["title","success"],"styles":{"width":"100%","padding":"20px","gap":"16px","align-items":"center"}},{"id":"title","component":"Text","text":"User Registration","styles":{"font-size":"24px","font-weight":"bold","color":"#1A237E"}},{"id":"success","component":"Text","text":"Registration successful!","styles":{"font-size":"18px","color":"#2E7D32","font-weight":"bold"}}]}}
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "expected_duration_ms": 9500,
+    "components_used": ["TextField", "CheckBox", "Slider", "Button", "Text", "Column"],
+    "stress_coverage": "ACTION_FLOOD+ABNORMAL_DATA"
+  }
+}

@@ -22,6 +22,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         var testDataPath: String? = nil
         var testBundleDataB64: String? = nil
         
+        // Check for stability test mode (must be before other test checks)
+        if args.contains("--stability-test") {
+            let config = StabilityTestConfig.fromLaunchArgs(args)
+            window.rootViewController = StabilityTestViewController(config: config)
+            window.makeKeyAndVisible()
+            self.window = window
+            return
+        }
+        
         // Support --testCase <id> (resolves to standard bundle path)
         if let idx = args.firstIndex(of: "--testCase"), idx + 1 < args.count {
             let caseId = args[idx + 1]

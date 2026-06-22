@@ -1,0 +1,948 @@
+{
+  "description": "Stability: 30 rapid interleaved updateComponents and updateDataModel",
+  "surfaceId": "stability-concurrent",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-concurrent",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-0"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-0",
+            "component": "Text",
+            "text": "Concurrent update 0"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 0,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-1"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-1",
+            "component": "Text",
+            "text": "Concurrent update 1"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 1,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-2"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-2",
+            "component": "Text",
+            "text": "Concurrent update 2"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 2,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-3"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-3",
+            "component": "Text",
+            "text": "Concurrent update 3"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 3,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-4"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-4",
+            "component": "Text",
+            "text": "Concurrent update 4"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 4,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-5"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-5",
+            "component": "Text",
+            "text": "Concurrent update 5"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 5,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-6"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-6",
+            "component": "Text",
+            "text": "Concurrent update 6"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 6,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-7"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-7",
+            "component": "Text",
+            "text": "Concurrent update 7"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 7,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-8"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-8",
+            "component": "Text",
+            "text": "Concurrent update 8"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 8,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-9"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-9",
+            "component": "Text",
+            "text": "Concurrent update 9"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 9,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-10"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-10",
+            "component": "Text",
+            "text": "Concurrent update 10"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 10,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-11"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-11",
+            "component": "Text",
+            "text": "Concurrent update 11"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 11,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-12"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-12",
+            "component": "Text",
+            "text": "Concurrent update 12"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 12,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-13"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-13",
+            "component": "Text",
+            "text": "Concurrent update 13"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 13,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-14"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-14",
+            "component": "Text",
+            "text": "Concurrent update 14"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 14,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-15"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-15",
+            "component": "Text",
+            "text": "Concurrent update 15"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 15,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-16"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-16",
+            "component": "Text",
+            "text": "Concurrent update 16"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 16,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-17"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-17",
+            "component": "Text",
+            "text": "Concurrent update 17"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 17,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-18"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-18",
+            "component": "Text",
+            "text": "Concurrent update 18"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 18,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-19"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-19",
+            "component": "Text",
+            "text": "Concurrent update 19"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 19,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-20"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-20",
+            "component": "Text",
+            "text": "Concurrent update 20"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 20,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-21"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-21",
+            "component": "Text",
+            "text": "Concurrent update 21"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 21,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-22"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-22",
+            "component": "Text",
+            "text": "Concurrent update 22"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 22,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-23"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-23",
+            "component": "Text",
+            "text": "Concurrent update 23"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 23,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-24"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-24",
+            "component": "Text",
+            "text": "Concurrent update 24"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 24,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-25"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-25",
+            "component": "Text",
+            "text": "Concurrent update 25"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 25,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-26"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-26",
+            "component": "Text",
+            "text": "Concurrent update 26"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 26,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-27"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-27",
+            "component": "Text",
+            "text": "Concurrent update 27"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 27,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-28"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-28",
+            "component": "Text",
+            "text": "Concurrent update 28"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 28,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-concurrent",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "item-29"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "item-29",
+            "component": "Text",
+            "text": "Concurrent update 29"
+          }
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateDataModel": {
+        "surfaceId": "stability-concurrent",
+        "value": {
+          "iteration": 29,
+          "data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "very_high",
+    "expected_behavior": "no_crash"
+  }
+}

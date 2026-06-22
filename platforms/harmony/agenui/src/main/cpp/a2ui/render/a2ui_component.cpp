@@ -20,6 +20,7 @@
 #include "a2ui/bridge/image_loader_bridge.h"
 #include "a2ui/render/gradient_applier.h"
 #include "style_parser/agenui_color_parser.h"
+#include "surface/token_parser/agenui_token_parser.h"
 
 namespace a2ui {
 
@@ -27,7 +28,7 @@ using colors::kColorTransparent;
 
 namespace {
 
-constexpr int32_t kDefaultAppearDurationMs = 800;
+constexpr int32_t kDefaultAppearDurationMs = 400;
 
 float parseOpacityValue(const nlohmann::json& value, float fallback = 1.0f) {
     if (value.is_number()) {
@@ -490,6 +491,26 @@ uint32_t A2UIComponent::parseColor(const std::string& colorStr) {
     return cv.solidColor;
 }
 
+uint32_t A2UIComponent::parseColorWithToken(const nlohmann::json& colorValue, uint32_t fallbackValue) {
+    if (colorValue.is_string()) {
+        return parseColor(colorValue.get<std::string>());
+    } else if (colorValue.is_object()) {
+        if (colorValue.contains("call") && colorValue["call"].is_string()) {
+            std::string callType = colorValue["call"].get<std::string>();
+            if (callType == "token" && colorValue.contains("args")) {
+                const auto& args = colorValue["args"];
+                if (args.contains("name") && args["name"].is_string()) {
+                    std::string tokenName = args["name"].get<std::string>();
+                    std::string resolvedColor = agenui::TokenParser::getInstance().resolve(tokenName);
+                    HM_LOGI("Resolved FunctionCall token '%s' to '%s'", tokenName.c_str(), resolvedColor.c_str());
+                    return parseColor(resolvedColor);
+                }
+            }
+        }
+    }
+
+    return fallbackValue;
+}
 
 /**
  * Extract the raw URL from a CSS url(...) value.

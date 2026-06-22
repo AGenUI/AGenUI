@@ -1,0 +1,54 @@
+{
+  "description": "TextField input sync test case: verifies that submitUIDataModel is correctly called after TextField value changes",
+  "surfaceId": "test-surf-textfield-01",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "test-surf-textfield-01",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "test-surf-textfield-01",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["input-username"],
+            "align": "stretch",
+            "styles": {
+              "padding": "20px"
+            }
+          },
+          {
+            "id": "input-username",
+            "component": "TextField",
+            "label": "Username",
+            "value": ""
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 2,
+    "componentTypes": ["Column", "TextField"],
+    "componentIds": ["root", "input-username"],
+    "interaction": {
+      "type": "textInput",
+      "componentId": "input-username",
+      "inputValue": "TestUser123",
+      "submitUIDataModel": {
+        "surfaceId": "test-surf-textfield-01",
+        "componentId": "input-username",
+        "dataContains": {
+          "value": "TestUser123"
+        },
+        "note": "Android: spy ComponentEventDispatcher or intercept nativeSubmitUIDataModel JNI call; must run in ActivityScenario with real View"
+      }
+    }
+  }
+}

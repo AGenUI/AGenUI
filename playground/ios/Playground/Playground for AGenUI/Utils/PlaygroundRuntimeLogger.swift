@@ -44,7 +44,7 @@ final class PlaygroundRuntimeLogger: NSObject, LoggerDelegate {
         let prefix = levelPrefix(for: level)
         let timestamp = dateFormatter.string(from: Date())
         print("[AGenUI/\(prefix)] \(timestamp) [\(tag):\(line)] \(message)")
-        // Asynchronously persist the log to file
+        // Asynchronously persist logs to file
         saveLogToFile(level: level, timestamp: timestamp, tag: tag, function: `func`, line: line, message: message)
     }
 

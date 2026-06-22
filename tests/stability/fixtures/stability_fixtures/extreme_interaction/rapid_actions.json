@@ -1,0 +1,58 @@
+{
+  "description": "Stability: Surface with button for 100 rapid action triggers (programmatic)",
+  "surfaceId": "stability-rapid-action",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-rapid-action",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-rapid-action",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": [
+              "action-btn"
+            ],
+            "align": "stretch"
+          },
+          {
+            "id": "action-btn",
+            "component": "Button",
+            "child": "action-btn-txt",
+            "action": {
+              "functionCall": {
+                "call": "toast",
+                "args": {
+                  "message": "Action triggered",
+                  "duration": 1
+                }
+              }
+            }
+          },
+          {
+            "id": "action-btn-txt",
+            "component": "Text",
+            "text": "Rapid Fire Button"
+          }
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_interaction",
+    "stress_level": "very_high",
+    "expected_behavior": "no_crash",
+    "programmatic_action": {
+      "componentId": "action-btn",
+      "repeat": 100,
+      "interval_ms": 10
+    }
+  }
+}
