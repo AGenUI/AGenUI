@@ -358,7 +358,7 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Playground/Pods-Playground-resources.sh",
-				"${PODS_ROOT}/../../../../platforms/iOS/AGenUI/Assets/AGenUI.bundle",
+				"${PODS_ROOT}/../../../../platforms/ios/AGenUI/Assets/AGenUI.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/DGCharts/DGCharts.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/lottie-ios/LottiePrivacyInfo.bundle",
 			);
