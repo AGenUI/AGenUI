@@ -1,0 +1,143 @@
+name: Release - iOS
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  release-ios:
+    name: Build & Publish iOS
+    runs-on: macos-26
+    # Only run when tag matches AGenUI-* format
+    if: startsWith(github.event.release.tag_name, 'AGenUI-')
+
+    steps:
+      # ==================== Setup ====================
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#AGenUI-}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: ${VERSION} from tag: ${TAG}"
+
+          # Extract base version (x.y.z) - this is what pack-release.sh uses for zip naming
+          BASE_VERSION=$(echo "$VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Base version (for zip filename): ${BASE_VERSION}"
+
+          # Determine if this is a stable release (x.y.z only, no suffix)
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_stable=true" >> "$GITHUB_OUTPUT"
+            echo "This is a STABLE release, will publish to CocoaPods"
+          else
+            echo "is_stable=false" >> "$GITHUB_OUTPUT"
+            echo "This is a PRE-RELEASE (${VERSION}), will skip CocoaPods publish"
+          fi
+
+      - name: Verify version consistency
+        run: |
+          HEADER_VERSION=$(grep -o '#define AGENUI_VERSION "[^"]*"' core/include/agenui_version.h | sed 's/#define AGENUI_VERSION "//;s/"//')
+          BASE_VERSION="${{ steps.version.outputs.base_version }}"
+          if [[ "$HEADER_VERSION" != "$BASE_VERSION" ]]; then
+            echo "::error::Version mismatch! Tag base version: ${BASE_VERSION}, agenui_version.h: ${HEADER_VERSION}"
+            echo "Please ensure the version in core/include/agenui_version.h matches the tag."
+            exit 1
+          fi
+          echo "✅ Version verified: header=${HEADER_VERSION}, tag base=${BASE_VERSION}"
+
+      # ==================== Build Environment ====================
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
+
+      - name: Print Xcode version
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Install CocoaPods
+        run: gem install cocoapods --no-document
+
+      # ==================== Build & Package ====================
+      - name: Build XCFramework and package zip
+        env:
+          AGENUI_FULL_VERSION: ${{ steps.version.outputs.version }}
+        run: ./scripts/ios/pack-release.sh --build
+
+      - name: Verify zip artifact
+        run: |
+          BASE_VERSION="${{ steps.version.outputs.base_version }}"
+          ZIP_PATH="dist/ios/publish/AGenUI-${BASE_VERSION}-ios.zip"
+          if [[ ! -f "$ZIP_PATH" ]]; then
+            echo "::error::Expected zip not found: ${ZIP_PATH}"
+            ls -la dist/ios/publish/ 2>/dev/null || echo "dist/ios/publish/ does not exist"
+            exit 1
+          fi
+          echo "✅ Zip artifact exists: ${ZIP_PATH}"
+          ls -lh "$ZIP_PATH"
+          echo ""
+          echo "Zip contents:"
+          unzip -l "$ZIP_PATH"
+
+      # ==================== Upload to GitHub Release ====================
+      - name: Upload zip to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE_VERSION="${{ steps.version.outputs.base_version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          ZIP_PATH="dist/ios/publish/AGenUI-${BASE_VERSION}-ios.zip"
+          echo "Uploading ${ZIP_PATH} to release ${TAG}..."
+          gh release upload "${TAG}" "${ZIP_PATH}" --clobber
+          echo "✅ Upload complete"
+
+      # ==================== CocoaPods Publish (stable releases only) ====================
+      - name: Pod spec lint
+        if: steps.version.outputs.is_stable == 'true'
+        run: |
+          pod spec lint platforms/ios/publish/AGenUI.podspec \
+            --allow-warnings \
+            --skip-import-validation \
+            --verbose
+
+      - name: Pod trunk push
+        if: steps.version.outputs.is_stable == 'true'
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          pod trunk push platforms/ios/publish/AGenUI.podspec \
+            --allow-warnings \
+            --skip-import-validation
+
+      # ==================== Summary ====================
+      - name: Summary
+        if: success()
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          IS_STABLE="${{ steps.version.outputs.is_stable }}"
+          echo "##iOS Release Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | \`${VERSION}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Release Type | $([ "$IS_STABLE" = 'true' ] && echo 'Stable' || echo 'Pre-release') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| GitHub Release | zip uploaded ✅ |" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$IS_STABLE" == "true" ]]; then
+            echo "| CocoaPods | pushed to trunk ✅ |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Users can now integrate via:" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`\`\`ruby" >> "$GITHUB_STEP_SUMMARY"
+            echo "pod 'AGenUI', '~> ${VERSION}'" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "| CocoaPods | skipped (pre-release) ⏭️ |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> Pre-release builds are uploaded to GitHub Release only." >> "$GITHUB_STEP_SUMMARY"
+          fi
