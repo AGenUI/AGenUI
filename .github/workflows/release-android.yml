@@ -1,0 +1,179 @@
+name: Release - Android
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  release-android:
+    name: Build & Publish Android
+    runs-on: ubuntu-latest
+    # Only run when tag matches AGenUI-* format
+    if: startsWith(github.event.release.tag_name, 'AGenUI-')
+
+    steps:
+      # ==================== Setup ====================
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#AGenUI-}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: ${VERSION} from tag: ${TAG}"
+
+          # Extract base version (x.y.z) - used for artifact naming
+          BASE_VERSION=$(echo "$VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Base version: ${BASE_VERSION}"
+
+          # Determine if this is a stable release (x.y.z only, no suffix)
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_stable=true" >> "$GITHUB_OUTPUT"
+            echo "This is a STABLE release, will publish to Maven Central"
+          else
+            echo "is_stable=false" >> "$GITHUB_OUTPUT"
+            echo "This is a PRE-RELEASE (${VERSION}), will skip Maven publish"
+          fi
+
+      - name: Verify version consistency
+        run: |
+          HEADER_VERSION=$(grep -o '#define AGENUI_VERSION "[^"]*"' core/include/agenui_version.h | sed 's/#define AGENUI_VERSION "//;s/"//')
+          BASE_VERSION="${{ steps.version.outputs.base_version }}"
+          if [[ "$HEADER_VERSION" != "$BASE_VERSION" ]]; then
+            echo "::error::Version mismatch! Tag base version: ${BASE_VERSION}, agenui_version.h: ${HEADER_VERSION}"
+            echo "Please ensure the version in core/include/agenui_version.h matches the tag."
+            exit 1
+          fi
+          echo "✅ Version verified: header=${HEADER_VERSION}, tag base=${BASE_VERSION}"
+
+      # ==================== Build Environment ====================
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install NDK and CMake
+        run: |
+          sdkmanager --install "ndk;27.3.13750724"
+          sdkmanager --install "cmake;3.18.1"
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-release-${{ hashFiles('platforms/android/**/*.gradle*', 'platforms/android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-release-
+            ${{ runner.os }}-gradle-
+
+      # ==================== GPG Signing (for Maven publish) ====================
+      - name: Import GPG private key
+        if: steps.version.outputs.is_stable == 'true'
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
+          gpgconf --launch gpg-agent
+
+      - name: Configure Gradle signing properties
+        if: steps.version.outputs.is_stable == 'true'
+        run: |
+          gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --pinentry-mode loopback \
+            --export-secret-keys "${{ secrets.SIGNING_KEY_ID }}" > ~/.gnupg/secring.gpg
+
+          mkdir -p ~/.gradle
+          cat >> ~/.gradle/gradle.properties << EOF
+          signing.keyId=${{ secrets.SIGNING_KEY_ID }}
+          signing.password=${{ secrets.GPG_PASSPHRASE }}
+          signing.secretKeyRingFile=${HOME}/.gnupg/secring.gpg
+          EOF
+
+      # ==================== Build AAR ====================
+      - name: Build Release AAR
+        env:
+          AGENUI_FULL_VERSION: ${{ steps.version.outputs.base_version }}
+        run: ./scripts/android/build.sh
+
+      - name: Verify AAR artifact
+        run: |
+          AAR_PATH="dist/android/release/AGenUI-Client-Android-release.aar"
+          if [[ ! -f "$AAR_PATH" ]]; then
+            echo "::error::Expected AAR not found: ${AAR_PATH}"
+            ls -la dist/android/release/ 2>/dev/null || echo "dist/android/release/ does not exist"
+            exit 1
+          fi
+          echo "✅ AAR artifact exists: ${AAR_PATH}"
+          ls -lh "$AAR_PATH"
+          echo ""
+          echo "AAR contents (native libs):"
+          unzip -l "$AAR_PATH" | grep "\.so"
+
+      # ==================== Upload to GitHub Release ====================
+      - name: Upload AAR to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE_VERSION="${{ steps.version.outputs.base_version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          AAR_SRC="dist/android/release/AGenUI-Client-Android-release.aar"
+          AAR_DEST="AGenUI-${BASE_VERSION}-android.aar"
+          cp "${AAR_SRC}" "${AAR_DEST}"
+          echo "Uploading ${AAR_DEST} to release ${TAG}..."
+          gh release upload "${TAG}" "${AAR_DEST}" --clobber
+          echo "✅ Upload complete"
+
+      # ==================== Maven Central Publish (stable releases only) ====================
+      - name: Publish to Maven Central Staging
+        if: steps.version.outputs.is_stable == 'true'
+        env:
+          AGENUI_FULL_VERSION: ${{ steps.version.outputs.base_version }}
+          MAVEN_URL: ${{ secrets.MAVEN_URL }}
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+        run: |
+          ./scripts/android/build.sh --publish-maven
+          echo "✅ Published to Maven Central Staging"
+          echo ""
+          echo "⚠️  Action Required: Log in to https://central.sonatype.com/ to verify and publish the deployment."
+
+      # ==================== Summary ====================
+      - name: Summary
+        if: success()
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          IS_STABLE="${{ steps.version.outputs.is_stable }}"
+          echo "## 🤖 Android Release Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Item | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | \`${VERSION}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Release Type | $([ "$IS_STABLE" = 'true' ] && echo 'Stable' || echo 'Pre-release') |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| GitHub Release | AAR uploaded ✅ |" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$IS_STABLE" == "true" ]]; then
+            echo "| Maven Central | published to staging ✅ |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> **Action Required**: Log in to [Sonatype Central Portal](https://central.sonatype.com/) to verify and publish." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "After manual publish, users can integrate via:" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`\`\`gradle" >> "$GITHUB_STEP_SUMMARY"
+            echo "implementation 'com.amap.genui:agenui-sdk:${VERSION}'" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "| Maven Central | skipped (pre-release) ⏭️ |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> Pre-release builds are uploaded to GitHub Release only." >> "$GITHUB_STEP_SUMMARY"
+          fi
