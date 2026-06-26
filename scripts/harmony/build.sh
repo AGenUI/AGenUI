@@ -88,14 +88,36 @@ fetch_build_id "harmony"
 SYMBOL_OUTPUT_DIR="${HARMONY_PROJECT_ROOT}/${HARMONY_MODULE}/build/default/outputs/default/symbol/${BUILD_MODE}"
 
 # -------------------- DevEco toolchain --------------------
-DEVECO_HOME="${DEVECO_HOME:-/Applications/DevEco-Studio.app/Contents}"
-if [[ ! -d "$DEVECO_HOME" ]]; then
-    error "DevEco Studio not found: ${DEVECO_HOME} (override via the DEVECO_HOME environment variable)"
+# Supports three installation layouts:
+#   1. DEVECO_HOME env var explicitly set by user
+#   2. DevEco Studio installed at the default macOS path
+#   3. HarmonyOS Command Line Tools (for CI / headless builds)
+#      - Set via COMMAND_LINE_TOOLS_HOME or auto-detected at common paths
+if [[ -z "${DEVECO_HOME:-}" ]]; then
+    if [[ -d "/Applications/DevEco-Studio.app/Contents" ]]; then
+        DEVECO_HOME="/Applications/DevEco-Studio.app/Contents"
+    elif [[ -n "${COMMAND_LINE_TOOLS_HOME:-}" && -d "${COMMAND_LINE_TOOLS_HOME}" ]]; then
+        DEVECO_HOME="${COMMAND_LINE_TOOLS_HOME}"
+    else
+        error "DevEco Studio or Command Line Tools not found. Set DEVECO_HOME or COMMAND_LINE_TOOLS_HOME."
+    fi
 fi
+info "Using DevEco toolchain at: ${DEVECO_HOME}"
 export DEVECO_SDK_HOME="${DEVECO_HOME}/sdk"
-export PATH="${DEVECO_HOME}/tools/hvigor/bin:${DEVECO_HOME}/tools/ohpm/bin:${DEVECO_HOME}/tools/node/bin:${PATH}"
 
-command -v hvigorw >/dev/null 2>&1 || error "hvigorw command not found; please verify that DevEco Studio is installed correctly"
+# Build PATH from the toolchain root. Both DevEco Studio and Command Line Tools
+# place hvigor/ohpm/node under a tools/ subdirectory.
+for _tool_dir in "${DEVECO_HOME}/tools/hvigor/bin" \
+                 "${DEVECO_HOME}/tools/ohpm/bin" \
+                 "${DEVECO_HOME}/tools/node/bin" \
+                 "${DEVECO_HOME}/hvigor/bin" \
+                 "${DEVECO_HOME}/ohpm/bin" \
+                 "${DEVECO_HOME}/node/bin"; do
+    [[ -d "$_tool_dir" ]] && PATH="${_tool_dir}:${PATH}"
+done
+export PATH
+
+command -v hvigorw >/dev/null 2>&1 || error "hvigorw command not found; please verify that DevEco Studio or Command Line Tools is installed correctly"
 
 # -------------------- Pre-release file backup / restore --------------------
 # Source files temporarily mutated during the build (e.g. flipping LOG_ENABLE)
@@ -133,7 +155,11 @@ prepare_release_env() {
     fi
     if [[ -f "$DEBUG_LOG_HEADER" ]]; then
         backup_file "$DEBUG_LOG_HEADER"
-        sed -i '' 's/#define LOG_ENABLE 1/#define LOG_ENABLE 0/' "$DEBUG_LOG_HEADER"
+        if [[ "$(uname)" == "Darwin" ]]; then
+            sed -i '' 's/#define LOG_ENABLE 1/#define LOG_ENABLE 0/' "$DEBUG_LOG_HEADER"
+        else
+            sed -i 's/#define LOG_ENABLE 1/#define LOG_ENABLE 0/' "$DEBUG_LOG_HEADER"
+        fi
         info "Disabled LOG_ENABLE (${DEBUG_LOG_HEADER})"
     fi
 }
@@ -189,7 +215,11 @@ stamp_commit_into_oh_package() {
     # affecting dependency resolution. A "." separator would yield a 4-segment
     # version that ohpm's validator rejects as non-semver.
     local new_version="${current}+${commit}"
-    sed -i '' "s/\(\"version\"[[:space:]]*:[[:space:]]*\"\)[^\"]*\"/\1${new_version}\"/" "$file"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' "s/\(\"version\"[[:space:]]*:[[:space:]]*\"\)[^\"]*\"/\1${new_version}\"/" "$file"
+    else
+        sed -i "s/\(\"version\"[[:space:]]*:[[:space:]]*\"\)[^\"]*\"/\1${new_version}\"/" "$file"
+    fi
     info "Stamped lite HAR version with commit short SHA: ${current} -> ${new_version}"
 }
 
