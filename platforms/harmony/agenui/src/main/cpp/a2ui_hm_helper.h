@@ -3,11 +3,11 @@
 #include <hilog/log.h>
 #include <napi/native_api.h>
 #include <js_native_api.h>
+#include <type_traits>
 #include <vector>
 #include <string>
 #include <nlohmann/json.hpp>
 #include "a2ui_api.h"
-#include "hilog/log.h"
 #include "log/a2ui_capi_log.h"
 
 namespace a2ui {
@@ -52,6 +52,7 @@ public:
 };
 
 class VariableConversion {
+    VariableConversion() = delete;
 private:
     static bool isObjectValid(napi_env env, napi_value object) {
         if (!object || !env) {
@@ -60,7 +61,6 @@ private:
         
         napi_valuetype type = napi_undefined;
         napi_status status = napi_typeof(env, object, &type);
-//        RELEASE_ASSERT_WITHLOG(status == napi_ok, "unexpected napi_status: %s", HMHelper::handle_unexpected_status(env, status).c_str());
         if (type == napi_undefined || type == napi_null) {
             return false;
         }
@@ -71,7 +71,7 @@ private:
     static napi_value getObjectProperty(napi_env env, napi_value object, const std::string& propertyName) {
         napi_value result = nullptr;
         napi_status status = napi_get_named_property(env, object, propertyName.c_str(), &result);
-//        RELEASE_ASSERT_WITHLOG(status == napi_ok, "unexpected napi_status: %s", HMHelper::handle_unexpected_status(env, status).c_str());
+        (void)status;
         return result;
     }
     
@@ -87,9 +87,7 @@ private:
     
     static napi_value getGlobalObjectFunction(napi_env env, const std::string& objectName, const std::string& functionName) {
         napi_value object = getGlobalProperty(env, objectName);
-//        RELEASE_ASSERT_WITHLOG(object != nullptr, "cannot get %s from global", objectName.c_str());
         napi_value result = getObjectProperty(env, object, functionName);
-//        RELEASE_ASSERT_WITHLOG(result != nullptr, "cannot get %s from %s", functionName.c_str(), objectName.c_str());
         napi_valuetype type = napi_valuetype::napi_null;
         napi_status status = napi_typeof(env, result, &type);
         if (status != napi_ok || type != napi_function) {
@@ -104,13 +102,11 @@ private:
         napi_status status = napi_ok;
         napi_valuetype type;
         status = napi_typeof(env, function, &type);
-//        RELEASE_ASSERT_WITHLOG(status == napi_ok, "unexpected napi_status: %s", HMHelper::handle_unexpected_status(env, status).c_str());
         if (type != napi_function) {
             return nullptr;
         }
         napi_value result;
         status = napi_call_function(env, object, function, arg_count, args, &result);
-//        RELEASE_ASSERT_WITHLOG(status == napi_ok, "unexpected napi_status: %s", HMHelper::handle_unexpected_status(env, status).c_str());
         return result;
     }
 
@@ -119,15 +115,23 @@ private:
         if (!stringifyFunction) {
             return "";
         }
-        napi_status status;
         napi_value jsonString = nullptr;
         napi_value argv[1];
         argv[0] = object;
-        status = napi_call_function(env, nullptr, stringifyFunction, 1, argv, &jsonString);
+        napi_status status = napi_call_function(env, nullptr, stringifyFunction, 1, argv, &jsonString);
+        if (status != napi_ok || !jsonString) {
+            return "";
+        }
         size_t stringSize = 0;
         status = napi_get_value_string_utf8(env, jsonString, nullptr, 0, &stringSize);
+        if (status != napi_ok) {
+            return "";
+        }
         std::vector<char> buffer(stringSize + 1, 0);
-        status  = napi_get_value_string_utf8(env, jsonString, buffer.data(), buffer.size(), &stringSize);
+        status = napi_get_value_string_utf8(env, jsonString, buffer.data(), buffer.size(), &stringSize);
+        if (status != napi_ok) {
+            return "";
+        }
         return buffer.data();
     }
     
@@ -206,7 +210,9 @@ public:
         napi_create_bigint_int64(env, t, result);
     }
 
-    static void toNapiValue(napi_env env, long long t, napi_value* result) {
+    template <typename T, typename = std::enable_if_t<
+        std::is_same_v<T, long long> && !std::is_same_v<T, int64_t>>>
+    static void toNapiValue(napi_env env, T t, napi_value* result) {
         napi_create_bigint_int64(env, t, result);
     }
 
@@ -239,30 +245,21 @@ public:
             napi_value value;
             toNapiValue(env, t[i], &value);
             auto status = napi_set_element(env, *result, i, value);
-//            RELEASE_ASSERT_WITHLOG(status == napi_ok, "%s", HMHelper::handle_unexpected_status(env,status).c_str());
+            (void)status;
         }
     }
     
-    // Convert a variadic argument list to napi_value instances.
     template <typename... Args>
     static void convert(napi_env env, std::vector<napi_value>& result, const Args&... args) {
-        toNapiHelper(env, result, args...);
+        result.reserve(sizeof...(args));
+        (
+            [&] {
+                napi_value v;
+                toNapiValue(env, args, &v);
+                result.push_back(v);
+            }(), ...
+        );
     }
-    
-private:
-    static void toNapiHelper(napi_env env, std::vector<napi_value>&) {
-    }
-
-    template <typename T, typename... Args>
-    static void toNapiHelper(napi_env env, std::vector<napi_value>& result, const T& arg, const Args&... args) {
-        napi_value v;
-        toNapiValue(env, arg, &v);
-        result.push_back(v);
-        toNapiHelper(env, result, args...); // Recurse through the remaining arguments.
-    }
-    
-//     static JsValue getMapFromJS(napi_env env, napi_value js_object);
-    
 };
 
 // Template implementations
@@ -271,8 +268,11 @@ inline napi_value HMHelper::callArkTSObjectFunction(const ArkTSObject& obj, cons
     std::vector<napi_value> v;
     VariableConversion::convert(obj.env, v, args...);
     
-    napi_value object;
+    napi_value object = nullptr;
     napi_get_reference_value(obj.env, obj.ref, &object);
+    if (!object) {
+        return nullptr;
+    }
 
     napi_status status;
     napi_value method = nullptr;
@@ -306,7 +306,7 @@ inline napi_value HMHelper::callArkTSFunction(const ArkTSObject& f, const Args&.
     }
     napi_status ret = napi_call_function(f.env, nullptr, func, v.size(), v.data(), &result);
     if (ret != napi_ok) {
-        std::string str = HMHelper::handle_unexpected_status(f.env, ret).c_str();
+        std::string str = HMHelper::handle_unexpected_status(f.env, ret);
         HM_LOGD("sxl-unexpected napi_status: %s", str.c_str());
         return nullptr;
     }

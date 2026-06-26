@@ -1,0 +1,25 @@
+{
+  "description": "overflow:hidden with children much larger than parent — tests clipping and content bounds calculation",
+  "surfaceId": "overflow-hidden-large",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "overflow-hidden-large",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "overflow-hidden-large",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["clip-box"], "styles": {"width": "100%", "padding": "16px"}},
+          {"id": "clip-box", "component": "Column", "children": ["big-child", "big-img"], "styles": {"width": "200px", "height": "100px", "overflow": "hidden"}},
+          {"id": "big-child", "component": "Text", "text": "This text is inside a container much smaller than the child element which should be clipped by overflow hidden", "styles": {"width": "800px", "height": "400px"}},
+          {"id": "big-img", "component": "Image", "src": "https://example.com/large.png", "styles": {"width": "1000px", "height": "1000px"}}
+        ]
+      }
+    }
+  ]
+}

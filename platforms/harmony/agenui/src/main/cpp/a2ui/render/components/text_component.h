@@ -9,6 +9,7 @@ namespace a2ui {
  *
  * Supported properties:
  *   - text: text content, as either a literalString object or a plain string
+ *   - textChunk: content to append to existing text (streaming mode)
  *   - variant: text variant such as h1-h5, caption, or body
  *   - styles:
  *       - color: text color (#RGB / #RRGGBB / #AARRGGBB)
@@ -27,7 +28,7 @@ namespace a2ui {
  *       - text-decoration-color: decoration color
  *       - filter: drop-shadow(offsetX offsetY blur color)
  */
-class TextComponent : public A2UIComponent {
+class TextComponent final : public A2UIComponent {
 public:
     TextComponent(const std::string& id, const nlohmann::json& properties);
     ~TextComponent() override;
@@ -36,20 +37,17 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
-    /** Parse and apply NODE_TEXT_CONTENT. */
     void applyTextContent(const nlohmann::json& properties);
-
-    /** Parse styles and apply native attributes. */
     void applyStyles(const nlohmann::json& properties);
 
-    /** Parse filter: drop-shadow(offsetX offsetY blur color) for text shadow. */
+    float applyFontStyles(const nlohmann::json& styles);
+    void applyTextLayoutStyles(const nlohmann::json& properties, const nlohmann::json& styles, float fontSize);
+    void applyBorderDecorationStyles(const nlohmann::json& styles, float fontSize);
+
     bool parseDropShadowFilter(const std::string& filterValue, float& offsetX, float& offsetY,
                                float& blur, uint32_t& color) const;
 
-    /** Map font weight to the ArkUI enum value. */
     static int32_t mapFontWeight(const nlohmann::json& weight);
-
-    /** Map text alignment to the ArkUI enum value. */
     static int32_t mapTextAlign(const std::string& align);
 };
 

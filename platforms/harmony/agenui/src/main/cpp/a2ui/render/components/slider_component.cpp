@@ -2,6 +2,7 @@
 #include "../a2ui_node.h"
 #include "../../utils/a2ui_color_palette.h"
 #include "../../measure/a2ui_platform_layout_bridge.h"
+#include "a2ui/utils/a2ui_parse_utils.h"
 #include "log/a2ui_capi_log.h"
 #include <algorithm>
 #include <string>
@@ -43,25 +44,6 @@ const nlohmann::json& getSliderStyleConfig() {
     }
 
     return cachedConfig;
-}
-
-float parseDimensionValue(const nlohmann::json& styleConfig, const char* key, float fallbackValue) {
-    if (!styleConfig.is_object() || !styleConfig.contains(key)) {
-        return fallbackValue;
-    }
-
-    const nlohmann::json& value = styleConfig[key];
-    try {
-        if (value.is_number()) {
-            return value.get<float>();
-        }
-        if (value.is_string()) {
-            return std::stof(value.get<std::string>());
-        }
-    } catch (...) {
-        HM_LOGW("parseDimensionValue: failed to parse '%s', using fallback %f", key, fallbackValue);
-    }
-    return fallbackValue;
 }
 
 std::string parseColorString(const nlohmann::json& styleConfig, const char* key, const std::string& fallbackValue) {
@@ -153,9 +135,8 @@ SliderComponent::~SliderComponent() {
     HM_LOGI("SliderComponent - Destroyed: id=%s", m_id.c_str());
 }
 
-void SliderComponent::destroy() {
+void SliderComponent::onDestroy() {
     destroyInternalNodes();
-    A2UIComponent::destroy();
 }
 
 // ---- Property Updates ----
@@ -184,13 +165,13 @@ void SliderComponent::applySliderStyles() {
     }
 
     const nlohmann::json& styleConfig = getSliderStyleConfig();
-    m_sliderHeight = parseDimensionValue(styleConfig, "slider-height", 48.0f);
-    m_trackHeight = parseDimensionValue(styleConfig, "track-height", 4.0f) ;
-    m_trackCornerRadius = parseDimensionValue(styleConfig, "track-corner-radius", m_trackHeight * 0.5f);
-    m_thumbOuterDiameter = parseDimensionValue(styleConfig, "thumb-outer-diameter", m_sliderHeight);
+    m_sliderHeight = parseStyleDimension(styleConfig, "slider-height", 48.0f);
+    m_trackHeight = parseStyleDimension(styleConfig, "track-height", 4.0f) ;
+    m_trackCornerRadius = parseStyleDimension(styleConfig, "track-corner-radius", m_trackHeight * 0.5f);
+    m_thumbOuterDiameter = parseStyleDimension(styleConfig, "thumb-outer-diameter", m_sliderHeight);
     m_thumbOuterDiameter = std::max(m_thumbOuterDiameter, 1.0f);
     m_thumbInnerDiameter = std::min(
-        parseDimensionValue(styleConfig, "thumb-inner-diameter", 16.0f),
+        parseStyleDimension(styleConfig, "thumb-inner-diameter", 16.0f),
         m_thumbOuterDiameter);
 
     const std::string minimumTrackColor = parseColorString(styleConfig, "minimum-track-color", "#1A66FF");
@@ -392,7 +373,7 @@ void SliderComponent::applyValue(const nlohmann::json& properties) {
     float value = extractNumberValue(properties["value"]);
 
     // Clamp the value into the active range.
-    value = std::max(m_minValue, std::min(m_maxValue, value));
+    value = std::clamp(value, m_minValue, m_maxValue);
     m_currentValue = value;
     A2UISliderNode(m_sliderHandle).setValue(value);
 
@@ -411,7 +392,7 @@ void SliderComponent::onSliderChangeEvent(ArkUI_NodeEvent* event) {
         return;
     }
 
-    self->m_currentValue = std::max(self->m_minValue, std::min(self->m_maxValue, nodeEvent->data[0].f32));
+    self->m_currentValue = std::clamp(nodeEvent->data[0].f32, self->m_minValue, self->m_maxValue);
     self->updateThumbLayout();
 }
 
@@ -425,12 +406,7 @@ float SliderComponent::extractNumberValue(const nlohmann::json& value) {
 
     // Numeric string.
     if (value.is_string()) {
-        try {
-            return std::stof(value.get<std::string>());
-        } catch (...) {
-            HM_LOGW("parseSliderNumber: invalid numeric string '%s', defaulting to 0", value.get<std::string>().c_str());
-            return 0.0f;
-        }
+        return parseFloat(value.get<std::string>(), 0.0f);
     }
 
     // DynamicNumber format: {"literalNumber": 50}
@@ -440,12 +416,7 @@ float SliderComponent::extractNumberValue(const nlohmann::json& value) {
             return literalNumber.get<float>();
         }
         if (literalNumber.is_string()) {
-            try {
-                return std::stof(literalNumber.get<std::string>());
-            } catch (...) {
-                HM_LOGW("parseSliderNumber: invalid literalNumber string '%s', defaulting to 0", literalNumber.get<std::string>().c_str());
-                return 0.0f;
-            }
+            return parseFloat(literalNumber.get<std::string>(), 0.0f);
         }
     }
 

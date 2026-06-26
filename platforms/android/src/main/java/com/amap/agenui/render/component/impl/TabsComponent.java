@@ -548,23 +548,23 @@ public class TabsComponent extends A2UILayoutComponent {
 
 
     @Override
-    public void onUpdateProperties(Map<String, Object> properties) {
+    public void onUpdateProperties(Map<String, Object> changedProps) {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.d(TAG, "onUpdateProperties: id=" + getId()
                     + ", tabLayoutNull=" + (tabLayout == null)
-                    + ", hasTabs=" + properties.containsKey("tabs")
-                    + ", properties=" + properties);
+                    + ", hasTabs=" + changedProps.containsKey("tabs")
+                    + ", changedProps=" + changedProps);
         }
 
         if (tabLayout == null) {
             return;
         }
 
-        if (properties.containsKey("tabs")) {
+        if (changedProps.containsKey("tabs")) {
             parseTabs();
         }
 
-        Map<String, Object> styles = extractStyles(properties);
+        Map<String, Object> styles = extractStyles(changedProps);
 
         int tabFontColor = tabLayout.getTabNormalTextColor();
         if (styles.containsKey("tab-font-color")) {

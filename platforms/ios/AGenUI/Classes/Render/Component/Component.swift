@@ -39,7 +39,11 @@ public enum MeasureMode: Int {
     
     /// Component properties
     public var properties: [String: Any] = [:]
-    
+
+    /// Per-key dirty tracking for incremental updates.
+    /// Created on the first `updateProperties` call.
+    private var state: ComponentState?
+
     // MARK: - Tree Structure
     
     /// Child components list
@@ -84,7 +88,6 @@ public enum MeasureMode: Int {
         self.componentType = componentType
         self.properties = properties
         super.init(frame: .zero)
-        
         #if DEBUG
         accessibilityLabel = "\(componentType) \(componentId)"
         accessibilityIdentifier = "\(componentType) \(componentId)"
@@ -137,9 +140,8 @@ public enum MeasureMode: Int {
         
         // Insert at correct position in children array
         children.insert(child, at: min(insertPosition, children.count))
-        
-        // Use insertSubview to insert at correct view position
-        insertSubview(child, at: insertPosition)
+
+        attachChildView(child, at: insertPosition)
     }
     
     /// Remove a child component
@@ -173,9 +175,18 @@ public enum MeasureMode: Int {
         children.insert(child, at: index)
         child.parent = self
         child.surface = self.surface
-        
-        // Add subview
-        addSubview(child)
+
+        attachChildView(child, at: index)
+    }
+
+    private func attachChildView(_ child: Component, at index: Int) {
+        guard shouldCreateChildView() else { return }
+        guard canCreateChildViewConsideringParent() || isViewCreated else { return }
+
+        child.createView()
+        if child.superview !== self {
+            insertSubview(child, at: min(index, subviews.count))
+        }
     }
     
     /// Get child component
@@ -222,42 +233,64 @@ public enum MeasureMode: Int {
     
     /// Update component properties
     ///
-    /// Subclasses should override this method to handle specific properties.
+    /// First call: initialises `ComponentState` and runs the full-apply path.
+    /// Subsequent calls: uses the incremental path — the diff is compared per-key
+    /// against stored values, and layout/CSS is skipped when nothing actually changed.
     ///
-    /// - Parameter properties: New properties dictionary
+    /// Aligned with HarmonyOS `A2UIComponent::updateProperties` and Android
+    /// `A2UIComponent.updateProperties`.
+    ///
+    /// - Parameter properties: diff map from the core engine (only changed keys)
     @MainActor open func updateProperties(_ properties: [String: Any]) {
+        if state == nil {
+            state = ComponentState()
+        }
+
+        // Per-key compare against stored values; only truly changed keys are marked dirty.
+        state!.updateProperties(properties)
+
+        // Flatten supported CSS keys out of the styles sub-object and merge into stored properties.
         var allProperties = properties
-        
-        // 1. Extract and merge styles field
         if let styles = allProperties["styles"] as? [String: Any] {
-            // 1a. Apply layout position and size from Engine-computed values (x, y, width, height)
-            applyLayoutFromStyles(styles)
-            
             let supportedStyles = filterSupportedProperties(styles)
             allProperties.merge(supportedStyles) { _, new in new }
+            // Keep the latest Yoga frame for later lazy createView() replays.
+            var storedStyles = self.properties["styles"] as? [String: Any] ?? [:]
+            for key in ["x", "y", "width", "height"] {
+                if let value = styles[key] {
+                    storedStyles[key] = value
+                }
+            }
+            self.properties["styles"] = storedStyles
             allProperties.removeValue(forKey: "styles")
         }
-        
-        // 2. Update stored properties
         self.properties.merge(allProperties) { _, new in new }
 
-        // 3. Apply CSS visual properties to self (Component is itself a UIView)
-        CSSPropertyApplier.apply(properties: allProperties, to: self)
-        
-        // 5. Extract and process action
+        // Skip the entire apply cycle when nothing actually changed.
+        if !state!.isDirty {
+            return
+        }
+
+        // Layout + CSS only when styles changed
+        if let styles = properties["styles"] as? [String: Any] {
+            applyLayoutFromStyles(styles)
+            CSSPropertyApplier.apply(properties: allProperties, to: self)
+        }
+
+        // Extract and process action
         if let action = allProperties["action"] as? [String: Any] {
             self.actionDef = action
             addTapGesture()
-        } else if allProperties["action"] == nil {
-            // Only remove when explicitly passed nil
         }
-        
+
         #if DEBUG
-        accessibilityHint = allProperties.description
+        accessibilityHint = properties.description
         #endif
-        
-        // 6. Notify properties update callback
+
+        // Notify properties update callback
         onPropertiesUpdate?(allProperties)
+
+        state!.clearDirty()
     }
     
     // MARK: - Visual Style Hooks
@@ -284,7 +317,7 @@ public enum MeasureMode: Int {
     }
     
     /// Base point scale factor: converts a2ui units to pt (a2ui / 2 = pt)
-    private static let BS_POINT_SCALE: CGFloat = 0.5
+    public static let BS_POINT_SCALE: CGFloat = 0.5
 
     /// Apply layout position and size from Engine-computed styles (x, y, width, height)
     ///
@@ -316,7 +349,46 @@ public enum MeasureMode: Int {
         if let f = value as? Float { return CGFloat(f) }
         return 0
     }
+
+    // MARK: - View Lifecycle
+    /// view creation to createView(); non-lazy components create views in init.
     
+    open func shouldCreateChildView() -> Bool {
+        return true
+    }
+    
+    func canCreateChildViewConsideringParent() -> Bool{
+        guard shouldCreateChildView() else {return false}
+        if let parent = parent,!parent.canCreateChildViewConsideringParent(){
+            return false
+        }
+        return true
+    }
+    
+
+    public private(set) var isViewCreated: Bool = false
+
+
+    /// Idempotent lifecycle hook: creates internal views, recursively creates children,
+    /// then applies all stored properties.
+    open func createView() {
+        guard !isViewCreated else { return }
+        isViewCreated = true
+        createChildViews()
+        updateProperties(self.properties)
+    }
+
+
+    /// Recursively create views for all children and add them to the view hierarchy.
+    private func createChildViews() {
+        for child in children {
+            child.createView()
+            if child.superview != self {
+                addSubview(child)
+            }
+        }
+        
+    }
     // MARK: - Layout
 
     /// Override UIView.frame setter so that container parents (e.g., ListComponent)
@@ -402,6 +474,27 @@ public enum MeasureMode: Int {
         triggerAction()
     }
     
+    // MARK: - Appearance Tracking
+
+    /// Notify SurfaceManager that a child component has entered the visible area.
+    /// - Parameters:
+    ///   - parentType: Container type ("List" / "Carousel" etc.)
+    ///   - properties: The appeared child's full properties dictionary
+    final func notifyAppeared() {
+        guard let surface = surface,
+              let parent = parent else { return }
+
+        var properties = properties
+        properties.removeValue(forKey: "styles")
+        properties["id"] = componentId
+        surface.surfaceManager?.notifyComponentAppeared(
+            surface: surface,
+            parentComponentId: parent.componentId,
+            parentType: parent.componentType,
+            properties: properties
+        )
+    }
+
     // MARK: - Local Style Config
     
     /// Get the component's local style config

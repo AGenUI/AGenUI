@@ -1,0 +1,20 @@
+{
+  "description": "Charts inside Tabs with tab switching - tests chart lifecycle across tab changes",
+  "surfaceId": "stability-chart-tabs",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-tabs","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-tabs","components":[
+      {"id":"root","component":"Column","children":["tabs1"],"styles":{"width":"100%","padding":"8px"}},
+      {"id":"tabs1","component":"Tabs","tabs":[{"label":"Bar Chart","child":"tab1"},{"label":"Line Chart","child":"tab2"},{"label":"Pie Chart","child":"tab3"}],"styles":{"width":"100%"}},
+      {"id":"tab1","component":"Column","children":["tc1","tc1chart"],"styles":{"padding":"8px"}},
+      {"id":"tc1","component":"Text","text":"Bar Chart View"},
+      {"id":"tc1chart","component":"Chart","properties":{"chartType":"bar","data":{"labels":["X","Y","Z"],"datasets":[{"label":"Data","data":[10,20,30]}]}},"styles":{"width":"100%","height":"250px"}},
+      {"id":"tab2","component":"Column","children":["tc2","tc2chart"],"styles":{"padding":"8px"}},
+      {"id":"tc2","component":"Text","text":"Line Chart View"},
+      {"id":"tc2chart","component":"Chart","properties":{"chartType":"line","data":{"labels":["1","2","3","4","5","6","7","8"],"datasets":[{"label":"Trend","data":[5,10,8,15,12,20,18,25]}]}},"styles":{"width":"100%","height":"250px"}},
+      {"id":"tab3","component":"Column","children":["tc3","tc3chart"],"styles":{"padding":"8px"}},
+      {"id":"tc3","component":"Text","text":"Pie Chart View"},
+      {"id":"tc3chart","component":"Chart","properties":{"chartType":"pie","data":{"labels":["Red","Blue","Green"],"datasets":[{"label":"Colors","data":[33,33,34]}]}},"styles":{"width":"100%","height":"250px","aspect-ratio":"1"}}
+    ]}}
+  ]
+}

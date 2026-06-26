@@ -26,7 +26,7 @@ namespace a2ui {
  *   - compact.*
  *   - wheels-2col / wheels-3col / wheels-5col
  */
-class DateTimeInputComponent : public A2UIComponent {
+class DateTimeInputComponent final : public A2UIComponent {
 public:
     DateTimeInputComponent(const std::string& id, const nlohmann::json& properties);
     ~DateTimeInputComponent() override;

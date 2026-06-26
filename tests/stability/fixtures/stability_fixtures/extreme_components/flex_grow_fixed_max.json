@@ -1,0 +1,25 @@
+{
+  "description": "flex-grow + fixed width + max-width all set simultaneously — tests constraint priority resolution",
+  "surfaceId": "flex-grow-fixed-max",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "flex-grow-fixed-max",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "flex-grow-fixed-max",
+        "components": [
+          {"id": "root", "component": "Row", "children": ["a", "b", "c"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "a", "component": "Text", "text": "grow+fixed+max", "styles": {"flex-grow": "1", "width": "200px", "max-width": "150px", "height": "100%"}},
+          {"id": "b", "component": "Text", "text": "grow+basis+max", "styles": {"flex-grow": "2", "flex-basis": "100px", "max-width": "120px", "height": "100%"}},
+          {"id": "c", "component": "Text", "text": "grow+min+max", "styles": {"flex-grow": "1", "min-width": "80px", "max-width": "60px", "height": "100%"}}
+        ]
+      }
+    }
+  ]
+}

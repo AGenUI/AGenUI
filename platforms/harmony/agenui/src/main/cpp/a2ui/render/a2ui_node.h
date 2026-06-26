@@ -1080,11 +1080,29 @@ public:
         ArkUI_AttributeItem item = {value, 1};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_SCROLL_ENABLE_SCROLL_INTERACTION, &item);
     }
+
+    // ========== NodeAdapter (lazy-load / recycling) ==========
+    // Only used by horizontal lists to enable on-demand node creation.
+
+    void setNodeAdapter(ArkUI_NodeAdapterHandle adapter) {
+        ArkUI_AttributeItem item = {.object = adapter};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_LIST_NODE_ADAPTER, &item);
+    }
+
+    void resetNodeAdapter() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_LIST_NODE_ADAPTER);
+    }
+
+    void setCachedCount(int32_t count) {
+        ArkUI_NumberValue value[] = {{.i32 = count}};
+        ArkUI_AttributeItem item = {value, 1};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_LIST_CACHED_COUNT, &item);
+    }
 };
 
 class A2UIDatePickerNode: public A2UINode {
 public:
-	A2UIDatePickerNode(ArkUI_NodeHandle nodeHandle) : A2UINode(nodeHandle) {
+	explicit A2UIDatePickerNode(ArkUI_NodeHandle nodeHandle) : A2UINode(nodeHandle) {
 	}
 
 public:

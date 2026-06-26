@@ -1,0 +1,53 @@
+{
+  "description": "25 children in a single Row to stress horizontal layout. Tests wide sibling count rendering and Yoga layout performance with many flex children.",
+  "surfaceId": "stability-wide-row-25",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-wide-row-25",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-wide-row-25",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["wide-row"], "styles": {"width": "100%"}},
+          {"id": "wide-row", "component": "Row", "children": ["w0","w1","w2","w3","w4","w5","w6","w7","w8","w9","w10","w11","w12","w13","w14","w15","w16","w17","w18","w19","w20","w21","w22","w23","w24"], "styles": {"width": "100%", "flex-wrap": "wrap", "gap": "2px"}},
+          {"id": "w0", "component": "Text", "text": "0", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w1", "component": "Text", "text": "1", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w2", "component": "Text", "text": "2", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w3", "component": "Text", "text": "3", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w4", "component": "Text", "text": "4", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w5", "component": "Text", "text": "5", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w6", "component": "Text", "text": "6", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w7", "component": "Text", "text": "7", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w8", "component": "Text", "text": "8", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w9", "component": "Text", "text": "9", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w10", "component": "Text", "text": "10", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w11", "component": "Text", "text": "11", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w12", "component": "Text", "text": "12", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w13", "component": "Text", "text": "13", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w14", "component": "Text", "text": "14", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w15", "component": "Text", "text": "15", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w16", "component": "Text", "text": "16", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w17", "component": "Text", "text": "17", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w18", "component": "Text", "text": "18", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w19", "component": "Text", "text": "19", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w20", "component": "Text", "text": "20", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w21", "component": "Text", "text": "21", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w22", "component": "Text", "text": "22", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w23", "component": "Text", "text": "23", "styles": {"width": "40px", "height": "30px"}},
+          {"id": "w24", "component": "Text", "text": "24", "styles": {"width": "40px", "height": "30px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

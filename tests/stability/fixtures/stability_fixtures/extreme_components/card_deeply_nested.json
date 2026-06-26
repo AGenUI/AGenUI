@@ -1,0 +1,25 @@
+{
+  "description": "Cards nested 5 levels deep - tests recursive Card rendering",
+  "surfaceId": "stability-nested-cards",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-nested-cards","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-nested-cards","components":[
+      {"id":"root","component":"Column","children":["c0"],"styles":{"width":"100%","padding":"8px"}},
+      {"id":"c0","component":"Card","child":"c0b","styles":{"width":"100%"}},
+      {"id":"c0b","component":"Column","children":["c0t","c1"],"styles":{"padding":"8px"}},
+      {"id":"c0t","component":"Text","text":"Level 0"},
+      {"id":"c1","component":"Card","child":"c1b","styles":{"width":"100%"}},
+      {"id":"c1b","component":"Column","children":["c1t","c2"],"styles":{"padding":"8px"}},
+      {"id":"c1t","component":"Text","text":"Level 1"},
+      {"id":"c2","component":"Card","child":"c2b","styles":{"width":"100%"}},
+      {"id":"c2b","component":"Column","children":["c2t","c3"],"styles":{"padding":"8px"}},
+      {"id":"c2t","component":"Text","text":"Level 2"},
+      {"id":"c3","component":"Card","child":"c3b","styles":{"width":"100%"}},
+      {"id":"c3b","component":"Column","children":["c3t","c4"],"styles":{"padding":"8px"}},
+      {"id":"c3t","component":"Text","text":"Level 3"},
+      {"id":"c4","component":"Card","child":"c4b","styles":{"width":"100%"}},
+      {"id":"c4b","component":"Column","children":["c4t"],"styles":{"padding":"8px"}},
+      {"id":"c4t","component":"Text","text":"Level 4 - Deepest"}
+    ]}}
+  ]
+}

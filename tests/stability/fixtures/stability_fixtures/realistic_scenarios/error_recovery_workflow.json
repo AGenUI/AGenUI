@@ -1,0 +1,61 @@
+{
+  "description": "Error recovery workflow: initial surface creation, update with valid components, then update that removes and re-adds components with changed structure. Tests component lifecycle resilience.",
+  "surfaceId": "stability-error-recovery",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-error-recovery",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-error-recovery",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["header", "content", "footer"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "header", "component": "Text", "text": "Loading...", "variant": "title", "styles": {"width": "100%"}},
+          {"id": "content", "component": "Column", "children": ["spinner"], "styles": {"width": "100%", "height": "200px", "align-items": "center", "justify-content": "center"}},
+          {"id": "spinner", "component": "Text", "text": "Please wait...", "styles": {}},
+          {"id": "footer", "component": "Text", "text": "v1.0", "styles": {"width": "100%"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-error-recovery",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["header", "error-box", "retry-btn"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "header", "component": "Text", "text": "Error Occurred", "variant": "title", "styles": {"width": "100%"}},
+          {"id": "error-box", "component": "Card", "child": "err-col", "styles": {"width": "100%"}},
+          {"id": "err-col", "component": "Column", "children": ["err-icon", "err-msg"], "styles": {"padding": "16px", "align-items": "center", "gap": "8px"}},
+          {"id": "err-icon", "component": "Icon", "icon": "error", "styles": {"width": "48px", "height": "48px"}},
+          {"id": "err-msg", "component": "Text", "text": "Network connection failed. Please try again.", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "retry-btn", "component": "Button", "child": "retry-txt", "styles": {"align-self": "center"}},
+          {"id": "retry-txt", "component": "Text", "text": "Retry", "styles": {}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-error-recovery",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["header", "content-list"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "header", "component": "Text", "text": "Data Loaded Successfully", "variant": "title", "styles": {"width": "100%"}},
+          {"id": "content-list", "component": "List", "children": ["item-0", "item-1", "item-2"], "styles": {"width": "100%", "height": "300px"}},
+          {"id": "item-0", "component": "Text", "text": "Record 1: Recovered data", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "item-1", "component": "Text", "text": "Record 2: More recovered data", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "item-2", "component": "Text", "text": "Record 3: Final recovered data", "styles": {"width": "100%", "height": "60px", "padding": "8px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

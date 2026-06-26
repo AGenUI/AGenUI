@@ -1,0 +1,43 @@
+{
+  "description": "Carousel with complex nested layouts per slide. Tests Carousel child rendering with Cards containing Images and Text at each slide.",
+  "surfaceId": "stability-carousel-complex",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-carousel-complex",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-carousel-complex",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["carousel1"], "styles": {"width": "100%"}},
+          {"id": "carousel1", "component": "Carousel", "children": ["slide0", "slide1", "slide2", "slide3", "slide4"], "styles": {"width": "100%", "height": "300px"}},
+          {"id": "slide0", "component": "Card", "child": "s0-col", "styles": {"width": "100%", "height": "100%"}},
+          {"id": "s0-col", "component": "Column", "children": ["s0-img", "s0-txt"], "styles": {"width": "100%", "height": "100%"}},
+          {"id": "s0-img", "component": "Image", "properties": {"url": "https://example.com/slide0.png", "width": 400, "height": 200}},
+          {"id": "s0-txt", "component": "Text", "text": "Slide 0: Welcome", "styles": {"width": "100%", "padding": "8px", "text-align": "center"}},
+          {"id": "slide1", "component": "Card", "child": "s1-col", "styles": {"width": "100%", "height": "100%"}},
+          {"id": "s1-col", "component": "Column", "children": ["s1-img", "s1-txt"], "styles": {"width": "100%", "height": "100%"}},
+          {"id": "s1-img", "component": "Image", "properties": {"url": "https://example.com/slide1.png", "width": 400, "height": 200}},
+          {"id": "s1-txt", "component": "Text", "text": "Slide 1: Features", "styles": {"width": "100%", "padding": "8px", "text-align": "center"}},
+          {"id": "slide2", "component": "Card", "child": "s2-col", "styles": {"width": "100%", "height": "100%"}},
+          {"id": "s2-col", "component": "Column", "children": ["s2-img", "s2-txt"], "styles": {"width": "100%", "height": "100%"}},
+          {"id": "s2-img", "component": "Image", "properties": {"url": "https://example.com/slide2.png", "width": 400, "height": 200}},
+          {"id": "s2-txt", "component": "Text", "text": "Slide 2: Pricing", "styles": {"width": "100%", "padding": "8px", "text-align": "center"}},
+          {"id": "slide3", "component": "Column", "children": ["s3-txt"], "styles": {"width": "100%", "height": "100%", "align-items": "center", "justify-content": "center"}},
+          {"id": "s3-txt", "component": "Text", "text": "Slide 3: Text only (no card wrapper)", "styles": {}},
+          {"id": "slide4", "component": "Column", "children": [], "styles": {"width": "100%", "height": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

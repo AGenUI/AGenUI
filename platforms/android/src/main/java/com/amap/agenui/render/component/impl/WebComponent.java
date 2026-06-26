@@ -140,14 +140,14 @@ public class WebComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (webView == null) {
             return;
         }
 
         // Update source (supports URL or HTML content)
-        if (properties.containsKey("source")) {
-            String source = String.valueOf(properties.get("source"));
+        if (changedProps.containsKey("source")) {
+            String source = String.valueOf(changedProps.get("source"));
             if (source != null && !source.isEmpty() && !source.equals("null")) {
                 // Determine whether it is a URL or HTML content
                 if (source.startsWith("http://") || source.startsWith("https://")) {

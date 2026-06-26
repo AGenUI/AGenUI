@@ -1,0 +1,64 @@
+{
+  "description": "Multiple rapid updateComponents on the same component IDs with varying dimensions — stress cache invalidation between frames",
+  "surfaceId": "multi-update-same-id",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "multi-update-same-id",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "multi-update-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["box"], "styles": {"width": "100%"}},
+          {"id": "box", "component": "Text", "text": "v1", "styles": {"width": "100px", "height": "100px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "multi-update-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["box"], "styles": {"width": "100%"}},
+          {"id": "box", "component": "Text", "text": "v2", "styles": {"width": "200px", "height": "50px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "multi-update-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["box"], "styles": {"width": "100%"}},
+          {"id": "box", "component": "Text", "text": "v3", "styles": {"width": "50%", "height": "200px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "multi-update-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["box"], "styles": {"width": "100%"}},
+          {"id": "box", "component": "Text", "text": "v4", "styles": {"width": "100%", "height": "30px", "margin": "10px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "multi-update-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["box", "box2"], "styles": {"width": "100%"}},
+          {"id": "box", "component": "Text", "text": "v5 - sibling added", "styles": {"width": "100%", "height": "60px"}},
+          {"id": "box2", "component": "Text", "text": "New sibling", "styles": {"width": "100%", "height": "40px"}}
+        ]
+      }
+    }
+  ]
+}

@@ -22,7 +22,7 @@ namespace a2ui {
  *   - tabs: tab descriptors such as [{title: "Tab 1", child: "child-id-1"}, ...]
  *   - selectedIndex: initial selected index, default 0
  */
-class TabsComponent : public A2UIComponent {
+class TabsComponent final : public A2UIComponent {
 public:
     TabsComponent(const std::string& id, const nlohmann::json& properties);
     ~TabsComponent() override;
@@ -44,13 +44,13 @@ public:
     bool shouldApplyChildLayoutSize(const A2UIComponent* child) const override;
 
     /** Clean internal handles before delegating to the base destroy path. */
-    void destroy() override;
+    void onDestroy() override;
 
     /**
      * Called by Surface when an orphan child is mounted later.
      * Shows the first tab once all tab children are ready.
      */
-    void onChildMounted(A2UIComponent* child);
+    void onChildMounted(A2UIComponent* child) override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;

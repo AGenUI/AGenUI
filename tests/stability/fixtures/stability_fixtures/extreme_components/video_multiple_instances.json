@@ -1,0 +1,34 @@
+{
+  "description": "8 Video components in a scrollable list - tests multiple video instance management",
+  "surfaceId": "stability-multi-video",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-multi-video","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-video","components":[
+      {"id":"root","component":"List","children":["v0","v1","v2","v3","v4","v5","v6","v7"],"styles":{"width":"100%"}},
+      {"id":"v0","component":"Column","children":["v0t","v0v"],"styles":{"padding":"8px"}},
+      {"id":"v0t","component":"Text","text":"Video 0"},
+      {"id":"v0v","component":"Video","properties":{"url":"https://example.com/v0.mp4"},"styles":{"width":"100%","height":"180px"}},
+      {"id":"v1","component":"Column","children":["v1t","v1v"],"styles":{"padding":"8px"}},
+      {"id":"v1t","component":"Text","text":"Video 1"},
+      {"id":"v1v","component":"Video","properties":{"url":"https://example.com/v1.mp4"},"styles":{"width":"100%","height":"180px"}},
+      {"id":"v2","component":"Column","children":["v2t","v2v"],"styles":{"padding":"8px"}},
+      {"id":"v2t","component":"Text","text":"Video 2"},
+      {"id":"v2v","component":"Video","properties":{"url":"https://example.com/v2.mp4"},"styles":{"width":"100%","height":"180px"}},
+      {"id":"v3","component":"Column","children":["v3t","v3v"],"styles":{"padding":"8px"}},
+      {"id":"v3t","component":"Text","text":"Video 3"},
+      {"id":"v3v","component":"Video","properties":{"url":"https://example.com/v3.mp4"},"styles":{"width":"100%","height":"180px"}},
+      {"id":"v4","component":"Column","children":["v4t","v4v"],"styles":{"padding":"8px"}},
+      {"id":"v4t","component":"Text","text":"Video 4"},
+      {"id":"v4v","component":"Video","properties":{"url":"https://example.com/v4.mp4"},"styles":{"width":"100%","height":"180px"}},
+      {"id":"v5","component":"Column","children":["v5t","v5v"],"styles":{"padding":"8px"}},
+      {"id":"v5t","component":"Text","text":"Video 5"},
+      {"id":"v5v","component":"Video","properties":{"url":"https://example.com/v5.mp4"},"styles":{"width":"100%","height":"180px"}},
+      {"id":"v6","component":"Column","children":["v6t","v6v"],"styles":{"padding":"8px"}},
+      {"id":"v6t","component":"Text","text":"Video 6"},
+      {"id":"v6v","component":"Video","properties":{"url":"https://example.com/v6.mp4"},"styles":{"width":"100%","height":"180px"}},
+      {"id":"v7","component":"Column","children":["v7t","v7v"],"styles":{"padding":"8px"}},
+      {"id":"v7t","component":"Text","text":"Video 7"},
+      {"id":"v7v","component":"Video","properties":{"url":"https://example.com/v7.mp4"},"styles":{"width":"100%","height":"180px"}}
+    ]}}
+  ]
+}

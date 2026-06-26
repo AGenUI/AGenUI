@@ -2,6 +2,7 @@
 #include "a2ui_platform_layout_bridge.h"
 #include "hm_text_measure_utils.h"
 #include "a2ui/third_party/key_define.h"
+#include "a2ui/utils/a2ui_measure_mode.h"
 #include "nlohmann/json.hpp"
 #include <algorithm>
 #include <climits>
@@ -82,8 +83,8 @@ agenui::MeasureResult DateTimeInputComponentMeasurement::measure(
         float availWidth = 0.0f;
         MeasureMode wMode = MeasureModeUndefined;
 
-        if (modes.width.mode == 1 /*Exactly*/ || modes.width.mode == 2 /*AtMost*/) {
-            wMode = (modes.width.mode == 1) ? MeasureModeExactly : MeasureModeAtMost;
+        if (modes.width.mode == kModeExactly || modes.width.mode == kModeAtMost) {
+            wMode = (modes.width.mode == kModeExactly) ? MeasureModeExactly : MeasureModeAtMost;
             availWidth = std::max(0.0f, modes.width.maxValue - reservedWidth);
         }
 
@@ -122,13 +123,13 @@ agenui::MeasureResult DateTimeInputComponentMeasurement::measure(
     if (showIcon) measuredHeight = std::max(measuredHeight, iconSize + paddingVertical * 2.0f);
 
     // Constrain to modes
-    if ((modes.width.mode == 1 || modes.width.mode == 2) && modes.width.maxValue > 0.0f) {
-        measuredWidth = modes.width.mode == 2
+    if ((modes.width.mode == kModeExactly || modes.width.mode == kModeAtMost) && modes.width.maxValue > 0.0f) {
+        measuredWidth = modes.width.mode == kModeAtMost
             ? std::min(measuredWidth, modes.width.maxValue)
             : modes.width.maxValue;
     }
-    if ((modes.height.mode == 1 || modes.height.mode == 2) && modes.height.maxValue > 0.0f) {
-        measuredHeight = modes.height.mode == 2
+    if ((modes.height.mode == kModeExactly || modes.height.mode == kModeAtMost) && modes.height.maxValue > 0.0f) {
+        measuredHeight = modes.height.mode == kModeAtMost
             ? std::min(measuredHeight, modes.height.maxValue)
             : modes.height.maxValue;
     }

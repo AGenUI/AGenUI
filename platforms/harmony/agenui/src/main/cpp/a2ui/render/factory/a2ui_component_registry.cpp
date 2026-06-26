@@ -11,6 +11,11 @@ ComponentRegistry::ComponentRegistry() {
 }
 
 ComponentRegistry::~ComponentRegistry() {
+    if (ownsFactories_) {
+        for (auto& [type, factory] : factories_) {
+            delete factory;
+        }
+    }
 }
 
 // ---- Factory Management ----

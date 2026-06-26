@@ -1,0 +1,23 @@
+{
+  "description": "Chart component receiving multiple data updates - tests chart re-render pipeline",
+  "surfaceId": "stability-chart-update",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-update","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-update","components":[
+      {"id":"root","component":"Column","children":["title","chart1"],"styles":{"width":"100%","padding":"16px"}},
+      {"id":"title","component":"Text","text":"Sales Dashboard","styles":{"width":"100%"}},
+      {"id":"chart1","component":"Chart","properties":{"chartType":"bar","data":{"labels":["Q1","Q2","Q3","Q4"],"datasets":[{"label":"Revenue","data":[100,200,150,300]}]}},"styles":{"width":"100%","height":"300px"}}
+    ]}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-update","components":[
+      {"id":"root","component":"Column","children":["title","chart1"],"styles":{"width":"100%","padding":"16px"}},
+      {"id":"title","component":"Text","text":"Sales Dashboard - Updated","styles":{"width":"100%"}},
+      {"id":"chart1","component":"Chart","properties":{"chartType":"line","data":{"labels":["Q1","Q2","Q3","Q4"],"datasets":[{"label":"Revenue","data":[300,150,250,400]},{"label":"Cost","data":[50,100,80,120]}]}},"styles":{"width":"100%","height":"300px"}}
+    ]}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-update","components":[
+      {"id":"root","component":"Column","children":["title","chart1","chart2"],"styles":{"width":"100%","padding":"16px"}},
+      {"id":"title","component":"Text","text":"Sales Dashboard - Extended","styles":{"width":"100%"}},
+      {"id":"chart1","component":"Chart","properties":{"chartType":"pie","data":{"labels":["A","B","C","D","E","F","G","H"],"datasets":[{"label":"Share","data":[10,20,30,15,5,8,7,5]}]}},"styles":{"width":"100%","height":"250px"}},
+      {"id":"chart2","component":"Chart","properties":{"chartType":"bar","data":{"labels":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"datasets":[{"label":"Monthly","data":[12,19,3,5,2,3,7,8,15,20,25,30]}]}},"styles":{"width":"100%","height":"250px"}}
+    ]}}
+  ]
+}

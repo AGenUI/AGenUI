@@ -1,0 +1,54 @@
+{
+  "description": "Tabs nested inside Tabs to test recursive tabs yoga helper layout computation",
+  "surfaceId": "tabs_nested_in_tabs",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "tabs_nested_in_tabs",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "tabs_nested_in_tabs",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["outer-tabs"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "outer-tabs", "component": "Tabs", "tabs": [
+            {"label": "Outer A", "child": "inner-tabs-a"},
+            {"label": "Outer B", "child": "inner-tabs-b"},
+            {"label": "Outer C", "child": "oc-text"}
+          ], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "inner-tabs-a", "component": "Tabs", "tabs": [
+            {"label": "Inner A1", "child": "deep-tabs"},
+            {"label": "Inner A2", "child": "ia2-text"}
+          ], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "deep-tabs", "component": "Tabs", "tabs": [
+            {"label": "Deep 1", "child": "d1"},
+            {"label": "Deep 2", "child": "d2"}
+          ], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "d1", "component": "Text", "text": "Deepest level tab content 1"},
+          {"id": "d2", "component": "Text", "text": "Deepest level tab content 2"},
+          {"id": "ia2-text", "component": "Text", "text": "Inner tab A2 content"},
+          {"id": "inner-tabs-b", "component": "Tabs", "tabs": [
+            {"label": "Inner B1", "child": "ib1"},
+            {"label": "Inner B2", "child": "ib2"},
+            {"label": "Inner B3", "child": "ib3"}
+          ], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "ib1", "component": "Text", "text": "Inner B1 content"},
+          {"id": "ib2", "component": "Column", "children": ["ib2a", "ib2b"], "styles": {"width": "100%"}},
+          {"id": "ib2a", "component": "Text", "text": "Column inside inner tab"},
+          {"id": "ib2b", "component": "Text", "text": "Second row in inner tab"},
+          {"id": "ib3", "component": "Text", "text": "Inner B3 content"},
+          {"id": "oc-text", "component": "Text", "text": "Simple outer tab C content"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

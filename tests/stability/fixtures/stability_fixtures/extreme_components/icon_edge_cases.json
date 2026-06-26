@@ -1,0 +1,59 @@
+{
+  "description": "Icon component with various edge cases: known icons, unknown icon names, very small and very large sizes. Tests IconResourceMapper fallback paths.",
+  "surfaceId": "stability-icon-edges",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-icon-edges",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-icon-edges",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "r1", "component": "Row", "children": ["i1", "l1"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "i1", "component": "Icon", "icon": "info", "styles": {"width": "24px", "height": "24px"}},
+          {"id": "l1", "component": "Text", "text": "Standard info icon 24px", "styles": {}},
+          {"id": "r2", "component": "Row", "children": ["i2", "l2"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "i2", "component": "Icon", "icon": "check", "styles": {"width": "48px", "height": "48px"}},
+          {"id": "l2", "component": "Text", "text": "Large check icon 48px", "styles": {}},
+          {"id": "r3", "component": "Row", "children": ["i3", "l3"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "i3", "component": "Icon", "icon": "warning", "styles": {"width": "4px", "height": "4px"}},
+          {"id": "l3", "component": "Text", "text": "Tiny warning icon 4px", "styles": {}},
+          {"id": "r4", "component": "Row", "children": ["i4", "l4"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "i4", "component": "Icon", "icon": "nonexistent_icon_name_xyz", "styles": {"width": "24px", "height": "24px"}},
+          {"id": "l4", "component": "Text", "text": "Unknown icon name (fallback)", "styles": {}},
+          {"id": "r5", "component": "Row", "children": ["i5", "l5"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "i5", "component": "Icon", "icon": "", "styles": {"width": "24px", "height": "24px"}},
+          {"id": "l5", "component": "Text", "text": "Empty icon name", "styles": {}},
+          {"id": "r6", "component": "Row", "children": ["i6", "l6"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "i6", "component": "Icon", "icon": "close", "styles": {"width": "200px", "height": "200px"}},
+          {"id": "l6", "component": "Text", "text": "Oversized close icon 200px", "styles": {}},
+          {"id": "r7", "component": "Row", "children": ["i7", "l7"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "i7", "component": "Icon", "icon": "error", "styles": {"width": "0px", "height": "0px"}},
+          {"id": "l7", "component": "Text", "text": "Zero-size icon", "styles": {}},
+          {"id": "r8", "component": "Row", "children": ["i8a", "i8b", "i8c", "i8d", "i8e", "i8f", "i8g", "i8h", "i8i", "i8j"], "styles": {"width": "100%", "flex-wrap": "wrap", "gap": "4px"}},
+          {"id": "i8a", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8b", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8c", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8d", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8e", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8f", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8g", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8h", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8i", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}},
+          {"id": "i8j", "component": "Icon", "icon": "star", "styles": {"width": "16px", "height": "16px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

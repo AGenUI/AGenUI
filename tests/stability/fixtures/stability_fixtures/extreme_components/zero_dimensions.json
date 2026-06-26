@@ -1,0 +1,28 @@
+{
+  "description": "Zero width/height children to hit frame.isEmpty() in YogaLayoutManager and boundary conditions in layout",
+  "surfaceId": "zero-dimensions",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "zero-dimensions",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "zero-dimensions",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["z1", "z2", "z3", "z4"], "styles": {"width": "100%"}},
+          {"id": "z1", "component": "Text", "text": "", "styles": {"width": "0px", "height": "0px"}},
+          {"id": "z2", "component": "Row", "children": ["z2a"], "styles": {"width": "0px", "height": "50px"}},
+          {"id": "z2a", "component": "Text", "text": "Inside zero-width row"},
+          {"id": "z3", "component": "Column", "children": ["z3a"], "styles": {"width": "100px", "height": "0px"}},
+          {"id": "z3a", "component": "Text", "text": "Inside zero-height col"},
+          {"id": "z4", "component": "Image", "src": "https://example.com/img.png", "styles": {"width": "0px", "height": "0px"}}
+        ]
+      }
+    }
+  ]
+}

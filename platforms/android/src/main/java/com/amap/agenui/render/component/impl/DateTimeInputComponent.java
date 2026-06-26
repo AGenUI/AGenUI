@@ -14,6 +14,7 @@ import android.widget.TextView;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
+import com.amap.agenui.render.style.IconResourceMapper;
 import com.amap.agenui.render.style.StyleHelper;
 import com.amap.agenui.render.utils.AGenUILogger;
 
@@ -70,7 +71,7 @@ public class DateTimeInputComponent extends A2UIComponent {
     @Override
     public View onCreateView(Context context) {
         // Parse properties
-        parseProperties();
+        parseProperties(this.properties);
 
         // Load style configuration
         ComponentStyleConfig.StyleHashMap<String, String> styleConfig = loadStyleConfig(context);
@@ -126,7 +127,7 @@ public class DateTimeInputComponent extends A2UIComponent {
         calendarIconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
 
         // Load icon using StyleHelper
-        int iconResId = StyleHelper.getIconResourceId(compactStyle.iconName);
+        int iconResId = IconResourceMapper.getIconResourceId(compactStyle.iconName);
         if (iconResId != 0) {
             calendarIconView.setImageResource(iconResId);
         } else {
@@ -146,24 +147,24 @@ public class DateTimeInputComponent extends A2UIComponent {
     /**
      * Parse component properties
      */
-    private void parseProperties() {
-        if (properties.containsKey("enableDate")) {
-            Object value = properties.get("enableDate");
+    private void parseProperties(Map<String, Object> props) {
+        if (props.containsKey("enableDate")) {
+            Object value = props.get("enableDate");
             if (value instanceof Boolean) {
                 enableDate = (Boolean) value;
             }
         }
 
-        if (properties.containsKey("enableTime")) {
-            Object value = properties.get("enableTime");
+        if (props.containsKey("enableTime")) {
+            Object value = props.get("enableTime");
             if (value instanceof Boolean) {
                 enableTime = (Boolean) value;
             }
         }
 
         // Parse initial value - use different formats based on enableDate and enableTime
-        if (properties.containsKey("value")) {
-            String valueStr = (String) properties.get("value");
+        if (props.containsKey("value")) {
+            String valueStr = (String) props.get("value");
             if (valueStr != null && !valueStr.isEmpty()) {
                 try {
                     Date date = null;
@@ -411,14 +412,9 @@ public class DateTimeInputComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
-        // Update properties
-        if (properties != null) {
-            this.properties.putAll(properties);
-        }
-        
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         // Re-parse properties
-        parseProperties();
+        parseProperties(changedProps);
 
         // Update display
         updateDisplay();

@@ -32,13 +32,14 @@ void onAppearAnimatePostFrame(uint64_t /*nanoTimestamp*/, uint32_t /*frameCount*
 // ---------------------------------------------------------------------------
 
 ArkUI_NativeAnimateAPI_1* getAnimateApi() {
-    static ArkUI_NativeAnimateAPI_1* animateApi = nullptr;
-    if (animateApi == nullptr) {
-        OH_ArkUI_GetModuleInterface(ARKUI_NATIVE_ANIMATE, ArkUI_NativeAnimateAPI_1, animateApi);
-        if (animateApi == nullptr) {
+    static ArkUI_NativeAnimateAPI_1* animateApi = [] {
+        ArkUI_NativeAnimateAPI_1* api = nullptr;
+        OH_ArkUI_GetModuleInterface(ARKUI_NATIVE_ANIMATE, ArkUI_NativeAnimateAPI_1, api);
+        if (api == nullptr) {
             HM_LOGE("Fatal: Failed to get ArkUI NativeAnimateAPI_1");
         }
-    }
+        return api;
+    }();
     return animateApi;
 }
 

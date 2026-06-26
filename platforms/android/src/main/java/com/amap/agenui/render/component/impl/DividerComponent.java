@@ -70,28 +70,36 @@ public class DividerComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (dividerView == null) {
             return;
         }
 
-        // Read styles from properties
-        Map<String, Object> styles = extractStyles(properties);
+        boolean needsUpdate = false;
 
-        String axis = properties.containsKey("axis") ? String.valueOf(properties.get("axis")) : currentAxis;
-        float thickness = parseThickness(styles);
-        String imgUrl = parseImgUrl(styles);
+        // Update axis from diff
+        if (changedProps.containsKey("axis")) {
+            String axis = String.valueOf(changedProps.get("axis"));
+            if (!axis.equals(currentAxis)) {
+                currentAxis = axis;
+                needsUpdate = true;
+            }
+        }
 
-        // Check if there are changes
-        boolean needsUpdate = !axis.equals(currentAxis)
-                || thickness != currentThickness
-                || !isSameUrl(imgUrl, currentImgUrl);
+        // Read styles from diff
+        if (changedProps.containsKey("styles")) {
+            Map<String, Object> styles = extractStyles(changedProps);
+            float thickness = parseThickness(styles);
+            String imgUrl = parseImgUrl(styles);
+            if (thickness != currentThickness || !isSameUrl(imgUrl, currentImgUrl)) {
+                currentThickness = thickness;
+                currentImgUrl = imgUrl;
+                needsUpdate = true;
+            }
+        }
 
         if (needsUpdate) {
-            currentAxis = axis;
-            currentThickness = thickness;
-            currentImgUrl = imgUrl;
-            updateDivider(axis, thickness, imgUrl);
+            updateDivider(currentAxis, currentThickness, currentImgUrl);
         }
     }
 

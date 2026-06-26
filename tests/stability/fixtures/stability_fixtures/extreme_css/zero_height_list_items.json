@@ -1,0 +1,36 @@
+{
+  "description": "Tests YogaLayoutManager effectiveFrameHeight with Math.max(0, height). Items with zero and near-zero heights stress the boundary where frame height could be negative or zero.",
+  "surfaceId": "stability-zero-height-items",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-zero-height-items",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-zero-height-items",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["lst"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "lst", "component": "List", "children": ["z0", "z1", "z2", "z3", "z4", "z5", "normal"], "styles": {"width": "100%", "height": "350px"}},
+          {"id": "z0", "component": "Text", "text": "Zero height", "styles": {"width": "100%", "height": "0px"}},
+          {"id": "z1", "component": "Column", "children": ["z1c"], "styles": {"width": "100%", "height": "0px"}},
+          {"id": "z1c", "component": "Text", "text": "Child of zero height", "styles": {"width": "100%"}},
+          {"id": "z2", "component": "Text", "text": "0.5px height", "styles": {"width": "100%", "height": "0.5px"}},
+          {"id": "z3", "component": "Divider", "styles": {"width": "100%", "height": "0px"}},
+          {"id": "z4", "component": "Text", "text": "Zero w and h", "styles": {"width": "0px", "height": "0px"}},
+          {"id": "z5", "component": "Image", "properties": {"url": "https://example.com/img.png", "width": 100, "height": 0}},
+          {"id": "normal", "component": "Text", "text": "Normal sized item after zeros", "styles": {"width": "100%", "height": "60px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

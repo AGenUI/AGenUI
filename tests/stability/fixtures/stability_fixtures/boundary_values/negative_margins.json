@@ -1,0 +1,36 @@
+{
+  "description": "Negative margin values to test yoga value parsing and layout overlap handling",
+  "surfaceId": "negative_margins",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "negative_margins",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "negative_margins",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["n1", "n2", "n3", "n4", "n5"], "styles": {"width": "100%", "padding": "20px"}},
+          {"id": "n1", "component": "Text", "text": "Negative margin-top", "styles": {"margin-top": "-50px", "width": "100%", "height": "40px"}},
+          {"id": "n2", "component": "Text", "text": "Negative margin-left", "styles": {"margin-left": "-100px", "width": "200px", "height": "40px"}},
+          {"id": "n3", "component": "Row", "children": ["n3a", "n3b", "n3c"], "styles": {"width": "100%"}},
+          {"id": "n3a", "component": "Text", "text": "A", "styles": {"margin-right": "-30px", "width": "80px"}},
+          {"id": "n3b", "component": "Text", "text": "B", "styles": {"margin-left": "-30px", "margin-right": "-30px", "width": "80px"}},
+          {"id": "n3c", "component": "Text", "text": "C", "styles": {"margin-left": "-30px", "width": "80px"}},
+          {"id": "n4", "component": "Column", "children": ["n4a"], "styles": {"margin": "-20px", "width": "100%"}},
+          {"id": "n4a", "component": "Text", "text": "All negative margins"},
+          {"id": "n5", "component": "Text", "text": "Extreme negative", "styles": {"margin-top": "-9999px", "margin-left": "-9999px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

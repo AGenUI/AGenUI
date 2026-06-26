@@ -251,54 +251,40 @@ void ImageLoaderBridge::CallCancelOnJsThread(
 
 // ---- Core API ----
 
-std::string ImageLoaderBridge::loadImage(
-    const std::string& url,
-    float width,
-    float height,
-    const std::string& componentId,
-    const std::string& surfaceId,
-    ArkUI_NodeHandle nodeHandle,
-    ImageLoadCallback callback
-) {
+std::string ImageLoaderBridge::loadImage(const LoadImageRequest& request) {
     napi_threadsafe_function tsfn = nullptr;
     std::string requestId;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (tsfn_load_image_ == nullptr || loader_ref_ == nullptr) {
-            HM_LOGW("ImageLoaderBridge::loadImage - no loader registered, url=%s", url.c_str());
+            HM_LOGW("ImageLoaderBridge::loadImage - no loader registered, url=%s", request.url.c_str());
             return "";
         }
-        // Generate and register the requestId under lock.
         requestId = generateRequestId();
-        pending_callbacks_[requestId] = std::move(callback);
-        if (nodeHandle != nullptr) {
-            pending_handles_[requestId] = nodeHandle;
+        pending_callbacks_[requestId] = request.callback;
+        if (request.nodeHandle != nullptr) {
+            pending_handles_[requestId] = request.nodeHandle;
         }
         tsfn = tsfn_load_image_;
     }
 
-    // Build the payload for the JS thread. Use unique_ptr so any early return
-    // releases the payload automatically; ownership is transferred to the
-    // thread-safe function only on a successful enqueue.
     auto payload = std::make_unique<LoadImageData>(LoadImageData{
-        requestId, url, width, height, componentId, surfaceId
+        requestId, request.url, request.width, request.height, request.componentId, request.surfaceId
     });
 
     napi_status status = napi_call_threadsafe_function(tsfn, payload.get(), napi_tsfn_nonblocking);
     if (status != napi_ok) {
-        HM_LOGE("ImageLoaderBridge::loadImage - napi_call_threadsafe_function failed, url=%s", url.c_str());
+        HM_LOGE("ImageLoaderBridge::loadImage - napi_call_threadsafe_function failed, url=%s", request.url.c_str());
         std::lock_guard<std::mutex> lock(mutex_);
         pending_callbacks_.erase(requestId);
         pending_handles_.erase(requestId);
-        // payload auto-released by unique_ptr.
         return "";
     }
 
-    // Ownership transferred to tsfn; the JS-thread callback is responsible for delete.
     (void)payload.release();
 
     HM_LOGI("ImageLoaderBridge::loadImage - enqueued to JS thread, requestId=%s url=%s",
-        requestId.c_str(), url.c_str());
+        requestId.c_str(), request.url.c_str());
     return requestId;
 }
 
@@ -331,29 +317,21 @@ void ImageLoaderBridge::cancel(const std::string& requestId) {
 
 // ---- PixelMap Setup ----
 
-void ImageLoaderBridge::setImagePixelMapFromBytes(
-    const std::string& requestId,
-    uint8_t*           data,
-    size_t             dataLen,
-    int32_t            width,
-    int32_t            height,
-    int32_t            pixelFormat,
-    int32_t            alphaType
-) {
+void ImageLoaderBridge::setImagePixelMapFromBytes(const PixelMapData& pixelMap) {
     ImageLoadCallback cb;
     ArkUI_NodeHandle handle = nullptr;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        auto it = pending_callbacks_.find(requestId);
+        auto it = pending_callbacks_.find(pixelMap.requestId);
         if (it == pending_callbacks_.end()) {
             HM_LOGW("ImageLoaderBridge::setImagePixelMapFromBytes - unknown requestId=%s (cancelled or not found)",
-                requestId.c_str());
+                pixelMap.requestId.c_str());
             return;
         }
         cb = std::move(it->second);
         pending_callbacks_.erase(it);
 
-        auto hit = pending_handles_.find(requestId);
+        auto hit = pending_handles_.find(pixelMap.requestId);
         if (hit != pending_handles_.end()) {
             handle = hit->second;
             pending_handles_.erase(hit);
@@ -361,64 +339,58 @@ void ImageLoaderBridge::setImagePixelMapFromBytes(
     }
 
     HM_LOGI("ImageLoaderBridge::setImagePixelMapFromBytes - requestId=%s handle=%p w=%d h=%d fmt=%d alpha=%d",
-        requestId.c_str(), handle, width, height, pixelFormat, alphaType);
+        pixelMap.requestId.c_str(), handle, pixelMap.width, pixelMap.height, pixelMap.pixelFormat, pixelMap.alphaType);
 
-    if (handle == nullptr || data == nullptr || dataLen == 0 || width <= 0 || height <= 0) {
-        HM_LOGE("ImageLoaderBridge::setImagePixelMapFromBytes - invalid params, requestId=%s", requestId.c_str());
-        if (cb) cb(requestId, false, false);
+    if (handle == nullptr || pixelMap.data == nullptr || pixelMap.dataLen == 0 || pixelMap.width <= 0 || pixelMap.height <= 0) {
+        HM_LOGE("ImageLoaderBridge::setImagePixelMapFromBytes - invalid params, requestId=%s", pixelMap.requestId.c_str());
+        if (cb) cb(pixelMap.requestId, false, false);
         return;
     }
 
-    // Step 1: Create OH_Pixelmap_InitializationOptions.
     OH_Pixelmap_InitializationOptions* opts = nullptr;
     Image_ErrorCode err = OH_PixelmapInitializationOptions_Create(&opts);
     if (err != IMAGE_SUCCESS || opts == nullptr) {
         HM_LOGE("ImageLoaderBridge: OH_PixelmapInitializationOptions_Create failed, err=%d", err);
-        if (cb) cb(requestId, false, false);
+        if (cb) cb(pixelMap.requestId, false, false);
         return;
     }
 
-    OH_PixelmapInitializationOptions_SetWidth(opts, static_cast<uint32_t>(width));
-    OH_PixelmapInitializationOptions_SetHeight(opts, static_cast<uint32_t>(height));
-    // Use the source pixel format provided by ArkTS.
-    OH_PixelmapInitializationOptions_SetSrcPixelFormat(opts, static_cast<int32_t>(pixelFormat));
-    // Normalize the destination format to RGBA_8888.
+    OH_PixelmapInitializationOptions_SetWidth(opts, static_cast<uint32_t>(pixelMap.width));
+    OH_PixelmapInitializationOptions_SetHeight(opts, static_cast<uint32_t>(pixelMap.height));
+    OH_PixelmapInitializationOptions_SetSrcPixelFormat(opts, static_cast<int32_t>(pixelMap.pixelFormat));
     OH_PixelmapInitializationOptions_SetPixelFormat(opts, PIXEL_FORMAT_RGBA_8888);
-    OH_PixelmapInitializationOptions_SetAlphaType(opts, static_cast<int32_t>(alphaType));
+    OH_PixelmapInitializationOptions_SetAlphaType(opts, static_cast<int32_t>(pixelMap.alphaType));
 
     // Step 2: Create OH_PixelmapNative from the raw pixel buffer.
     OH_PixelmapNative* nativePixelmap = nullptr;
-    err = OH_PixelmapNative_CreatePixelmap(data, dataLen, opts, &nativePixelmap);
+    err = OH_PixelmapNative_CreatePixelmap(pixelMap.data, pixelMap.dataLen, opts, &nativePixelmap);
     OH_PixelmapInitializationOptions_Release(opts);
 
     if (err != IMAGE_SUCCESS || nativePixelmap == nullptr) {
         HM_LOGE("ImageLoaderBridge: OH_PixelmapNative_CreatePixelmap failed, err=%d, requestId=%s",
-            err, requestId.c_str());
-        if (cb) cb(requestId, false, false);
+            err, pixelMap.requestId.c_str());
+        if (cb) cb(pixelMap.requestId, false, false);
         return;
     }
 
-    // Step 3: Build a DrawableDescriptor from the PixelMap.
     ArkUI_DrawableDescriptor* descriptor =
         OH_ArkUI_DrawableDescriptor_CreateFromPixelMap(nativePixelmap);
     if (descriptor == nullptr) {
         HM_LOGE("ImageLoaderBridge: OH_ArkUI_DrawableDescriptor_CreateFromPixelMap failed, requestId=%s",
-            requestId.c_str());
+            pixelMap.requestId.c_str());
         OH_PixelmapNative_Release(nativePixelmap);
-        if (cb) cb(requestId, false, false);
+        if (cb) cb(pixelMap.requestId, false, false);
         return;
     }
 
-    // Step 4: Assign the descriptor to the ArkUI Image node.
     ArkUI_AttributeItem item = { .object = descriptor };
     g_nodeAPI->setAttribute(handle, NODE_IMAGE_SRC, &item);
     OH_ArkUI_DrawableDescriptor_Dispose(descriptor);
-    // Release our PixelMap reference after the descriptor takes ownership.
     OH_PixelmapNative_Release(nativePixelmap);
 
     HM_LOGI("ImageLoaderBridge::setImagePixelMapFromBytes - PixelMap set to node OK, requestId=%s",
-        requestId.c_str());
-    if (cb) cb(requestId, true, false);
+        pixelMap.requestId.c_str());
+    if (cb) cb(pixelMap.requestId, true, false);
 }
 
 // ---- Failure / Cancel Callback ----

@@ -84,6 +84,9 @@ bool TextStreamPlugin::continueComponentStreaming(
         std::string component = buffer.substr(_componentStart, endPos - _componentStart + 1);
         collectBindingPath(component);
 
+        // Cache post-text attributes (e.g., "styles") for textChunk JSON
+        cacheExtraFieldsFromComponent(component);
+
         // Extract the text close position and compute the final delta
         size_t closePos = 0;
         if (isStringValueClosed(buffer, _textValueStart, closePos)) {
@@ -436,6 +439,7 @@ void TextStreamPlugin::reset() {
     _textValueStart = 0;
     _lastSentContentEnd = 0;
     _cachedComponentId.clear();
+    _cachedExtraFields.clear();
     _streamingEntries.clear();
     _textBindingPaths.clear();
 }
@@ -739,8 +743,34 @@ std::string TextStreamPlugin::buildAppendTextChunkJson(const std::string& delta)
     json += _cachedComponentId;
     json += "\",\"component\":\"Text\",\"textChunk\":\"";
     json += delta;
-    json += "\"}";
+    json += "\"";
+    if (!_cachedExtraFields.empty()) {
+        json += ",";
+        json += _cachedExtraFields;
+    }
+    json += "}";
     return json;
+}
+
+void TextStreamPlugin::cacheExtraFieldsFromComponent(const std::string& componentJson) {
+    _cachedExtraFields.clear();
+    auto obj = nlohmann::json::parse(componentJson, nullptr, false);
+    if (obj.is_discarded() || !obj.is_object()) {
+        return;
+    }
+    // Skip id/component/text/textChunk — already handled by buildAppendTextChunkJson
+    bool first = true;
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        const auto& key = it.key();
+        if (key == "id" || key == "component" || key == "text" || key == "textChunk") {
+            continue;
+        }
+        if (!first) {
+            _cachedExtraFields += ",";
+        }
+        _cachedExtraFields += "\"" + key + "\":" + it.value().dump();
+        first = false;
+    }
 }
 
 // MARK: - DataModel nested path helpers

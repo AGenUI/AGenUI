@@ -324,9 +324,6 @@ class TextComponent: Component {
     
     // MARK: - Constants
     
-    /// Base point scale factor (for px unit conversion)
-    private static let BS_POINT_SCALE: CGFloat = 0.5
-    
     // MARK: - Properties
     
     private var label: TextDecorationLabel?
@@ -335,10 +332,13 @@ class TextComponent: Component {
     // `padding` values shrink the glyph rendering area (TextView/UILabel
     // equivalent of TextView.setPadding on Android, since UILabel itself does
     // not natively support padding).
+    //
+    // No bottom constraint: label height is driven by intrinsicContentSize
+    // (numberOfLines=0 + fixed width). clipsToBounds=false on self allows
+    // text to overflow past the bottom edge (W3C overflow-visible).
     private var labelTopConstraint: NSLayoutConstraint?
     private var labelLeadingConstraint: NSLayoutConstraint?
     private var labelTrailingConstraint: NSLayoutConstraint?
-    private var labelBottomConstraint: NSLayoutConstraint?
     
     // MARK: - Initialization
     
@@ -356,18 +356,21 @@ class TextComponent: Component {
         // Add subview with AutoLayout constraints to fill parent.
         // Constraints are stored as members so `applyTextPadding` can mutate
         // their `constant` to honour CSS `padding`.
+        // No bottom constraint: label height is driven by intrinsicContentSize
+        // (numberOfLines=0 + fixed width from trailingC).
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
+        // clipsToBounds=false allows text to overflow past self's bottom
+        // edge when content exceeds the Yoga border-box height.
+        self.clipsToBounds = false
         let topC = label.topAnchor.constraint(equalTo: topAnchor)
         let leadingC = label.leadingAnchor.constraint(equalTo: leadingAnchor)
         let trailingC = label.trailingAnchor.constraint(equalTo: trailingAnchor)
-        let bottomC = label.bottomAnchor.constraint(equalTo: bottomAnchor)
-        NSLayoutConstraint.activate([topC, leadingC, trailingC, bottomC])
+        NSLayoutConstraint.activate([topC, leadingC, trailingC])
         self.label = label
         self.labelTopConstraint = topC
         self.labelLeadingConstraint = leadingC
         self.labelTrailingConstraint = trailingC
-        self.labelBottomConstraint = bottomC
         
         // Apply initial properties after label is created
         updateProperties(properties)
@@ -396,20 +399,20 @@ class TextComponent: Component {
         
         guard let label = label else { return }
         
-        // Update text content
-        if let textValue = properties["text"] {
-            let text = textValue as? String ?? ""
-            label.text = text.count == 0 ? " " : text
-            label.invalidateIntrinsicContentSize()
-        }
-        // Handle textChunk field (content append)
-        else if let textChunkValue = properties["textChunk"] {
-            let textChunk = textChunkValue as? String ?? ""
+        // Handle textChunk field (content append, supports both String and numeric types)
+        if let textChunkValue = properties["textChunk"] {
+            let textChunk = TextComponent.extractTextValue(textChunkValue) ?? ""
             if !textChunk.isEmpty {
                 let currentText = label.text ?? ""
                 label.text = currentText + textChunk
                 label.invalidateIntrinsicContentSize()
             }
+        }
+        // Update text content (supports both String and numeric types)
+        else if let textValue = properties["text"] {
+            let text = TextComponent.extractTextValue(textValue) ?? ""
+            label.text = text.count == 0 ? " " : text
+            label.invalidateIntrinsicContentSize()
         }
         
         // Update style properties
@@ -593,8 +596,7 @@ class TextComponent: Component {
     private func applyTextPadding(_ styles: [String: Any]) {
         guard let topC = labelTopConstraint,
               let leadingC = labelLeadingConstraint,
-              let trailingC = labelTrailingConstraint,
-              let bottomC = labelBottomConstraint else { return }
+              let trailingC = labelTrailingConstraint else { return }
 
         // Skip silently if the styles dict carries no padding-* key, so we
         // do not clobber existing constants.
@@ -603,10 +605,11 @@ class TextComponent: Component {
         let p = CSSPaddingResolver.resolve(styles)
         topC.constant = p.top
         leadingC.constant = p.left
-        // trailing/bottom anchors are pinned with `equalTo: parent`, so a
-        // positive inset is encoded as a NEGATIVE constant on those anchors.
+        // trailing anchor is pinned with `equalTo: parent`, so a positive
+        // inset is encoded as a NEGATIVE constant.
         trailingC.constant = -p.right
-        bottomC.constant = -p.bottom
+        // No bottom constraint: paddingBottom is handled by Yoga's
+        // border-box frame; label height is driven by intrinsicContentSize.
     }
 
     /// Count the number of line fragments produced when laying out `attributedString`
@@ -635,6 +638,21 @@ class TextComponent: Component {
         return count
     }
     
+    // MARK: - Text Value Extraction
+
+    /// Extract text value from Any type, supporting both String and numeric types (Int, Double, NSNumber)
+    /// Numbers are converted to their string representation via `description`.
+    private class func extractTextValue(_ value: Any?) -> String? {
+        guard let value = value else { return nil }
+        if let stringValue = value as? String {
+            return stringValue
+        }
+        if let numberValue = value as? NSNumber {
+            return "\(numberValue)"
+        }
+        return nil
+    }
+
     // MARK: - Phase 1 Helpers: Pure parsing, no view state modification
     
     /// Parse text-align string to NSTextAlignment
@@ -745,7 +763,7 @@ class TextComponent: Component {
             // Example: "32px" = 32 * 0.5 = 16.0
             let cleanString = fontSizeString.replacingOccurrences(of: "px", with: "")
             if let size = Double(cleanString) {
-                return CGFloat(size) * TextComponent.BS_POINT_SCALE
+                return CGFloat(size) * Component.BS_POINT_SCALE
             }
         } else {
             // No unit or other unit: use value directly
@@ -775,7 +793,7 @@ class TextComponent: Component {
                 let cleanValue = stringValue.replacingOccurrences(of: "px", with: "")
                     .trimmingCharacters(in: .whitespaces)
                 if let parsed = Double(cleanValue) {
-                    return .absolute(CGFloat(parsed) * TextComponent.BS_POINT_SCALE)
+                    return .absolute(CGFloat(parsed) * Component.BS_POINT_SCALE)
                 }
             } else {
                 // No-unit string: numeric multiplier
@@ -818,12 +836,9 @@ class TextComponent: Component {
             return .zero
         }
 
-        // 2. Extract text content
-        let text = (json["text"] as? String) ?? (json["label"] as? String) ?? ""
-        guard !text.isEmpty else {
-            return .zero
-        }
-        
+        // 2. Extract text content (supports both String and numeric types)
+        let text = extractTextValue(json["text"]) ?? ""
+      
         // 3. Parse styles (reuse same parsing as applyStyles Phase 1)
         let styles = json["styles"] as? [String: Any] ?? [:]
         let parsed = parseStyles(styles)

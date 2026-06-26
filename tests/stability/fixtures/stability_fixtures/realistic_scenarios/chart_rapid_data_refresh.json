@@ -1,0 +1,52 @@
+{
+  "description": "Chart component with multiple data update messages simulating rapid data refresh. Tests chart re-rendering stability under multiple updateComponents.",
+  "surfaceId": "stability-chart-refresh",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-chart-refresh",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-chart-refresh",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "chart1"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "title", "component": "Text", "text": "Live Data Chart", "styles": {"width": "100%", "height": "30px"}},
+          {"id": "chart1", "component": "Chart", "chartType": "line", "data": {"labels": ["Jan", "Feb", "Mar"], "datasets": [{"data": [10, 20, 30]}]}, "styles": {"width": "100%", "height": "200px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-chart-refresh",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "chart1"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "title", "component": "Text", "text": "Live Data Chart - Updated", "styles": {"width": "100%", "height": "30px"}},
+          {"id": "chart1", "component": "Chart", "chartType": "bar", "data": {"labels": ["Q1", "Q2", "Q3", "Q4"], "datasets": [{"data": [100, 250, 180, 320]}]}, "styles": {"width": "100%", "height": "250px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-chart-refresh",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "chart1", "chart2"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "title", "component": "Text", "text": "Live Data Chart - Dual", "styles": {"width": "100%", "height": "30px"}},
+          {"id": "chart1", "component": "Chart", "chartType": "line", "data": {"labels": ["A", "B", "C", "D", "E"], "datasets": [{"data": [5, 15, 8, 22, 12]}]}, "styles": {"width": "100%", "height": "180px"}},
+          {"id": "chart2", "component": "Chart", "chartType": "pie", "data": {"labels": ["Red", "Blue", "Green"], "datasets": [{"data": [30, 50, 20]}]}, "styles": {"width": "100%", "height": "180px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../a2ui_component.h"
+#include <memory>
 #include <vector>
 #include <string>
 
@@ -34,13 +35,13 @@ namespace a2ui {
  *   - paragraphs: <p>, <br>
  *   - headings: <h1> - <h6>
  */
-class RichTextComponent : public A2UIComponent {
+class RichTextComponent final : public A2UIComponent {
 public:
     RichTextComponent(const std::string& id, const nlohmann::json& properties);
     ~RichTextComponent() override;
 
     /** Unregister events before destroying the component. */
-    void destroy() override;
+    void onDestroy() override;
 
     /**
      * Click node (aligned with hm_rich_text.cpp ClickNode)
@@ -62,6 +63,12 @@ private:
 
     /** Parse HTML and create native span nodes. */
     void setHtmlContent(const std::string& html);
+
+    /** Create an image span node from parsed span data. */
+    void createImageSpanNode(ArkUI_NodeHandle spanHandle, const void* spanData);
+
+    /** Create a text span node from parsed span data. */
+    void createTextSpanNode(ArkUI_NodeHandle spanHandle, const void* spanData);
 
     /** Destroy all span nodes and click nodes. */
     void cleanSpanNodes();
@@ -85,7 +92,7 @@ private:
     std::vector<ArkUI_NodeHandle> m_spanNodes;
 
     /** Click-node list (aligned with hm_rich_text.cpp m_clickNodes) */
-    std::vector<ClickNode*> m_clickNodes;
+    std::vector<std::unique_ptr<ClickNode>> m_clickNodes;
 
     /** Cached font color from styles, applied to all spans */
     uint32_t m_fontColor = 0xFF000000;

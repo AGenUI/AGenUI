@@ -12,6 +12,7 @@
 #include "surface/token_parser/agenui_token_parser.h"
 #include "surface/component_property_spec/agenui_component_property_spec_manager.h"
 #include "surface/yoga_node/agenui_measurement_manager.h"
+#include <vector>
 
 namespace agenui {
 
@@ -55,11 +56,16 @@ void AGenUIEngine::stop() {
     // 1. All object instances remain valid while the thread is running
     // 2. No thread is running when objects are destroyed
     ThreadManager::getInstance().destroyThread(AGENUI_SHARED_THREAD_ID);
-    // Destroy all SurfaceManagers first
-    for (auto& pair : _surfaceManagers) {
+    // Detach all SurfaceManagers under the lock, then uninit outside the lock.
+    std::map<int32_t, std::shared_ptr<SurfaceManager>> surfaceManagersToStop;
+    {
+        std::lock_guard<std::mutex> lock(_surfaceManagersMutex);
+        surfaceManagersToStop.swap(_surfaceManagers);
+    }
+    for (auto& pair : surfaceManagersToStop) {
         pair.second->uninit();
     }
-    _surfaceManagers.clear();
+    surfaceManagersToStop.clear();
     _measurementManager.reset();
 
     // Clear engine context before destroying modules
@@ -87,7 +93,10 @@ ISurfaceManager* AGenUIEngine::createSurfaceManager() {
     int instanceId = _nextInstanceId.fetch_add(1);
     auto sm = std::make_shared<SurfaceManager>(instanceId);
     sm->enterRunning();
-    _surfaceManagers[instanceId] = sm;
+    {
+        std::lock_guard<std::mutex> lock(_surfaceManagersMutex);
+        _surfaceManagers[instanceId] = sm;
+    }
 
     IThread* messageThread = ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
     if (!messageThread) {
@@ -105,25 +114,36 @@ void AGenUIEngine::destroySurfaceManager(ISurfaceManager* surfaceManager) {
         return;
     }
     auto* sm = static_cast<SurfaceManager*>(surfaceManager);
-    for (auto it = _surfaceManagers.begin(); it != _surfaceManagers.end(); ++it) {
-        if (it->second.get() == sm) {
-            auto shared = it->second;
-            int instanceId = it->first;
-            shared->exitRunning();
-            _surfaceManagers.erase(it);
-            IThread* messageThread = ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
-            if (!messageThread) {
-                return;
+    // Erase under the lock; the captured shared_ptr keeps the instance alive
+    // until the posted uninit task runs.
+    std::shared_ptr<SurfaceManager> shared;
+    int instanceId = -1;
+    {
+        std::lock_guard<std::mutex> lock(_surfaceManagersMutex);
+        for (auto it = _surfaceManagers.begin(); it != _surfaceManagers.end(); ++it) {
+            if (it->second.get() == sm) {
+                shared = it->second;
+                instanceId = it->first;
+                _surfaceManagers.erase(it);
+                break;
             }
-            messageThread->post([shared]() {
-                shared->uninit();
-            });
-            AGENUI_LOG("Destroying SurfaceManager %d", instanceId);
-            return;
         }
     }
 
-    AGENUI_LOG("SurfaceManager not found for destruction");
+    if (!shared) {
+        AGENUI_LOG("SurfaceManager not found for destruction");
+        return;
+    }
+
+    shared->exitRunning();
+    IThread* messageThread = ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
+    if (!messageThread) {
+        return;
+    }
+    messageThread->post([shared]() {
+        shared->uninit();
+    });
+    AGENUI_LOG("Destroying SurfaceManager %d", instanceId);
 }
 
 bool AGenUIEngine::setPathConfig(const std::string &configJson) {
@@ -215,8 +235,17 @@ void AGenUIEngine::setDayNightMode(const std::string &mode) {
         return;
     }
 
-    for (auto& pair : _surfaceManagers) {
-        pair.second->invalidateFunctionCallValues();
+    // Snapshot under the lock; invoke outside to avoid re-entrant locking.
+    std::vector<std::shared_ptr<SurfaceManager>> snapshot;
+    {
+        std::lock_guard<std::mutex> lock(_surfaceManagersMutex);
+        snapshot.reserve(_surfaceManagers.size());
+        for (auto& pair : _surfaceManagers) {
+            snapshot.push_back(pair.second);
+        }
+    }
+    for (auto& sm : snapshot) {
+        sm->invalidateFunctionCallValues();
     }
 }
 
@@ -224,6 +253,7 @@ ISurfaceManager* AGenUIEngine::findSurfaceManager(int instanceId) {
     if (!_isRunning.load()) {
         return nullptr;
     }
+    std::lock_guard<std::mutex> lock(_surfaceManagersMutex);
     auto it = _surfaceManagers.find(instanceId);
     if (it != _surfaceManagers.end()) {
         return it->second.get();

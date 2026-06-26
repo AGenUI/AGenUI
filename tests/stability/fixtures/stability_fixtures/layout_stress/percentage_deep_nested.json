@@ -1,0 +1,36 @@
+{
+  "description": "Percentage dimensions in deeply nested containers where parent sizes are also percentages — tests yoga value resolution chain",
+  "surfaceId": "percentage_deep_nested",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "percentage_deep_nested",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "percentage_deep_nested",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["p1"], "styles": {"width": "100%", "height": "100%"}},
+          {"id": "p1", "component": "Column", "children": ["p2"], "styles": {"width": "90%", "height": "90%", "padding": "2%"}},
+          {"id": "p2", "component": "Row", "children": ["p3"], "styles": {"width": "80%", "height": "80%", "padding": "3%"}},
+          {"id": "p3", "component": "Column", "children": ["p4"], "styles": {"width": "70%", "height": "70%", "margin": "2%"}},
+          {"id": "p4", "component": "Row", "children": ["p5"], "styles": {"width": "60%", "height": "60%", "gap": "5%"}},
+          {"id": "p5", "component": "Column", "children": ["p6"], "styles": {"width": "50%", "height": "50%"}},
+          {"id": "p6", "component": "Row", "children": ["p7", "p8"], "styles": {"width": "100%", "height": "100%"}},
+          {"id": "p7", "component": "Text", "text": "50% in 50%", "styles": {"width": "50%", "height": "50%"}},
+          {"id": "p8", "component": "Column", "children": ["p9"], "styles": {"width": "50%", "height": "50%"}},
+          {"id": "p9", "component": "Text", "text": "200% overflow", "styles": {"width": "200%", "height": "200%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

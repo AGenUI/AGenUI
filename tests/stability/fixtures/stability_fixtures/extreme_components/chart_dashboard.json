@@ -1,0 +1,43 @@
+{
+  "description": "Realistic chart dashboard with multiple data visualizations — exercises complex layout with Chart components",
+  "surfaceId": "chart-dashboard",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "chart-dashboard",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "chart-dashboard",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "chart-row", "stats-row"], "styles": {"width": "100%", "padding": "16px", "gap": "12px"}},
+          {"id": "title", "component": "Text", "text": "Analytics Dashboard", "styles": {"width": "100%", "height": "36px"}},
+          {"id": "chart-row", "component": "Row", "children": ["chart1-card", "chart2-card"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "chart1-card", "component": "Card", "children": ["chart1-title", "chart1"], "styles": {"flex-grow": "1", "padding": "12px"}},
+          {"id": "chart1-title", "component": "Text", "text": "Revenue Trend", "styles": {"width": "100%"}},
+          {"id": "chart1", "component": "Chart", "chartType": "line", "data": {"labels": ["Jan","Feb","Mar","Apr","May","Jun"], "datasets": [{"label": "Revenue", "data": [100,120,115,130,145,160]}]}, "styles": {"width": "100%", "height": "180px"}},
+          {"id": "chart2-card", "component": "Card", "children": ["chart2-title", "chart2"], "styles": {"flex-grow": "1", "padding": "12px"}},
+          {"id": "chart2-title", "component": "Text", "text": "Distribution", "styles": {"width": "100%"}},
+          {"id": "chart2", "component": "Chart", "chartType": "pie", "data": {"labels": ["A","B","C","D"], "datasets": [{"data": [30,25,20,25]}]}, "styles": {"width": "100%", "height": "180px"}},
+          {"id": "stats-row", "component": "Row", "children": ["stat1", "stat2", "stat3", "stat4"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "stat1", "component": "Card", "children": ["stat1-val", "stat1-label"], "styles": {"flex-grow": "1", "padding": "12px", "align-items": "center"}},
+          {"id": "stat1-val", "component": "Text", "text": "1,234", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "stat1-label", "component": "Text", "text": "Users", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "stat2", "component": "Card", "children": ["stat2-val", "stat2-label"], "styles": {"flex-grow": "1", "padding": "12px", "align-items": "center"}},
+          {"id": "stat2-val", "component": "Text", "text": "$56.7K", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "stat2-label", "component": "Text", "text": "Revenue", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "stat3", "component": "Card", "children": ["stat3-val", "stat3-label"], "styles": {"flex-grow": "1", "padding": "12px", "align-items": "center"}},
+          {"id": "stat3-val", "component": "Text", "text": "89%", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "stat3-label", "component": "Text", "text": "Uptime", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "stat4", "component": "Card", "children": ["stat4-val", "stat4-label"], "styles": {"flex-grow": "1", "padding": "12px", "align-items": "center"}},
+          {"id": "stat4-val", "component": "Text", "text": "4.8", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "stat4-label", "component": "Text", "text": "Rating", "styles": {"width": "100%", "text-align": "center"}}
+        ]
+      }
+    }
+  ]
+}

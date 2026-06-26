@@ -6,7 +6,7 @@ set -euo pipefail
 # Supports both physical devices (via ios-deploy/devicectl) and simulators (via simctl)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
 
 # Defaults
 SCENARIO="all_combined"
@@ -16,6 +16,7 @@ INTERVAL_MS=100
 CRASH_THRESHOLD=5
 OUTPUT_DIR=""
 DO_INSTALL=false
+FIXTURES=""
 BUNDLE_ID="org.cocoapods.demo.Playground"
 USE_SIMULATOR=false
 DEVICE_ID=""
@@ -29,6 +30,7 @@ while [[ $# -gt 0 ]]; do
         --crash-threshold)  CRASH_THRESHOLD="$2"; shift 2 ;;
         --output-dir)       OUTPUT_DIR="$2"; shift 2 ;;
         --install)          DO_INSTALL=true; shift ;;
+        --fixtures)         FIXTURES="$2"; shift 2 ;;
         --simulator)        USE_SIMULATOR=true; shift ;;
         --device-id)        DEVICE_ID="$2"; shift 2 ;;
         *)                  shift ;;
@@ -168,6 +170,7 @@ if [[ "$USE_SIMULATOR" == true ]]; then
         rm -f "${CONTAINER_PATH}/Documents/stability/stability_log.jsonl" \
               "${CONTAINER_PATH}/Documents/stability/crash_registry.json" \
               "${CONTAINER_PATH}/Documents/stability/crash_state.json" \
+              "${CONTAINER_PATH}/Documents/stability/last_crash_scenario.txt" \
               "${CONTAINER_PATH}/Documents/stability/stability_done.txt" 2>/dev/null || true
         echo "[iOS] Cleared previous stability logs and state (simulator)"
     fi
@@ -178,6 +181,11 @@ fi
 echo "[iOS] Starting stability test..."
 echo "[iOS]   scenario=${SCENARIO}, duration=${DURATION_MIN}min, rounds=${ROUNDS}, interval=${INTERVAL_MS}ms, crash_threshold=${CRASH_THRESHOLD}"
 
+FIXTURES_ARGS=""
+if [[ -n "$FIXTURES" ]]; then
+    FIXTURES_ARGS="--fixtures $FIXTURES"
+fi
+
 if [[ "$USE_SIMULATOR" == true ]]; then
     xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID" \
         --stability-test \
@@ -185,7 +193,8 @@ if [[ "$USE_SIMULATOR" == true ]]; then
         --duration "$DURATION_MIN" \
         --rounds "$ROUNDS" \
         --interval "$INTERVAL_MS" \
-        --crash-threshold "$CRASH_THRESHOLD"
+        --crash-threshold "$CRASH_THRESHOLD" \
+        $FIXTURES_ARGS
 else
     if command -v xcrun &>/dev/null; then
         xcrun devicectl device process launch --device "$DEVICE_ID" "$BUNDLE_ID" \
@@ -194,7 +203,8 @@ else
             --duration "$DURATION_MIN" \
             --rounds "$ROUNDS" \
             --interval "$INTERVAL_MS" \
-            --crash-threshold "$CRASH_THRESHOLD" 2>/dev/null || \
+            --crash-threshold "$CRASH_THRESHOLD" \
+            $FIXTURES_ARGS 2>/dev/null || \
         xcrun devicectl device process launch --device "$DEVICE_ID" "$BUNDLE_ID" 2>/dev/null || true
     elif command -v ios-deploy &>/dev/null; then
         ios-deploy --bundle_id "$BUNDLE_ID" --id "$DEVICE_ID" --justlaunch 2>/dev/null || true

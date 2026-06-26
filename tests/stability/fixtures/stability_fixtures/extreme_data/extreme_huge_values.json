@@ -1,0 +1,16 @@
+{
+  "description": "Extremely large CSS values - tests numeric overflow in layout engine",
+  "surfaceId": "stability-huge-values",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-huge-values","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-huge-values","components":[
+      {"id":"root","component":"Column","children":["h1","h2","h3","h4"],"styles":{"width":"100%"}},
+      {"id":"h1","component":"Text","text":"Huge width","styles":{"width":"99999px","height":"50px"}},
+      {"id":"h2","component":"Row","children":["h2a"],"styles":{"width":"99999px","margin":"10000px"}},
+      {"id":"h2a","component":"Text","text":"In huge row"},
+      {"id":"h3","component":"Column","children":["h3a"],"styles":{"padding":"9999px","gap":"9999px"}},
+      {"id":"h3a","component":"Text","text":"Huge padding"},
+      {"id":"h4","component":"Text","text":"Huge font","styles":{"width":"100%","height":"99999px"}}
+    ]}}
+  ]
+}

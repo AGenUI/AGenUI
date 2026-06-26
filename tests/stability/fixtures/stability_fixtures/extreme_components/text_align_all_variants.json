@@ -1,0 +1,27 @@
+{
+  "description": "Exercises every parseTextAlign branch: left/start, center, right/end — positive-hit for each horizontal keyword",
+  "surfaceId": "text-align-all-variants",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "text-align-all-variants",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "text-align-all-variants",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["t1", "t2", "t3", "t4", "t5"], "styles": {"width": "100%"}},
+          {"id": "t1", "component": "Text", "text": "Left", "styles": {"width": "100%", "text-align": "left"}},
+          {"id": "t2", "component": "Text", "text": "Start", "styles": {"width": "100%", "text-align": "start"}},
+          {"id": "t3", "component": "Text", "text": "Center", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "t4", "component": "Text", "text": "Right", "styles": {"width": "100%", "text-align": "right"}},
+          {"id": "t5", "component": "Text", "text": "End", "styles": {"width": "100%", "text-align": "end"}}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "description": "List with mixed component types as children: Text, Image, Row, Card, Column. Tests YogaLayoutManager frame extraction with heterogeneous child sizes and the shouldAutoAddChildView() path.",
+  "surfaceId": "stability-list-mixed-items",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-list-mixed-items",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-list-mixed-items",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["mixed-list"], "styles": {"width": "100%", "height": "600px"}},
+          {"id": "mixed-list", "component": "List", "children": ["m-txt", "m-img", "m-row", "m-card", "m-divider", "m-col", "m-chart", "m-md", "m-table"], "styles": {"width": "100%", "height": "550px"}},
+          {"id": "m-txt", "component": "Text", "text": "Plain text item", "styles": {"width": "100%", "height": "40px", "padding": "8px"}},
+          {"id": "m-img", "component": "Image", "properties": {"url": "https://example.com/photo.png", "width": 300, "height": 150}},
+          {"id": "m-row", "component": "Row", "children": ["mr-icon", "mr-label", "mr-value"], "styles": {"width": "100%", "padding": "8px", "align-items": "center", "gap": "8px"}},
+          {"id": "mr-icon", "component": "Icon", "icon": "info", "styles": {"width": "20px", "height": "20px"}},
+          {"id": "mr-label", "component": "Text", "text": "Label:", "styles": {"flex-grow": "1"}},
+          {"id": "mr-value", "component": "Text", "text": "42", "styles": {}},
+          {"id": "m-card", "component": "Card", "child": "mc-inner", "styles": {"width": "100%"}},
+          {"id": "mc-inner", "component": "Text", "text": "Card inside list item", "styles": {"padding": "12px"}},
+          {"id": "m-divider", "component": "Divider", "styles": {"width": "100%"}},
+          {"id": "m-col", "component": "Column", "children": ["mc-a", "mc-b"], "styles": {"width": "100%", "gap": "4px", "padding": "8px"}},
+          {"id": "mc-a", "component": "Text", "text": "Column child A", "styles": {"width": "100%"}},
+          {"id": "mc-b", "component": "Text", "text": "Column child B", "styles": {"width": "100%"}},
+          {"id": "m-chart", "component": "Chart", "chartType": "bar", "data": {"labels": ["A", "B", "C"], "datasets": [{"data": [10, 20, 30]}]}, "styles": {"width": "100%", "height": "120px"}},
+          {"id": "m-md", "component": "Markdown", "content": "**Bold markdown** in a list item with `code` and [links](https://example.com)", "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "m-table", "component": "Table", "headers": ["Name", "Value"], "rows": [["Alpha", "1"], ["Beta", "2"]], "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

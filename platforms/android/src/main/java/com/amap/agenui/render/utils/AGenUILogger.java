@@ -271,6 +271,20 @@ public class AGenUILogger {
     }
 
     /**
+     * Send a PERFORMANCE log message.
+     * <p>
+     * Follows the same convention as C++ AGENUI_PERFORMANCE_LOG: the {@code eventTag}
+     * parameter carries the event name (e.g. "components_applied") and {@code message}
+     * carries contextual info (e.g. surfaceId).
+     *
+     * @param eventTag Performance event name (used as log tag for filtering)
+     * @param message  Contextual information
+     */
+    public static void perf(String eventTag, String message) {
+        logInternal(LEVEL_PERFORMANCE, eventTag, message, null);
+    }
+
+    /**
      * Unified log dispatch. Handles both custom logger delegation and fallback to Android Log.
      */
     private void dispatchLog(int level, String tag, String func, int line, String message) {

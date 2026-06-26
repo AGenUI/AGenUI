@@ -1,5 +1,6 @@
 package com.amap.agenui.render.component.factory;
 
+import com.amap.agenui.annotation.BuiltInComponent;
 import android.content.Context;
 
 import androidx.annotation.Nullable;
@@ -12,6 +13,7 @@ import com.amap.agenui.render.measurement.ImageMeasurer;
 
 import java.util.Map;
 
+@BuiltInComponent
 public class ImageComponentFactory implements IComponentFactory {
 
     @Override
@@ -24,10 +26,10 @@ public class ImageComponentFactory implements IComponentFactory {
         return "Image";
     }
 
-//    @Nullable
-//    @Override
-//    public IMeasurer getMeasurer() {
-//        return (context, paramJson, maxWidth, widthMode, maxHeight, heightMode) ->
-//                ImageMeasurer.measure(paramJson, maxWidth, widthMode, maxHeight, heightMode);
-//    }
+    @Nullable
+    @Override
+    public IMeasurer getMeasurer() {
+        return (context, paramJson, maxWidth, widthMode, maxHeight, heightMode) ->
+                ImageMeasurer.measure(paramJson, maxWidth, widthMode, maxHeight, heightMode);
+    }
 }

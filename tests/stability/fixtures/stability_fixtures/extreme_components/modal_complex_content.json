@@ -1,0 +1,35 @@
+{
+  "description": "Modal with deeply nested complex content including charts, lists, and forms - tests modal rendering",
+  "surfaceId": "stability-modal-complex",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-modal-complex","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-modal-complex","components":[
+      {"id":"root","component":"Column","children":["bg","modal1"],"styles":{"width":"100%"}},
+      {"id":"bg","component":"Text","text":"Background content"},
+      {"id":"modal1","component":"Modal","visible":true,"child":"mbody"},
+      {"id":"mbody","component":"Column","children":["mtitle","mdiv","mform","mlist","mfooter"],"styles":{"width":"100%","padding":"16px","gap":"8px"}},
+      {"id":"mtitle","component":"Text","text":"Complex Modal"},
+      {"id":"mdiv","component":"Divider"},
+      {"id":"mform","component":"Column","children":["mf1","mf2","mf3"],"styles":{"gap":"8px","width":"100%"}},
+      {"id":"mf1","component":"TextField","label":"Name","value":""},
+      {"id":"mf2","component":"TextField","label":"Email","value":""},
+      {"id":"mf3","component":"ChoicePicker","label":"Role","options":["Admin","User","Guest"],"value":"User"},
+      {"id":"mlist","component":"List","children":["ml1","ml2","ml3","ml4","ml5","ml6","ml7","ml8"],"styles":{"width":"100%","max-height":"200px"}},
+      {"id":"ml1","component":"Row","children":["ml1t","ml1c"],"styles":{"width":"100%","justify-content":"space-between"}},
+      {"id":"ml1t","component":"Text","text":"Item 1"},
+      {"id":"ml1c","component":"CheckBox","label":"","value":false},
+      {"id":"ml2","component":"Text","text":"Item 2"},
+      {"id":"ml3","component":"Text","text":"Item 3"},
+      {"id":"ml4","component":"Text","text":"Item 4"},
+      {"id":"ml5","component":"Text","text":"Item 5"},
+      {"id":"ml6","component":"Text","text":"Item 6"},
+      {"id":"ml7","component":"Text","text":"Item 7"},
+      {"id":"ml8","component":"Text","text":"Item 8"},
+      {"id":"mfooter","component":"Row","children":["mbtn1","mbtn2"],"styles":{"width":"100%","justify-content":"flex-end","gap":"8px"}},
+      {"id":"mbtn1","component":"Button","child":"mb1t","action":{"functionCall":{"name":"cancel"}}},
+      {"id":"mb1t","component":"Text","text":"Cancel"},
+      {"id":"mbtn2","component":"Button","child":"mb2t","action":{"functionCall":{"name":"confirm"}}},
+      {"id":"mb2t","component":"Text","text":"Confirm"}
+    ]}}
+  ]
+}

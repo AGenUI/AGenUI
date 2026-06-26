@@ -10,6 +10,9 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    plugins {
+        id 'com.android.library' version '8.4.2'
+    }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -20,3 +23,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "AGenUI-Client-Android"
+include ':processor'

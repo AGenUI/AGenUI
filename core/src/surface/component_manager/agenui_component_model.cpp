@@ -4,6 +4,7 @@
 #include "surface/agenui_isurface_context.h"
 #include "surface/agenui_serializable_data.h"
 #include "agenui_logger_internal.h"
+#include "nlohmann/json.hpp"
 
 namespace agenui {
 
@@ -64,6 +65,21 @@ void ComponentModel::setAttribute(const std::string& key, std::shared_ptr<DataVa
             std::vector<std::string> tabChildren = tabsDataValue->getTabChildren();
             setChildren(tabChildren);
         }
+    }
+    if (_component == "Text" && key == "textChunk" && value) {
+        // Append chunk to existing text and mark dirty for snapshot update
+        std::string existingText;
+        auto textIt = _attributes.find("text");
+        if (textIt != _attributes.end() && textIt->second) {
+            existingText = textIt->second->getValueData().asString();
+        }
+        const std::string chunkContent = value->getValueData().asString();
+
+        // JSON-encode to satisfy StaticDataValue::getValueData() parse
+        std::string mergedJson = nlohmann::json(existingText + chunkContent).dump();
+        _attributes["text"] = std::make_shared<StaticDataValue>(mergedJson);
+
+        markDirty("text", false);
     }
 }
 

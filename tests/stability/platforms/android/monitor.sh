@@ -224,6 +224,14 @@ while true; do
             break
         fi
     else
+        # Process is alive — check for graceful completion before freeze detection
+        DONE_CONTENT=$(adb shell cat "$DEVICE_DONE_FILE" 2>/dev/null | tr -d '\r' || echo "")
+        if [[ -n "$DONE_CONTENT" ]]; then
+            echo "[Monitor] App completed gracefully while process is still alive: ${DONE_CONTENT}"
+            echo "[Monitor] Test completed by app (all scenarios exhausted/blacklisted)."
+            break
+        fi
+
         # Process is alive — check for freeze (heartbeat detection)
         # Skip freeze check during startup grace period OR after a recent restart
         SINCE_RESTART=$((CURRENT_TIME - LAST_RESTART_TIME))

@@ -73,7 +73,7 @@ class CSSPropertyRegistry {
             defaultValue: .keyword("visible"),
             validator: nil,
             priority: 45,
-            validValues: ["visible", "hidden"]
+            validValues: ["visible", "hidden", "scroll"]
         ))
         
         // visibility (priority: 45)

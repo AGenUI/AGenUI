@@ -1,0 +1,18 @@
+{
+  "description": "Multiple absolutely positioned elements overlapping - tests z-ordering and absolute layout",
+  "surfaceId": "stability-abs-overlap",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-abs-overlap","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-abs-overlap","components":[
+      {"id":"root","component":"Column","children":["container"],"styles":{"width":"100%","padding":"16px"}},
+      {"id":"container","component":"Column","children":["base","a1","a2","a3","a4","a5"],"styles":{"width":"300px","height":"300px","position":"relative"}},
+      {"id":"base","component":"Text","text":"Base flow content that sits at the top","styles":{"width":"100%"}},
+      {"id":"a1","component":"Text","text":"Abs 1","styles":{"position":"absolute","top":"0","left":"0","width":"150px","height":"150px"}},
+      {"id":"a2","component":"Text","text":"Abs 2","styles":{"position":"absolute","top":"50px","left":"50px","width":"150px","height":"150px"}},
+      {"id":"a3","component":"Text","text":"Abs 3","styles":{"position":"absolute","top":"100px","left":"100px","width":"150px","height":"150px"}},
+      {"id":"a4","component":"Image","properties":{"url":"https://example.com/overlay.png","width":200,"height":200},"styles":{"position":"absolute","bottom":"0","right":"0","width":"200px","height":"200px"}},
+      {"id":"a5","component":"Column","children":["a5t"],"styles":{"position":"absolute","top":"0","right":"0","bottom":"0","left":"0"}},
+      {"id":"a5t","component":"Text","text":"Full stretch absolute"}
+    ]}}
+  ]
+}

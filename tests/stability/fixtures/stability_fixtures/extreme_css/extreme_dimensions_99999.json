@@ -1,0 +1,35 @@
+{
+  "description": "Extreme large values for dimensions (99999px), margins, padding. Tests overflow/clipping behavior and potential integer overflow in layout calculations.",
+  "surfaceId": "stability-extreme-dims",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-extreme-dims",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-extreme-dims",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["huge-w", "huge-h", "huge-margin", "huge-pad", "huge-gap"], "styles": {"width": "100%", "overflow": "hidden"}},
+          {"id": "huge-w", "component": "Text", "text": "Width 99999px", "styles": {"width": "99999px", "height": "40px"}},
+          {"id": "huge-h", "component": "Text", "text": "Height 99999px", "styles": {"width": "100%", "height": "99999px"}},
+          {"id": "huge-margin", "component": "Text", "text": "Margin 10000px", "styles": {"width": "100px", "height": "30px", "margin": "10000px"}},
+          {"id": "huge-pad", "component": "Column", "children": ["pad-child"], "styles": {"width": "100%", "padding": "5000px"}},
+          {"id": "pad-child", "component": "Text", "text": "Inside huge padding", "styles": {"width": "100%"}},
+          {"id": "huge-gap", "component": "Row", "children": ["g1", "g2"], "styles": {"width": "100%", "gap": "99999px"}},
+          {"id": "g1", "component": "Text", "text": "A", "styles": {"width": "30px", "height": "30px"}},
+          {"id": "g2", "component": "Text", "text": "B", "styles": {"width": "30px", "height": "30px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

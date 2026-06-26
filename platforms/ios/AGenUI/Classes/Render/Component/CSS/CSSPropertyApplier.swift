@@ -348,7 +348,7 @@ class CSSPropertyApplier {
         guard case .keyword(let overflow) = value else { return }
         
         switch overflow {
-        case "hidden":
+        case "hidden", "scroll":
             view.clipsToBounds = true
         case "visible":
             view.clipsToBounds = false

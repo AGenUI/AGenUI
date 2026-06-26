@@ -3,9 +3,11 @@
 #include <atomic>
 #include <mutex>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 #include "agenui_surface_manager_interface.h"
+#include "agenui_surface_size_provider.h"
 
 namespace agenui {
 
@@ -120,11 +122,16 @@ public:
      * Non-owning. See ISurfaceManager for the threading and lifetime contract.
      */
     void setSurfaceSizeProvider(ISurfaceSizeProvider* provider) override;
-
     /**
-     * @brief Return the previously injected surface size provider.
+     * @brief Thread-safe surface-size lookup.
+     *
+     * Holds the same mutex as setSurfaceSizeProvider() across the provider
+     * dispatch, so callers cannot race with a host detach/destroy. Use this
+     * instead of pulling out the raw provider pointer.
+     *
+     * @return std::nullopt when no provider is currently injected.
      */
-    ISurfaceSizeProvider* getSurfaceSizeProvider() const override;
+    std::optional<SurfaceSize> getSurfaceSize(const std::string& surfaceId) const;
 
     EventDispatcher* getEventDispatcher();
     StreamingContentParser* getStreamingContentParser();

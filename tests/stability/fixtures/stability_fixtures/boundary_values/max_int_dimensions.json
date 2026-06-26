@@ -1,0 +1,33 @@
+{
+  "description": "Near-max-integer dimension values to test numeric overflow in yoga value parsing and layout delegate",
+  "surfaceId": "max_int_dimensions",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "max_int_dimensions",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "max_int_dimensions",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["m1", "m2", "m3", "m4"], "styles": {"width": "100%"}},
+          {"id": "m1", "component": "Text", "text": "2^31-1 width", "styles": {"width": "2147483647px"}},
+          {"id": "m2", "component": "Row", "children": ["m2a"], "styles": {"width": "2147483647px", "height": "2147483647px"}},
+          {"id": "m2a", "component": "Text", "text": "Max int container"},
+          {"id": "m3", "component": "Text", "text": "Large float", "styles": {"width": "1e10px", "margin-left": "1e8px"}},
+          {"id": "m4", "component": "Column", "children": ["m4a"], "styles": {"min-width": "2147483647px", "max-width": "1px"}},
+          {"id": "m4a", "component": "Text", "text": "min > max with huge values"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_data",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

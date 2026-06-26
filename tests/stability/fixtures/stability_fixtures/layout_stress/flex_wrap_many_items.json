@@ -1,0 +1,47 @@
+{
+  "description": "flex-wrap with 20+ items of varying sizes to stress yoga wrap line computation and cross-axis alignment",
+  "surfaceId": "flex_wrap_many_items",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "flex_wrap_many_items",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "flex_wrap_many_items",
+        "components": [
+          {"id": "root", "component": "Row", "children": ["fw1","fw2","fw3","fw4","fw5","fw6","fw7","fw8","fw9","fw10","fw11","fw12","fw13","fw14","fw15","fw16","fw17","fw18","fw19","fw20"], "styles": {"width": "300px", "flex-wrap": "wrap", "align-content": "space-between", "gap": "4px"}},
+          {"id": "fw1", "component": "Text", "text": "A", "styles": {"width": "80px", "height": "30px"}},
+          {"id": "fw2", "component": "Text", "text": "BB", "styles": {"width": "120px", "height": "50px"}},
+          {"id": "fw3", "component": "Text", "text": "C", "styles": {"width": "40px", "height": "25px"}},
+          {"id": "fw4", "component": "Text", "text": "DDDD", "styles": {"width": "200px", "height": "35px"}},
+          {"id": "fw5", "component": "Text", "text": "E", "styles": {"width": "60px", "height": "45px"}},
+          {"id": "fw6", "component": "Text", "text": "FF", "styles": {"width": "100px", "height": "20px"}},
+          {"id": "fw7", "component": "Text", "text": "G", "styles": {"width": "50px", "height": "60px"}},
+          {"id": "fw8", "component": "Text", "text": "HH", "styles": {"width": "90px", "height": "30px"}},
+          {"id": "fw9", "component": "Text", "text": "I", "styles": {"width": "70px", "height": "40px"}},
+          {"id": "fw10", "component": "Text", "text": "JJ", "styles": {"width": "110px", "height": "35px"}},
+          {"id": "fw11", "component": "Text", "text": "K", "styles": {"width": "45px", "height": "55px"}},
+          {"id": "fw12", "component": "Text", "text": "LL", "styles": {"width": "130px", "height": "25px"}},
+          {"id": "fw13", "component": "Text", "text": "M", "styles": {"width": "55px", "height": "45px"}},
+          {"id": "fw14", "component": "Text", "text": "NN", "styles": {"width": "85px", "height": "30px"}},
+          {"id": "fw15", "component": "Text", "text": "O", "styles": {"width": "75px", "height": "50px"}},
+          {"id": "fw16", "component": "Text", "text": "PP", "styles": {"width": "95px", "height": "35px"}},
+          {"id": "fw17", "component": "Text", "text": "Q", "styles": {"width": "65px", "height": "40px"}},
+          {"id": "fw18", "component": "Text", "text": "RR", "styles": {"width": "105px", "height": "20px"}},
+          {"id": "fw19", "component": "Text", "text": "S", "styles": {"width": "35px", "height": "65px"}},
+          {"id": "fw20", "component": "Text", "text": "TT", "styles": {"width": "140px", "height": "30px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "description": "Exercises A2UILayoutComponent.createChildViews recursive path. Deep nested List containing nested Columns with many children tests the deferred child creation flow added in the diff.",
+  "surfaceId": "stability-list-deferred-deep",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-list-deferred-deep",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-list-deferred-deep",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["list1"], "styles": {"width": "100%", "height": "500px"}},
+          {"id": "list1", "component": "List", "children": ["card-0", "card-1", "card-2", "card-3", "card-4", "card-5", "card-6", "card-7"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "card-0", "component": "Column", "children": ["nest-0-1"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "nest-0-1", "component": "Column", "children": ["nest-0-2"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "nest-0-2", "component": "Column", "children": ["nest-0-3"], "styles": {"width": "100%"}},
+          {"id": "nest-0-3", "component": "Column", "children": ["txt-0"], "styles": {"width": "100%"}},
+          {"id": "txt-0", "component": "Text", "text": "Deep nested child 0", "styles": {"width": "100%"}},
+          {"id": "card-1", "component": "Column", "children": ["nest-1-1"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "nest-1-1", "component": "Column", "children": ["txt-1"], "styles": {"width": "100%"}},
+          {"id": "txt-1", "component": "Text", "text": "Nested child 1", "styles": {"width": "100%"}},
+          {"id": "card-2", "component": "Column", "children": ["txt-2"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "txt-2", "component": "Text", "text": "Child 2", "styles": {"width": "100%"}},
+          {"id": "card-3", "component": "Column", "children": ["txt-3"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "txt-3", "component": "Text", "text": "Child 3", "styles": {"width": "100%"}},
+          {"id": "card-4", "component": "Column", "children": ["txt-4"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "txt-4", "component": "Text", "text": "Child 4", "styles": {"width": "100%"}},
+          {"id": "card-5", "component": "Column", "children": ["txt-5"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "txt-5", "component": "Text", "text": "Child 5 deep", "styles": {"width": "100%"}},
+          {"id": "card-6", "component": "Column", "children": ["txt-6"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "txt-6", "component": "Text", "text": "Child 6", "styles": {"width": "100%"}},
+          {"id": "card-7", "component": "Column", "children": ["nest-7-1"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "nest-7-1", "component": "Column", "children": ["nest-7-2"], "styles": {"width": "100%"}},
+          {"id": "nest-7-2", "component": "Column", "children": ["nest-7-3"], "styles": {"width": "100%"}},
+          {"id": "nest-7-3", "component": "Column", "children": ["nest-7-4"], "styles": {"width": "100%"}},
+          {"id": "nest-7-4", "component": "Text", "text": "Deepest nested child 7, 5 levels deep in list item", "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

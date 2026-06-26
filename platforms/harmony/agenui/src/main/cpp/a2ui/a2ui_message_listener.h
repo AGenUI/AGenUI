@@ -1,5 +1,4 @@
-#ifndef A2UI_MESSAGE_LISTENER_H
-#define A2UI_MESSAGE_LISTENER_H
+#pragma once
 
 #include "agenui_message_listener.h"
 #include "render/factory/a2ui_component_registry.h"
@@ -72,7 +71,26 @@ public:
     /**
      * @brief Return the render-layer surface manager.
      */
-    a2ui::A2UISurfaceManager* getSurfaceManager();
+    a2ui::A2UISurfaceManager* getSurfaceManager() const;
+
+    /**
+     * @brief Dispatch component appeared event to ArkTS listeners.
+     * @param surfaceId Surface ID
+     * @param parentComponentId Container component ID
+     * @param parentType Container type name
+     * @param properties Child's raw properties JSON string
+     */
+    void dispatchComponentAppeared(const std::string& surfaceId,
+                                   const std::string& parentComponentId,
+                                   const std::string& parentType,
+                                   const std::string& properties);
+
+    /**
+     * @brief Find message listener by surfaceId using static lookup.
+     * @param surfaceId Surface ID
+     * @return Message listener pointer, or nullptr if not found
+     */
+    static A2UIMessageListener* findListenerBySurfaceId(const std::string& surfaceId);
 
     /**
      * @brief Deprecated contentHandle-ready callback.
@@ -126,7 +144,7 @@ private:
 
     int instanceId_;                                  // Associated ISurfaceManager instance ID
     a2ui::ComponentRegistry globalRegistry_;        // Global registry that owns all factories
-    a2ui::A2UISurfaceManager* surfaceManager_;      // Render-layer surface manager
+    std::unique_ptr<a2ui::A2UISurfaceManager> surfaceManager_;  // Render-layer surface manager
     std::vector<napi_ref> listeners_;               // Registered ArkTS listeners
 
     // Main-thread threadsafe function owned by napi_init.cpp Init/Stop.
@@ -139,10 +157,13 @@ private:
     void postToMainThread(MainThreadTask task);
 
     // Shared surfaceId -> instanceId mapping across all instances.
-    static std::map<std::string, int> s_surfaceIdToInstanceId_;
+    // Leaked singleton to avoid static destruction order issues.
+    static std::map<std::string, int>& getSurfaceIdToInstanceIdMap();
     static std::mutex s_mappingMutex_;
+
+    // instanceId -> A2UIMessageListener* lookup for exposure dispatch
+    static std::map<int, A2UIMessageListener*>& getInstanceToListenerMap();
+    static std::mutex s_instanceMapMutex_;
 };
 
 } // namespace agenui
-
-#endif // A2UI_MESSAGE_LISTENER_H

@@ -4,8 +4,6 @@
 #include <string>
 
 #include "a2ui_component.h"
-#include "components/tabs_component.h"
-#include "components/modal_component.h"
 #include "log/a2ui_capi_log.h"
 
 namespace a2ui {
@@ -66,7 +64,7 @@ void A2UISurface::handleComponentAdd(const agenui::ComponentsAddMessage& msg) {
     try {
         componentJson = nlohmann::json::parse(msg.component);
     } catch (const nlohmann::json::exception& e) {
-        RELEASE_ASSERT_WITHLOG(false,"Failed to parse component JSON: %s", e.what())
+        RELEASE_ASSERT_WITHLOG(false,"Failed to parse component JSON: %s", e.what());
     }
 
     
@@ -322,17 +320,7 @@ void A2UISurface::tryMountOrphanChildren(A2UIComponent* parentComponent, const n
         parentComponent->addChild(orphan);
         HM_LOGI("Mounted orphan: %s -> parent: %s", childId.c_str(), parentComponent->getId().c_str());
 
-        // Notify Tabs once a child becomes available.
-        TabsComponent* tabsParent = dynamic_cast<TabsComponent*>(parentComponent);
-        if (tabsParent) {
-            tabsParent->onChildMounted(orphan);
-        }
-
-        // Notify Modal once a child becomes available.
-        ModalComponent* modalParent = dynamic_cast<ModalComponent*>(parentComponent);
-        if (modalParent) {
-            modalParent->onChildMounted(orphan);
-        }
+        parentComponent->onChildMounted(orphan);
     }
 }
 
@@ -376,17 +364,7 @@ void A2UISurface::addComponent(const std::string& parentId, A2UIComponent* compo
             A2UIComponent* parent = parentIt->second;
             parent->addChild(component);
 
-            // Notify Tabs so it can react to a newly mounted child.
-            TabsComponent* tabsParent = dynamic_cast<TabsComponent*>(parent);
-            if (tabsParent) {
-                tabsParent->onChildMounted(component);
-            }
-
-            // Notify Modal so it can react to a newly mounted child.
-            ModalComponent* modalParent = dynamic_cast<ModalComponent*>(parent);
-            if (modalParent) {
-                modalParent->onChildMounted(component);
-            }
+            parent->onChildMounted(component);
         } else {
             HM_LOGW("Parent not found in tree: %s (child: %s)", parentId.c_str(), component->getId().c_str());
         }

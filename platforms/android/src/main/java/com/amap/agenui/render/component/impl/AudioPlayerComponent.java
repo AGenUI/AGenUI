@@ -300,8 +300,8 @@ public class AudioPlayerComponent extends A2UIComponent {
 
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
-        if (properties.containsKey("url")) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
+        if (changedProps.containsKey("url")) {
             release();
             if (audioPlayerView != null) {
                 initMediaPlayer(audioPlayerView.getContext());

@@ -22,6 +22,14 @@ export interface ISurfaceListener {
    * error cannot be bound to any Surface. Code definitions: agenui_errorcode_define.h.
    */
   onError?: (code: number, surfaceId: string, message: string) => void;
+
+  /**
+   * Called when a component appears in a container (e.g., horizontal List item bound to viewport).
+   * Bind == Display: fired when the NodeAdapter binds a child, no viewport intersection test.
+   * Recycled items fire again when re-bound.
+   * @param properties JSON string of child's raw properties (use JSON.parse to access)
+   */
+  onComponentAppeared?: (surfaceId: string, parentComponentId: string, parentType: string, properties: string) => void;
 }
 
 /**

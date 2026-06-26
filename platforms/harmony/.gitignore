@@ -6,7 +6,7 @@ output/
 *.har
 *.tgz
 
-# Auto-generated build profile (overwritten by hvigor on each build)
+# Auto-generated build profile (overwritten by hvigor on every build)
 **/BuildProfile.ets
 
 # Dependencies

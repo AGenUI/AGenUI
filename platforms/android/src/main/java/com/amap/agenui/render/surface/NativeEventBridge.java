@@ -58,7 +58,10 @@ public class NativeEventBridge implements IAGenUIMessageListener {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.d(TAG, "onComponentsUpdate: surfaceId=" + surfaceId + ", count=" + (components != null ? components.length : 0));
         }
-        mainHandler.post(() -> applyIncrementalComponentUpdates(surfaceId, components));
+        mainHandler.post(() -> {
+            applyIncrementalComponentUpdates(surfaceId, components);
+            AGenUILogger.perf("components_applied", surfaceId);
+        });
     }
 
     @Override
@@ -68,7 +71,10 @@ public class NativeEventBridge implements IAGenUIMessageListener {
                     + ", parents=" + (parentIds != null ? parentIds.length : 0)
                     + ", components=" + (components != null ? components.length : 0) + ", components=" + (components != null ? Arrays.toString(components) : "null"));
         }
-        mainHandler.post(() -> applyIncrementalComponentAdds(surfaceId, parentIds, components));
+        mainHandler.post(() -> {
+            applyIncrementalComponentAdds(surfaceId, parentIds, components);
+            AGenUILogger.perf("components_applied", surfaceId);
+        });
     }
 
     @Override

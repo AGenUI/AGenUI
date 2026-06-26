@@ -1,0 +1,39 @@
+{
+  "description": "Components with zero width and height to test yoga layout handling of degenerate dimensions",
+  "surfaceId": "zero_dimensions",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "zero_dimensions",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "zero_dimensions",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["z1", "z2", "z3", "z4", "z5", "z6"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "z1", "component": "Row", "children": ["z1a", "z1b"], "styles": {"width": "0", "height": "0"}},
+          {"id": "z1a", "component": "Text", "text": "Inside zero-sized row", "styles": {"width": "0"}},
+          {"id": "z1b", "component": "Text", "text": "Also zero", "styles": {"height": "0"}},
+          {"id": "z2", "component": "Image", "properties": {"url": "https://example.com/img.png", "width": 0, "height": 0}, "styles": {"width": "0", "height": "0"}},
+          {"id": "z3", "component": "Column", "children": ["z3a"], "styles": {"width": "0", "height": "0", "padding": "16px"}},
+          {"id": "z3a", "component": "Text", "text": "Child of zero-sized column with padding"},
+          {"id": "z4", "component": "Text", "text": "Zero flex-basis", "styles": {"flex-basis": "0", "flex-grow": "1"}},
+          {"id": "z5", "component": "Row", "children": ["z5a", "z5b", "z5c"], "styles": {"width": "0", "gap": "8px"}},
+          {"id": "z5a", "component": "Text", "text": "A"},
+          {"id": "z5b", "component": "Text", "text": "B"},
+          {"id": "z5c", "component": "Text", "text": "C"},
+          {"id": "z6", "component": "Divider", "styles": {"width": "0", "height": "0"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

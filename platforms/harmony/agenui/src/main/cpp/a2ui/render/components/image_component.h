@@ -9,6 +9,8 @@ typedef struct ArkUI_Animator* ArkUI_AnimatorHandle;
 
 namespace a2ui {
 
+constexpr float kImageFadeInStartScale = 0.98f;
+
 /**
  * Image component backed by ARKUI_NODE_IMAGE.
  *
@@ -19,7 +21,7 @@ namespace a2ui {
  *   - styles.border-width: numeric or unit-suffixed border width
  *   - styles.border-color: #RGB / #RRGGBB / #AARRGGBB
  */
-class ImageComponent : public A2UIComponent {
+class ImageComponent final : public A2UIComponent {
 public:
     ImageComponent(const std::string& id, const nlohmann::json& properties);
     ~ImageComponent() override;
@@ -27,14 +29,14 @@ public:
     /**
      * Stop shimmer animation and unregister events before the base disposeNode path runs.
      */
-    void destroy() override;
+    void onDestroy() override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
     /** Apply the image URL. */
-    void applyUrl(const nlohmann::json& properties);
+    void applyUrl(const nlohmann::json &properties, float yogaWidth, float yogaHeight);
 
     /** Prepare fade-in before switching the image source. */
     void prepareFadeInForUrl(const std::string& url);
@@ -91,6 +93,9 @@ private:
     std::string m_currentUrl;
     bool m_pendingFadeIn = false;
 
+    float m_currentYogaWidth = 0.0f;
+    float m_currentYogaHeight = 0.0f;
+
     // Current external loader request ID. Empty means no external loader is in use.
     std::string m_currentRequestId;
 
@@ -109,6 +114,8 @@ private:
      */
     struct ImageCallbackPayload {
         ImageComponent* component = nullptr;
+        float yogaWidth = 0.0f;
+        float yogaHeight = 0.0f;
     };
 
     // The payload is owned by shared_ptr for the lifetime of the component.

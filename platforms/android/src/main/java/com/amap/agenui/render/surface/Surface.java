@@ -199,6 +199,17 @@ public class Surface {
         }
         parent.addChild(component);
 
+        // Gate 1 — truly lazy containers (horizontal List):
+        // their adapter creates child views on demand, so skip both creation
+        // and attachment here.
+        // Self-managed placement containers (Tabs, Modal) still need eager
+        // child view creation; only the *placement* is self-managed.
+        // attachChildView routes them via onChildViewCreated instead of
+        // auto-adding to the parent container.
+        if (!parent.shouldAutoAddChildView() && !parent.shouldCreateChildView()) {
+            return;
+        }
+
         ViewGroup parentContainer = getComponentChildContainer(parent);
         if (parentContainer == null) {
             AGenUILogger.w(TAG, "Parent childContainer is null, child view not created yet");

@@ -7,7 +7,9 @@ import com.amap.agenui.render.component.IComponentFactory;
 import com.amap.agenui.render.component.impl.VideoComponent;
 
 import java.util.Map;
+import com.amap.agenui.annotation.BuiltInComponent;
 
+@BuiltInComponent
 public class VideoComponentFactory implements IComponentFactory {
     
     @Override

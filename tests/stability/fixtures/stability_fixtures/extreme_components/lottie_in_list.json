@@ -1,0 +1,28 @@
+{
+  "description": "6 Lottie animations inside a scrollable List - tests Lottie lifecycle in list recycling",
+  "surfaceId": "stability-lottie-list",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-lottie-list","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-lottie-list","components":[
+      {"id":"root","component":"List","children":["l0","l1","l2","l3","l4","l5"],"styles":{"width":"100%"}},
+      {"id":"l0","component":"Row","children":["l0a","l0t"],"styles":{"padding":"8px","align-items":"center","gap":"8px"}},
+      {"id":"l0a","component":"Lottie","properties":{"url":"https://example.com/anim0.json"},"styles":{"width":"60px","height":"60px"}},
+      {"id":"l0t","component":"Text","text":"Animation 0"},
+      {"id":"l1","component":"Row","children":["l1a","l1t"],"styles":{"padding":"8px","align-items":"center","gap":"8px"}},
+      {"id":"l1a","component":"Lottie","properties":{"url":"https://example.com/anim1.json"},"styles":{"width":"60px","height":"60px"}},
+      {"id":"l1t","component":"Text","text":"Animation 1"},
+      {"id":"l2","component":"Row","children":["l2a","l2t"],"styles":{"padding":"8px","align-items":"center","gap":"8px"}},
+      {"id":"l2a","component":"Lottie","properties":{"url":"https://example.com/anim2.json"},"styles":{"width":"60px","height":"60px"}},
+      {"id":"l2t","component":"Text","text":"Animation 2"},
+      {"id":"l3","component":"Row","children":["l3a","l3t"],"styles":{"padding":"8px","align-items":"center","gap":"8px"}},
+      {"id":"l3a","component":"Lottie","properties":{"url":"https://example.com/anim3.json"},"styles":{"width":"60px","height":"60px"}},
+      {"id":"l3t","component":"Text","text":"Animation 3"},
+      {"id":"l4","component":"Row","children":["l4a","l4t"],"styles":{"padding":"8px","align-items":"center","gap":"8px"}},
+      {"id":"l4a","component":"Lottie","properties":{"url":"https://example.com/anim4.json"},"styles":{"width":"60px","height":"60px"}},
+      {"id":"l4t","component":"Text","text":"Animation 4"},
+      {"id":"l5","component":"Row","children":["l5a","l5t"],"styles":{"padding":"8px","align-items":"center","gap":"8px"}},
+      {"id":"l5a","component":"Lottie","properties":{"url":"https://example.com/anim5.json"},"styles":{"width":"60px","height":"60px"}},
+      {"id":"l5t","component":"Text","text":"Animation 5"}
+    ]}}
+  ]
+}

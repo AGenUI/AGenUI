@@ -33,37 +33,38 @@ void OpenUrlHelper::registerCallback(napi_env env, napi_value callback) {
 }
 
 void OpenUrlHelper::openUrl(const std::string& url) {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    if (env_ == nullptr || callback_ref_ == nullptr) {
-        HM_LOGE("OpenUrlHelper: No callback registered, cannot open URL: %s", url.c_str());
-        return;
+    napi_env env;
+    napi_ref callbackRef;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (env_ == nullptr || callback_ref_ == nullptr) {
+            HM_LOGE("OpenUrlHelper: No callback registered, cannot open URL: %s", url.c_str());
+            return;
+        }
+        env = env_;
+        callbackRef = callback_ref_;
     }
 
-    // Get the callback function
     napi_value callback;
-    napi_status status = napi_get_reference_value(env_, callback_ref_, &callback);
+    napi_status status = napi_get_reference_value(env, callbackRef, &callback);
     if (status != napi_ok) {
         HM_LOGE("OpenUrlHelper: Failed to get callback reference value");
         return;
     }
 
-    // Create the URL string argument.
     napi_value urlArg;
-    status = napi_create_string_utf8(env_, url.c_str(), NAPI_AUTO_LENGTH, &urlArg);
+    status = napi_create_string_utf8(env, url.c_str(), NAPI_AUTO_LENGTH, &urlArg);
     if (status != napi_ok) {
         HM_LOGE("OpenUrlHelper: Failed to create URL string");
         return;
     }
 
-    // Use undefined as this
     napi_value undefined;
-    napi_get_undefined(env_, &undefined);
+    napi_get_undefined(env, &undefined);
 
-    // Invoke the ArkTS callback: callback(url).
     napi_value result;
     napi_value args[] = {urlArg};
-    status = napi_call_function(env_, undefined, callback, 1, args, &result);
+    status = napi_call_function(env, undefined, callback, 1, args, &result);
     if (status != napi_ok) {
         HM_LOGE("OpenUrlHelper: Failed to call callback for URL: %s", url.c_str());
         return;

@@ -48,6 +48,7 @@ if [[ "$USE_SIMULATOR" == true ]]; then
         LOG_DIR="${CONTAINER}/Documents/stability"
         if [[ -d "$LOG_DIR" ]]; then
             cp "${LOG_DIR}/stability_log.jsonl" "${OUTPUT_DIR}/stability_log.jsonl" 2>/dev/null || true
+            cp "${LOG_DIR}/crash_registry.json" "${OUTPUT_DIR}/crash_registry.json" 2>/dev/null || true
             echo "[Collect] Log file copied from simulator container"
         else
             echo "[Collect] Warning: Stability log directory not found in simulator"
@@ -61,11 +62,17 @@ else
         ios-deploy --download="/Documents/stability/stability_log.jsonl" \
             --bundle_id "$BUNDLE_ID" --id "$DEVICE_ID" \
             --to "${OUTPUT_DIR}/" 2>/dev/null || true
+        ios-deploy --download="/Documents/stability/crash_registry.json" \
+            --bundle_id "$BUNDLE_ID" --id "$DEVICE_ID" \
+            --to "${OUTPUT_DIR}/" 2>/dev/null || true
         # ios-deploy creates nested path, move file
         if [[ -f "${OUTPUT_DIR}/Documents/stability/stability_log.jsonl" ]]; then
             mv "${OUTPUT_DIR}/Documents/stability/stability_log.jsonl" "${OUTPUT_DIR}/stability_log.jsonl"
-            rm -rf "${OUTPUT_DIR}/Documents" 2>/dev/null || true
         fi
+        if [[ -f "${OUTPUT_DIR}/Documents/stability/crash_registry.json" ]]; then
+            mv "${OUTPUT_DIR}/Documents/stability/crash_registry.json" "${OUTPUT_DIR}/crash_registry.json"
+        fi
+        rm -rf "${OUTPUT_DIR}/Documents" 2>/dev/null || true
         echo "[Collect] Log pulled via ios-deploy"
     elif command -v ideviceinstaller &>/dev/null; then
         # Alternative: ideviceinstaller for older libimobiledevice

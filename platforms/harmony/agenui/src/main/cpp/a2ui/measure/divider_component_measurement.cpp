@@ -1,4 +1,5 @@
 #include "divider_component_measurement.h"
+#include "a2ui/utils/a2ui_measure_mode.h"
 #include "nlohmann/json.hpp"
 #include <cstdlib>
 #include <string>
@@ -43,17 +44,17 @@ agenui::MeasureResult DividerComponentMeasurement::measure(
     if (axis == "vertical") {
         measuredWidth  = thicknessPx;
         // Height: prefer Exactly/AtMost constraints, otherwise return 0 (Yoga fills parent)
-        if (modes.height.mode == 1 /*Exactly*/) {
+        if (modes.height.mode == kModeExactly) {
             measuredHeight = modes.height.maxValue;
-        } else if (modes.height.mode == 2 /*AtMost*/ && modes.height.maxValue > 0.0f) {
+        } else if (modes.height.mode == kModeAtMost && modes.height.maxValue > 0.0f) {
             measuredHeight = modes.height.maxValue;
         }
     } else {
         measuredHeight = thicknessPx;
         // Width: prefer Exactly/AtMost constraints, otherwise return 0 (Yoga fills)
-        if (modes.width.mode == 1 /*Exactly*/) {
+        if (modes.width.mode == kModeExactly) {
             measuredWidth = modes.width.maxValue;
-        } else if (modes.width.mode == 2 /*AtMost*/ && modes.width.maxValue > 0.0f) {
+        } else if (modes.width.mode == kModeAtMost && modes.width.maxValue > 0.0f) {
             measuredWidth = modes.width.maxValue;
         }
     }

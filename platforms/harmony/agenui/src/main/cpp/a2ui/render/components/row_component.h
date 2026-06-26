@@ -11,7 +11,7 @@ namespace a2ui {
  *   - justify: main-axis alignment in the horizontal direction
  *   - align: cross-axis alignment in the vertical direction
  */
-class RowComponent : public A2UIComponent {
+class RowComponent final : public A2UIComponent {
 public:
     RowComponent(const std::string& id, const nlohmann::json& properties);
     ~RowComponent() override;
@@ -28,12 +28,6 @@ private:
 
     /** Parse align and map it to NODE_ROW_ALIGN_ITEMS. */
     void applyAlign(const nlohmann::json& properties);
-
-    /** Map justify strings to ArkUI enum values. */
-    static int32_t mapJustifyContent(const std::string& justify);
-
-    /** Map align strings to ArkUI enum values. */
-    static int32_t mapAlignItems(const std::string& align);
 };
 
 } // namespace a2ui

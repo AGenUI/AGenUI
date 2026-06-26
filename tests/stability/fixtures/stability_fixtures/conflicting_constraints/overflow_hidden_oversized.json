@@ -1,0 +1,38 @@
+{
+  "description": "overflow:hidden with children significantly larger than parent to test clipping and layout bounds in yoga node manager",
+  "surfaceId": "overflow_hidden_oversized",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "overflow_hidden_oversized",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "overflow_hidden_oversized",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["o1", "o2", "o3"], "styles": {"width": "100%", "height": "600px", "gap": "10px"}},
+          {"id": "o1", "component": "Column", "children": ["o1a", "o1b", "o1c", "o1d", "o1e"], "styles": {"width": "200px", "height": "100px", "overflow": "hidden"}},
+          {"id": "o1a", "component": "Text", "text": "Line 1 of oversized content that should be clipped"},
+          {"id": "o1b", "component": "Text", "text": "Line 2 of oversized content that should be clipped"},
+          {"id": "o1c", "component": "Text", "text": "Line 3 of oversized content that should be clipped"},
+          {"id": "o1d", "component": "Text", "text": "Line 4 of oversized content that should be clipped"},
+          {"id": "o1e", "component": "Text", "text": "Line 5 of oversized content that should be clipped"},
+          {"id": "o2", "component": "Row", "children": ["o2a"], "styles": {"width": "100px", "height": "100px", "overflow": "hidden"}},
+          {"id": "o2a", "component": "Image", "properties": {"url": "https://example.com/huge.png", "width": 5000, "height": 5000}, "styles": {"width": "5000px", "height": "5000px"}},
+          {"id": "o3", "component": "Column", "children": ["o3a"], "styles": {"width": "150px", "height": "150px", "overflow": "hidden"}},
+          {"id": "o3a", "component": "Column", "children": ["o3b"], "styles": {"width": "1000px", "height": "1000px", "padding": "500px"}},
+          {"id": "o3b", "component": "Text", "text": "Deeply nested in oversized overflow hidden"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

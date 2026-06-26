@@ -1,0 +1,30 @@
+{
+  "description": "Row with flex-wrap and 20 items of varying sizes - tests wrap algorithm with heterogeneous sizes",
+  "surfaceId": "stability-flexwrap-20",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-flexwrap-20","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-flexwrap-20","components":[
+      {"id":"root","component":"Row","children":["fw0","fw1","fw2","fw3","fw4","fw5","fw6","fw7","fw8","fw9","fw10","fw11","fw12","fw13","fw14","fw15","fw16","fw17","fw18","fw19"],"styles":{"width":"100%","flex-wrap":"wrap","gap":"4px","padding":"8px"}},
+      {"id":"fw0","component":"Text","text":"Short","styles":{"width":"40px","height":"30px"}},
+      {"id":"fw1","component":"Text","text":"Medium text","styles":{"width":"80px","height":"30px"}},
+      {"id":"fw2","component":"Text","text":"A longer piece","styles":{"width":"120px","height":"30px"}},
+      {"id":"fw3","component":"Text","text":"Sm","styles":{"width":"25px","height":"30px"}},
+      {"id":"fw4","component":"Text","text":"Quite a wide item here","styles":{"width":"160px","height":"30px"}},
+      {"id":"fw5","component":"Icon","icon":"star","styles":{"width":"30px","height":"30px"}},
+      {"id":"fw6","component":"Text","text":"Mid","styles":{"width":"60px","height":"50px"}},
+      {"id":"fw7","component":"Text","text":"Tall","styles":{"width":"40px","height":"80px"}},
+      {"id":"fw8","component":"Text","text":"W","styles":{"width":"20px","height":"30px"}},
+      {"id":"fw9","component":"Text","text":"Medium","styles":{"width":"70px","height":"30px"}},
+      {"id":"fw10","component":"Text","text":"XL item content","styles":{"width":"140px","height":"40px"}},
+      {"id":"fw11","component":"Text","text":"11","styles":{"width":"30px","height":"30px"}},
+      {"id":"fw12","component":"Text","text":"Twelve","styles":{"width":"55px","height":"30px"}},
+      {"id":"fw13","component":"Text","text":"13","styles":{"width":"30px","height":"30px"}},
+      {"id":"fw14","component":"Text","text":"Item fourteen","styles":{"width":"100px","height":"30px"}},
+      {"id":"fw15","component":"Text","text":"15","styles":{"width":"30px","height":"30px"}},
+      {"id":"fw16","component":"Text","text":"Sixteen is here","styles":{"width":"110px","height":"30px"}},
+      {"id":"fw17","component":"Text","text":"17","styles":{"width":"30px","height":"30px"}},
+      {"id":"fw18","component":"Text","text":"Almost last","styles":{"width":"90px","height":"30px"}},
+      {"id":"fw19","component":"Text","text":"End","styles":{"width":"40px","height":"30px"}}
+    ]}}
+  ]
+}

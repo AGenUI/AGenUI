@@ -1,0 +1,39 @@
+{
+  "description": "Font-weight boundary values around the 500 threshold from StyleHelper.isBoldWeight. Tests exact boundary: 499 (not bold), 500 (bold), and keyword variants.",
+  "surfaceId": "stability-bold-boundary",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-bold-boundary",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-bold-boundary",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["w100","w200","w300","w400","w499","w500","w600","w700","w800","w900","wbold","wnormal"], "styles": {"width": "100%", "padding": "8px", "gap": "2px"}},
+          {"id": "w100", "component": "Text", "text": "weight 100 (not bold)", "styles": {"width": "100%", "font-weight": "100"}},
+          {"id": "w200", "component": "Text", "text": "weight 200 (not bold)", "styles": {"width": "100%", "font-weight": "200"}},
+          {"id": "w300", "component": "Text", "text": "weight 300 (not bold)", "styles": {"width": "100%", "font-weight": "300"}},
+          {"id": "w400", "component": "Text", "text": "weight 400 (not bold)", "styles": {"width": "100%", "font-weight": "400"}},
+          {"id": "w499", "component": "Text", "text": "weight 499 (not bold - just below boundary)", "styles": {"width": "100%", "font-weight": "499"}},
+          {"id": "w500", "component": "Text", "text": "weight 500 (BOLD - exact boundary)", "styles": {"width": "100%", "font-weight": "500"}},
+          {"id": "w600", "component": "Text", "text": "weight 600 (bold)", "styles": {"width": "100%", "font-weight": "600"}},
+          {"id": "w700", "component": "Text", "text": "weight 700 (bold)", "styles": {"width": "100%", "font-weight": "700"}},
+          {"id": "w800", "component": "Text", "text": "weight 800 (bold)", "styles": {"width": "100%", "font-weight": "800"}},
+          {"id": "w900", "component": "Text", "text": "weight 900 (bold)", "styles": {"width": "100%", "font-weight": "900"}},
+          {"id": "wbold", "component": "Text", "text": "keyword 'bold'", "styles": {"width": "100%", "font-weight": "bold"}},
+          {"id": "wnormal", "component": "Text", "text": "keyword 'normal'", "styles": {"width": "100%", "font-weight": "normal"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

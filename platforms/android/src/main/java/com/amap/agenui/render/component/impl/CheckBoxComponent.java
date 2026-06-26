@@ -147,18 +147,18 @@ public class CheckBoxComponent extends A2UIComponent {
         // If properties already has values (updateProperties was called before onCreateView)
         // apply them immediately here
         if (!properties.isEmpty()) {
-            applyProperties();
+            applyProperties(this.properties);
         }
 
         return outerContainer;
     }
     
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (customCheckBox == null) {
             return;
         }
-        applyProperties();
+        applyProperties(changedProps);
     }
 
     /**
@@ -227,14 +227,14 @@ public class CheckBoxComponent extends A2UIComponent {
     /**
      * Apply properties to CheckBox
      */
-    private void applyProperties() {
+    private void applyProperties(Map<String, Object> props) {
         if (customCheckBox == null) {
             return;
         }
 
         // Handle styles property (custom styles)
-        if (properties.containsKey("styles")) {
-            Object stylesValue = properties.get("styles");
+        if (props.containsKey("styles")) {
+            Object stylesValue = props.get("styles");
             if (stylesValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> stylesMap = (Map<String, Object>) stylesValue;
@@ -243,8 +243,8 @@ public class CheckBoxComponent extends A2UIComponent {
         }
         
         // Update label text
-        if (properties.containsKey("label")) {
-            Object labelObj = properties.get("label");
+        if (props.containsKey("label")) {
+            Object labelObj = props.get("label");
             String label = extractStringValue(labelObj);
             if (label != null) {
                 labelTextView.setText(label);
@@ -252,8 +252,8 @@ public class CheckBoxComponent extends A2UIComponent {
         }
         
         // Update checkbox state (A2UI v0.9 protocol: value)
-        if (properties.containsKey("value")) {
-            Object valueObj = properties.get("value");
+        if (props.containsKey("value")) {
+            Object valueObj = props.get("value");
             boolean checked = extractBooleanValue(valueObj);
             
             // Set checked state (without triggering data change event)
@@ -269,8 +269,8 @@ public class CheckBoxComponent extends A2UIComponent {
         }
 
         // checks adapter - show red error text below CheckBox
-        if (properties.containsKey("checks")) {
-            Object checksValue = properties.get("checks");
+        if (props.containsKey("checks")) {
+            Object checksValue = props.get("checks");
             if (checksValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> checksMap = (Map<String, Object>) checksValue;

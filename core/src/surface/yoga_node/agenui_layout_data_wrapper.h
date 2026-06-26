@@ -54,7 +54,7 @@
 
 namespace agenui {
 
-// Phase A Hard Rule 1: NO forward declaration of any concrete subclass here.
+// Phase A hard constraint 1: NO forward declaration of any concrete subclass here.
 // The base interface must be free of concrete-type knowledge.
 
 /**
@@ -116,7 +116,7 @@ public:
 
     // NOTE: previously this interface exposed `asComponentSnapshotWrapper()`
     // as a manual-RTTI hook so engine/decoders could downcast. That violated
-    // Phase A Hard Rule 1 (base interface MUST NOT know any concrete subclass).
+    // Phase A hard constraint 1 (base interface MUST NOT know any concrete subclass).
     // The hook has been removed; concrete decoders/engines that pair with a
     // specific wrapper subclass perform their own static_cast inside their
     // implementation files. See `core/src/surface/yoga_node/README.md`.

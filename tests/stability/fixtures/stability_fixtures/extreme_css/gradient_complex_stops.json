@@ -1,0 +1,42 @@
+{
+  "description": "Multiple components with complex border and visual properties. Tests GradientDrawableFactory with varied border-width values and nested containers with distinct border styles.",
+  "surfaceId": "stability-gradient-stops",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-gradient-stops",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-gradient-stops",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["box1", "box2", "box3", "box4", "box5", "box6"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "box1", "component": "Column", "children": ["b1t"], "styles": {"width": "100%", "height": "60px", "border": "1px solid", "border-width": "1px"}},
+          {"id": "b1t", "component": "Text", "text": "1px border", "styles": {"padding": "4px"}},
+          {"id": "box2", "component": "Column", "children": ["b2t"], "styles": {"width": "100%", "height": "60px", "border": "3px solid", "border-width": "3px"}},
+          {"id": "b2t", "component": "Text", "text": "3px border", "styles": {"padding": "4px"}},
+          {"id": "box3", "component": "Column", "children": ["b3t"], "styles": {"width": "100%", "height": "60px", "border": "0px solid", "border-width": "0px"}},
+          {"id": "b3t", "component": "Text", "text": "0px border (no border)", "styles": {"padding": "4px"}},
+          {"id": "box4", "component": "Row", "children": ["b4a", "b4b"], "styles": {"width": "100%", "height": "80px", "border-width": "2px", "gap": "4px"}},
+          {"id": "b4a", "component": "Column", "children": ["b4at"], "styles": {"flex-grow": "1", "height": "100%", "border-width": "1px"}},
+          {"id": "b4at", "component": "Text", "text": "Nested 1px", "styles": {"padding": "4px"}},
+          {"id": "b4b", "component": "Column", "children": ["b4bt"], "styles": {"flex-grow": "1", "height": "100%", "border-width": "4px"}},
+          {"id": "b4bt", "component": "Text", "text": "Nested 4px", "styles": {"padding": "4px"}},
+          {"id": "box5", "component": "Card", "child": "b5t", "styles": {"width": "100%", "border-width": "2px"}},
+          {"id": "b5t", "component": "Text", "text": "Card with border", "styles": {"padding": "12px"}},
+          {"id": "box6", "component": "Column", "children": ["b6t"], "styles": {"width": "100%", "height": "40px", "border-width": "10px"}},
+          {"id": "b6t", "component": "Text", "text": "Thick 10px border", "styles": {"padding": "4px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_css",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,5 +1,6 @@
 #include "slider_component_measurement.h"
 #include "a2ui_platform_layout_bridge.h"
+#include "a2ui/utils/a2ui_measure_mode.h"
 #include <algorithm>
 
 namespace a2ui {
@@ -15,14 +16,14 @@ agenui::MeasureResult SliderComponentMeasurement::measure(const std::string& /*p
     parseStyleFloat(sliderStyles, "thumb-outer-diameter", thumbOuterDiameter);
 
     float measuredWidth = 0.0f;
-    if ((modes.width.mode == 1 /*Exactly*/ || modes.width.mode == 2 /*AtMost*/) &&
+    if ((modes.width.mode == kModeExactly || modes.width.mode == kModeAtMost) &&
          modes.width.maxValue > 0.0f) {
         measuredWidth = modes.width.maxValue;
     }
 
     float measuredHeight = std::max(sliderHeight, thumbOuterDiameter);
-    if ((modes.height.mode == 1 || modes.height.mode == 2) && modes.height.maxValue > 0.0f) {
-        measuredHeight = modes.height.mode == 2
+    if ((modes.height.mode == kModeExactly || modes.height.mode == kModeAtMost) && modes.height.maxValue > 0.0f) {
+        measuredHeight = modes.height.mode == kModeAtMost
             ? std::min(measuredHeight, modes.height.maxValue)
             : modes.height.maxValue;
     }

@@ -102,13 +102,13 @@ public class SliderComponent extends A2UIComponent {
         errorTextView.setPadding(errorPaddingH, errorPaddingV, errorPaddingH, 0);
         containerLayout.addView(errorTextView);
 
-        applyProperties();
+        applyProperties(this.properties);
         return containerLayout;
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
-        applyProperties();
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
+        applyProperties(changedProps);
     }
 
     /**
@@ -183,14 +183,14 @@ public class SliderComponent extends A2UIComponent {
         }
     }
 
-    private void applyProperties() {
+    private void applyProperties(Map<String, Object> props) {
         if (containerLayout == null) {
             return;
         }
 
         // Update label
-        if (properties.containsKey("label")) {
-            Object labelObj = properties.get("label");
+        if (props.containsKey("label")) {
+            Object labelObj = props.get("label");
             String label = extractStringValue(labelObj);
             if (label != null) {
                 labelTextView.setText(label);
@@ -198,20 +198,20 @@ public class SliderComponent extends A2UIComponent {
         }
 
         // Update minimum value
-        if (properties.containsKey("min")) {
-            Object minObj = properties.get("min");
+        if (props.containsKey("min")) {
+            Object minObj = props.get("min");
             minValue = extractNumberValue(minObj);
         }
 
         // Update maximum value
-        if (properties.containsKey("max")) {
-            Object maxObj = properties.get("max");
+        if (props.containsKey("max")) {
+            Object maxObj = props.get("max");
             maxValue = extractNumberValue(maxObj);
         }
 
         // Update current value
-        if (properties.containsKey("value")) {
-            Object valueObj = properties.get("value");
+        if (props.containsKey("value")) {
+            Object valueObj = props.get("value");
             float value = extractNumberValue(valueObj);
 
             // Convert actual value to progress (0.0-1.0)
@@ -228,8 +228,8 @@ public class SliderComponent extends A2UIComponent {
         }
 
         // checks adaptation - display red error text below the slider
-        if (properties.containsKey("checks")) {
-            Object checksValue = properties.get("checks");
+        if (props.containsKey("checks")) {
+            Object checksValue = props.get("checks");
             if (checksValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> checksMap = (Map<String, Object>) checksValue;

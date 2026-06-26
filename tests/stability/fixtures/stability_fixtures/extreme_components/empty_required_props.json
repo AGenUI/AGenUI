@@ -1,0 +1,27 @@
+{
+  "description": "Components with empty or missing required props — empty src for Image, empty text for Text, empty label for Button",
+  "surfaceId": "empty-required-props",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "empty-required-props",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "empty-required-props",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["empty-text", "empty-img", "empty-btn", "empty-md", "no-src-img"], "styles": {"width": "100%", "gap": "8px", "padding": "8px"}},
+          {"id": "empty-text", "component": "Text", "text": "", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "empty-img", "component": "Image", "src": "", "styles": {"width": "100px", "height": "100px"}},
+          {"id": "empty-btn", "component": "Button", "label": "", "styles": {"width": "100px"}},
+          {"id": "empty-md", "component": "Markdown", "text": "", "styles": {"width": "100%"}},
+          {"id": "no-src-img", "component": "Image", "styles": {"width": "100px", "height": "100px"}}
+        ]
+      }
+    }
+  ]
+}

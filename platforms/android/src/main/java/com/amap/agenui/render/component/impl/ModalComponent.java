@@ -216,7 +216,7 @@ public class ModalComponent extends A2UILayoutComponent {
         // Add close button below the white container
         if (showCloseButton) {
             ImageView closeButton = new ImageView(context);
-            closeButton.setImageResource(R.drawable.ic_modal_close);
+            closeButton.setImageResource(R.drawable.agenui_ic_modal_close);
 
             // Set close button size and position
             LinearLayout.LayoutParams closeParams = new LinearLayout.LayoutParams(
@@ -405,8 +405,8 @@ public class ModalComponent extends A2UILayoutComponent {
     }
 
     @Override
-    public void onUpdateProperties(Map<String, Object> properties) {
-        super.onUpdateProperties(properties);
+    public void onUpdateProperties(Map<String, Object> changedProps) {
+        super.onUpdateProperties(changedProps);
         // Property update logic for Modal component
         // The association of trigger and content is handled in Surface.linkModalComponents()
     }

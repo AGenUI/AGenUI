@@ -1,0 +1,22 @@
+{
+  "description": "Row with direction:rtl - tests right-to-left layout with mixed content",
+  "surfaceId": "stability-rtl-row",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-rtl-row","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-rtl-row","components":[
+      {"id":"root","component":"Column","children":["ltr","rtl1","rtl2"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
+      {"id":"ltr","component":"Row","children":["la","lb","lc"],"styles":{"width":"100%","direction":"ltr"}},
+      {"id":"la","component":"Text","text":"LTR 1","styles":{"width":"80px"}},
+      {"id":"lb","component":"Text","text":"LTR 2","styles":{"width":"80px"}},
+      {"id":"lc","component":"Text","text":"LTR 3","styles":{"width":"80px"}},
+      {"id":"rtl1","component":"Row","children":["ra","rb","rc"],"styles":{"width":"100%","direction":"rtl"}},
+      {"id":"ra","component":"Text","text":"RTL 1","styles":{"width":"80px"}},
+      {"id":"rb","component":"Text","text":"RTL 2","styles":{"width":"80px"}},
+      {"id":"rc","component":"Text","text":"RTL 3","styles":{"width":"80px"}},
+      {"id":"rtl2","component":"Row","children":["r2a","r2b"],"styles":{"width":"100%","direction":"rtl","justify-content":"space-between","padding":"8px"}},
+      {"id":"r2a","component":"Button","child":"r2at","action":{"functionCall":{"name":"rtl_action"}}},
+      {"id":"r2at","component":"Text","text":"RTL Button"},
+      {"id":"r2b","component":"TextField","label":"RTL Input","value":"مرحبا","styles":{"width":"150px"}}
+    ]}}
+  ]
+}

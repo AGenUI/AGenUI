@@ -1,0 +1,47 @@
+{
+  "description": "Gap property with various values in Row, Column, and flex-wrap contexts to stress yoga layout gap computation",
+  "surfaceId": "gap_all_variants",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "gap_all_variants",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "gap_all_variants",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["g1", "g2", "g3", "g4", "g5"], "styles": {"width": "100%", "gap": "8px", "padding": "8px"}},
+          {"id": "g1", "component": "Row", "children": ["g1a", "g1b", "g1c"], "styles": {"width": "100%", "gap": "0px"}},
+          {"id": "g1a", "component": "Text", "text": "Zero gap A"},
+          {"id": "g1b", "component": "Text", "text": "Zero gap B"},
+          {"id": "g1c", "component": "Text", "text": "Zero gap C"},
+          {"id": "g2", "component": "Row", "children": ["g2a", "g2b", "g2c"], "styles": {"width": "100%", "gap": "999px"}},
+          {"id": "g2a", "component": "Text", "text": "Huge gap A"},
+          {"id": "g2b", "component": "Text", "text": "Huge gap B"},
+          {"id": "g2c", "component": "Text", "text": "Huge gap C"},
+          {"id": "g3", "component": "Column", "children": ["g3a", "g3b"], "styles": {"width": "100%", "gap": "50%"}},
+          {"id": "g3a", "component": "Text", "text": "Percentage gap A"},
+          {"id": "g3b", "component": "Text", "text": "Percentage gap B"},
+          {"id": "g4", "component": "Row", "children": ["g4a", "g4b", "g4c", "g4d", "g4e", "g4f"], "styles": {"width": "300px", "flex-wrap": "wrap", "gap": "20px"}},
+          {"id": "g4a", "component": "Text", "text": "Wrap+gap A", "styles": {"width": "100px"}},
+          {"id": "g4b", "component": "Text", "text": "Wrap+gap B", "styles": {"width": "100px"}},
+          {"id": "g4c", "component": "Text", "text": "Wrap+gap C", "styles": {"width": "100px"}},
+          {"id": "g4d", "component": "Text", "text": "Wrap+gap D", "styles": {"width": "100px"}},
+          {"id": "g4e", "component": "Text", "text": "Wrap+gap E", "styles": {"width": "100px"}},
+          {"id": "g4f", "component": "Text", "text": "Wrap+gap F", "styles": {"width": "100px"}},
+          {"id": "g5", "component": "Column", "children": ["g5a"], "styles": {"width": "100%", "gap": "-10px"}},
+          {"id": "g5a", "component": "Text", "text": "Negative gap (should be clamped or error)"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

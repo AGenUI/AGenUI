@@ -20,12 +20,12 @@ namespace a2ui {
  *   - styles.height: explicit height overriding the default 100% height
  *   - styles.margin-left / styles.margin-right: horizontal margins
  */
-class DividerComponent : public A2UIComponent {
+class DividerComponent final : public A2UIComponent {
 public:
     DividerComponent(const std::string& id, const nlohmann::json& properties);
     ~DividerComponent() override;
 
-    void destroy() override;
+    void onDestroy() override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;

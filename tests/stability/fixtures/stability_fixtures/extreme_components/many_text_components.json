@@ -1,0 +1,43 @@
+{
+  "description": "15+ Text components with varied styles in a single surface. Stresses text rendering pipeline, font weight parsing (isBoldWeight), and text-align parsing.",
+  "surfaceId": "stability-many-texts",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-many-texts",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-many-texts",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["t0","t1","t2","t3","t4","t5","t6","t7","t8","t9","t10","t11","t12","t13","t14","t15"], "styles": {"width": "100%", "padding": "4px", "gap": "2px"}},
+          {"id": "t0", "component": "Text", "text": "Regular text", "styles": {"width": "100%"}},
+          {"id": "t1", "component": "Text", "text": "Bold 700", "styles": {"width": "100%", "font-weight": "700"}},
+          {"id": "t2", "component": "Text", "text": "Bold 500 boundary", "styles": {"width": "100%", "font-weight": "500"}},
+          {"id": "t3", "component": "Text", "text": "Not bold 499", "styles": {"width": "100%", "font-weight": "499"}},
+          {"id": "t4", "component": "Text", "text": "Weight 900", "styles": {"width": "100%", "font-weight": "900"}},
+          {"id": "t5", "component": "Text", "text": "Weight 100 thin", "styles": {"width": "100%", "font-weight": "100"}},
+          {"id": "t6", "component": "Text", "text": "Keyword bold", "styles": {"width": "100%", "font-weight": "bold"}},
+          {"id": "t7", "component": "Text", "text": "Keyword normal", "styles": {"width": "100%", "font-weight": "normal"}},
+          {"id": "t8", "component": "Text", "text": "Center aligned", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "t9", "component": "Text", "text": "Right aligned", "styles": {"width": "100%", "text-align": "right"}},
+          {"id": "t10", "component": "Text", "text": "End aligned", "styles": {"width": "100%", "text-align": "end"}},
+          {"id": "t11", "component": "Text", "text": "Start aligned", "styles": {"width": "100%", "text-align": "start"}},
+          {"id": "t12", "component": "Text", "text": "Very long text content that should wrap across multiple lines to test text rendering with different layout constraints and ensure no crashes occur with extended content", "styles": {"width": "100%"}},
+          {"id": "t13", "component": "Text", "text": "", "styles": {"width": "100%", "height": "20px"}},
+          {"id": "t14", "component": "Text", "text": "Unicode: 你好世界 🌟 éèêë", "styles": {"width": "100%"}},
+          {"id": "t15", "component": "Text", "text": "Max height constrained", "styles": {"width": "100%", "max-height": "10px", "overflow": "hidden"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

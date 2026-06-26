@@ -9,19 +9,23 @@ struct StabilityTestConfig {
     let intervalMs: Int
     let crashThreshold: Int
     let restartReason: String?
+    let fixtures: [String]?
 
     static func fromLaunchArgs(_ args: [String]) -> StabilityTestConfig {
         func argValue(_ key: String) -> String? {
             guard let idx = args.firstIndex(of: key), idx + 1 < args.count else { return nil }
             return args[idx + 1]
         }
+        let fixturesRaw = argValue("--fixtures")
+        let fixturesList: [String]? = fixturesRaw?.split(separator: ",").map(String.init)
         return StabilityTestConfig(
             scenario: StabilityScenario.parse(argValue("--scenario")),
             durationMinutes: Int(argValue("--duration") ?? "") ?? 480,
             maxRounds: Int(argValue("--rounds") ?? "") ?? 0,
             intervalMs: Int(argValue("--interval") ?? "") ?? 100,
             crashThreshold: Int(argValue("--crash-threshold") ?? "") ?? 5,
-            restartReason: argValue("--restart-reason")
+            restartReason: argValue("--restart-reason"),
+            fixtures: fixturesList
         )
     }
 }
@@ -100,6 +104,9 @@ class StabilityTestViewController: UIViewController {
         crashTracker = StabilityCrashTracker(outputDir: stabilityDir, threshold: config.crashThreshold)
         memoryMonitor = StabilityMemoryMonitor()
         engine = StabilityScenarioEngine()
+        if let filter = config.fixtures {
+            engine.setFixtureFilter(filter)
+        }
         realisticEngine = RealisticScenarioEngine()
 
         // Hook realistic engine callbacks
@@ -446,9 +453,18 @@ class StabilityTestViewController: UIViewController {
         crashTracker.markCleanExit()
         logger.logEvent(event: "stop", detail: reason)
         logger.close()
+        writeDoneMarker(reason: reason)
 
         lastRoundInfo = "STOPPED: \(reason)"
         updateUILabels()
         updateMetricsOverlay()
+    }
+
+    private func writeDoneMarker(reason: String) {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let stabilityDir = docs.appendingPathComponent("stability")
+        let doneFileURL = stabilityDir.appendingPathComponent("stability_done.txt")
+        let content = "\(reason)\n\(Date().timeIntervalSince1970)\n"
+        try? content.write(to: doneFileURL, atomically: true, encoding: .utf8)
     }
 }

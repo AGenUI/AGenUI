@@ -3,16 +3,18 @@
 #include "a2ui/utils/a2ui_unit_utils.h"
 #include "nlohmann/json.hpp"
 #include <algorithm>
+#include <atomic>
+#include <mutex>
 
 // Global density must stay outside the namespace to match the extern declaration.
-float gDensityForUI = 3.0f;
+std::atomic<float> gDensityForUI{3.0f};
 
 namespace a2ui {
 
 // Cached device metrics. Defaults match the original hard-coded values.
-static int s_deviceWidth = 300;
-static int s_deviceHeight = 500;
-static float s_deviceDensity = 3.375f;
+static std::atomic<int> s_deviceWidth{300};
+static std::atomic<int> s_deviceHeight{500};
+static std::atomic<float> s_deviceDensity{3.375f};
 static bool s_hasImageFadeInOverride = false;
 static bool s_imageFadeInEnabled = true;
 static constexpr int32_t kDefaultImageFadeInDurationMs = 1500;
@@ -211,22 +213,24 @@ static const char* g_component_styles = R"JSON({
   }
 })JSON";
 
-// Static variable used to cache the parsed JSON object
-static nlohmann::json s_parsedComponentStyles;
-static bool s_stylesInitialized = false;
+// Leaked singleton to cache the parsed JSON object, avoiding static destruction order issues.
+static nlohmann::json& getParsedComponentStyles() {
+    static auto* p = new nlohmann::json();
+    return *p;
+}
 
 // Parse component styles once on first use.
 static void initializeComponentStyles() {
-    if (!s_stylesInitialized) {
-        s_parsedComponentStyles = nlohmann::json::parse(g_component_styles, nullptr, false);
-        if (s_parsedComponentStyles.is_discarded()) {
+    static std::once_flag s_stylesOnce;
+    std::call_once(s_stylesOnce, [] {
+        getParsedComponentStyles() = nlohmann::json::parse(g_component_styles, nullptr, false);
+        if (getParsedComponentStyles().is_discarded()) {
             HM_LOGE("initializeComponentStyles - Failed to parse component styles");
-            s_parsedComponentStyles = nlohmann::json::object();
+            getParsedComponentStyles() = nlohmann::json::object();
         } else {
             HM_LOGD("Component styles initialized successfully");
         }
-        s_stylesInitialized = true;
-    }
+    });
 }
 
 void setDeviceInfo(int width, int height, float density) {
@@ -241,16 +245,19 @@ float getScreenDensity() {
     return s_deviceDensity;
 }
 
-// Empty object singleton for getComponentStylesFor to return reference when component does not exist
-static const nlohmann::json s_emptyStyles = nlohmann::json::object();
+// Leaked singleton for getComponentStylesFor to return reference when component does not exist.
+static const nlohmann::json& getEmptyStyles() {
+    static auto* p = new nlohmann::json(nlohmann::json::object());
+    return *p;
+}
 
 const nlohmann::json& getComponentStylesFor(const std::string& componentName) {
     initializeComponentStyles();
-    if (s_parsedComponentStyles.contains(componentName) &&
-        s_parsedComponentStyles[componentName].is_object()) {
-        return s_parsedComponentStyles[componentName];
+    if (getParsedComponentStyles().contains(componentName) &&
+        getParsedComponentStyles()[componentName].is_object()) {
+        return getParsedComponentStyles()[componentName];
     }
-    return s_emptyStyles;
+    return getEmptyStyles();
 }
 
 void setImageFadeInEnabled(bool enabled) {
@@ -264,7 +271,7 @@ bool isImageFadeInEnabled() {
         return s_imageFadeInEnabled;
     }
 
-    const nlohmann::json imageStyles = getComponentStylesFor("Image");
+    const auto& imageStyles = getComponentStylesFor("Image");
     if (imageStyles.is_object() && imageStyles.contains("fade-in-enabled")) {
         const nlohmann::json& value = imageStyles["fade-in-enabled"];
         if (value.is_boolean()) {
@@ -287,7 +294,7 @@ bool isImageFadeInEnabled() {
 }
 
 int32_t getImageFadeInDurationMs() {
-    const nlohmann::json imageStyles = getComponentStylesFor("Image");
+    const auto& imageStyles = getComponentStylesFor("Image");
     if (imageStyles.is_object() && imageStyles.contains("fade-in-duration")) {
         const nlohmann::json& value = imageStyles["fade-in-duration"];
         if (value.is_number_integer()) {

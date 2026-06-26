@@ -40,6 +40,7 @@ public class UITestActivity extends AppCompatActivity {
     private SurfaceManager surfaceManager;
     private FrameLayout renderContainer;
     private CountDownLatch surfaceReadyLatch;
+    private PlaygroundRuntimeLogger runtimeLogger;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +76,10 @@ public class UITestActivity extends AppCompatActivity {
         // Initialize AGenUI engine (idempotent)
         AGenUI agenui = AGenUI.getInstance();
         agenui.initialize(getApplicationContext());
+
+        // Setup runtime logger for benchmark timing
+        runtimeLogger = new PlaygroundRuntimeLogger(getApplicationContext());
+        agenui.setCustomLogger(runtimeLogger);
 
         // Latch to synchronize: wait for onCreateSurface before sending updateComponents
         surfaceReadyLatch = new CountDownLatch(1);
@@ -133,9 +138,18 @@ public class UITestActivity extends AppCompatActivity {
             surfaceManager.beginTextStream();
 
             for (int i = 0; i < sequence.length(); i++) {
+                JSONObject item = sequence.getJSONObject(i);
+
+                // Handle __pause_ms directive: sleep to allow screenshot capture
+                if (item.has("__pause_ms")) {
+                    long pauseMs = item.getLong("__pause_ms");
+                    Log.i(TAG, "Pausing for " + pauseMs + "ms (between protocol steps)");
+                    Thread.sleep(pauseMs);
+                    continue;
+                }
+
                 JSONObject msg = new JSONObject();
                 msg.put("version", version);
-                JSONObject item = sequence.getJSONObject(i);
                 for (Iterator<String> it = item.keys(); it.hasNext(); ) {
                     String key = it.next();
                     msg.put(key, item.get(key));
@@ -143,17 +157,6 @@ public class UITestActivity extends AppCompatActivity {
 
                 String msgStr = msg.toString();
                 surfaceManager.receiveTextChunk(msgStr);
-
-                // After sending createSurface, wait for the surface view to be added
-                if (item.has("createSurface")) {
-                    Log.i(TAG, "Waiting for surface to be ready...");
-                    boolean ready = surfaceReadyLatch.await(5, TimeUnit.SECONDS);
-                    if (!ready) {
-                        Log.w(TAG, "Timeout waiting for surface, continuing anyway");
-                    }
-                    // Small extra delay for UI thread to complete layout
-                    Thread.sleep(100);
-                }
             }
 
             // End stream session (flushes pending callbacks)

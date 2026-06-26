@@ -19,13 +19,13 @@ namespace a2ui {
  *   - button size and colors come from g_component_styles.AudioPlayer
  *   - visual state switches between play, pause, loading, and error
  */
-class AudioPlayerComponent : public A2UIComponent {
+class AudioPlayerComponent final : public A2UIComponent {
 public:
     AudioPlayerComponent(const std::string& id, const nlohmann::json& properties);
     ~AudioPlayerComponent() override;
 
     bool shouldAutoAddChildView() const override { return false; }
-    void destroy() override;
+    void onDestroy() override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
@@ -36,10 +36,6 @@ private:
     static void onPlayerErrorCallback(OH_AVPlayer* player, int32_t errorCode,
                                       const char* errorMsg, void* userData);
     static void onPlayPauseBtnClickEvent(ArkUI_NodeEvent* event);
-
-    // Dispatch a lambda to the main (JS/UI) thread via the global TSFN so that
-    // AVPlayer worker-thread callbacks never touch ArkUI nodes directly.
-    static void postToMainThread(std::function<void()> task);
 
     void createUI();
     void destroyUI();
@@ -65,6 +61,9 @@ private:
     // Controls whether queued main-thread tasks are allowed to touch node handles.
     // Set to false in releasePlayer() before nodes are torn down.
     std::atomic<bool> m_uiTasksEnabled{true};
+
+    // Shared flag captured by async lambdas to detect object destruction.
+    std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
 
     ArkUI_NodeHandle m_ringHandle = nullptr;
     ArkUI_NodeHandle m_loadingHandle = nullptr;

@@ -40,7 +40,7 @@ struct ChoicePickerOptionItem {
  *   - value: selected value, either a string or an array of strings
  *   - styles.orientation: "vertical" by default, or "horizontal" (checkbox mode)
  */
-class ChoicePickerComponent : public A2UIComponent {
+class ChoicePickerComponent final : public A2UIComponent {
 public:
     ChoicePickerComponent(const std::string& id, const nlohmann::json& properties);
     ~ChoicePickerComponent() override;

@@ -312,7 +312,15 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
             applyBorderWidth(yogaNode, value);
         }
     }
-    
+
+    // Process gap attribute
+    {
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kGap);
+        if (value.isValid()) {
+            applyGap(yogaNode, value);
+        }
+    }
+
     // Process position attribute
     {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPosition);

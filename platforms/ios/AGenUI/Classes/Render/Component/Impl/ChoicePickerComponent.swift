@@ -146,7 +146,7 @@ private class SearchInputView: UIView {
             .foregroundColor: placeholderColor,
             .font: UIFont.systemFont(ofSize: fontSize)
         ]
-        textField.attributedPlaceholder = NSAttributedString(string: "Search options...", attributes: placeholderAttrs)
+        textField.attributedPlaceholder = NSAttributedString(string: "搜索选项...", attributes: placeholderAttrs)
         textField.font = UIFont.systemFont(ofSize: fontSize)
         textField.textColor = textColor
         textField.borderStyle = .none

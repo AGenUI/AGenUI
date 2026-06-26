@@ -1,0 +1,55 @@
+{
+  "description": "Realistic long list built via streaming updates — items added progressively to test incremental layout",
+  "surfaceId": "long-list-streaming",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "long-list-streaming",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "long-list-streaming",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["hdr", "feed"], "styles": {"width": "100%"}},
+          {"id": "hdr", "component": "Text", "text": "News Feed", "styles": {"width": "100%", "height": "44px", "padding": "8px"}},
+          {"id": "feed", "component": "List", "children": ["p1", "p2"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "p1", "component": "Card", "children": ["p1c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p1c", "component": "Text", "text": "Breaking: First post loaded"},
+          {"id": "p2", "component": "Card", "children": ["p2c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p2c", "component": "Text", "text": "Second post content"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "long-list-streaming",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["hdr", "feed"], "styles": {"width": "100%"}},
+          {"id": "hdr", "component": "Text", "text": "News Feed", "styles": {"width": "100%", "height": "44px", "padding": "8px"}},
+          {"id": "feed", "component": "List", "children": ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "p1", "component": "Card", "children": ["p1c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p1c", "component": "Text", "text": "Breaking: First post loaded"},
+          {"id": "p2", "component": "Card", "children": ["p2c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p2c", "component": "Text", "text": "Second post content"},
+          {"id": "p3", "component": "Card", "children": ["p3c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p3c", "component": "Text", "text": "Third post streamed in"},
+          {"id": "p4", "component": "Card", "children": ["p4c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p4c", "component": "Text", "text": "Fourth post with longer content that wraps"},
+          {"id": "p5", "component": "Card", "children": ["p5c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p5c", "component": "Text", "text": "Fifth post"},
+          {"id": "p6", "component": "Card", "children": ["p6c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p6c", "component": "Text", "text": "Sixth post"},
+          {"id": "p7", "component": "Card", "children": ["p7c"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "p7c", "component": "Text", "text": "Seventh post"},
+          {"id": "p8", "component": "Card", "children": ["p8c"], "styles": {"width": "100%", "padding": "12px"}},
+          {"id": "p8c", "component": "Text", "text": "Eighth post - latest"}
+        ]
+      }
+    }
+  ]
+}

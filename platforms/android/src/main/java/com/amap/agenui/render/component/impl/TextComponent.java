@@ -6,10 +6,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.amap.agenui.render.component.A2UIComponent;
+import com.amap.agenui.render.component.widget.A2UITextView;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.Map;
-import com.amap.agenui.render.utils.AGenUILogger;
 
 /**
  * Text component implementation (compliant with A2UI v0.9 protocol)
@@ -63,7 +64,7 @@ public class TextComponent extends A2UIComponent {
         if (this.context == null) {
             this.context = context;
         }
-        textView = new TextView(context);
+        textView = new A2UITextView(context);
         textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // ⚠️ Important: apply initial properties
@@ -73,21 +74,14 @@ public class TextComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (textView == null) {
             return;
         }
 
-        // Handle text update (overwrite existing content)
-        if (properties.containsKey("text")) {
-            Object textValue = properties.get("text");
-            String text = extractTextValue(textValue);
-            currentText = new StringBuilder(text);
-            textView.setText(currentText.toString());
-        }
         // Handle text append
-        else if (properties.containsKey("textChunk")) {
-            Object textValue = properties.get("textChunk");
+        if (changedProps.containsKey("textChunk")) {
+            Object textValue = changedProps.get("textChunk");
             String textChunk = extractTextValue(textValue);
             if (textChunk != null) {
                 // Incrementally append text
@@ -95,11 +89,18 @@ public class TextComponent extends A2UIComponent {
                 textView.setText(currentText.toString());
             }
         }
+        // Handle text update (overwrite existing content)
+        else if (changedProps.containsKey("text")) {
+            Object textValue = changedProps.get("text");
+            String text = extractTextValue(textValue);
+            currentText = new StringBuilder(text);
+            textView.setText(currentText.toString());
+        }
 
         // Apply custom styles (override variant preset styles)
-        if (properties.containsKey("styles")) {
+        if (changedProps.containsKey("styles")) {
             try {
-                Object stylesValue = properties.get("styles");
+                Object stylesValue = changedProps.get("styles");
                 if (stylesValue instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> styles = (Map<String, Object>) stylesValue;

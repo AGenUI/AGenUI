@@ -1,0 +1,25 @@
+{
+  "description": "Tests parseTextAlign with two-axis value 'center bottom' — vertical token must be silently dropped per diff, always TOP gravity",
+  "surfaceId": "text-align-center-bottom",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "text-align-center-bottom",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "text-align-center-bottom",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["t1", "t2", "t3"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "t1", "component": "Text", "text": "Center bottom align", "styles": {"width": "100%", "height": "80px", "text-align": "center bottom"}},
+          {"id": "t2", "component": "Text", "text": "Left top align", "styles": {"width": "100%", "height": "80px", "text-align": "left top"}},
+          {"id": "t3", "component": "Text", "text": "Right center align", "styles": {"width": "100%", "height": "80px", "text-align": "right center"}}
+        ]
+      }
+    }
+  ]
+}

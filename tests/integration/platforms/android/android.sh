@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ============================================================================
-# tests/integration/platforms/android.sh
+# tests/integration/platforms/android/android.sh
 # Run Android Playground integration tests (androidTest / instrumented tests)
 #
 # Prerequisites:

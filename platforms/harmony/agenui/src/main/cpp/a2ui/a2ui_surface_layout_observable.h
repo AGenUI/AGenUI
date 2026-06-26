@@ -12,7 +12,7 @@ namespace agenui {
  */
 class SurfaceLayoutListener {
 public:
-    virtual ~SurfaceLayoutListener() {}
+    virtual ~SurfaceLayoutListener() = default;
     virtual void onSurfaceSizeChanged(const SurfaceLayoutInfo& info) = 0;
 };
 
@@ -22,7 +22,7 @@ public:
  */
 class ISurfaceLayoutObservable {
 public:
-    virtual ~ISurfaceLayoutObservable() {}
+    virtual ~ISurfaceLayoutObservable() = default;
     virtual void addSurfaceLayoutListener(SurfaceLayoutListener* listener) = 0;
     virtual void removeSurfaceLayoutListener(SurfaceLayoutListener* listener) = 0;
     virtual void notifySurfaceSizeChanged(const SurfaceLayoutInfo& info) = 0;

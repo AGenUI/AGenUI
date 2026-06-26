@@ -16,8 +16,6 @@
 #include "agenui_engine.h"
 #include "agenui_engine_entry.h"
 #include "agenui_logger_interface.h"
-#include "agenui_platform_layout_bridge.h"
-#include "support/mock_platform_layout_bridge.h"
 #include "support/mock_runtime_logger.h"
 #include "support/test_env.h"
 
@@ -84,22 +82,7 @@ TEST_F(EngineLifecycleTest, E009_SetRuntimeLogger_CustomThenRestore) {
     delete custom;
 }
 
-// E010: setPlatformLayoutBridge get/set symmetric. Restore null
-// before the stack-allocated mock dies.
-TEST_F(EngineLifecycleTest, E010_PlatformLayoutBridge_GetSetSymmetric) {
-    auto* engine = ::agenui::getAGenUIEngine();
-    ASSERT_NE(engine, nullptr);
-
-    auto* before = engine->getPlatformLayoutBridge();
-
-    ::agenui::testing::MockPlatformLayoutBridge bridge;
-    engine->setPlatformLayoutBridge(&bridge);
-    EXPECT_EQ(engine->getPlatformLayoutBridge(), &bridge);
-
-    // Restore previous (typically nullptr) so we don't leave a dangling ref.
-    engine->setPlatformLayoutBridge(before);
-    EXPECT_EQ(engine->getPlatformLayoutBridge(), before);
-}
+// E010: removed — PlatformLayoutBridge API was deleted from IAGenUIEngine.
 
 // E011: getMeasurementManager is non-null on a running engine.
 TEST_F(EngineLifecycleTest, E011_GetMeasurementManager_NotNull) {

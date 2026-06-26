@@ -1,0 +1,53 @@
+{
+  "description": "Stresses YogaLayoutManager two-level frame cache with 25 children. Tests cachedPxFrames/cachedContentBounds lazy computation and invalidation. Large child count forces many frame extractions.",
+  "surfaceId": "stability-list-many-cache",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-list-many-cache",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-list-many-cache",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["big-list"], "styles": {"width": "100%", "height": "600px"}},
+          {"id": "big-list", "component": "List", "children": ["li-0","li-1","li-2","li-3","li-4","li-5","li-6","li-7","li-8","li-9","li-10","li-11","li-12","li-13","li-14","li-15","li-16","li-17","li-18","li-19","li-20","li-21","li-22","li-23","li-24"], "styles": {"width": "100%", "height": "500px"}},
+          {"id": "li-0", "component": "Text", "text": "Item 0", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-1", "component": "Text", "text": "Item 1", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-2", "component": "Text", "text": "Item 2", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-3", "component": "Text", "text": "Item 3", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-4", "component": "Text", "text": "Item 4", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-5", "component": "Text", "text": "Item 5", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-6", "component": "Text", "text": "Item 6", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-7", "component": "Text", "text": "Item 7", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-8", "component": "Text", "text": "Item 8", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-9", "component": "Text", "text": "Item 9", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-10", "component": "Text", "text": "Item 10", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-11", "component": "Text", "text": "Item 11", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-12", "component": "Text", "text": "Item 12", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-13", "component": "Text", "text": "Item 13", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-14", "component": "Text", "text": "Item 14", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-15", "component": "Text", "text": "Item 15", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-16", "component": "Text", "text": "Item 16", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-17", "component": "Text", "text": "Item 17", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-18", "component": "Text", "text": "Item 18", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-19", "component": "Text", "text": "Item 19", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-20", "component": "Text", "text": "Item 20", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-21", "component": "Text", "text": "Item 21", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-22", "component": "Text", "text": "Item 22", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-23", "component": "Text", "text": "Item 23", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "li-24", "component": "Text", "text": "Item 24", "styles": {"width": "100%", "height": "40px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

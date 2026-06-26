@@ -112,7 +112,7 @@ public class ChoicePickerComponent extends A2UIComponent {
     }
 
     @Override
-    public void onUpdateProperties(Map<String, Object> properties) {
+    public void onUpdateProperties(Map<String, Object> changedProps) {
         if (containerLayout == null) return;
         Context context = containerLayout.getContext();
         containerLayout.removeAllViews();

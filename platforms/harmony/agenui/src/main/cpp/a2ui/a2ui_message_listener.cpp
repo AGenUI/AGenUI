@@ -1,6 +1,7 @@
 #include "a2ui_message_listener.h"
 #include "hilog/log.h"
 #include "log/a2ui_capi_log.h"
+#include "agenui_logger_internal.h"
 #include "render/a2ui_surface.h"
 #include "render/a2ui_component_types.h"
 #include "render/factory/a2ui_component_creator.h"
@@ -17,18 +18,54 @@ extern napi_env a2ui_get_napi_env();
 namespace agenui {
 
 // Static member initialization
-std::map<std::string, int> A2UIMessageListener::s_surfaceIdToInstanceId_;
+std::map<std::string, int>& A2UIMessageListener::getSurfaceIdToInstanceIdMap() {
+    static auto* p = new std::map<std::string, int>();
+    return *p;
+}
 std::mutex A2UIMessageListener::s_mappingMutex_;
+
+std::map<int, A2UIMessageListener*>& A2UIMessageListener::getInstanceToListenerMap() {
+    static auto* p = new std::map<int, A2UIMessageListener*>();
+    return *p;
+}
+std::mutex A2UIMessageListener::s_instanceMapMutex_;
 
 A2UIMessageListener::A2UIMessageListener(int instanceId)
     : instanceId_(instanceId), surfaceManager_(nullptr), tsfn_(nullptr) {
     initGlobalRegistry();
-    surfaceManager_ = new a2ui::A2UISurfaceManager(&globalRegistry_);
+    surfaceManager_ = std::make_unique<a2ui::A2UISurfaceManager>(&globalRegistry_);
+
+    // Register instance for exposure dispatch lookup
+    {
+        std::lock_guard<std::mutex> lock(s_instanceMapMutex_);
+        getInstanceToListenerMap()[instanceId_] = this;
+    }
+
     HM_LOGI("A2UIMessageListener created, instanceId=%d, factories=%d",
             instanceId_, globalRegistry_.getRegisteredFactoryCount());
 }
 
 A2UIMessageListener::~A2UIMessageListener() {
+    // Unregister instance from exposure dispatch lookup
+    {
+        std::lock_guard<std::mutex> lock(s_instanceMapMutex_);
+        getInstanceToListenerMap().erase(instanceId_);
+    }
+
+    // Remove all surfaceId→instanceId entries owned by this instance so the
+    // static map doesn't accumulate stale entries across create/destroy cycles.
+    {
+        std::lock_guard<std::mutex> lock(s_mappingMutex_);
+        auto& map = getSurfaceIdToInstanceIdMap();
+        for (auto it = map.begin(); it != map.end(); ) {
+            if (it->second == instanceId_) {
+                it = map.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
     // tsfn_ is owned by napi_init.cpp and must not be released here.
     tsfn_ = nullptr;
 
@@ -38,10 +75,7 @@ A2UIMessageListener::~A2UIMessageListener() {
     }
     listeners_.clear();
 
-    if (surfaceManager_) {
-        delete surfaceManager_;
-        surfaceManager_ = nullptr;
-    }
+    surfaceManager_.reset();
 
     HM_LOGI("A2UIMessageListener destroyed, instanceId=%d", instanceId_);
 }
@@ -65,6 +99,8 @@ void A2UIMessageListener::postToMainThread(MainThreadTask task) {
 }
 
 void A2UIMessageListener::initGlobalRegistry() {
+    globalRegistry_.setOwnsFactories(true);
+
     auto makeCreator = [](const std::string& type) -> a2ui::A2UIComponentCreator* {
         auto* creator = new a2ui::A2UIComponentCreator();
         creator->setType(type);
@@ -95,15 +131,15 @@ void A2UIMessageListener::initGlobalRegistry() {
     globalRegistry_.registerFactory(a2ui::ComponentType::kWeb,          makeCreator(a2ui::ComponentType::kWeb));
 }
 
-a2ui::A2UISurfaceManager* A2UIMessageListener::getSurfaceManager() {
-    return surfaceManager_;
+a2ui::A2UISurfaceManager* A2UIMessageListener::getSurfaceManager() const {
+    return surfaceManager_.get();
 }
 
 // ==================== surfaceId -> instanceId Mapping ====================
 
 void A2UIMessageListener::registerSurfaceMapping(const std::string& surfaceId) {
     std::lock_guard<std::mutex> lock(s_mappingMutex_);
-    s_surfaceIdToInstanceId_[surfaceId] = instanceId_;
+    getSurfaceIdToInstanceIdMap()[surfaceId] = instanceId_;
     HM_LOGI("Surface mapping registered: surfaceId=%s -> instanceId=%d", surfaceId.c_str(), instanceId_);
 }
 
@@ -113,17 +149,62 @@ void A2UIMessageListener::unregisterSurfaceMapping(const std::string& surfaceId)
 
 void A2UIMessageListener::unregisterSurfaceMappingStatic(const std::string& surfaceId) {
     std::lock_guard<std::mutex> lock(s_mappingMutex_);
-    s_surfaceIdToInstanceId_.erase(surfaceId);
+    getSurfaceIdToInstanceIdMap().erase(surfaceId);
     HM_LOGI("Surface mapping unregistered: surfaceId=%s", surfaceId.c_str());
 }
 
 int A2UIMessageListener::findInstanceIdBySurfaceId(const std::string& surfaceId) {
     std::lock_guard<std::mutex> lock(s_mappingMutex_);
-    auto it = s_surfaceIdToInstanceId_.find(surfaceId);
-    if (it != s_surfaceIdToInstanceId_.end()) {
+    auto it = getSurfaceIdToInstanceIdMap().find(surfaceId);
+    if (it != getSurfaceIdToInstanceIdMap().end()) {
         return it->second;
     }
     return 0;
+}
+
+A2UIMessageListener* A2UIMessageListener::findListenerBySurfaceId(const std::string& surfaceId) {
+    int instanceId = findInstanceIdBySurfaceId(surfaceId);
+    if (instanceId == 0) return nullptr;
+    std::lock_guard<std::mutex> lock(s_instanceMapMutex_);
+    auto it = getInstanceToListenerMap().find(instanceId);
+    return (it != getInstanceToListenerMap().end()) ? it->second : nullptr;
+}
+
+void A2UIMessageListener::dispatchComponentAppeared(const std::string& surfaceId,
+                                                    const std::string& parentComponentId,
+                                                    const std::string& parentType,
+                                                    const std::string& properties) {
+    std::weak_ptr<A2UIMessageListener> weakSelf = weak_from_this();
+    postToMainThread([weakSelf, surfaceId, parentComponentId, parentType, properties](napi_env env) {
+        auto self = weakSelf.lock();
+        if (!self) return;
+
+        for (auto& ref : self->listeners_) {
+            napi_value listener = nullptr;
+            napi_get_reference_value(env, ref, &listener);
+            if (!listener) continue;
+
+            napi_value onComponentAppearedFunc = nullptr;
+            napi_get_named_property(env, listener, "onComponentAppeared", &onComponentAppearedFunc);
+
+            napi_valuetype funcType = napi_undefined;
+            if (onComponentAppearedFunc) napi_typeof(env, onComponentAppearedFunc, &funcType);
+            if (funcType != napi_function) continue;
+
+            napi_value surfaceIdValue = nullptr;
+            napi_create_string_utf8(env, surfaceId.c_str(), NAPI_AUTO_LENGTH, &surfaceIdValue);
+            napi_value parentComponentIdValue = nullptr;
+            napi_create_string_utf8(env, parentComponentId.c_str(), NAPI_AUTO_LENGTH, &parentComponentIdValue);
+            napi_value parentTypeValue = nullptr;
+            napi_create_string_utf8(env, parentType.c_str(), NAPI_AUTO_LENGTH, &parentTypeValue);
+            napi_value propertiesValue = nullptr;
+            napi_create_string_utf8(env, properties.c_str(), NAPI_AUTO_LENGTH, &propertiesValue);
+
+            napi_value args[] = { surfaceIdValue, parentComponentIdValue, parentTypeValue, propertiesValue };
+            napi_value result = nullptr;
+            napi_call_function(env, listener, onComponentAppearedFunc, 4, args, &result);
+        }
+    });
 }
 
 // ==================== IAGenUIMessageListener Implementation ====================
@@ -237,6 +318,7 @@ void A2UIMessageListener::onComponentsUpdate(const std::string &surfaceId, const
             return;
         }
         surface->handleComponentsUpdate(msg);
+        AGENUI_PERFORMANCE_LOG("components_applied", "%s", surfaceId.c_str());
     });
 }
 
@@ -259,6 +341,7 @@ void A2UIMessageListener::onComponentsAdd(const std::string &surfaceId, const st
         for (const auto& m : msg) {
             surface->handleComponentAdd(m);
         }
+        AGENUI_PERFORMANCE_LOG("components_applied", "%s", surfaceId.c_str());
     });
 }
 

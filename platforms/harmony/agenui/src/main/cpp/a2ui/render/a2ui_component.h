@@ -34,6 +34,9 @@ class A2UIComponent {
 public:
     A2UIComponent(const std::string& id, const std::string& componentType);
     virtual ~A2UIComponent();
+
+    A2UIComponent(const A2UIComponent&) = delete;
+    A2UIComponent& operator=(const A2UIComponent&) = delete;
     
     // ---- Basic information (unchanged)----
     const std::string& getId() const {
@@ -120,6 +123,15 @@ public:
     void dispatchAction(const nlohmann::json& actionDef);
 
     /**
+     * Notify that this component appeared in a container (e.g., List item bound to viewport).
+     * Dispatches onComponentAppeared to ArkTS listeners via A2UIMessageListener.
+     *
+     * @param parentType Container type name (e.g., "List")
+     * @param properties Child's raw properties JSON
+     */
+    void notifyAppeared(const std::string& parentType, const nlohmann::json& properties);
+
+    /**
      * Synchronize UI state changes back to the data model.
      * Mirrors the cross-platform syncState helper used by interactive components
      * (TextField, ChoicePicker, Slider, etc).
@@ -140,8 +152,8 @@ public:
      */
     virtual bool isClickDisabled() const { return false; }
     
-    // ---- Lifecycle (unchanged)----
-    virtual void destroy();
+    // ---- Lifecycle ----
+    void destroy();
     virtual bool shouldAutoAddChildView() const;
     virtual bool shouldApplyChildLayoutPosition(const A2UIComponent* child) const;
     /**
@@ -168,6 +180,11 @@ public:
      * nodes such as ListItem.
      */
     virtual void onChildLayoutSizeChanged(A2UIComponent* /*child*/) {}
+    /**
+     * Called when a child component is mounted into this container.
+     * Override in containers that need post-mount notification (e.g. Tabs, Modal).
+     */
+    virtual void onChildMounted(A2UIComponent* /*child*/) {}
     bool hasPendingAppearAnimation() const { return m_pendingAppearAnimation; }
     void prepareAppearAnimation(const nlohmann::json& properties);
     void playAppearAnimationIfNeeded();
@@ -230,6 +247,14 @@ protected:
 
 protected:
     /**
+     * Subclass resource-release hook, called by destroy() before children are
+     * recursively destroyed and before the ArkUI node is disposed.
+     * Subclasses override this to release their own resources (players, timers,
+     * internal ArkUI nodes, etc.).
+     */
+    virtual void onDestroy() {}
+
+    /**
      * Single-property update hook (new)
      * Subclasses override this method to implement incremental updates for specific properties
      */
@@ -271,14 +296,6 @@ protected:
      * @param properties Properties JSON object (contains "styles" field)
      */
     void applyBorderStyles(const nlohmann::json& properties);
-    
-    /**
-     * DEPRECATED: CSS padding is handled by Yoga layout engine; applying it
-     * on native ArkUI nodes causes double-counting.  All former callers
-     * (RichTextComponent, ButtonComponent, ListComponent) have been updated
-     * to NOT call this method.  Kept for reference only.
-     */
-    // void applyPaddingStyles(const nlohmann::json& properties);
     
     virtual float resolveAppearTargetOpacity(const nlohmann::json& properties) const;
     

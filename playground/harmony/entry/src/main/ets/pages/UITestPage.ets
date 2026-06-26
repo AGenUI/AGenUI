@@ -101,17 +101,37 @@ struct UITestPage {
       const sequence = bundle.sequence as Array<Record<string, Object>>;
 
       this.surfaceManager!.beginTextStream();
-      for (const item of sequence) {
-        const msg: Record<string, Object> = JSON.parse(JSON.stringify(item)) as Record<string, Object>;
-        msg['version'] = version;
-        this.surfaceManager!.receiveTextChunk(JSON.stringify(msg));
-      }
-      this.surfaceManager!.endTextStream();
-
-      hilog.info(DOMAIN, TAG, 'Rendered %{public}d messages from inline data', sequence.length);
+      this.processSequenceItem(sequence, version, 0);
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'Failed to render from data: %{public}s', JSON.stringify(err));
     }
+  }
+
+  private processSequenceItem(sequence: Array<Record<string, Object>>, version: string, index: number) {
+    if (index >= sequence.length) {
+      this.surfaceManager!.endTextStream();
+      hilog.info(DOMAIN, TAG, 'Rendered %{public}d messages from sequence', sequence.length);
+      return;
+    }
+
+    const item = sequence[index];
+
+    // Handle __pause_ms directive: use setTimeout callback to delay next items
+    if (item['__pause_ms'] !== undefined) {
+      const pauseMs = item['__pause_ms'] as number;
+      hilog.info(DOMAIN, TAG, 'Pausing for %{public}d ms (between protocol steps)', pauseMs);
+      setTimeout(() => {
+        this.processSequenceItem(sequence, version, index + 1);
+      }, pauseMs);
+      return;
+    }
+
+    const msg: Record<string, Object> = JSON.parse(JSON.stringify(item)) as Record<string, Object>;
+    msg['version'] = version;
+    this.surfaceManager!.receiveTextChunk(JSON.stringify(msg));
+
+    // Process next item synchronously (no delay needed)
+    this.processSequenceItem(sequence, version, index + 1);
   }
 
   loadAndRender(path: string) {

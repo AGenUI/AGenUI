@@ -1,0 +1,33 @@
+{
+  "description": "Positive-hit for all parseTextAlign horizontal keyword branches: left, start, center, right, end. Each keyword exercises a distinct equals() branch in the diff.",
+  "surfaceId": "stability-text-align-keywords",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-text-align-keywords",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-text-align-keywords",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["t-left", "t-start", "t-center", "t-right", "t-end", "t-unknown"], "styles": {"width": "100%", "padding": "8px", "gap": "4px"}},
+          {"id": "t-left", "component": "Text", "text": "Aligned left", "styles": {"width": "100%", "height": "40px", "text-align": "left"}},
+          {"id": "t-start", "component": "Text", "text": "Aligned start", "styles": {"width": "100%", "height": "40px", "text-align": "start"}},
+          {"id": "t-center", "component": "Text", "text": "Aligned center", "styles": {"width": "100%", "height": "40px", "text-align": "center"}},
+          {"id": "t-right", "component": "Text", "text": "Aligned right", "styles": {"width": "100%", "height": "40px", "text-align": "right"}},
+          {"id": "t-end", "component": "Text", "text": "Aligned end", "styles": {"width": "100%", "height": "40px", "text-align": "end"}},
+          {"id": "t-unknown", "component": "Text", "text": "Unknown align value fallback", "styles": {"width": "100%", "height": "40px", "text-align": "justify"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

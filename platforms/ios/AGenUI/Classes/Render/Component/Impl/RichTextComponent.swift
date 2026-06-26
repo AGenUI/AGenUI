@@ -60,12 +60,14 @@ class RichTextComponent: Component {
             return .zero
         }
         
-        // Extract text content
+        // Extract text content (supports both String and numeric types)
         let contentString: String
         if let literalString = json["literalString"] as? String {
             contentString = literalString
         } else if let text = json["text"] as? String {
             contentString = text
+        } else if let numberValue = json["text"] as? NSNumber {
+            contentString = "\(numberValue)"
         } else {
             return .zero
         }
@@ -119,12 +121,14 @@ class RichTextComponent: Component {
             label.isUserInteractionEnabled = enable
         }
         
-        // Get rich text content
+        // Get rich text content (supports both String and numeric types)
         var contentString = ""
         if let literalString = properties["literalString"] as? String {
             contentString = literalString
         } else if let text = properties["text"] as? String {
             contentString = text
+        } else if let numberValue = properties["text"] as? NSNumber {
+            contentString = "\(numberValue)"
         }
         
         // Parse and apply rich text

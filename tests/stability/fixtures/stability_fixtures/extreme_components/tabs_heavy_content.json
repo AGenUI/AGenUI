@@ -1,0 +1,25 @@
+{
+  "description": "Tabs with 5 tabs each containing heavy content - tests tab content lifecycle",
+  "surfaceId": "stability-tabs-heavy",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-tabs-heavy","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-tabs-heavy","components":[
+      {"id":"root","component":"Column","children":["tabs"],"styles":{"width":"100%"}},
+      {"id":"tabs","component":"Tabs","tabs":[{"label":"List","child":"t1"},{"label":"Table","child":"t2"},{"label":"Form","child":"t3"},{"label":"Media","child":"t4"},{"label":"Chart","child":"t5"}]},
+      {"id":"t1","component":"List","children":["t1a","t1b","t1c","t1d","t1e","t1f","t1g","t1h","t1i","t1j"],"styles":{"width":"100%"}},
+      {"id":"t1a","component":"Text","text":"List item 1"},{"id":"t1b","component":"Text","text":"List item 2"},{"id":"t1c","component":"Text","text":"List item 3"},{"id":"t1d","component":"Text","text":"List item 4"},{"id":"t1e","component":"Text","text":"List item 5"},{"id":"t1f","component":"Text","text":"List item 6"},{"id":"t1g","component":"Text","text":"List item 7"},{"id":"t1h","component":"Text","text":"List item 8"},{"id":"t1i","component":"Text","text":"List item 9"},{"id":"t1j","component":"Text","text":"List item 10"},
+      {"id":"t2","component":"Table","properties":{"columns":["ID","Name","Status","Value","Date"],"rows":[["1","Alpha","Active","100","2026-01"],["2","Beta","Paused","200","2026-02"],["3","Gamma","Active","300","2026-03"],["4","Delta","Closed","400","2026-04"],["5","Epsilon","Active","500","2026-05"]]},"styles":{"width":"100%"}},
+      {"id":"t3","component":"Column","children":["t3a","t3b","t3c","t3d","t3e"],"styles":{"padding":"8px","gap":"8px"}},
+      {"id":"t3a","component":"TextField","label":"Field 1","value":""},
+      {"id":"t3b","component":"TextField","label":"Field 2","value":""},
+      {"id":"t3c","component":"CheckBox","label":"Agree","value":false},
+      {"id":"t3d","component":"Slider","min":0,"max":100,"value":50},
+      {"id":"t3e","component":"DateTimeInput","label":"Pick date","value":"2026-06-01"},
+      {"id":"t4","component":"Column","children":["t4a","t4b","t4c"],"styles":{"gap":"8px","padding":"8px"}},
+      {"id":"t4a","component":"Image","properties":{"url":"https://example.com/media1.png","width":300,"height":200},"styles":{"width":"100%","height":"150px"}},
+      {"id":"t4b","component":"Video","properties":{"url":"https://example.com/vid.mp4"},"styles":{"width":"100%","height":"200px"}},
+      {"id":"t4c","component":"Lottie","properties":{"url":"https://example.com/anim.json"},"styles":{"width":"100px","height":"100px"}},
+      {"id":"t5","component":"Chart","properties":{"chartType":"bar","data":{"labels":["A","B","C","D","E"],"datasets":[{"label":"Set1","data":[10,20,30,40,50]},{"label":"Set2","data":[50,40,30,20,10]}]}},"styles":{"width":"100%","height":"300px"}}
+    ]}}
+  ]
+}

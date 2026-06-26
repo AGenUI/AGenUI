@@ -1,0 +1,35 @@
+{
+  "description": "position:absolute children inside flex containers with align-items. Tests mixed layout mode handling in YogaAbsoluteLayout and frame extraction.",
+  "surfaceId": "stability-abs-in-flex",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-abs-in-flex",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-abs-in-flex",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["flex-parent", "row-parent"], "styles": {"width": "100%", "height": "500px", "gap": "8px", "padding": "8px"}},
+          {"id": "flex-parent", "component": "Column", "children": ["flex-child", "abs-child-1", "abs-child-2"], "styles": {"width": "100%", "height": "200px", "align-items": "center", "justify-content": "center"}},
+          {"id": "flex-child", "component": "Text", "text": "Flex child (normal flow)", "styles": {"width": "80%", "height": "40px"}},
+          {"id": "abs-child-1", "component": "Text", "text": "Absolute top-left", "styles": {"position": "absolute", "top": "0px", "left": "0px", "width": "80px", "height": "30px"}},
+          {"id": "abs-child-2", "component": "Text", "text": "Absolute bottom-right", "styles": {"position": "absolute", "bottom": "0px", "right": "0px", "width": "80px", "height": "30px"}},
+          {"id": "row-parent", "component": "Row", "children": ["row-a", "row-abs", "row-b"], "styles": {"width": "100%", "height": "100px", "align-items": "flex-end"}},
+          {"id": "row-a", "component": "Text", "text": "Row A", "styles": {"flex-grow": "1", "height": "40px"}},
+          {"id": "row-abs", "component": "Text", "text": "Absolute in row", "styles": {"position": "absolute", "top": "10px", "left": "50px", "width": "60px", "height": "60px"}},
+          {"id": "row-b", "component": "Text", "text": "Row B", "styles": {"flex-grow": "1", "height": "40px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

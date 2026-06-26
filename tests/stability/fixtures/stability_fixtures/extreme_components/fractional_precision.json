@@ -1,0 +1,25 @@
+{
+  "description": "Fractional percentage and flex values to test floating-point precision in layout",
+  "surfaceId": "fractional-precision",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "fractional-precision",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "fractional-precision",
+        "components": [
+          {"id": "root", "component": "Row", "children": ["f1", "f2", "f3"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "f1", "component": "Text", "text": "33.333%", "styles": {"width": "33.333%", "height": "100%"}},
+          {"id": "f2", "component": "Text", "text": "33.333%", "styles": {"width": "33.333%", "height": "100%"}},
+          {"id": "f3", "component": "Text", "text": "33.334%", "styles": {"width": "33.334%", "height": "100%"}}
+        ]
+      }
+    }
+  ]
+}

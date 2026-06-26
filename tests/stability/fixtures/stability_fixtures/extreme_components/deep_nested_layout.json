@@ -1,0 +1,32 @@
+{
+  "description": "8+ levels of nested containers to stress layout recursion, percentage resolution in deep nesting, and stack depth",
+  "surfaceId": "deep-nested-layout",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "deep-nested-layout",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "deep-nested-layout",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["l1"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l1", "component": "Row", "children": ["l2"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l2", "component": "Column", "children": ["l3"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l3", "component": "Row", "children": ["l4"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l4", "component": "Column", "children": ["l5"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l5", "component": "Row", "children": ["l6"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l6", "component": "Column", "children": ["l7"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l7", "component": "Row", "children": ["l8"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l8", "component": "Column", "children": ["l9"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "l9", "component": "Card", "children": ["leaf"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "leaf", "component": "Text", "text": "Deepest level (9 levels)", "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ]
+}

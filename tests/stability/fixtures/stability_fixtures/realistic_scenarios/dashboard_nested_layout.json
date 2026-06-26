@@ -1,0 +1,39 @@
+{
+  "description": "Complex nested grid-like dashboard with Cards inside Rows inside Columns - tests recursive layout",
+  "surfaceId": "stability-dashboard-nested",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-dashboard-nested","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-dashboard-nested","components":[
+      {"id":"root","component":"Column","children":["r1","r2","r3"],"styles":{"width":"100%","gap":"8px","padding":"8px"}},
+      {"id":"r1","component":"Row","children":["r1c1","r1c2","r1c3"],"styles":{"width":"100%","gap":"8px"}},
+      {"id":"r1c1","component":"Card","child":"r1c1b","styles":{"flex-grow":"1"}},
+      {"id":"r1c1b","component":"Column","children":["r1c1t","r1c1v"],"styles":{"padding":"8px","align-items":"center"}},
+      {"id":"r1c1t","component":"Text","text":"Users"},
+      {"id":"r1c1v","component":"Text","text":"12,345"},
+      {"id":"r1c2","component":"Card","child":"r1c2b","styles":{"flex-grow":"1"}},
+      {"id":"r1c2b","component":"Column","children":["r1c2t","r1c2v"],"styles":{"padding":"8px","align-items":"center"}},
+      {"id":"r1c2t","component":"Text","text":"Revenue"},
+      {"id":"r1c2v","component":"Text","text":"$89,012"},
+      {"id":"r1c3","component":"Card","child":"r1c3b","styles":{"flex-grow":"1"}},
+      {"id":"r1c3b","component":"Column","children":["r1c3t","r1c3v"],"styles":{"padding":"8px","align-items":"center"}},
+      {"id":"r1c3t","component":"Text","text":"Orders"},
+      {"id":"r1c3v","component":"Text","text":"567"},
+      {"id":"r2","component":"Row","children":["r2left","r2right"],"styles":{"width":"100%","gap":"8px"}},
+      {"id":"r2left","component":"Card","child":"r2lb","styles":{"flex-grow":"2"}},
+      {"id":"r2lb","component":"Column","children":["r2lt","r2lch"],"styles":{"padding":"8px"}},
+      {"id":"r2lt","component":"Text","text":"Trend"},
+      {"id":"r2lch","component":"Chart","properties":{"chartType":"line","data":{"labels":["M","T","W","T","F"],"datasets":[{"label":"Views","data":[100,300,200,400,350]}]}},"styles":{"width":"100%","height":"200px"}},
+      {"id":"r2right","component":"Card","child":"r2rb","styles":{"flex-grow":"1"}},
+      {"id":"r2rb","component":"Column","children":["r2rt","r2rlist"],"styles":{"padding":"8px","gap":"4px"}},
+      {"id":"r2rt","component":"Text","text":"Top Items"},
+      {"id":"r2rlist","component":"List","children":["li1","li2","li3","li4","li5"],"styles":{"width":"100%"}},
+      {"id":"li1","component":"Text","text":"1. Product Alpha"},
+      {"id":"li2","component":"Text","text":"2. Product Beta"},
+      {"id":"li3","component":"Text","text":"3. Product Gamma"},
+      {"id":"li4","component":"Text","text":"4. Product Delta"},
+      {"id":"li5","component":"Text","text":"5. Product Epsilon"},
+      {"id":"r3","component":"Card","child":"r3b","styles":{"width":"100%"}},
+      {"id":"r3b","component":"Table","properties":{"columns":["Region","Sales","Growth"],"rows":[["North","$12K","5%"],["South","$8K","12%"],["East","$15K","-2%"],["West","$10K","8%"]]},"styles":{"width":"100%"}}
+    ]}}
+  ]
+}

@@ -29,9 +29,17 @@ public:
     /**
      * Register a component factory.
      * @param type Component type name such as "Text" or "Column"
-     * @param factory Factory instance. The caller owns its lifetime.
+     * @param factory Factory instance. Ownership is transferred if
+     *        setOwnsFactories(true) has been called; otherwise borrowed.
      */
     void registerFactory(const std::string& type, ComponentFactory* factory);
+
+    /**
+     * When true, the registry deletes all factories in its destructor.
+     * Only the global (source) registry should own factories; per-surface
+     * copies obtained via copyFactoriesFrom() must NOT own them.
+     */
+    void setOwnsFactories(bool owns) { ownsFactories_ = owns; }
 
     /**
      * Return the factory for a given type, or nullptr.
@@ -114,8 +122,9 @@ public:
     int getRegisteredComponentCount() const;
 
 private:
-    // type -> factory. Factory lifetime is owned externally.
+    // type -> factory. Owned iff ownsFactories_ is true.
     std::map<std::string, ComponentFactory*> factories_;
+    bool ownsFactories_ = false;
 
     // id -> component. Component lifetime is owned by Surface.
     std::map<std::string, A2UIComponent*> components_;

@@ -118,8 +118,10 @@ collect_crash_log() {
         local SIM_LOG_DIR
         SIM_LOG_DIR="$HOME/Library/Logs/DiagnosticReports"
         if [[ -d "$SIM_LOG_DIR" ]]; then
-            # Find crash reports from last 5 minutes
-            find "$SIM_LOG_DIR" -name "Playground*" -newer "$CRASH_FILE" -mmin -5 2>/dev/null | \
+            # The .ips file is often written before we create crash_*.txt, so
+            # filtering by CRASH_FILE mtime drops the very report we need.
+            # Use a recent-time window only and include simulator-native .ips reports.
+            find "$SIM_LOG_DIR" -type f \( -name "Playground*" -o -name "*.ips" \) -mmin -5 2>/dev/null | \
                 while read -r f; do
                     echo "--- $(basename "$f") ---"
                     head -200 "$f"
@@ -256,6 +258,21 @@ read_crash_scenario() {
     echo "unknown"
 }
 
+read_done_marker() {
+    if [[ "$USE_SIMULATOR" == true ]]; then
+        local CONTAINER_PATH
+        CONTAINER_PATH=$(xcrun simctl get_app_container "$DEVICE_ID" "$BUNDLE_ID" data 2>/dev/null || echo "")
+        if [[ -n "$CONTAINER_PATH" ]]; then
+            local DONE_FILE="${CONTAINER_PATH}/Documents/stability/stability_done.txt"
+            if [[ -f "$DONE_FILE" ]]; then
+                cat "$DONE_FILE" 2>/dev/null | tr -d '\r'
+                return
+            fi
+        fi
+    fi
+    echo ""
+}
+
 # === Main monitoring loop ===
 
 echo "[Monitor] Monitoring ${BUNDLE_ID} for ${DURATION_MIN} minutes..."
@@ -279,6 +296,14 @@ while true; do
         # Retry once after short delay to avoid false positives
         sleep 2
         if ! is_app_running; then
+            DONE_CONTENT=""
+            DONE_CONTENT=$(read_done_marker)
+            if [[ -n "$DONE_CONTENT" ]]; then
+                echo "[Monitor] App completed gracefully before process exit: ${DONE_CONTENT}"
+                echo "[Monitor] Test completed by app (all scenarios exhausted/blacklisted)."
+                break
+            fi
+
             # Also check heartbeat file - if updated within last 15s, app is still alive
             HEARTBEAT_FRESH=false
             if [[ "$USE_SIMULATOR" == true ]]; then
@@ -343,6 +368,15 @@ while true; do
             fi
         fi
     else
+        # Process is alive — check for graceful completion before freeze detection
+        DONE_CONTENT=""
+        DONE_CONTENT=$(read_done_marker)
+        if [[ -n "$DONE_CONTENT" ]]; then
+            echo "[Monitor] App completed gracefully while process is still alive: ${DONE_CONTENT}"
+            echo "[Monitor] Test completed by app (all scenarios exhausted/blacklisted)."
+            break
+        fi
+
         # Process is alive — check for freeze (heartbeat detection)
         SINCE_RESTART=$((CURRENT_TIME - LAST_RESTART_TIME))
         if [[ $ELAPSED -gt $FREEZE_TIMEOUT && $SINCE_RESTART -gt $FREEZE_TIMEOUT ]]; then

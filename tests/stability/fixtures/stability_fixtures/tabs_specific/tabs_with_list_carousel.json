@@ -1,0 +1,59 @@
+{
+  "description": "Tabs containing List and Carousel components to test tabs yoga helper interaction with scrollable children",
+  "surfaceId": "tabs_with_list_carousel",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "tabs_with_list_carousel",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "tabs_with_list_carousel",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["header", "tabs"], "styles": {"width": "100%", "height": "700px"}},
+          {"id": "header", "component": "Text", "text": "Tabs with scrollable content", "styles": {"padding": "12px"}},
+          {"id": "tabs", "component": "Tabs", "tabs": [
+            {"label": "Carousel", "child": "carousel"},
+            {"label": "List", "child": "list"},
+            {"label": "Mixed", "child": "mixed"}
+          ], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "carousel", "component": "Carousel", "children": ["cs1", "cs2", "cs3", "cs4", "cs5"], "styles": {"width": "100%", "height": "300px"}},
+          {"id": "cs1", "component": "Image", "properties": {"url": "https://example.com/s1.png", "width": 400, "height": 300}},
+          {"id": "cs2", "component": "Image", "properties": {"url": "https://example.com/s2.png", "width": 400, "height": 300}},
+          {"id": "cs3", "component": "Image", "properties": {"url": "https://example.com/s3.png", "width": 400, "height": 300}},
+          {"id": "cs4", "component": "Image", "properties": {"url": "https://example.com/s4.png", "width": 400, "height": 300}},
+          {"id": "cs5", "component": "Image", "properties": {"url": "https://example.com/s5.png", "width": 400, "height": 300}},
+          {"id": "list", "component": "List", "children": ["lst1", "lst2", "lst3", "lst4", "lst5", "lst6", "lst7", "lst8", "lst9", "lst10"], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "lst1", "component": "Text", "text": "List item 1", "styles": {"padding": "12px"}},
+          {"id": "lst2", "component": "Text", "text": "List item 2", "styles": {"padding": "12px"}},
+          {"id": "lst3", "component": "Text", "text": "List item 3", "styles": {"padding": "12px"}},
+          {"id": "lst4", "component": "Text", "text": "List item 4", "styles": {"padding": "12px"}},
+          {"id": "lst5", "component": "Text", "text": "List item 5", "styles": {"padding": "12px"}},
+          {"id": "lst6", "component": "Text", "text": "List item 6", "styles": {"padding": "12px"}},
+          {"id": "lst7", "component": "Text", "text": "List item 7", "styles": {"padding": "12px"}},
+          {"id": "lst8", "component": "Text", "text": "List item 8", "styles": {"padding": "12px"}},
+          {"id": "lst9", "component": "Text", "text": "List item 9", "styles": {"padding": "12px"}},
+          {"id": "lst10", "component": "Text", "text": "List item 10", "styles": {"padding": "12px"}},
+          {"id": "mixed", "component": "Column", "children": ["mx-car", "mx-list"], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "mx-car", "component": "Carousel", "children": ["mxc1", "mxc2", "mxc3"], "styles": {"width": "100%", "height": "150px"}},
+          {"id": "mxc1", "component": "Text", "text": "Slide A"},
+          {"id": "mxc2", "component": "Text", "text": "Slide B"},
+          {"id": "mxc3", "component": "Text", "text": "Slide C"},
+          {"id": "mx-list", "component": "List", "children": ["mxl1", "mxl2", "mxl3"], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "mxl1", "component": "Text", "text": "Below carousel 1", "styles": {"padding": "8px"}},
+          {"id": "mxl2", "component": "Text", "text": "Below carousel 2", "styles": {"padding": "8px"}},
+          {"id": "mxl3", "component": "Text", "text": "Below carousel 3", "styles": {"padding": "8px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

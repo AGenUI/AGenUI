@@ -158,7 +158,7 @@ public class CarouselComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.d(TAG, "onUpdateProperties called - id: " + getId());
         }
@@ -169,8 +169,8 @@ public class CarouselComponent extends A2UIComponent {
         }
 
         // Update image URL list
-        if (properties.containsKey("content")) {
-            Object contentObj = properties.get("content");
+        if (changedProps.containsKey("content")) {
+            Object contentObj = changedProps.get("content");
             if (contentObj instanceof List) {
                 imageUrls.clear();
                 List<?> contentList = (List<?>) contentObj;
@@ -192,8 +192,8 @@ public class CarouselComponent extends A2UIComponent {
         }
 
         // Update auto-play configuration
-        if (properties.containsKey("autoplay")) {
-            Object autoplayObj = properties.get("autoplay");
+        if (changedProps.containsKey("autoplay")) {
+            Object autoplayObj = changedProps.get("autoplay");
             if (autoplayObj instanceof Boolean) {
                 autoplay = (Boolean) autoplayObj;
             } else if (autoplayObj instanceof String) {
@@ -212,8 +212,8 @@ public class CarouselComponent extends A2UIComponent {
         }
 
         // Update auto-play speed
-        if (properties.containsKey("autoplaySpeed")) {
-            Object speedObj = properties.get("autoplaySpeed");
+        if (changedProps.containsKey("autoplaySpeed")) {
+            Object speedObj = changedProps.get("autoplaySpeed");
             if (speedObj instanceof Number) {
                 autoplaySpeed = ((Number) speedObj).intValue();
             } else if (speedObj instanceof String) {
@@ -237,8 +237,8 @@ public class CarouselComponent extends A2UIComponent {
         }
 
         // Update draggable configuration
-        if (properties.containsKey("draggable")) {
-            Object draggableObj = properties.get("draggable");
+        if (changedProps.containsKey("draggable")) {
+            Object draggableObj = changedProps.get("draggable");
             if (draggableObj instanceof Boolean) {
                 draggable = (Boolean) draggableObj;
             } else if (draggableObj instanceof String) {

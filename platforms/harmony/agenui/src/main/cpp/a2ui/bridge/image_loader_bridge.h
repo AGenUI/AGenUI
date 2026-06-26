@@ -23,6 +23,26 @@ using ImageLoadCallback = std::function<void(
     bool               isCancelled
 )>;
 
+struct LoadImageRequest {
+    std::string       url;
+    float             width       = 0.0f;
+    float             height      = 0.0f;
+    std::string       componentId;
+    std::string       surfaceId;
+    ArkUI_NodeHandle  nodeHandle  = nullptr;
+    ImageLoadCallback callback;
+};
+
+struct PixelMapData {
+    std::string requestId;
+    uint8_t*    data        = nullptr;
+    size_t      dataLen     = 0;
+    int32_t     width       = 0;
+    int32_t     height      = 0;
+    int32_t     pixelFormat = 0;
+    int32_t     alphaType   = 0;
+};
+
 /**
  * Singleton bridge for the ETS image loader.
  *
@@ -64,15 +84,7 @@ public:
      * Start an image loading request through the JS main thread.
      * @return Locally generated requestId, or an empty string if no loader is registered
      */
-    std::string loadImage(
-        const std::string& url,
-        float width,
-        float height,
-        const std::string& componentId,
-        const std::string& surfaceId,
-        ArkUI_NodeHandle nodeHandle,
-        ImageLoadCallback callback
-    );
+    std::string loadImage(const LoadImageRequest& request);
 
     /**
      * Cancel a request through the JS main thread.
@@ -82,24 +94,7 @@ public:
 
     // PixelMap delivery, called by NAPI setImagePixelMap on the JS main thread
 
-    /**
-     * Create a PixelMap from raw bytes and apply it to the node.
-     * This bypasses the problematic OH_ArkUI_GetDrawableDescriptorFromNapiValue path.
-     * @param data RGBA_8888 or BGRA_8888 pixel bytes
-     * @param dataLen Byte length
-     * @param width/height Image size
-     * @param pixelFormat PIXEL_FORMAT_RGBA_8888(3) or PIXEL_FORMAT_BGRA_8888(4)
-     * @param alphaType Alpha type
-     */
-    void setImagePixelMapFromBytes(
-        const std::string& requestId,
-        uint8_t*           data,
-        size_t             dataLen,
-        int32_t            width,
-        int32_t            height,
-        int32_t            pixelFormat,
-        int32_t            alphaType
-    );
+    void setImagePixelMapFromBytes(const PixelMapData& pixelMap);
 
     // Failure and cancellation callback, called by NAPI onImageLoadFailed on the JS main thread
 

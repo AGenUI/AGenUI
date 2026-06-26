@@ -31,6 +31,9 @@ class ImageComponent: Component {
     
     private var imageView: ObservedImageView?
 
+    private var currentYogaWidth: Float = 0
+    private var currentYogaHeight: Float = 0
+
     // Padding constraints — pin the inner imageView to self with adjustable insets so
     // CSS padding shrinks the image content from borderBox to contentBox.
     private var imageTopConstraint: NSLayoutConstraint?
@@ -42,8 +45,14 @@ class ImageComponent: Component {
     
     init(componentId: String, properties: [String: Any]) {
         super.init(componentId: componentId, componentType: "Image", properties: properties)
-        
-        // Create inner image view - only handles image rendering and contentMode
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+
+    override func createView(){
         let imageView = ObservedImageView()
         imageView.backgroundColor = .clear
         imageView.contentMode = .scaleAspectFit
@@ -66,31 +75,69 @@ class ImageComponent: Component {
         self.imageTrailingConstraint = trailingC
         self.imageBottomConstraint = bottomC
         
-        // Apply initial properties
-        updateProperties(properties)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        super.createView()
+        
     }
     
     // MARK: - Measurement Override
     
     override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
-        let defaultSize: CGFloat = 0
-        var measuredWidth = defaultSize
-        var measuredHeight = defaultSize
+        var measuredWidth: CGFloat = 0
+        var measuredHeight: CGFloat = 0
 
         if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
-            measuredWidth = widthMode == .atMost
-                ? min(measuredWidth, CGFloat(maxWidth))
-                : CGFloat(maxWidth)
+            measuredWidth = CGFloat(maxWidth)
         }
+
         if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
             measuredHeight = CGFloat(maxHeight)
         }
 
         return CGSize(width: measuredWidth, height: measuredHeight)
+    }
+    
+    // MARK: - Async Size Reporting
+
+    private func reportImageRenderSize(image: UIImage?, yogaWidth: Float, yogaHeight: Float) {
+        if yogaWidth != currentYogaWidth || yogaHeight != currentYogaHeight {
+            return
+        }
+
+        if yogaWidth > 0 && yogaHeight > 0 {
+            let wPt = CGFloat(yogaWidth) * 0.5
+            let hPt = CGFloat(yogaHeight) * 0.5
+            notifyLayoutChanged(width: wPt, height: hPt)
+            return
+        }
+
+        guard let image = image else {
+            notifyLayoutChanged(width: CGFloat(yogaWidth) * 0.5, height: CGFloat(yogaHeight) * 0.5)
+            return
+        }
+
+        let imageSize = image.size
+        guard imageSize.width > 0 && imageSize.height > 0 else {
+            notifyLayoutChanged(width: CGFloat(yogaWidth) * 0.5, height: CGFloat(yogaHeight) * 0.5)
+            return
+        }
+
+        let aspectRatio = imageSize.width / imageSize.height
+
+        if yogaWidth > 0 {
+            let wPt = CGFloat(yogaWidth) * 0.5
+            let computedH = wPt / aspectRatio
+            notifyLayoutChanged(width: wPt, height: computedH)
+            return
+        }
+
+        if yogaHeight > 0 {
+            let hPt = CGFloat(yogaHeight) * 0.5
+            let computedW = hPt * aspectRatio
+            notifyLayoutChanged(width: computedW, height: hPt)
+            return
+        }
+
+        notifyLayoutChanged(width: imageSize.width, height: imageSize.height)
     }
     
     // MARK: - Component Override
@@ -99,28 +146,40 @@ class ImageComponent: Component {
         // Call parent method to apply CSS properties to self
         super.updateProperties(properties)
         
-        // Update image URL (A2UI v0.9 protocol: url)
-        if let urlValue = properties["url"] {
-            let url = urlValue as? String ?? ""
-            loadImage(url)
-        }
-        
         // Update scale mode (A2UI v0.9 protocol: fit)
         if let fit = properties["fit"] as? String {
             imageView?.contentMode = parseFit(fit)
         }
 
+        var sizeFromReport = false
+        var hasSizeChange = false
+        var yogaWidth: Float = 0
+        var yogaHeight: Float = 0
+
         // Apply CSS padding to the inner imageView.
-        //
-        // W3C: <img> is a replaced element and supports padding — the bitmap
-        // is laid out within the content-box, with padding rendered as the
-        // element's background extending around it. The C++ Yoga engine sets
-        // padding on the leaf node, so the ImageComponent's own frame is the
-        // borderBox and `measure` receives the contentBox. The inner imageView
-        // is pinned to self via anchor constraints; translating CSS padding
-        // into the four edge constants shrinks it down to the contentBox.
         if let styles = properties["styles"] as? [String: Any] {
             applyImagePadding(styles)
+
+            sizeFromReport = (styles["sizeFromReport"] as? Bool) == true
+            hasSizeChange = styles["width"] != nil || styles["height"] != nil
+
+            if !sizeFromReport {
+                if let w = styles["width"] as? NSNumber {
+                    yogaWidth = w.floatValue
+                }
+                if let h = styles["height"] as? NSNumber {
+                    yogaHeight = h.floatValue
+                }
+                currentYogaWidth = yogaWidth
+                currentYogaHeight = yogaHeight
+            }
+        }
+
+        // Load image if url changed, or if size changed from CSS layout (not from our own report)
+        if properties["url"] != nil || (hasSizeChange && !sizeFromReport && self.properties["url"] != nil) {
+            let urlValue = properties["url"] ?? self.properties["url"]
+            let url = urlValue as? String ?? ""
+            loadImage(url, yogaWidth: yogaWidth, yogaHeight: yogaHeight)
         }
     }
 
@@ -192,7 +251,7 @@ class ImageComponent: Component {
     // MARK: - Private Methods
     
     /// Load image
-    private func loadImage(_ src: String) {
+    private func loadImage(_ src: String, yogaWidth: Float, yogaHeight: Float) {
         guard imageView != nil else { return }
         
         // Cancel previous loading tasks
@@ -201,8 +260,8 @@ class ImageComponent: Component {
         if src.isEmpty {
             return
         }
-        
-        loadNetworkImage(from: src)
+
+        loadNetworkImage(from: src, yogaWidth: yogaWidth, yogaHeight: yogaHeight)
     }
     
     /// Current loading task identifier (for cancellation)
@@ -216,7 +275,7 @@ class ImageComponent: Component {
     }
     
     /// Load network image (using ImageLoaderConfiguration)
-    private func loadNetworkImage(from urlString: String) {
+    private func loadNetworkImage(from urlString: String, yogaWidth: Float, yogaHeight: Float) {
         guard let imageView = imageView, let url = URL(string: urlString) else {
             Logger.shared.debug("⚠️ [ImageComponent] Invalid URL or imageView is nil: \(urlString)")
             return
@@ -231,10 +290,12 @@ class ImageComponent: Component {
             ImageLoadOptionsKey.surfaceId: surface?.surfaceId ?? "",
             ImageLoadOptionsKey.componentId: componentId
         ]
-        let w = frame.size.width
-        let h = frame.size.height
-        if w > 0 && h > 0 {
+        let w = CGFloat(yogaWidth) * 0.5
+        let h = CGFloat(yogaHeight) * 0.5
+        if w > 0 {
             options[ImageLoadOptionsKey.width] = w
+        }
+        if h > 0 {
             options[ImageLoadOptionsKey.height] = h
         }
         
@@ -246,25 +307,7 @@ class ImageComponent: Component {
                     guard let imageView = self.imageView else { return }
                     
                     imageView.image = image
-                    
-                    var newSize = self.frame.size
-                    let imageSize = image.size
-                    var sizeChange = false
-                    if imageSize.width > 0 && imageSize.height > 0 {
-                        if newSize.width <= 0 {
-                            newSize.width = imageSize.width
-                            sizeChange = true
-                        }
-                        
-                        if newSize.height <= 0 {
-                            newSize.height = imageSize.height
-                            sizeChange = true
-                        }
-                    }
-                    // If current component size is (0, 0), notify Yoga with the image's intrinsic size
-                    if sizeChange == true {
-                        self.notifyLayoutChanged(width: newSize.width, height: newSize.height)
-                    }
+                    self.reportImageRenderSize(image: image, yogaWidth: yogaWidth, yogaHeight: yogaHeight)
                     
                     // Execute transition animation (only when surface animation is enabled)
                     if self.surface?.animationEnabled == true {
@@ -275,9 +318,11 @@ class ImageComponent: Component {
                     if error as? ImageLoaderError != .cancelled {
                         Logger.shared.warning("[ImageComponent] Failed to load image: \(urlString), componentId: \(self.componentId), error: \(error.localizedDescription)")
                     }
+                    self.reportImageRenderSize(image: nil, yogaWidth: yogaWidth, yogaHeight: yogaHeight)
                 } else {
                     // No image and no error - unexpected state
                     Logger.shared.warning("[ImageComponent] Image load returned nil without error: \(urlString), componentId: \(self.componentId)")
+                    self.reportImageRenderSize(image: nil, yogaWidth: yogaWidth, yogaHeight: yogaHeight)
                 }
             }
         }

@@ -193,6 +193,24 @@ stamp_commit_into_oh_package() {
     info "Stamped lite HAR version with commit short SHA: ${current} -> ${new_version}"
 }
 
+# -------------------- Pre-stamp version with commit SHA --------------------
+# For byteCodeHar, the version is baked into abc record names at compile time.
+# We MUST stamp oh-package.json5 BEFORE compilation so the abc records include
+# the "+<commit>" suffix. Stamping after compilation causes a mismatch between
+# the abc records (version "1.0.0") and the consumer's import references
+# (version "1.0.0+91084fe"), leading to runtime "cannot find record" crashes.
+MODULE_OH_PACKAGE="${HARMONY_PROJECT_ROOT}/${HARMONY_MODULE}/oh-package.json5"
+
+pre_stamp_version() {
+    local commit
+    commit="$(resolve_commit_short_sha)"
+    if [[ -z "$commit" ]]; then
+        return
+    fi
+    backup_file "$MODULE_OH_PACKAGE"
+    stamp_commit_into_oh_package "$MODULE_OH_PACKAGE" "$commit"
+}
+
 # -------------------- Build the HAR --------------------
 build_har() {
     info "Building ${BUILD_MODE} HAR (module=${HARMONY_MODULE})"
@@ -213,12 +231,9 @@ build_har() {
 }
 
 # -------------------- Generate the lite HAR (third-party .so stripped) --------------------
-# The lite HAR (and only the lite HAR) is stamped with the current commit's
-# short SHA in its embedded oh-package.json5 (e.g. version "1.0.0+91084fe"),
-# so downstream consumers of the lite variant can trace the artifact back to
-# its source commit. The full agenui.har keeps the version from the source
-# oh-package.json5 unchanged. The "+<sha>" form is SemVer build metadata,
-# which ohpm accepts and which does NOT affect version precedence.
+# The version is already stamped into oh-package.json5 before compilation
+# (via pre_stamp_version), so the HAR artifact's version and abc record names
+# are consistent. The lite HAR only strips third-party .so files.
 create_lite_har() {
     local target_dir="$1"
     local work_dir
@@ -230,12 +245,6 @@ create_lite_har() {
         rm -f "${work_dir}/package/libs/arm64-v8a/${lib}"
         info "Removed from lite HAR: ${lib}"
     done
-
-    local commit
-    commit="$(resolve_commit_short_sha)"
-    if [[ -n "$commit" ]]; then
-        stamp_commit_into_oh_package "${work_dir}/package/oh-package.json5" "$commit"
-    fi
 
     tar czf "${target_dir}/agenui-lite.har" -C "$work_dir" package
     rm -rf "$work_dir"
@@ -293,6 +302,7 @@ package_output() {
 
 # -------------------- Main --------------------
 prepare_release_env
+pre_stamp_version
 build_har
 if [[ "$DO_PACKAGE" == true ]]; then
     package_output

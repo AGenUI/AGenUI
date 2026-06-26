@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 /**
  * Unit conversion utilities for the A2UI layout system.
  *
@@ -29,7 +31,7 @@
  * (e.g. from OH_NativeWindow_NativeWindowHandleOpt or Display.getDensityPixels).
  * All conversion functions are undefined if gDensityForUI is 0.
  */
-extern float gDensityForUI;
+extern std::atomic<float> gDensityForUI;
 
 namespace a2ui {
 class UnitConverter {
@@ -56,7 +58,10 @@ public:
      * Formula: a2ui = (px / density) * 2
      * Example on a 3× display: pxToA2ui(300.0f) == 200.0f
      */
-    static float pxToA2ui(float value) { return value / gDensityForUI * 2; }
+    static float pxToA2ui(float value) {
+        if (gDensityForUI <= 0.0f) return value * 2;
+        return value / gDensityForUI * 2;
+    }
 
     /**
      * Convert physical pixels (px) to HarmonyOS vp.
@@ -64,7 +69,10 @@ public:
      * Formula: vp = px / density
      * Example on a 3× display: pxToVp(300.0f) == 100.0f
      */
-    static float pxToVp(float value) { return value / gDensityForUI; }
+    static float pxToVp(float value) {
+        if (gDensityForUI <= 0.0f) return value;
+        return value / gDensityForUI;
+    }
 
     /**
      * Convert a2ui units to physical pixels (px).

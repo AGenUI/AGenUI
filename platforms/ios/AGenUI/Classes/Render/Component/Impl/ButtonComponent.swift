@@ -132,8 +132,18 @@ class ButtonComponent: Component {
         }
     }
     
+    // MARK: - Layout
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        for subview in subviews {
+            guard subview is Component else { continue }
+            subview.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        }
+    }
+
     // MARK: - Event Handling
-    
+
     override func handleTap() {
         // If button is disabled, do not handle tap events
         if isDisabled {

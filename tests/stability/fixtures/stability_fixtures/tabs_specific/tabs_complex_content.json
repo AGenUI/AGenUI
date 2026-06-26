@@ -1,0 +1,57 @@
+{
+  "description": "Tabs with heavy complex content per tab including lists, images, and nested layouts to stress tabs yoga helper measurement",
+  "surfaceId": "tabs_complex_content",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "tabs_complex_content",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "tabs_complex_content",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["tabs"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "tabs", "component": "Tabs", "tabs": [
+            {"label": "Heavy List", "child": "tab-list"},
+            {"label": "Gallery", "child": "tab-gallery"},
+            {"label": "Form", "child": "tab-form"}
+          ], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "tab-list", "component": "List", "children": ["li1", "li2", "li3", "li4", "li5", "li6", "li7", "li8"], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "li1", "component": "Row", "children": ["li1i", "li1t"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "li1i", "component": "Image", "properties": {"url": "https://example.com/1.png", "width": 60, "height": 60}, "styles": {"width": "60px", "height": "60px"}},
+          {"id": "li1t", "component": "Text", "text": "List item 1 with image", "styles": {"flex-grow": "1"}},
+          {"id": "li2", "component": "Text", "text": "Item 2", "styles": {"padding": "8px"}},
+          {"id": "li3", "component": "Text", "text": "Item 3", "styles": {"padding": "8px"}},
+          {"id": "li4", "component": "Text", "text": "Item 4", "styles": {"padding": "8px"}},
+          {"id": "li5", "component": "Text", "text": "Item 5", "styles": {"padding": "8px"}},
+          {"id": "li6", "component": "Text", "text": "Item 6", "styles": {"padding": "8px"}},
+          {"id": "li7", "component": "Text", "text": "Item 7", "styles": {"padding": "8px"}},
+          {"id": "li8", "component": "Text", "text": "Item 8", "styles": {"padding": "8px"}},
+          {"id": "tab-gallery", "component": "Column", "children": ["gr1", "gr2"], "styles": {"width": "100%"}},
+          {"id": "gr1", "component": "Row", "children": ["gi1", "gi2", "gi3"], "styles": {"width": "100%", "gap": "4px"}},
+          {"id": "gi1", "component": "Image", "properties": {"url": "https://example.com/g1.png", "width": 200, "height": 200}, "styles": {"flex-grow": "1", "aspect-ratio": "1"}},
+          {"id": "gi2", "component": "Image", "properties": {"url": "https://example.com/g2.png", "width": 200, "height": 200}, "styles": {"flex-grow": "1", "aspect-ratio": "1"}},
+          {"id": "gi3", "component": "Image", "properties": {"url": "https://example.com/g3.png", "width": 200, "height": 200}, "styles": {"flex-grow": "1", "aspect-ratio": "1"}},
+          {"id": "gr2", "component": "Row", "children": ["gi4", "gi5"], "styles": {"width": "100%", "gap": "4px"}},
+          {"id": "gi4", "component": "Image", "properties": {"url": "https://example.com/g4.png", "width": 300, "height": 200}, "styles": {"flex-grow": "1", "aspect-ratio": "1.5"}},
+          {"id": "gi5", "component": "Image", "properties": {"url": "https://example.com/g5.png", "width": 300, "height": 200}, "styles": {"flex-grow": "1", "aspect-ratio": "1.5"}},
+          {"id": "tab-form", "component": "Column", "children": ["tf1", "tf2", "tf3", "tf4"], "styles": {"width": "100%", "padding": "16px", "gap": "12px"}},
+          {"id": "tf1", "component": "TextField", "label": "Name", "value": ""},
+          {"id": "tf2", "component": "TextField", "label": "Email", "value": ""},
+          {"id": "tf3", "component": "CheckBox", "label": "Agree to terms", "value": false},
+          {"id": "tf4", "component": "Button", "child": "tf4t"},
+          {"id": "tf4t", "component": "Text", "text": "Submit"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

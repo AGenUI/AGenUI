@@ -2,6 +2,7 @@
 #include "hilog/log.h"
 #include "log/a2ui_capi_log.h"
 #include <algorithm>
+#include <vector>
 
 namespace agenui {
 
@@ -51,16 +52,17 @@ void A2UISurfaceLayoutObservable::removeSurfaceLayoutListener(SurfaceLayoutListe
 }
 
 void A2UISurfaceLayoutObservable::notifySurfaceSizeChanged(const SurfaceLayoutInfo& info) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_listeners.empty()) {
-        HM_LOGD("No listeners registered");
-        return;
+    std::vector<SurfaceLayoutListener*> snapshot;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_listeners.empty()) {
+            HM_LOGD("No listeners registered");
+            return;
+        }
+        HM_LOGI("Notifying %zu listeners, surfaceId: %s, size: %fx%f", m_listeners.size(), info.surfaceId.c_str(), info.width, info.height);
+        snapshot = m_listeners;
     }
-
-    HM_LOGI("Notifying %zu listeners, surfaceId: %s, size: %fx%f", m_listeners.size(), info.surfaceId.c_str(), info.width, info.height);
-
-    // Notify all listeners
-    for (auto* listener : m_listeners) {
+    for (auto* listener : snapshot) {
         if (listener) {
             listener->onSurfaceSizeChanged(info);
         }

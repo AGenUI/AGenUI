@@ -1,0 +1,40 @@
+{
+  "description": "Fractional precision values for flex-grow/shrink and percentage dimensions to stress yoga value parsing",
+  "surfaceId": "fractional_flex_precision",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "fractional_flex_precision",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "fractional_flex_precision",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["r1", "r2", "r3"], "styles": {"width": "100%", "height": "500px"}},
+          {"id": "r1", "component": "Row", "children": ["r1a", "r1b", "r1c", "r1d", "r1e"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "r1a", "component": "Text", "text": "0.001", "styles": {"flex-grow": "0.001"}},
+          {"id": "r1b", "component": "Text", "text": "0.333", "styles": {"flex-grow": "0.333"}},
+          {"id": "r1c", "component": "Text", "text": "0.999", "styles": {"flex-grow": "0.999"}},
+          {"id": "r1d", "component": "Text", "text": "1.5", "styles": {"flex-grow": "1.5"}},
+          {"id": "r1e", "component": "Text", "text": "99.99", "styles": {"flex-grow": "99.99"}},
+          {"id": "r2", "component": "Row", "children": ["r2a", "r2b", "r2c"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "r2a", "component": "Text", "text": "33.333%", "styles": {"width": "33.333%"}},
+          {"id": "r2b", "component": "Text", "text": "33.333%", "styles": {"width": "33.333%"}},
+          {"id": "r2c", "component": "Text", "text": "33.334%", "styles": {"width": "33.334%"}},
+          {"id": "r3", "component": "Row", "children": ["r3a", "r3b"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "r3a", "component": "Text", "text": "Tiny shrink", "styles": {"flex-shrink": "0.001", "width": "500px"}},
+          {"id": "r3b", "component": "Text", "text": "Huge shrink", "styles": {"flex-shrink": "999.999", "width": "500px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

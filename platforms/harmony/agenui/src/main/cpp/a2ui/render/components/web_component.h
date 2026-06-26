@@ -18,7 +18,7 @@ namespace a2ui {
  *   - min-height: minimum height in vp
  *   - max-height: maximum height in vp
  */
-class WebComponent : public A2UIHybridView {
+class WebComponent final : public A2UIHybridView {
 public:
     WebComponent(ComponentState* state, ArkUI_NodeHandle arkuiHandle, const ArkTSObject& componentContent);
     ~WebComponent() override;

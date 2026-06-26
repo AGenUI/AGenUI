@@ -39,6 +39,10 @@ export default class StabilityTestAbility extends UIAbility {
       this.maxRounds = (params['rounds'] as number) || 0;
       this.intervalMs = (params['interval_ms'] as number) || 100;
       this.crashThreshold = (params['crash_threshold'] as number) || 5;
+      const fixtures = params['fixtures'] as string;
+      if (fixtures) {
+        hilog.warn(DOMAIN, TAG, 'fixtures param received but file-based fixture loading not yet implemented on Harmony: %{public}s', fixtures);
+      }
     }
 
     // Setup output directory

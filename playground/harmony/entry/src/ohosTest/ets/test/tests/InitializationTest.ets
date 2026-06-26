@@ -61,22 +61,17 @@ export default function initializationTest() {
      * 发送 createSurface JSON，验证 onCreateSurface 回调被调用。
      */
     it('INIT-03_createSurface_callback_triggered', 0, async (done: Function) => {
-      try {
-        const fixture = await loadFixture(
-          context.resourceManager,
-          'init/create_surface_simple.json'
-        );
-        const json = getMessagesAsString(fixture);
-        const surfaceId = getSurfaceId(fixture);
+      const fixture = await loadFixture(
+        context.resourceManager,
+        'init/create_surface_simple.json'
+      );
+      const json = getMessagesAsString(fixture);
+      const surfaceId = getSurfaceId(fixture);
 
-        const surface = await sendAndWaitForSurface(sm, json, surfaceId);
-        expect(surface).not().assertNull();
-        expect(surface.surfaceId).assertEqual(surfaceId);
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      const surface = await sendAndWaitForSurface(sm, json, surfaceId);
+      expect(surface).not().assertNull();
+      expect(surface.surfaceId).assertEqual(surfaceId);
+      done();
     });
   });
 }

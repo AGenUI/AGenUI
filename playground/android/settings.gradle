@@ -29,6 +29,8 @@ def agenuiSdkSource = providers.gradleProperty('agenui.sdk.source').getOrElse('f
 if (agenuiSdkSource) {
     include ':agenui-sdk'
     project(':agenui-sdk').projectDir = file('../../platforms/android')
+    include ':processor'
+    project(':processor').projectDir = file('../../platforms/android/processor')
 }
 
 include ':app'

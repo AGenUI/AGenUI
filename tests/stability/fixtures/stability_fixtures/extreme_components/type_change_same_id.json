@@ -1,0 +1,43 @@
+{
+  "description": "Component type changes on same ID across updateComponents — e.g. Text becomes Image becomes Button",
+  "surfaceId": "type-change-same-id",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "type-change-same-id",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "type-change-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["morph"], "styles": {"width": "100%"}},
+          {"id": "morph", "component": "Text", "text": "I am Text", "styles": {"width": "100%", "height": "60px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "type-change-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["morph"], "styles": {"width": "100%"}},
+          {"id": "morph", "component": "Image", "src": "https://example.com/img.png", "styles": {"width": "100%", "height": "120px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "type-change-same-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["morph"], "styles": {"width": "100%"}},
+          {"id": "morph", "component": "Button", "label": "I am now Button", "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ]
+}

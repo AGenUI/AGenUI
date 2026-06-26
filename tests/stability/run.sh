@@ -19,11 +19,13 @@ set -euo pipefail
 #   --device-id <id>        (iOS only) Specify device UDID
 #   --scenario <name>       Scenario: session_storm|stream_marathon|multi_surface|
 #                           action_flood|theme_switch|interrupt_recover|
-#                           extreme_render|sdk_robustness|jni_bridge_race|
+#                           extreme_render|sdk_robustness|sdk_interface_stability|jni_bridge_race|
 #                           all_combined (default: all_combined)
 #   --duration <minutes>    Run duration in minutes (default: 480)
 #   --rounds <n>            Max rounds, 0=unlimited (default: 0)
 #   --interval <ms>         Delay between rounds in ms (default: 100)
+#   --fixtures <list>       Comma-separated fixture paths to run (selective mode)
+#   --fixtures-file <path>  Newline-separated fixture paths to run (selective mode)
 #   --install               Build and install before running
 #   -h, --help              Show help
 #
@@ -59,6 +61,8 @@ CRASH_THRESHOLD=5
 DO_INSTALL=false
 USE_SIMULATOR=false
 DEVICE_ID=""
+FIXTURES=""
+FIXTURES_FILE=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -73,11 +77,26 @@ while [[ $# -gt 0 ]]; do
         --rounds|--round)    ROUNDS="$2"; shift 2 ;;
         --interval)         INTERVAL_MS="$2"; shift 2 ;;
         --crash-threshold)  CRASH_THRESHOLD="$2"; shift 2 ;;
+        --fixtures)         FIXTURES="$2"; shift 2 ;;
+        --fixtures-file)    FIXTURES_FILE="$2"; shift 2 ;;
         --install)          DO_INSTALL=true; shift ;;
-        -h|--help)          sed -n '5,36p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        -h|--help)          sed -n '5,37p' "$0" | sed 's/^# \?//'; exit 0 ;;
         *)                  error "Unknown argument: $1" ;;
     esac
 done
+
+if [[ -n "$FIXTURES_FILE" ]]; then
+    [[ -f "$FIXTURES_FILE" ]] || error "Fixtures file not found: $FIXTURES_FILE"
+    FIXTURES=$(python3 - "$FIXTURES_FILE" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+items = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+print(",".join(items))
+PY
+)
+fi
 
 # Output directory
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -213,7 +232,8 @@ case "$PLATFORM" in
             --interval "$INTERVAL_MS" \
             --crash-threshold "$CRASH_THRESHOLD" \
             --output-dir "${OUTPUT_DIR}/${PLATFORM}" \
-            $([ "$DO_INSTALL" = true ] && echo "--install" || true)
+            $([ "$DO_INSTALL" = true ] && echo "--install" || true) \
+            $([ -n "$FIXTURES" ] && echo "--fixtures $FIXTURES" || true)
 
         # monitor.sh returns exit 1 on crashes/freezes — don't let it abort the pipeline
         MONITOR_EXIT=0
@@ -257,6 +277,7 @@ case "$PLATFORM" in
             --crash-threshold "$CRASH_THRESHOLD" \
             --output-dir "${OUTPUT_DIR}/${PLATFORM}" \
             $([ "$DO_INSTALL" = true ] && echo "--install" || true) \
+            $([ -n "$FIXTURES" ] && echo "--fixtures $FIXTURES" || true) \
             $IOS_EXTRA_ARGS
 
         MONITOR_EXIT=0
@@ -296,7 +317,8 @@ case "$PLATFORM" in
             --interval "$INTERVAL_MS" \
             --crash-threshold "$CRASH_THRESHOLD" \
             --output-dir "${OUTPUT_DIR}/${PLATFORM}" \
-            $([ "$DO_INSTALL" = true ] && echo "--install" || true)
+            $([ "$DO_INSTALL" = true ] && echo "--install" || true) \
+            $([ -n "$FIXTURES" ] && echo "--fixtures $FIXTURES" || true)
 
         MONITOR_EXIT=0
         bash "${SCRIPT_DIR}/platforms/harmony/monitor.sh" \

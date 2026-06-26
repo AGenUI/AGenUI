@@ -24,11 +24,9 @@ std::string ComponentSnapshot::stringify() const {
         if (component == "Markdown" && attr.first == "content" && appendMode) {
             dataImpl->set("appendContent", attr.second);
         } else if (component == "Text" && attr.first == "text" && appendMode) {
+            // Emit text under both keys: "text" for measurement, "textChunk" for incremental append
+            dataImpl->set("text", attr.second);
             dataImpl->set("textChunk", attr.second);
-        } else if (component == "Text" && attr.first == "text" && attributes.count("textChunk") > 0) {
-            // Inline streaming: textChunk exists as a separate attribute
-            // (spec fills default text="" causing coexistence); skip text, keep only textChunk
-            continue;
         } else {
             dataImpl->set(attr.first, attr.second);
         }

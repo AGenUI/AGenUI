@@ -21,7 +21,7 @@ ComponentState::~ComponentState() {
 std::string ComponentState::getProperty(const std::string& key) const {
     // Check whether the property exists
     if (!m_properties.contains(key)) {
-        HM_LOGW(" property '%s' not found", m_id.c_str(), key.c_str());
+        HM_LOGW("[%s] property '%s' not found", m_id.c_str(), key.c_str());
         return "";
     }
     
@@ -52,20 +52,20 @@ void ComponentState::setProperties(const nlohmann::json& props) {
         }
     }
     
-    HM_LOGD(" set %zu properties, all marked dirty", m_id.c_str(), m_dirtyProperties.size());
+    HM_LOGD("[%s] set %zu properties, all marked dirty", m_id.c_str(), m_dirtyProperties.size());
 }
 
 void ComponentState::updateProperty(const std::string& key, const nlohmann::json& value) {
     // Check whether the value actually changed
     if (m_properties.contains(key) && m_properties[key] == value) {
-        HM_LOGD(" property '%s' unchanged, skip", m_id.c_str(), key.c_str());
+        HM_LOGD("[%s] property '%s' unchanged, skip", m_id.c_str(), key.c_str());
         return;  // The value did not change, so do not mark it dirty
     }
     
     m_properties[key] = value;
     m_dirtyProperties.insert(key);
     
-    HM_LOGD(" property '%s' updated and marked dirty", m_id.c_str(), key.c_str());
+    HM_LOGD("[%s] property '%s' updated and marked dirty", m_id.c_str(), key.c_str());
 }
 
 void ComponentState::updateProperties(const nlohmann::json& newProps) {
@@ -78,7 +78,7 @@ void ComponentState::updateProperties(const nlohmann::json& newProps) {
         updateProperty(key, value);
     }
     
-    HM_LOGD(" updated, %zu properties dirty", m_id.c_str(), m_dirtyProperties.size());
+    HM_LOGD("[%s] updated, %zu properties dirty", m_id.c_str(), m_dirtyProperties.size());
 }
 
 void ComponentState::markDirty(const std::string& propertyKey) {
@@ -89,10 +89,10 @@ void ComponentState::markDirty(const std::string& propertyKey) {
                 m_dirtyProperties.insert(key);
             }
         }
-        HM_LOGD(" marked all properties dirty", m_id.c_str());
+        HM_LOGD("[%s] marked all properties dirty", m_id.c_str());
     } else {
         m_dirtyProperties.insert(propertyKey);
-        HM_LOGD(" property '%s' marked dirty", m_id.c_str(), propertyKey.c_str());
+        HM_LOGD("[%s] property '%s' marked dirty", m_id.c_str(), propertyKey.c_str());
     }
 }
 
@@ -134,7 +134,7 @@ void ComponentState::clearChildren() {
     }
     m_children.clear();
     
-    HM_LOGD(" cleared all children", m_id.c_str());
+    HM_LOGD("[%s] cleared all children", m_id.c_str());
 }
 
 } // namespace a2ui

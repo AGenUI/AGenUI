@@ -627,10 +627,17 @@ class TableComponent: Component {
     override func updateProperties(_ properties: [String: Any]) {
         // Call parent method to apply CSS properties to self
         super.updateProperties(properties)
-        
-        let columnsArray = properties["columns"] as? [String] ?? []
-        let rowsArray    = properties["rows"]    as? [[String]] ?? []
-        
+
+        // Skip table rebuild when no table-relevant keys changed
+        guard properties["columns"] != nil || properties["rows"] != nil else {
+            return
+        }
+
+        // Table rebuild needs the full merged state because columns/rows
+        // must both be present to construct the complete table.
+        let columnsArray = self.properties["columns"] as? [String] ?? []
+        let rowsArray    = self.properties["rows"]    as? [[String]] ?? []
+
         if innerTableView == nil {
             let tableView = InnerTableView(frame: .zero)
             addSubview(tableView)

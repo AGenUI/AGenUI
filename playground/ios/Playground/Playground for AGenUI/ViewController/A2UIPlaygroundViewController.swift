@@ -242,7 +242,7 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         print("[Playground] 🎨 Surface created: \(surface.surfaceId)")
         
         scrollView.addSubview(surface.view)
-        weak let weakSurface = surface
+        weak var weakSurface = surface
         surface.onLayoutChanged = { [weak self] in
             guard let weakSurface = weakSurface else {
                 return

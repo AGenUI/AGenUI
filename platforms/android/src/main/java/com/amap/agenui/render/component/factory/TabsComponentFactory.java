@@ -1,5 +1,6 @@
 package com.amap.agenui.render.component.factory;
 
+import com.amap.agenui.annotation.BuiltInComponent;
 import android.content.Context;
 
 import com.amap.agenui.render.component.A2UIComponent;
@@ -8,6 +9,7 @@ import com.amap.agenui.render.component.impl.TabsComponent;
 
 import java.util.Map;
 
+@BuiltInComponent
 public class TabsComponentFactory implements IComponentFactory {
     
     @Override

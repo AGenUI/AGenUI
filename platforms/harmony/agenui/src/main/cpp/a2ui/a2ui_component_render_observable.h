@@ -12,7 +12,7 @@ namespace agenui {
  */
 class ComponentRenderListener {
 public:
-    virtual ~ComponentRenderListener() {}
+    virtual ~ComponentRenderListener() = default;
     virtual void onRenderFinish(const ComponentRenderInfo& info) = 0;
 };
 
@@ -23,7 +23,7 @@ public:
  */
 class IComponentRenderObservable {
 public:
-    virtual ~IComponentRenderObservable() {}
+    virtual ~IComponentRenderObservable() = default;
     virtual void addComponentRenderListener(ComponentRenderListener* observer) = 0;
     virtual void removeComponentRenderListener(ComponentRenderListener* observer) = 0;
     virtual void notifyRenderFinish(const ComponentRenderInfo& info) = 0;

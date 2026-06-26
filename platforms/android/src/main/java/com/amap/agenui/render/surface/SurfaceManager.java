@@ -318,6 +318,14 @@ public class SurfaceManager implements ISurfaceSizeProviderHost {
                     public void onBlankCheckResult(String sid, boolean isBlank) {
                         notifyBlankCheckResult(getSurface(sid), isBlank);
                     }
+
+                    @Override
+                    public void notifyAppearedEvent(String surfaceId, String parentComponentId, String parentType, Map<String, Object> properties) {
+                        // Pure-Java closed loop: deliver straight to the Java listeners
+                        // instead of routing through native, since display reporting
+                        // does not require any C++ engine processing.
+                        notifyComponentAppeared(surfaceId, parentComponentId, parentType, properties);
+                    }
                 },
                 new SurfaceLayoutDispatcher(
                         surfaceId,
@@ -470,6 +478,34 @@ public class SurfaceManager implements ISurfaceSizeProviderHost {
                 listener.onBlankCheckResult(surface, isBlank);
             } catch (Exception e) {
                 AGenUILogger.e(TAG, "notifyBlankCheckResult: listener threw exception", e);
+            }
+        }
+    }
+
+    /**
+     * Notifies all listeners of a component appeared event.
+     * <p>
+     * Pure-Java closed loop entry point: invoked by the per-Surface
+     * {@link ComponentEventDispatcher#notifyAppearedEvent} implementation. Resolves
+     * the owning Surface and fans the event out to listeners; each listener is
+     * independently guarded so a single exception does not affect the others.
+     *
+     * @param surfaceId         Surface ID the display occurred on
+     * @param parentComponentId ID of the component that detected the display
+     * @param parentType        Component type name of the detector ("List" / "Carousel" / "Tabs" ...)
+     * @param properties        Display properties as a key-value map
+     */
+    void notifyComponentAppeared(String surfaceId, String parentComponentId, String parentType, Map<String, Object> properties) {
+        // Snapshot the properties so that subsequent updateProperties calls on the
+        // parent component do not mutate the map while listeners are consuming it.
+        Map<String, Object> snapshot = properties != null
+                ? new java.util.HashMap<>(properties) : java.util.Collections.emptyMap();
+        Surface surface = getSurface(surfaceId);
+        for (ISurfaceManagerListener listener : listeners) {
+            try {
+                listener.onComponentAppeared(surface, parentComponentId, parentType, snapshot);
+            } catch (Exception e) {
+                AGenUILogger.e(TAG, "notifyComponentAppeared: listener threw exception", e);
             }
         }
     }

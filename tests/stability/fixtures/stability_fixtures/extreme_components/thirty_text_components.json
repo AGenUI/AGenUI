@@ -1,0 +1,57 @@
+{
+  "description": "30 Text components with varying styles to stress batch rendering and yoga node creation at scale",
+  "surfaceId": "thirty_text_components",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "thirty_text_components",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "thirty_text_components",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["t1","t2","t3","t4","t5","t6","t7","t8","t9","t10","t11","t12","t13","t14","t15","t16","t17","t18","t19","t20","t21","t22","t23","t24","t25","t26","t27","t28","t29","t30"], "styles": {"width": "100%", "gap": "2px"}},
+          {"id": "t1", "component": "Text", "text": "Text 1 with padding", "styles": {"padding": "4px"}},
+          {"id": "t2", "component": "Text", "text": "Text 2 with margin", "styles": {"margin": "4px"}},
+          {"id": "t3", "component": "Text", "text": "Text 3 flex-grow", "styles": {"flex-grow": "1"}},
+          {"id": "t4", "component": "Text", "text": "Text 4 fixed width", "styles": {"width": "200px"}},
+          {"id": "t5", "component": "Text", "text": "Text 5 percentage", "styles": {"width": "80%"}},
+          {"id": "t6", "component": "Text", "text": "Text 6 min-width", "styles": {"min-width": "150px"}},
+          {"id": "t7", "component": "Text", "text": "Text 7 max-width", "styles": {"max-width": "100px"}},
+          {"id": "t8", "component": "Text", "text": "Text 8 height", "styles": {"height": "60px"}},
+          {"id": "t9", "component": "Text", "text": "Text 9 aspect", "styles": {"width": "100px", "aspect-ratio": "2"}},
+          {"id": "t10", "component": "Text", "text": "Text 10 border", "styles": {"border-width": "2px"}},
+          {"id": "t11", "component": "Text", "text": "Text 11 all padding", "styles": {"padding-top": "8px", "padding-bottom": "4px", "padding-left": "12px", "padding-right": "6px"}},
+          {"id": "t12", "component": "Text", "text": "Text 12 all margins", "styles": {"margin-top": "4px", "margin-bottom": "8px", "margin-left": "6px", "margin-right": "12px"}},
+          {"id": "t13", "component": "Text", "text": "Text 13 inline margins", "styles": {"margin-inline-start": "10px", "margin-inline-end": "10px"}},
+          {"id": "t14", "component": "Text", "text": "Text 14 block padding", "styles": {"padding-block-start": "8px", "padding-block-end": "8px"}},
+          {"id": "t15", "component": "Text", "text": "Text 15 inline padding", "styles": {"padding-inline-start": "12px", "padding-inline-end": "12px"}},
+          {"id": "t16", "component": "Text", "text": "Text 16 flex-shrink", "styles": {"flex-shrink": "0"}},
+          {"id": "t17", "component": "Text", "text": "Text 17 flex-basis", "styles": {"flex-basis": "100px"}},
+          {"id": "t18", "component": "Text", "text": "Text 18 align-self", "styles": {"align-self": "center"}},
+          {"id": "t19", "component": "Text", "text": "Text 19 absolute", "styles": {"position": "absolute", "top": "0", "right": "0"}},
+          {"id": "t20", "component": "Text", "text": "Text 20 overflow", "styles": {"overflow": "hidden", "width": "50px"}},
+          {"id": "t21", "component": "Text", "text": "Text 21 display none", "styles": {"display": "none"}},
+          {"id": "t22", "component": "Text", "text": "Text 22 combo", "styles": {"width": "50%", "min-width": "100px", "max-width": "300px"}},
+          {"id": "t23", "component": "Text", "text": "Text 23 combo", "styles": {"flex-grow": "1", "flex-shrink": "0", "flex-basis": "50px"}},
+          {"id": "t24", "component": "Text", "text": "Text 24 all", "styles": {"width": "100%", "padding": "4px", "margin": "2px", "border-width": "1px"}},
+          {"id": "t25", "component": "Text", "text": "Text 25"},
+          {"id": "t26", "component": "Text", "text": "Text 26"},
+          {"id": "t27", "component": "Text", "text": "Text 27"},
+          {"id": "t28", "component": "Text", "text": "Text 28"},
+          {"id": "t29", "component": "Text", "text": "Text 29"},
+          {"id": "t30", "component": "Text", "text": "Text 30"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

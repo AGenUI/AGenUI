@@ -18,23 +18,15 @@ public class ImageMeasurerTest {
 
     @Test
     public void returnsExplicitWidthAndHeightFromStyleInfo() {
-        MeasureResult result = ImageMeasurer.resolveSyncResult(200f, 120f, 0f, 0f, 0, 0f, 0);
+        MeasureResult result = ImageMeasurer.resolveSyncResult(200f, 120f, 0f, 0, 0f, 0);
 
         assertEquals(200f, result.width, 0.001f);
         assertEquals(120f, result.height, 0.001f);
     }
 
     @Test
-    public void derivesHeightFromWidthAndAspectRatio() {
-        MeasureResult result = ImageMeasurer.resolveSyncResult(180f, null, 1.5f, 0f, 0, 0f, 0);
-
-        assertEquals(180f, result.width, 0.001f);
-        assertEquals(120f, result.height, 0.001f);
-    }
-
-    @Test
-    public void fallsBackToZeroForFullyAutoImage() {
-        MeasureResult result = ImageMeasurer.resolveSyncResult(null, null, 0f, 0f, 0, 0f, 0);
+    public void fallsBackToNullForFullyAutoImage() {
+        MeasureResult result = ImageMeasurer.resolveSyncResult(null, null, 0f, 0, 0f, 0);
 
         assertNull(result);
     }

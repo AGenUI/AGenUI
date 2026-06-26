@@ -74,155 +74,80 @@ export default function functionCallTest() {
     // ==================== SKILL 系列：单函数验证 ====================
 
     it('SKILL-01_formatDate', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/action_formatDate.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/action_formatDate.json');
+      done();
     });
 
     it('SKILL-02_formatString', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/action_formatString.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/action_formatString.json');
+      done();
     });
 
     it('SKILL-03_formatNumber', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/format_formatNumber.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/format_formatNumber.json');
+      done();
     });
 
     it('SKILL-04_formatCurrency', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/format_formatCurrency.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/format_formatCurrency.json');
+      done();
     });
 
     it('SKILL-05_pluralize', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/format_pluralize.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/format_pluralize.json');
+      done();
     });
 
     it('SKILL-06_formatToken', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/format_token.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/format_token.json');
+      done();
     });
 
     it('SKILL-07_validateRequired', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/validate_required.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/validate_required.json');
+      done();
     });
 
     it('SKILL-08_validateNumeric', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/validate_numeric.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/validate_numeric.json');
+      done();
     });
 
     it('SKILL-09_validateLength', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/validate_length.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/validate_length.json');
+      done();
     });
 
     it('SKILL-10_validateRegex', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/validate_regex.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/validate_regex.json');
+      done();
     });
 
     it('SKILL-11_validateEmail', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/validate_email.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/validate_email.json');
+      done();
     });
 
     // ==================== SCENE 系列：混合场景验证 ====================
 
     it('SCENE-01_formatStringNested', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/mixed_formatString_nested.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/mixed_formatString_nested.json');
+      done();
     });
 
     it('SCENE-02_databindingWithFunc', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/mixed_databinding_with_func.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/mixed_databinding_with_func.json');
+      done();
     });
 
     it('SCENE-03_logicExpression', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/mixed_logic_expression.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/mixed_logic_expression.json');
+      done();
     });
 
     it('SCENE-04_funcInAction_textContent', 0, async (done: Function) => {
-      try {
-        await runFixtureTest(sm, context, 'function_call/mixed_func_in_action.json');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      await runFixtureTest(sm, context, 'function_call/mixed_func_in_action.json');
+      done();
     });
   });
 }

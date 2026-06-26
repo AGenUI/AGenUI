@@ -140,12 +140,6 @@ public:
      *                 setSurfaceSizeProvider(nullptr) detaches it.
      */
     virtual void setSurfaceSizeProvider(ISurfaceSizeProvider* provider) = 0;
-
-    /**
-     * @brief Return the previously injected surface size provider.
-     * @return Non-owning pointer; nullptr if none has been injected.
-     */
-    virtual ISurfaceSizeProvider* getSurfaceSizeProvider() const = 0;
 };
 
 } // namespace agenui

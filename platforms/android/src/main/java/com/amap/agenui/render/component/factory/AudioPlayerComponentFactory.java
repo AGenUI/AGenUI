@@ -11,7 +11,9 @@ import com.amap.agenui.render.measurement.AudioPlayerMeasurer;
 import com.amap.agenui.render.measurement.IMeasurer;
 
 import java.util.Map;
+import com.amap.agenui.annotation.BuiltInComponent;
 
+@BuiltInComponent
 public class AudioPlayerComponentFactory implements IComponentFactory {
 
     @Override

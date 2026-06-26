@@ -1,0 +1,36 @@
+{
+  "description": "overflow:hidden with children larger than parent container. Tests clipping behavior and layout calculation when content exceeds bounds.",
+  "surfaceId": "stability-overflow-hidden",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-overflow-hidden",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-overflow-hidden",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["clip-box", "clip-row"], "styles": {"width": "100%", "gap": "8px", "padding": "8px"}},
+          {"id": "clip-box", "component": "Column", "children": ["big-child-1", "big-child-2"], "styles": {"width": "200px", "height": "100px", "overflow": "hidden"}},
+          {"id": "big-child-1", "component": "Text", "text": "This text is in a 500px tall box inside a 100px clipped container, testing overflow clipping", "styles": {"width": "500px", "height": "500px"}},
+          {"id": "big-child-2", "component": "Image", "properties": {"url": "https://example.com/large.png", "width": 800, "height": 600}},
+          {"id": "clip-row", "component": "Row", "children": ["cr1", "cr2", "cr3", "cr4", "cr5"], "styles": {"width": "200px", "height": "60px", "overflow": "hidden"}},
+          {"id": "cr1", "component": "Text", "text": "Item1", "styles": {"width": "100px", "height": "60px"}},
+          {"id": "cr2", "component": "Text", "text": "Item2", "styles": {"width": "100px", "height": "60px"}},
+          {"id": "cr3", "component": "Text", "text": "Item3", "styles": {"width": "100px", "height": "60px"}},
+          {"id": "cr4", "component": "Text", "text": "Item4", "styles": {"width": "100px", "height": "60px"}},
+          {"id": "cr5", "component": "Text", "text": "Item5", "styles": {"width": "100px", "height": "60px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

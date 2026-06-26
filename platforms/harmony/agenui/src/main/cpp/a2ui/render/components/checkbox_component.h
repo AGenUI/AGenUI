@@ -16,7 +16,7 @@ namespace a2ui {
  *   - label: text shown to the right of the checkbox
  *   - value: checked state, including DynamicBoolean input
  */
-class CheckBoxComponent : public A2UIComponent {
+class CheckBoxComponent final : public A2UIComponent {
 public:
     CheckBoxComponent(const std::string& id, const nlohmann::json& properties);
     ~CheckBoxComponent() override;

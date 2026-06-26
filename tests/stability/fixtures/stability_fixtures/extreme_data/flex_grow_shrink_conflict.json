@@ -1,0 +1,14 @@
+{
+  "description": "flex-grow and flex-shrink with fixed width all set simultaneously - tests flex resolution",
+  "surfaceId": "stability-flex-conflict",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-flex-conflict","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-flex-conflict","components":[
+      {"id":"root","component":"Row","children":["f1","f2","f3","f4"],"styles":{"width":"300px","height":"100px"}},
+      {"id":"f1","component":"Text","text":"Grow+Shrink+Width","styles":{"flex-grow":"1","flex-shrink":"2","width":"200px","max-width":"100px"}},
+      {"id":"f2","component":"Text","text":"Grow only","styles":{"flex-grow":"3","flex-shrink":"0","width":"50px"}},
+      {"id":"f3","component":"Text","text":"Shrink only","styles":{"flex-grow":"0","flex-shrink":"5","width":"400px"}},
+      {"id":"f4","component":"Text","text":"Basis conflict","styles":{"flex-grow":"1","flex-shrink":"1","flex-basis":"500px","width":"100px","max-width":"80px"}}
+    ]}}
+  ]
+}

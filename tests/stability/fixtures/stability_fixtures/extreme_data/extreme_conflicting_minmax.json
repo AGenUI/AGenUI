@@ -1,0 +1,18 @@
+{
+  "description": "Conflicting min/max constraints where min exceeds max - tests constraint resolution",
+  "surfaceId": "stability-minmax-conflict",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-minmax-conflict","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-minmax-conflict","components":[
+      {"id":"root","component":"Column","children":["c1","c2","c3","c4","c5"],"styles":{"width":"100%","padding":"8px"}},
+      {"id":"c1","component":"Text","text":"min-width > max-width","styles":{"min-width":"300px","max-width":"100px","height":"40px"}},
+      {"id":"c2","component":"Text","text":"min-height > max-height","styles":{"min-height":"200px","max-height":"50px","width":"100%"}},
+      {"id":"c3","component":"Row","children":["c3a"],"styles":{"min-width":"500px","max-width":"200px","min-height":"300px","max-height":"100px"}},
+      {"id":"c3a","component":"Text","text":"In conflicting box"},
+      {"id":"c4","component":"Column","children":["c4a","c4b"],"styles":{"min-width":"400px","max-width":"50px","width":"200px"}},
+      {"id":"c4a","component":"Text","text":"Triple conflict A"},
+      {"id":"c4b","component":"Text","text":"Triple conflict B"},
+      {"id":"c5","component":"Image","properties":{"url":"https://example.com/test.png","width":300,"height":300},"styles":{"min-width":"500px","max-width":"100px","min-height":"500px","max-height":"100px"}}
+    ]}}
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "description": "All inset-block and inset-inline properties with absolute positioning to test yoga property decoder logical property mapping",
+  "surfaceId": "inset_block_inline",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "inset_block_inline",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "inset_block_inline",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["c1", "c2", "c3"], "styles": {"width": "100%", "height": "600px"}},
+          {"id": "c1", "component": "Row", "children": ["c1a", "c1b", "c1c", "c1d"], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "c1a", "component": "Text", "text": "block-start", "styles": {"position": "absolute", "inset-block-start": "10px", "inset-inline-start": "10px"}},
+          {"id": "c1b", "component": "Text", "text": "block-end", "styles": {"position": "absolute", "inset-block-end": "10px", "inset-inline-end": "10px"}},
+          {"id": "c1c", "component": "Text", "text": "both block", "styles": {"position": "absolute", "inset-block-start": "40px", "inset-block-end": "40px", "inset-inline-start": "40px", "inset-inline-end": "40px"}},
+          {"id": "c1d", "component": "Text", "text": "Normal"},
+          {"id": "c2", "component": "Column", "children": ["c2a", "c2b"], "styles": {"width": "100%", "height": "200px", "direction": "rtl"}},
+          {"id": "c2a", "component": "Text", "text": "RTL inline-start", "styles": {"position": "absolute", "inset-inline-start": "20px", "inset-block-start": "20px"}},
+          {"id": "c2b", "component": "Text", "text": "RTL inline-end", "styles": {"position": "absolute", "inset-inline-end": "20px", "inset-block-end": "20px"}},
+          {"id": "c3", "component": "Row", "children": ["c3a"], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "c3a", "component": "Text", "text": "Conflict: top+block-start", "styles": {"position": "absolute", "top": "10px", "inset-block-start": "50px", "left": "10px", "inset-inline-start": "50px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

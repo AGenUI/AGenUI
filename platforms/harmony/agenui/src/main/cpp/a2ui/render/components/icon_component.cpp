@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <cctype>
+#include <unordered_map>
 #include "log/a2ui_capi_log.h"
 
 // filesDir accessor defined in napi_init.cpp.
@@ -121,60 +122,60 @@ void IconComponent::applyIconColor(const nlohmann::json& properties) {
 // ---- Material Design Name -> Lucide Asset ----
 
 std::string IconComponent::mapIconToLucideName(const std::string& iconName) {
+    static const auto* kMap = new std::unordered_map<std::string, std::string>{
+        {"accountcircle",   "circle-user"},
+        {"add",             "plus"},
+        {"arrowback",       "arrow-left"},
+        {"arrowforward",    "arrow-right"},
+        {"attachfile",      "paperclip"},
+        {"calendartoday",   "calendar"},
+        {"call",            "phone"},
+        {"camera",          "camera"},
+        {"check",           "check"},
+        {"close",           "x"},
+        {"delete",          "trash"},
+        {"download",        "download"},
+        {"edit",            "pencil"},
+        {"event",           "calendar"},
+        {"error",           "circle-alert"},
+        {"favorite",        "heart"},
+        {"favoriteoff",     "heart-off"},
+        {"folder",          "folder"},
+        {"help",            "circle-question-mark"},
+        {"home",            "house"},
+        {"info",            "info"},
+        {"locationon",      "map-pin"},
+        {"lock",            "lock"},
+        {"lockopen",        "lock-open"},
+        {"mail",            "mail"},
+        {"menu",            "menu"},
+        {"morevert",        "ellipsis-vertical"},
+        {"morehoriz",       "ellipsis"},
+        {"notificationsoff","bell-off"},
+        {"notifications",   "bell"},
+        {"payment",         "credit-card"},
+        {"person",          "user"},
+        {"phone",           "phone"},
+        {"photo",           "image"},
+        {"print",           "printer"},
+        {"refresh",         "refresh-cw"},
+        {"search",          "search"},
+        {"send",            "send"},
+        {"settings",        "settings"},
+        {"share",           "share"},
+        {"shoppingcart",    "shopping-cart"},
+        {"star",            "star"},
+        {"starhalf",        "star-half"},
+        {"staroff",         "star-off"},
+        {"upload",          "upload"},
+        {"visibility",      "eye"},
+        {"visibilityoff",   "eye-off"},
+        {"warning",         "triangle-alert"},
+    };
+
     std::string name = toLower(iconName);
-
-    // Mappings backed by existing Lucide assets.
-    if (name == "accountcircle")   return "circle-user";
-    if (name == "add")              return "plus";
-    if (name == "arrowback")        return "arrow-left";
-    if (name == "arrowforward")     return "arrow-right";
-    if (name == "attachfile")       return "paperclip";
-    if (name == "calendartoday")    return "calendar";
-    if (name == "call")             return "phone";
-    if (name == "camera")           return "camera";
-    if (name == "check")            return "check";
-    if (name == "close")            return "x";
-    if (name == "delete")           return "trash";
-    if (name == "download")         return "download";
-    if (name == "edit")             return "pencil";
-    if (name == "event")            return "calendar";
-    if (name == "error")            return "circle-alert";
-    if (name == "favorite")         return "heart";
-    if (name == "favoriteoff")      return "heart-off";
-    if (name == "folder")           return "folder";
-    if (name == "help")             return "circle-question-mark";
-    if (name == "home")             return "house";
-    if (name == "info")             return "info";
-    if (name == "locationon")       return "map-pin";
-    if (name == "lock")             return "lock";
-    if (name == "lockopen")         return "lock-open";
-    if (name == "mail")             return "mail";
-    if (name == "menu")             return "menu";
-    if (name == "morevert")         return "ellipsis-vertical";
-    if (name == "morehoriz")        return "ellipsis";
-    if (name == "notificationsoff") return "bell-off";
-    if (name == "notifications")    return "bell";
-    if (name == "payment")          return "credit-card";
-    if (name == "person")           return "user";
-    if (name == "phone")            return "phone";
-    if (name == "photo")            return "image";
-    if (name == "print")            return "printer";
-    if (name == "refresh")          return "refresh-cw";
-    if (name == "search")           return "search";
-    if (name == "send")             return "send";
-    if (name == "settings")         return "settings";
-    if (name == "share")            return "share";
-    if (name == "shoppingcart")     return "shopping-cart";
-    if (name == "star")             return "star";
-    if (name == "starhalf")         return "star-half";
-    if (name == "staroff")          return "star-off";
-    if (name == "upload")           return "upload";
-    if (name == "visibility")       return "eye";
-    if (name == "visibilityoff")    return "eye-off";
-    if (name == "warning")          return "triangle-alert";
-
-    // Fall back to the info icon.
-    return "info";
+    auto it = kMap->find(name);
+    return it != kMap->end() ? it->second : "info";
 }
 
 // ---- Helper Methods ----

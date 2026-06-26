@@ -31,7 +31,7 @@ namespace a2ui {
  *     │     └── ...
  *     └── ...
  */
-class TableComponent : public A2UIComponent {
+class TableComponent final : public A2UIComponent {
 public:
     TableComponent(const std::string& id, const nlohmann::json& properties);
     ~TableComponent() override;

@@ -1,0 +1,35 @@
+{
+  "description": "Negative margin values causing overlapping layout. Tests Yoga handling of negative margins and potential z-index/rendering issues.",
+  "surfaceId": "stability-neg-margins",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-neg-margins",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-neg-margins",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["a", "b", "c", "d", "e"], "styles": {"width": "100%", "padding": "20px"}},
+          {"id": "a", "component": "Text", "text": "Normal position", "styles": {"width": "200px", "height": "60px"}},
+          {"id": "b", "component": "Text", "text": "margin-top: -30px (overlaps A)", "styles": {"width": "200px", "height": "60px", "margin-top": "-30px"}},
+          {"id": "c", "component": "Text", "text": "margin-left: -50px", "styles": {"width": "200px", "height": "60px", "margin-left": "-50px"}},
+          {"id": "d", "component": "Text", "text": "All negative margins", "styles": {"width": "200px", "height": "60px", "margin": "-20px"}},
+          {"id": "e", "component": "Row", "children": ["e1", "e2", "e3"], "styles": {"width": "100%"}},
+          {"id": "e1", "component": "Text", "text": "Left", "styles": {"width": "120px", "height": "40px"}},
+          {"id": "e2", "component": "Text", "text": "Overlap", "styles": {"width": "120px", "height": "40px", "margin-left": "-60px"}},
+          {"id": "e3", "component": "Text", "text": "More overlap", "styles": {"width": "120px", "height": "40px", "margin-left": "-60px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

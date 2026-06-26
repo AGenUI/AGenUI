@@ -1,9 +1,9 @@
 #include "checkbox_component.h"
 #include "../a2ui_node.h"
 #include "../../utils/a2ui_color_palette.h"
+#include "a2ui/utils/a2ui_parse_utils.h"
 #include "log/a2ui_capi_log.h"
 #include "../../measure/a2ui_platform_layout_bridge.h"
-#include <cstdlib>
 
 namespace a2ui {
 
@@ -88,7 +88,7 @@ CheckBoxComponent::CheckBoxStyle CheckBoxComponent::resolveStyle(const nlohmann:
             }
             std::string val = rawValue.get<std::string>();
             if (!val.empty()) {
-                outValue = static_cast<float>(std::atof(val.c_str()));
+                outValue = parseFloat(val, 0.0f);
             }
         };
 
@@ -205,7 +205,7 @@ void CheckBoxComponent::applyContainerBorderStyles(const nlohmann::json& propert
 
     auto parseFloatVal = [](const nlohmann::json& val) -> float {
         if (val.is_number()) return val.get<float>();
-        if (val.is_string()) return static_cast<float>(std::atof(val.get<std::string>().c_str()));
+        if (val.is_string()) return parseFloat(val.get<std::string>(), 0.0f);
         return 0.0f;
     };
 
@@ -266,43 +266,13 @@ void CheckBoxComponent::applyValue(const nlohmann::json& properties) {
 // ---- String Extraction ----
 
 std::string CheckBoxComponent::extractStringValue(const nlohmann::json& value) {
-    if (value.is_string()) {
-        return value.get<std::string>();
-    }
-
-    // DynamicString format: {"literalString": "..."}
-    if (value.is_object() && value.contains("literalString") && value["literalString"].is_string()) {
-        return value["literalString"].get<std::string>();
-    }
-
-    return "";
+    return a2ui::extractStringValue(value);
 }
 
 // ---- Boolean Extraction ----
 
 bool CheckBoxComponent::extractBooleanValue(const nlohmann::json& value) {
-    // Raw boolean.
-    if (value.is_boolean()) {
-        return value.get<bool>();
-    }
-
-    // String boolean.
-    if (value.is_string()) {
-        return value.get<std::string>() == "true";
-    }
-
-    // DynamicBoolean format: {"literalBoolean": true}
-    if (value.is_object() && value.contains("literalBoolean")) {
-        const auto& literalBoolean = value["literalBoolean"];
-        if (literalBoolean.is_boolean()) {
-            return literalBoolean.get<bool>();
-        }
-        if (literalBoolean.is_string()) {
-            return literalBoolean.get<std::string>() == "true";
-        }
-    }
-
-    return false;
+    return a2ui::extractBooleanValue(value);
 }
 
 } // namespace a2ui

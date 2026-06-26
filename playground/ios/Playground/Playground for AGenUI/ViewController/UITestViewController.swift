@@ -62,18 +62,38 @@ class UITestViewController: UIViewController, SurfaceManagerListener {
             return
         }
 
-        surfaceManager.beginTextStream()
-        for item in sequence {
-            var msg = item
-            msg["version"] = version
-            if let msgData = try? JSONSerialization.data(withJSONObject: msg),
-               let msgStr = String(data: msgData, encoding: .utf8) {
-                surfaceManager.receiveTextChunk(msgStr)
-            }
-        }
-        surfaceManager.endTextStream()
+        // Dispatch to background queue to support __pause_ms sleep without blocking UI
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
 
-        print("[UITest] Rendered \(sequence.count) messages from inline data")
+            DispatchQueue.main.sync {
+                self.surfaceManager.beginTextStream()
+            }
+
+            for item in sequence {
+                // Handle __pause_ms directive: sleep to allow screenshot capture
+                if let pauseMs = item["__pause_ms"] as? Int {
+                    print("[UITest] Pausing for \(pauseMs)ms")
+                    Thread.sleep(forTimeInterval: Double(pauseMs) / 1000.0)
+                    continue
+                }
+
+                var msg = item
+                msg["version"] = version
+                if let msgData = try? JSONSerialization.data(withJSONObject: msg),
+                   let msgStr = String(data: msgData, encoding: .utf8) {
+                    DispatchQueue.main.sync {
+                        self.surfaceManager.receiveTextChunk(msgStr)
+                    }
+                }
+            }
+
+            DispatchQueue.main.sync {
+                self.surfaceManager.endTextStream()
+            }
+
+            print("[UITest] Rendered \(sequence.count) messages from inline data")
+        }
     }
 
     private func loadAndRender(_ path: String) {

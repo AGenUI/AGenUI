@@ -197,10 +197,10 @@ public class VideoComponent extends A2UIComponent {
 
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         // Update video URL
-        if (properties.containsKey("url")) {
-            String url = (String) properties.get("url");
+        if (changedProps.containsKey("url")) {
+            String url = (String) changedProps.get("url");
             setVideoUrl(url);
         }
     }

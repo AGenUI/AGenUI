@@ -66,6 +66,19 @@ import UIKit
     ///   If multiple listeners are registered, the first listener that returns a positive
     ///   size wins; others are not consulted.
     @objc optional func surfaceSize(for surfaceId: String) -> CGSize
+
+    /// Component appeared callback
+    ///
+    /// Called when a child component enters the visible area (e.g., cell bound in List).
+    /// - Parameters:
+    ///   - surface: The Surface instance
+    ///   - parentComponentId: The container component ID that detected the appearance
+    ///   - parentType: Container type identifier ("List" / "Carousel" etc.)
+    ///   - properties: The appeared child's full properties dictionary
+    @objc optional func onComponentAppeared(_ surface: Surface,
+                                           parentComponentId: String,
+                                           parentType: String,
+                                           properties: [String: Any])
 }
 
 /// AGenUI Surface Manager
@@ -513,6 +526,7 @@ import UIKit
         }
         
         surface.processComponentsUpdate(messages)
+        Logger.shared.performance("components_applied", message: surfaceId)
     }
     
     /// Components add handler (internal)
@@ -525,6 +539,7 @@ import UIKit
         }
         
         surface.processComponentsAdd(messages)
+        Logger.shared.performance("components_applied", message: surfaceId)
     }
     
     /// Components remove handler (internal)
@@ -550,6 +565,19 @@ import UIKit
     func notifyBlankCheckResult(surface: Surface, isBlank: Bool) {
         for listener in snapshotListeners() {
             listener.onBlankCheckResult?(surface, isBlank: isBlank)
+        }
+    }
+
+    /// Notify listeners that a child component has appeared (internal)
+    func notifyComponentAppeared(surface: Surface,
+                                parentComponentId: String,
+                                parentType: String,
+                                properties: [String: Any]) {
+        for listener in snapshotListeners() {
+            listener.onComponentAppeared?(surface,
+                                          parentComponentId: parentComponentId,
+                                          parentType: parentType,
+                                          properties: properties)
         }
     }
     

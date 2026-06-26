@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "a2ui_surface_manager.h"
 #include "a2ui_surface.h"
 #include "log/a2ui_capi_log.h"
@@ -52,16 +54,17 @@ A2UISurface* A2UISurfaceManager::createSurface(const std::string& surfaceId, boo
     }
 
     // 1. Create a per-surface ComponentRegistry.
-    ComponentRegistry* surfaceRegistry = new ComponentRegistry();
-    surfaceRegistry->copyFactoriesFrom(*globalRegistry_);
+    auto registryOwner = std::make_unique<ComponentRegistry>();
+    registryOwner->copyFactoriesFrom(*globalRegistry_);
 
     // 2. Create the surface with immutable animation and observer state.
-    A2UISurface* surface = new A2UISurface(surfaceId, surfaceRegistry, animated,
-                                           &componentRenderObservable_, &surfaceLayoutObservable_);
+    auto surfaceOwner = std::make_unique<A2UISurface>(surfaceId, registryOwner.get(), animated,
+                                                      &componentRenderObservable_, &surfaceLayoutObservable_);
 
-    // 3. Store the surface and registry.
+    // 3. Store the surface and registry (transfer ownership to the maps).
+    A2UISurface* surface = surfaceOwner.release();
     surfaces_[surfaceId] = surface;
-    registries_[surfaceId] = surfaceRegistry;
+    registries_[surfaceId] = registryOwner.release();
 
     HM_LOGI("Surface created: %s (total: %d)", surfaceId.c_str(), getSurfaceCount());
     return surface;
@@ -101,6 +104,9 @@ void A2UISurfaceManager::destroySurface(const std::string& surfaceId) {
         registries_.erase(registryIt);
     }
 
+    // 4. Remove stale content handle entry.
+    surfaceContentHandles_.erase(surfaceId);
+
     HM_LOGI("Surface destroyed: %s (remaining: %d)", surfaceId.c_str(), getSurfaceCount());
 }
 
@@ -119,6 +125,8 @@ void A2UISurfaceManager::clearAll() {
         delete it->second;
     }
     registries_.clear();
+
+    surfaceContentHandles_.clear();
 
     HM_LOGI("All surfaces cleared");
 }

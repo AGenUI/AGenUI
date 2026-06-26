@@ -37,13 +37,13 @@ namespace a2ui {
  *                 ├── ARKUI_NODE_SLIDER (seek bar)
  *                 └── ARKUI_NODE_TEXT (duration)
  */
-class VideoComponent : public A2UIComponent {
+class VideoComponent final : public A2UIComponent {
 public:
     VideoComponent(const std::string& id, const nlohmann::json& properties);
     ~VideoComponent() override;
 
     bool shouldAutoAddChildView() const override { return false; }
-    void destroy() override;
+    void onDestroy() override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
@@ -79,14 +79,12 @@ private:
     OH_AVErrCode stop();
     void releasePlayer();
 
-    // UI thread safety
-    // Dispatch a lambda to the main (JS/UI) thread via the global TSFN so that
-    // AVPlayer worker-thread callbacks never touch ArkUI nodes directly.
-    static void postToMainThread(std::function<void()> task);
-
     // Controls whether queued main-thread tasks are allowed to touch node handles.
     // Set to false in releasePlayer() before nodes are torn down.
     std::atomic<bool> m_uiTasksEnabled{true};
+
+    // Shared flag captured by async lambdas to detect object destruction.
+    std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
 
     // Controls bar
     void createControlsBar();
@@ -99,16 +97,16 @@ private:
     void updateProgressDisplay();
     static std::string formatTime(int64_t milliseconds);
 
-    // Instance registry
+    // Instance registry (leaked singleton to avoid static destruction order issues)
     static std::mutex s_instanceMutex;
-    static std::map<OH_NativeXComponent*, VideoComponent*> s_instanceMap;
+    static std::map<OH_NativeXComponent*, VideoComponent*>& getInstanceMap();
     void registerInstance(OH_NativeXComponent* xcomp);
     void unregisterInstance();
 
     // Member state
     ArkUI_NodeHandle m_xcomponentHandle = nullptr;
     OH_NativeXComponent* m_nativeXComponent = nullptr;
-    OH_NativeXComponent_Callback m_xcompCallback;
+    OH_NativeXComponent_Callback m_xcompCallback = {};
     OHNativeWindow* m_window = nullptr;
 
     OH_AVPlayer* m_avPlayer = nullptr;

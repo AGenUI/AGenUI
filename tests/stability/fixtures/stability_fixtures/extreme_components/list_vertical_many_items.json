@@ -1,0 +1,48 @@
+{
+  "description": "Vertical list with 20+ items to stress YogaLayoutManager frame cache, content bounds, and scroll offset calculations",
+  "surfaceId": "list-vertical-many-items",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "list-vertical-many-items",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "list-vertical-many-items",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["vlist"], "styles": {"width": "100%"}},
+          {"id": "vlist", "component": "List", "children": ["r0","r1","r2","r3","r4","r5","r6","r7","r8","r9","r10","r11","r12","r13","r14","r15","r16","r17","r18","r19","r20","r21","r22","r23","r24"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "r0", "component": "Text", "text": "Row 0", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r1", "component": "Text", "text": "Row 1", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r2", "component": "Text", "text": "Row 2", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r3", "component": "Text", "text": "Row 3", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r4", "component": "Text", "text": "Row 4", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r5", "component": "Text", "text": "Row 5", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r6", "component": "Text", "text": "Row 6", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r7", "component": "Text", "text": "Row 7", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r8", "component": "Text", "text": "Row 8", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r9", "component": "Text", "text": "Row 9", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r10", "component": "Text", "text": "Row 10", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r11", "component": "Text", "text": "Row 11", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r12", "component": "Text", "text": "Row 12", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r13", "component": "Text", "text": "Row 13", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r14", "component": "Text", "text": "Row 14", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r15", "component": "Text", "text": "Row 15", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r16", "component": "Text", "text": "Row 16", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r17", "component": "Text", "text": "Row 17", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r18", "component": "Text", "text": "Row 18", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r19", "component": "Text", "text": "Row 19", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r20", "component": "Text", "text": "Row 20", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r21", "component": "Text", "text": "Row 21", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r22", "component": "Text", "text": "Row 22", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r23", "component": "Text", "text": "Row 23", "styles": {"width": "100%", "height": "60px", "padding": "8px"}},
+          {"id": "r24", "component": "Text", "text": "Row 24", "styles": {"width": "100%", "height": "60px", "padding": "8px"}}
+        ]
+      }
+    }
+  ]
+}

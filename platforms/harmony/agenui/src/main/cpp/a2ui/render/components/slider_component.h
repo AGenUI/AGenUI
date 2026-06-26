@@ -13,11 +13,11 @@ namespace a2ui {
  *   - min: minimum value, default 0
  *   - max: maximum value, default 100
  */
-class SliderComponent : public A2UIComponent {
+class SliderComponent final : public A2UIComponent {
 public:
     SliderComponent(const std::string& id, const nlohmann::json& properties);
     ~SliderComponent() override;
-    void destroy() override;
+    void onDestroy() override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;

@@ -14,7 +14,7 @@
  * / attribute write goes through a YogaPropertyDecoder subclass. The
  * subclass reads exclusively from @ref ILayoutDataWrapper; if it needs
  * concrete-typed access to its paired wrapper subclass, the cast lives
- * inside the subclass's `apply()` body (Phase A Hard Rule 2).
+ * inside the subclass's `apply()` body (Phase A hard constraint 2).
  *
  * @par SDK consumers
  *   Subclass YogaPropertyDecoder, instantiate as a `shared_ptr`, and

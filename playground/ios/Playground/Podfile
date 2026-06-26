@@ -2,7 +2,7 @@ platform :ios, '13.0'
 
 target 'Playground' do
 
-  pod 'AGenUI', :path => '../../../platforms/ios/AGenUI.podspec'
+  pod 'AGenUI', :path => '../../../platforms/ios/AGenUI_ForSDK.podspec'
 
   pod 'MarkdownKit'
   pod 'DGCharts'

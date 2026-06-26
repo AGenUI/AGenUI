@@ -29,7 +29,7 @@ bool FunctionCallManager::registerFunctionCall(const FunctionCallConfig& config,
         return false;
     }
 
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     FunctionCallEntry entry;
     entry.config = config;
@@ -44,7 +44,7 @@ bool FunctionCallManager::registerFunctionCall(const FunctionCallConfig& config,
 }
 
 bool FunctionCallManager::unregisterFunctionCall(const std::string& name) {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     auto it = _functionCalls.find(name);
     if (it == _functionCalls.end()) {
         AGENUI_LOG("name:%s not found", name.c_str());
@@ -60,7 +60,7 @@ bool FunctionCallManager::registerFunctionCall(FunctionCallPtr functionCall) {
         return false;
     }
 
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     std::string name = functionCall->getName();
     _cppFunctionCalls[name] = functionCall;
@@ -69,50 +69,27 @@ bool FunctionCallManager::registerFunctionCall(FunctionCallPtr functionCall) {
 }
 
 FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::string& name, const FunctionCallContext& context, const nlohmann::json& args) {
-    // While holding the lock: find the functionCall and copy the required data
-    FunctionCallPtr cppFunctionCall;
-    FunctionCallConfig platformConfig;
-    IPlatformFunction* function = nullptr;
-    bool foundPlatform = false;
-    
-    {
-        std::lock_guard<std::mutex> lock(_mutex);        
-        // 1. Look up C++ functionCall first
-        cppFunctionCall = findCppFunctionCall(name);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
 
-        if (!cppFunctionCall) {
-            // 2. Fall back to platform functionCall
-            FunctionCallEntry* entry = findFunctionCall(name);
-            if (entry) {
-                platformConfig = entry->config;
-                function = entry->function;
-                foundPlatform = true;
-            }
-        }
-    }
-    // Lock released; safe to call external code
-
-    // Execute C++ functionCall
+    // 1. Look up C++ functionCall first (shared_ptr, inherently safe)
+    FunctionCallPtr cppFunctionCall = findCppFunctionCall(name);
     if (cppFunctionCall) {
         return cppFunctionCall->execute(args);
     }
 
-    // Execute platform functionCall
-    if (!foundPlatform) {
+    // 2. Fall back to platform functionCall
+    FunctionCallEntry* entry = findFunctionCall(name);
+    if (!entry || !entry->function) {
         AGENUI_LOG("Platform functionCall not found: %s", name.c_str());
         return FunctionCallResolution::createError("FunctionCall not found: " + name);
     }
 
-    // Execute platform functionCall synchronously
-    if (function == nullptr) {
-        AGENUI_LOG("Platform function is null for functionCall: %s", name.c_str());
-        return FunctionCallResolution::createError("Platform function is null: " + name);
-    }
-
-    FunctionCallResult callResult = function->callSync(context, args.dump());
+    // 3. Execute platform functionCall synchronously while holding the lock.
+    //    This ensures the pointer remains valid — unregisterFunctionCall (main thread)
+    //    cannot erase the entry until callSync returns.
+    FunctionCallResult callResult = entry->function->callSync(context, args.dump());
     FunctionCallResolution resolution = FunctionCallResolution::fromPlatformResult(callResult);
     if (resolution.getStatus() == FunctionCallStatus::Pending) {
-        // callSync should never return Pending; treat as a platform implementation error
         AGENUI_LOG("callSync unexpectedly returned Pending for functionCall: %s", name.c_str());
         return FunctionCallResolution::createError("callSync unexpectedly returned Pending: " + name);
     }
@@ -124,7 +101,7 @@ FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::s
 
 
 std::vector<FunctionCallConfig> FunctionCallManager::getAllFunctionCalls() const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
     
     std::vector<FunctionCallConfig> configs;
     
@@ -142,7 +119,7 @@ std::vector<FunctionCallConfig> FunctionCallManager::getAllFunctionCalls() const
 }
 
 nlohmann::json FunctionCallManager::exportCatalog() const {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     nlohmann::json catalog;
     nlohmann::json functions = nlohmann::json::array();

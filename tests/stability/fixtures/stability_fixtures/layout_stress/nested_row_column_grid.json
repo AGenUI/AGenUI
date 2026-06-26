@@ -1,0 +1,58 @@
+{
+  "description": "Alternating Row/Column grid pattern creating a complex layout tree to stress yoga node manager traversal",
+  "surfaceId": "nested_row_column_grid",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "nested_row_column_grid",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "nested_row_column_grid",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["row1", "row2", "row3", "row4"], "styles": {"width": "100%", "gap": "4px"}},
+          {"id": "row1", "component": "Row", "children": ["r1c1", "r1c2", "r1c3", "r1c4"], "styles": {"width": "100%", "gap": "4px"}},
+          {"id": "r1c1", "component": "Column", "children": ["r1c1t"], "styles": {"flex-grow": "1", "padding": "4px"}},
+          {"id": "r1c1t", "component": "Text", "text": "1,1"},
+          {"id": "r1c2", "component": "Column", "children": ["r1c2t"], "styles": {"flex-grow": "1", "padding": "4px"}},
+          {"id": "r1c2t", "component": "Text", "text": "1,2"},
+          {"id": "r1c3", "component": "Column", "children": ["r1c3t"], "styles": {"flex-grow": "1", "padding": "4px"}},
+          {"id": "r1c3t", "component": "Text", "text": "1,3"},
+          {"id": "r1c4", "component": "Column", "children": ["r1c4t"], "styles": {"flex-grow": "1", "padding": "4px"}},
+          {"id": "r1c4t", "component": "Text", "text": "1,4"},
+          {"id": "row2", "component": "Row", "children": ["r2c1", "r2c2", "r2c3", "r2c4"], "styles": {"width": "100%", "gap": "4px"}},
+          {"id": "r2c1", "component": "Column", "children": ["r2c1a", "r2c1b"], "styles": {"flex-grow": "1"}},
+          {"id": "r2c1a", "component": "Text", "text": "2,1a"},
+          {"id": "r2c1b", "component": "Text", "text": "2,1b"},
+          {"id": "r2c2", "component": "Column", "children": ["r2c2a", "r2c2b"], "styles": {"flex-grow": "2"}},
+          {"id": "r2c2a", "component": "Text", "text": "2,2a"},
+          {"id": "r2c2b", "component": "Text", "text": "2,2b"},
+          {"id": "r2c3", "component": "Column", "children": ["r2c3a"], "styles": {"flex-grow": "1"}},
+          {"id": "r2c3a", "component": "Text", "text": "2,3"},
+          {"id": "r2c4", "component": "Column", "children": ["r2c4a", "r2c4b", "r2c4c"], "styles": {"flex-grow": "1"}},
+          {"id": "r2c4a", "component": "Text", "text": "2,4a"},
+          {"id": "r2c4b", "component": "Text", "text": "2,4b"},
+          {"id": "r2c4c", "component": "Text", "text": "2,4c"},
+          {"id": "row3", "component": "Row", "children": ["r3c1", "r3c2"], "styles": {"width": "100%", "gap": "4px"}},
+          {"id": "r3c1", "component": "Column", "children": ["r3c1r"], "styles": {"flex-grow": "3"}},
+          {"id": "r3c1r", "component": "Row", "children": ["r3c1r1", "r3c1r2"], "styles": {"width": "100%"}},
+          {"id": "r3c1r1", "component": "Text", "text": "Nested row-in-col A", "styles": {"flex-grow": "1"}},
+          {"id": "r3c1r2", "component": "Text", "text": "Nested row-in-col B", "styles": {"flex-grow": "1"}},
+          {"id": "r3c2", "component": "Column", "children": ["r3c2t"], "styles": {"flex-grow": "1"}},
+          {"id": "r3c2t", "component": "Text", "text": "Sidebar"},
+          {"id": "row4", "component": "Row", "children": ["r4c1"], "styles": {"width": "100%"}},
+          {"id": "r4c1", "component": "Text", "text": "Full width footer", "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

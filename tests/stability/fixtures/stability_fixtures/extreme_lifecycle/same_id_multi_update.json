@@ -1,0 +1,73 @@
+{
+  "description": "Same component ID updated multiple times in rapid succession to test yoga node manager in-place update stability",
+  "surfaceId": "same_id_multi_update",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "same_id_multi_update",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "same_id_multi_update",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["target", "counter"], "styles": {"width": "100%"}},
+          {"id": "target", "component": "Text", "text": "Version 1", "styles": {"width": "100px", "height": "50px"}},
+          {"id": "counter", "component": "Text", "text": "Update 1"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "same_id_multi_update",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["target", "counter"], "styles": {"width": "100%"}},
+          {"id": "target", "component": "Text", "text": "Version 2", "styles": {"width": "200px", "height": "100px", "flex-grow": "1"}},
+          {"id": "counter", "component": "Text", "text": "Update 2"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "same_id_multi_update",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["target", "counter"], "styles": {"width": "100%"}},
+          {"id": "target", "component": "Text", "text": "Version 3 - shrunk", "styles": {"width": "50px", "height": "25px", "margin": "20px"}},
+          {"id": "counter", "component": "Text", "text": "Update 3"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "same_id_multi_update",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["target", "counter"], "styles": {"width": "100%"}},
+          {"id": "target", "component": "Text", "text": "Version 4 - absolute", "styles": {"position": "absolute", "top": "0", "left": "0", "width": "100%"}},
+          {"id": "counter", "component": "Text", "text": "Update 4"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "same_id_multi_update",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["target", "counter"], "styles": {"width": "100%"}},
+          {"id": "target", "component": "Text", "text": "Version 5 - back to normal", "styles": {"width": "100%", "padding": "16px"}},
+          {"id": "counter", "component": "Text", "text": "Update 5 final"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

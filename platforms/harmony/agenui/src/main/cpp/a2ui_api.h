@@ -45,8 +45,7 @@ struct ArkTSObject {
  */
 class IHarmonyNAPI {
 protected:
-    virtual ~IHarmonyNAPI() {
-    }
+    virtual ~IHarmonyNAPI() = default;
 
 public:
     /**

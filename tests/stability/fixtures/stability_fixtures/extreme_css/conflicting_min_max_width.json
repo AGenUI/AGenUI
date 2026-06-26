@@ -1,0 +1,34 @@
+{
+  "description": "Tests layout engine with conflicting constraints: min-width > max-width, min-height > max-height. Stresses Yoga layout resolution when constraints are contradictory.",
+  "surfaceId": "stability-conflict-min-max",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-conflict-min-max",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-conflict-min-max",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["c1", "c2", "c3", "c4"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "c1", "component": "Text", "text": "min-width 300 > max-width 100", "styles": {"min-width": "300px", "max-width": "100px", "height": "40px"}},
+          {"id": "c2", "component": "Text", "text": "min-height 200 > max-height 50", "styles": {"width": "100%", "min-height": "200px", "max-height": "50px"}},
+          {"id": "c3", "component": "Column", "children": ["c3a"], "styles": {"min-width": "500px", "max-width": "200px", "min-height": "300px", "max-height": "100px"}},
+          {"id": "c3a", "component": "Text", "text": "Child in double-conflicting container", "styles": {"width": "100%"}},
+          {"id": "c4", "component": "Row", "children": ["c4a", "c4b"], "styles": {"width": "100%", "min-width": "800px", "max-width": "200px"}},
+          {"id": "c4a", "component": "Text", "text": "Left", "styles": {"flex-grow": "1", "min-width": "300px", "max-width": "50px"}},
+          {"id": "c4b", "component": "Text", "text": "Right", "styles": {"flex-grow": "1", "min-width": "300px", "max-width": "50px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

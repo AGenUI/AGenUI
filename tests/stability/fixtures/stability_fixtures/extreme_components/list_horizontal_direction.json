@@ -1,0 +1,39 @@
+{
+  "description": "List with horizontal direction to exercise YogaLayoutManager.direction=HORIZONTAL branch and horizontal scroll offset",
+  "surfaceId": "list-horizontal-direction",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "list-horizontal-direction",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "list-horizontal-direction",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["hlist"], "styles": {"width": "100%"}},
+          {"id": "hlist", "component": "List", "children": ["i1", "i2", "i3", "i4", "i5", "i6", "i7", "i8"], "styles": {"width": "100%", "height": "120px", "flex-direction": "row"}},
+          {"id": "i1", "component": "Card", "children": ["t1"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t1", "component": "Text", "text": "Card 1"},
+          {"id": "i2", "component": "Card", "children": ["t2"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t2", "component": "Text", "text": "Card 2"},
+          {"id": "i3", "component": "Card", "children": ["t3"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t3", "component": "Text", "text": "Card 3"},
+          {"id": "i4", "component": "Card", "children": ["t4"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t4", "component": "Text", "text": "Card 4"},
+          {"id": "i5", "component": "Card", "children": ["t5"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t5", "component": "Text", "text": "Card 5"},
+          {"id": "i6", "component": "Card", "children": ["t6"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t6", "component": "Text", "text": "Card 6"},
+          {"id": "i7", "component": "Card", "children": ["t7"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t7", "component": "Text", "text": "Card 7"},
+          {"id": "i8", "component": "Card", "children": ["t8"], "styles": {"width": "150px", "height": "100px", "margin": "4px"}},
+          {"id": "t8", "component": "Text", "text": "Card 8"}
+        ]
+      }
+    }
+  ]
+}

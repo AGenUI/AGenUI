@@ -1,0 +1,38 @@
+{
+  "description": "Extreme padding and border-width values to stress yoga node layout computation with box model overflow",
+  "surfaceId": "extreme_padding_border",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "extreme_padding_border",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "extreme_padding_border",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["p1", "p2", "p3", "p4", "p5"], "styles": {"width": "100%"}},
+          {"id": "p1", "component": "Column", "children": ["p1a"], "styles": {"padding": "9999px", "width": "100px", "height": "100px"}},
+          {"id": "p1a", "component": "Text", "text": "Huge padding parent"},
+          {"id": "p2", "component": "Row", "children": ["p2a"], "styles": {"padding-left": "5000px", "padding-right": "5000px", "width": "200px"}},
+          {"id": "p2a", "component": "Text", "text": "Padding exceeds width"},
+          {"id": "p3", "component": "Column", "children": ["p3a"], "styles": {"border-width": "9999px", "width": "100px", "height": "100px"}},
+          {"id": "p3a", "component": "Text", "text": "Huge border"},
+          {"id": "p4", "component": "Column", "children": ["p4a"], "styles": {"padding": "5000px", "border-width": "5000px", "width": "100px", "height": "100px"}},
+          {"id": "p4a", "component": "Text", "text": "Both extreme"},
+          {"id": "p5", "component": "Row", "children": ["p5a", "p5b"], "styles": {"padding-top": "99999px", "padding-bottom": "99999px", "border-width": "99999px", "width": "100%", "height": "50px"}},
+          {"id": "p5a", "component": "Text", "text": "A"},
+          {"id": "p5b", "component": "Text", "text": "B"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

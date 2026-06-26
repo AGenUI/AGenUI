@@ -39,23 +39,18 @@ export default function componentRenderTest() {
      * 渲染完成后可查询 root / title / body 组件。
      */
     it('COMP-01_text_only_render', 0, async (done: Function) => {
-      try {
-        const fixture = await loadFixture(context.resourceManager, 'components/01_text_only.json');
-        const surfaceId = getSurfaceId(fixture);
-        const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
+      const fixture = await loadFixture(context.resourceManager, 'components/01_text_only.json');
+      const surfaceId = getSurfaceId(fixture);
+      const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
 
-        expect(surface).not().assertNull();
+      expect(surface).not().assertNull();
 
-        const expectedIds = getExpect(fixture, 'componentIds') as string[] | undefined;
-        if (expectedIds && expectedIds.length > 0) {
-          const rootComp = surface.getComponent(expectedIds[0], '');
-          expect(rootComp.componentId).assertEqual(expectedIds[0]);
-        }
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
+      const expectedIds = getExpect(fixture, 'componentIds') as string[] | undefined;
+      if (expectedIds && expectedIds.length > 0) {
+        const rootComp = surface.getComponent(expectedIds[0], '');
+        expect(rootComp.componentId).assertEqual(expectedIds[0]);
       }
+      done();
     });
 
     /**
@@ -63,24 +58,18 @@ export default function componentRenderTest() {
      * 验证 02_button_with_action.json 渲染，Button 组件可访问。
      */
     it('COMP-02_button_with_action_render', 0, async (done: Function) => {
-      try {
-        const fixture = await loadFixture(
-          context.resourceManager, 'components/02_button_with_action.json'
-        );
-        const surfaceId = getSurfaceId(fixture);
-        const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
+      const fixture = await loadFixture(
+        context.resourceManager, 'components/02_button_with_action.json'
+      );
+      const surfaceId = getSurfaceId(fixture);
+      const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
 
-        expect(surface).not().assertNull();
+      expect(surface).not().assertNull();
 
-        // 验证 Button 组件可被获取
-        const buttonComp = surface.getComponent('action-btn', 'Button');
-        expect(buttonComp).not().assertNull();
-        expect(buttonComp.componentId).assertEqual('action-btn');
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      const buttonComp = surface.getComponent('action-btn', 'Button');
+      expect(buttonComp).not().assertNull();
+      expect(buttonComp.componentId).assertEqual('action-btn');
+      done();
     });
 
     /**
@@ -88,27 +77,20 @@ export default function componentRenderTest() {
      * 验证 03_nested_column.json 渲染，多层嵌套组件均可访问。
      */
     it('COMP-03_nested_column_render', 0, async (done: Function) => {
-      try {
-        const fixture = await loadFixture(
-          context.resourceManager, 'components/03_nested_column.json'
-        );
-        const surfaceId = getSurfaceId(fixture);
-        const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
+      const fixture = await loadFixture(
+        context.resourceManager, 'components/03_nested_column.json'
+      );
+      const surfaceId = getSurfaceId(fixture);
+      const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
 
-        expect(surface).not().assertNull();
+      expect(surface).not().assertNull();
 
-        // 验证根组件存在
-        const root = surface.getComponent('root', 'Column');
-        expect(root.componentId).assertEqual('root');
+      const root = surface.getComponent('root', 'Column');
+      expect(root.componentId).assertEqual('root');
 
-        // 验证期望组件数（从 fixture expect 中读取）
-        const expectedCount = getExpect(fixture, 'componentCount') as number | undefined;
-        expect(expectedCount).not().assertUndefined();
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      const expectedCount = getExpect(fixture, 'componentCount') as number | undefined;
+      expect(expectedCount).not().assertUndefined();
+      done();
     });
 
     /**
@@ -116,21 +98,16 @@ export default function componentRenderTest() {
      * 验证 04_card_complex.json 渲染，Card 内部组件均可访问。
      */
     it('COMP-04_card_complex_render', 0, async (done: Function) => {
-      try {
-        const fixture = await loadFixture(
-          context.resourceManager, 'components/04_card_complex.json'
-        );
-        const surfaceId = getSurfaceId(fixture);
-        const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
+      const fixture = await loadFixture(
+        context.resourceManager, 'components/04_card_complex.json'
+      );
+      const surfaceId = getSurfaceId(fixture);
+      const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
 
-        expect(surface).not().assertNull();
-        const root = surface.getComponent('root', '');
-        expect(root).not().assertNull();
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      expect(surface).not().assertNull();
+      const root = surface.getComponent('root', '');
+      expect(root).not().assertNull();
+      done();
     });
 
     /**
@@ -138,19 +115,15 @@ export default function componentRenderTest() {
      * 验证 05_modal_with_trigger.json 渲染，触发按钮组件可访问。
      */
     it('COMP-05_modal_with_trigger_render', 0, async (done: Function) => {
-      try {
-        const fixture = await loadFixture(
-          context.resourceManager, 'components/05_modal_with_trigger.json'
-        );
-        const surfaceId = getSurfaceId(fixture);
-        const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
+      const fixture = await loadFixture(
+        context.resourceManager, 'components/05_modal_with_trigger.json'
+      );
+      const surfaceId = getSurfaceId(fixture);
+      const surface = await sendAndWaitForRender(sm, getMessagesAsString(fixture), surfaceId);
 
-        expect(surface).not().assertNull();
-        done();
-      } catch (e) {
-        expect().assertFail();
-        done();
-      }
+      expect(surface).not().assertNull();
+      expect(surface.surfaceId).assertEqual(surfaceId);
+      done();
     });
   });
 }

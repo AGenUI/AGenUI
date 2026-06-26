@@ -79,7 +79,7 @@ public:
 private:
     std::map<std::string, FunctionCallEntry> _functionCalls;      // Platform functionCall map
     std::map<std::string, FunctionCallPtr> _cppFunctionCalls;     // C++ functionCall map
-    mutable std::mutex _mutex;                       // Mutex
+    mutable std::recursive_mutex _mutex;             // Recursive mutex (reentrant)
 
     /**
      * @brief Find a platform functionCall by name

@@ -1,0 +1,29 @@
+{
+  "description": "Children with display:none to exercise isGone() checks in YogaLayoutManager — GONE children must be skipped in measure/layout",
+  "surfaceId": "gone-children-layout",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "gone-children-layout",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "gone-children-layout",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["v1", "g1", "v2", "g2", "g3", "v3"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "v1", "component": "Text", "text": "Visible 1", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "g1", "component": "Text", "text": "GONE 1", "styles": {"display": "none", "width": "100%", "height": "40px"}},
+          {"id": "v2", "component": "Text", "text": "Visible 2", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "g2", "component": "Row", "children": ["g2a"], "styles": {"display": "none", "width": "100%"}},
+          {"id": "g2a", "component": "Text", "text": "Child of GONE row"},
+          {"id": "g3", "component": "Image", "src": "https://example.com/img.png", "styles": {"display": "none", "width": "200px", "height": "200px"}},
+          {"id": "v3", "component": "Text", "text": "Visible 3", "styles": {"width": "100%", "height": "40px"}}
+        ]
+      }
+    }
+  ]
+}

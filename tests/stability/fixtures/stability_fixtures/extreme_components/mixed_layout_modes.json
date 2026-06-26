@@ -1,0 +1,28 @@
+{
+  "description": "Mixed flex and absolute-positioned siblings in the same container — tests layout coexistence",
+  "surfaceId": "mixed-layout-modes",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "mixed-layout-modes",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "mixed-layout-modes",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["container"], "styles": {"width": "100%"}},
+          {"id": "container", "component": "Row", "children": ["grow1", "abs-overlay", "grow2", "abs-corner", "fixed1"], "styles": {"width": "100%", "height": "200px", "flex-wrap": "wrap"}},
+          {"id": "grow1", "component": "Text", "text": "Flex grow", "styles": {"flex-grow": "1", "height": "50px"}},
+          {"id": "abs-overlay", "component": "Text", "text": "Absolute overlay", "styles": {"position": "absolute", "top": "0px", "left": "0px", "width": "100%", "height": "100%"}},
+          {"id": "grow2", "component": "Text", "text": "Flex grow 2", "styles": {"flex-grow": "2", "height": "50px"}},
+          {"id": "abs-corner", "component": "Icon", "icon": "close", "styles": {"position": "absolute", "top": "4px", "right": "4px", "width": "24px", "height": "24px"}},
+          {"id": "fixed1", "component": "Text", "text": "Fixed width", "styles": {"width": "100px", "height": "50px"}}
+        ]
+      }
+    }
+  ]
+}

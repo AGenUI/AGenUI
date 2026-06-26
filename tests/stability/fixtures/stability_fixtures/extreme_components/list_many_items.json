@@ -1,0 +1,39 @@
+{
+  "description": "List with 25 heterogeneous items - tests list rendering with many children",
+  "surfaceId": "stability-list-25",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-list-25","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-list-25","components":[
+      {"id":"root","component":"Column","children":["list1"],"styles":{"width":"100%"}},
+      {"id":"list1","component":"List","children":["i0","i1","i2","i3","i4","i5","i6","i7","i8","i9","i10","i11","i12","i13","i14","i15","i16","i17","i18","i19","i20","i21","i22","i23","i24"],"styles":{"width":"100%"}},
+      {"id":"i0","component":"Row","children":["i0a","i0b"],"styles":{"width":"100%","padding":"8px","justify-content":"space-between"}},
+      {"id":"i0a","component":"Text","text":"Item 0"},{"id":"i0b","component":"Icon","icon":"chevron"},
+      {"id":"i1","component":"Text","text":"Item 1","styles":{"padding":"8px"}},
+      {"id":"i2","component":"Text","text":"Item 2","styles":{"padding":"8px"}},
+      {"id":"i3","component":"Row","children":["i3a","i3b"],"styles":{"padding":"8px"}},
+      {"id":"i3a","component":"Image","properties":{"url":"https://example.com/3.png","width":40,"height":40},"styles":{"width":"40px","height":"40px"}},
+      {"id":"i3b","component":"Text","text":"Item 3 with image"},
+      {"id":"i4","component":"Text","text":"Item 4","styles":{"padding":"8px"}},
+      {"id":"i5","component":"Text","text":"Item 5","styles":{"padding":"8px"}},
+      {"id":"i6","component":"Text","text":"Item 6","styles":{"padding":"8px"}},
+      {"id":"i7","component":"Text","text":"Item 7","styles":{"padding":"8px"}},
+      {"id":"i8","component":"Text","text":"Item 8","styles":{"padding":"8px"}},
+      {"id":"i9","component":"Text","text":"Item 9","styles":{"padding":"8px"}},
+      {"id":"i10","component":"Text","text":"Item 10","styles":{"padding":"8px"}},
+      {"id":"i11","component":"Text","text":"Item 11","styles":{"padding":"8px"}},
+      {"id":"i12","component":"Text","text":"Item 12","styles":{"padding":"8px"}},
+      {"id":"i13","component":"Text","text":"Item 13","styles":{"padding":"8px"}},
+      {"id":"i14","component":"Text","text":"Item 14","styles":{"padding":"8px"}},
+      {"id":"i15","component":"Text","text":"Item 15","styles":{"padding":"8px"}},
+      {"id":"i16","component":"Text","text":"Item 16","styles":{"padding":"8px"}},
+      {"id":"i17","component":"Text","text":"Item 17","styles":{"padding":"8px"}},
+      {"id":"i18","component":"Text","text":"Item 18","styles":{"padding":"8px"}},
+      {"id":"i19","component":"Text","text":"Item 19","styles":{"padding":"8px"}},
+      {"id":"i20","component":"Text","text":"Item 20","styles":{"padding":"8px"}},
+      {"id":"i21","component":"Text","text":"Item 21","styles":{"padding":"8px"}},
+      {"id":"i22","component":"Text","text":"Item 22","styles":{"padding":"8px"}},
+      {"id":"i23","component":"Text","text":"Item 23","styles":{"padding":"8px"}},
+      {"id":"i24","component":"Text","text":"Item 24","styles":{"padding":"8px"}}
+    ]}}
+  ]
+}

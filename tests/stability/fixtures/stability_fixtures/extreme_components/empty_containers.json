@@ -1,0 +1,33 @@
+{
+  "description": "Empty containers: List with no children, Column with no children, Row with no children. Tests YogaLayoutManager with children==null or empty list. SDK robustness for edge case inputs.",
+  "surfaceId": "stability-empty-containers",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-empty-containers",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-empty-containers",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["empty-col", "empty-row", "empty-list", "empty-card", "empty-tabs"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "empty-col", "component": "Column", "children": [], "styles": {"width": "100%", "height": "50px"}},
+          {"id": "empty-row", "component": "Row", "children": [], "styles": {"width": "100%", "height": "50px"}},
+          {"id": "empty-list", "component": "List", "children": [], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "empty-card", "component": "Card", "child": "card-empty-col", "styles": {"width": "100%"}},
+          {"id": "card-empty-col", "component": "Column", "children": [], "styles": {"width": "100%", "height": "50px"}},
+          {"id": "empty-tabs", "component": "Tabs", "tabs": [], "styles": {"width": "100%", "height": "100px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

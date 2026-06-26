@@ -1,0 +1,16 @@
+{
+  "description": "6 AudioPlayer components in one surface - tests audio resource management",
+  "surfaceId": "stability-multi-audio",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-multi-audio","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-audio","components":[
+      {"id":"root","component":"Column","children":["ap0","ap1","ap2","ap3","ap4","ap5"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
+      {"id":"ap0","component":"AudioPlayer","properties":{"url":"https://example.com/track0.mp3","title":"Track 0"},"styles":{"width":"100%"}},
+      {"id":"ap1","component":"AudioPlayer","properties":{"url":"https://example.com/track1.mp3","title":"Track 1"},"styles":{"width":"100%"}},
+      {"id":"ap2","component":"AudioPlayer","properties":{"url":"https://example.com/track2.mp3","title":"Track 2"},"styles":{"width":"100%"}},
+      {"id":"ap3","component":"AudioPlayer","properties":{"url":"https://example.com/track3.mp3","title":"Track 3"},"styles":{"width":"100%"}},
+      {"id":"ap4","component":"AudioPlayer","properties":{"url":"https://example.com/track4.mp3","title":"Track 4"},"styles":{"width":"100%"}},
+      {"id":"ap5","component":"AudioPlayer","properties":{"url":"https://example.com/track5.mp3","title":"Track 5"},"styles":{"width":"100%"}}
+    ]}}
+  ]
+}

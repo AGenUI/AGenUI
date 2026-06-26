@@ -42,4 +42,17 @@ public interface ComponentEventDispatcher {
      * @param isBlank   {@code true} if the component count is below threshold; {@code false} if the check passed
      */
     void onBlankCheckResult(String surfaceId, boolean isBlank);
+
+    /**
+     * Notifies a component appeared event.
+     * <p>
+     * Generic appeared channel — any component type (List, Carousel, Tabs, etc.)
+     * can call this to report that itself or its children have appeared on screen.
+     *
+     * @param surfaceId         Surface ID
+     * @param parentComponentId ID of the component that detected the appearance
+     * @param parentType        Component type name of the detector ("List" / "Carousel" / "Tabs" ...)
+     * @param properties        Appeared properties as a key-value map
+     */
+    void notifyAppearedEvent(String surfaceId, String parentComponentId, String parentType, java.util.Map<String, Object> properties);
 }

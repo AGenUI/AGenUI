@@ -85,14 +85,14 @@ public class RichTextComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (textView == null) {
             return;
         }
 
         // Handle text-align and color from styles
-        if (properties.containsKey("styles")) {
-            Object stylesValue = properties.get("styles");
+        if (changedProps.containsKey("styles")) {
+            Object stylesValue = changedProps.get("styles");
             if (stylesValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> styles = (Map<String, Object>) stylesValue;
@@ -124,8 +124,8 @@ public class RichTextComponent extends A2UIComponent {
 
         // Handle link click setting (must be set before setting content)
         boolean linksEnable = true;
-        if (properties.containsKey("linksEnable")) {
-            linksEnable = Boolean.parseBoolean(String.valueOf(properties.get("linksEnable")));
+        if (changedProps.containsKey("linksEnable")) {
+            linksEnable = Boolean.parseBoolean(String.valueOf(changedProps.get("linksEnable")));
         }
 
         if (linksEnable) {
@@ -135,8 +135,8 @@ public class RichTextComponent extends A2UIComponent {
         }
 
         // Handle HTML content update (placed last to ensure styles are applied first)
-        if (properties.containsKey("text")) {
-            Object textValue = properties.get("text");
+        if (changedProps.containsKey("text")) {
+            Object textValue = changedProps.get("text");
             String htmlContent = extractTextValue(textValue);
 
             if (htmlContent != null && !htmlContent.isEmpty()) {

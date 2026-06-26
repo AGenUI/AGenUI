@@ -12,7 +12,7 @@ namespace a2ui {
  *   - size: icon size, default 48 a2ui units
  *   - color: icon color, default black, applied to SVG via fillColor
  */
-class IconComponent : public A2UIComponent {
+class IconComponent final : public A2UIComponent {
 public:
     IconComponent(const std::string& id, const nlohmann::json& properties);
     ~IconComponent() override;

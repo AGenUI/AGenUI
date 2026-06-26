@@ -11,7 +11,9 @@ import com.amap.agenui.render.measurement.IMeasurer;
 import com.amap.agenui.render.measurement.TableMeasurer;
 
 import java.util.Map;
+import com.amap.agenui.annotation.BuiltInComponent;
 
+@BuiltInComponent
 public class TableComponentFactory implements IComponentFactory {
 
     @Override

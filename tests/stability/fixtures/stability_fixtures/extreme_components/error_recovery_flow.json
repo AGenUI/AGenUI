@@ -1,0 +1,52 @@
+{
+  "description": "Realistic error recovery workflow: initial render, error state, recovery update — tests graceful degradation",
+  "surfaceId": "error-recovery-flow",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "error-recovery-flow",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "error-recovery-flow",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["loading"], "styles": {"width": "100%", "align-items": "center", "justify-content": "center", "height": "300px"}},
+          {"id": "loading", "component": "Text", "text": "Loading data...", "styles": {"width": "100%", "text-align": "center"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "error-recovery-flow",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["error-icon", "error-msg", "retry-btn"], "styles": {"width": "100%", "align-items": "center", "justify-content": "center", "height": "300px", "gap": "16px"}},
+          {"id": "error-icon", "component": "Icon", "icon": "error", "styles": {"width": "48px", "height": "48px"}},
+          {"id": "error-msg", "component": "Text", "text": "Failed to load. Please retry.", "styles": {"width": "100%", "text-align": "center"}},
+          {"id": "retry-btn", "component": "Button", "label": "Retry"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "error-recovery-flow",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["success-header", "content-list"], "styles": {"width": "100%", "padding": "16px"}},
+          {"id": "success-header", "component": "Text", "text": "Data loaded successfully", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "content-list", "component": "List", "children": ["item1", "item2", "item3"], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "item1", "component": "Card", "children": ["item1-text"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "item1-text", "component": "Text", "text": "Item 1 - Recovered data"},
+          {"id": "item2", "component": "Card", "children": ["item2-text"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "item2-text", "component": "Text", "text": "Item 2 - Recovered data"},
+          {"id": "item3", "component": "Card", "children": ["item3-text"], "styles": {"width": "100%", "padding": "12px"}},
+          {"id": "item3-text", "component": "Text", "text": "Item 3 - Recovered data"}
+        ]
+      }
+    }
+  ]
+}

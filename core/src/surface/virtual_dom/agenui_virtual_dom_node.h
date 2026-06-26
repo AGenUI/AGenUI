@@ -236,6 +236,9 @@ private:
     bool _hasPlatformSize = false;                                                          // True after platform reports a concrete size via notifyRenderFinish;
                                                                                             // suppresses measureFunc re-registration until the snapshot actually changes
 
+    bool _sizeFromReport = false;                                                           // True when the next layout notification carries a platform-reported
+                                                                                            // size (set by setYogaNodeSize, consumed by checkAndNotifyLayoutChanges)
+
     // De-duplication state for logYogaLayoutInfo: skip output when layout (x/y/w/h) is unchanged.
     // Keeps original AGENUI_LOG macro but prevents flooding the same numbers on every recalc.
     mutable float _lastLogX = std::numeric_limits<float>::quiet_NaN();

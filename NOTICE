@@ -66,12 +66,11 @@ The following libraries are included under the MIT License
     Copyright (c) Meta Platforms, Inc. and affiliates.
     License: MIT
     Upstream source: https://github.com/facebook/yoga (tag v2.0.0)
-    Integration: On the HarmonyOS platform, yoga v2.0.0 source code is fetched
+    Integration: On iOS, Android and HarmonyOS platform, yoga v2.0.0 source code is fetched
     at build time via CMake FetchContent and compiled as a separate shared
     library (libyoga.so) via dynamic linking. Developers may supply their own
     yoga installation via the AGENUI_USE_SYSTEM_YOGA CMake option or point to
-    a local source tree via AGENUI_YOGA_SOURCE_DIR. On Android and iOS, the
-    platform's native flexbox implementation is used instead.
+    a local source tree via AGENUI_YOGA_SOURCE_DIR.
 
   - nlohmann/json
     Copyright (c) 2013-2022 Niels Lohmann

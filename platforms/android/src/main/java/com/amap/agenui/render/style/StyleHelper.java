@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -24,6 +25,7 @@ import android.view.ViewOutlineProvider;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.amap.a2ui_sdk.R;
 import com.amap.agenui.AGenUI;
@@ -887,14 +889,34 @@ public class StyleHelper {
         if (view == null || styles == null || styles.isEmpty()) {
             return;
         }
+        Rect padding = resolveCSSPaddingPx(styles, context);
+        if (padding == null) {
+            return;
+        }
+        view.setPadding(padding.left, padding.top, padding.right, padding.bottom);
+    }
 
-        // Defaults: keep whatever the view already has if no padding style
-        // is supplied at all (callers may have set per-side padding manually).
-        int topPx    = view.getPaddingTop();
-        int rightPx  = view.getPaddingRight();
-        int bottomPx = view.getPaddingBottom();
-        int leftPx   = view.getPaddingLeft();
+    /**
+     * Resolve CSS {@code padding} (and per-edge overrides) from a styles map
+     * into a {@link Rect} carrying ({@code left}, {@code top}, {@code right},
+     * {@code bottom}) values in px. Mirrors {@link #applyCSSPadding}'s parsing
+     * rules but does not touch any view; intended for callers that need the
+     * numeric padding values themselves (e.g. scroll-content sizing for a
+     * RecyclerView-backed list whose right/bottom padding gutter must extend
+     * the scrollable range).
+     *
+     * <p>Returns {@code null} when no {@code padding*} key is present,
+     * so callers can distinguish "not specified" from "explicitly zero".
+     */
+    @Nullable
+    public static Rect resolveCSSPaddingPx(@Nullable Map<String, Object> styles,
+                                           @NonNull Context context) {
+        Rect out = new Rect(0, 0, 0, 0);
+        if (styles == null || styles.isEmpty()) {
+            return out;
+        }
 
+        int topPx = 0, rightPx = 0, bottomPx = 0, leftPx = 0;
         boolean anyPaddingPresent = false;
 
         if (styles.containsKey("padding")) {
@@ -929,7 +951,7 @@ public class StyleHelper {
         }
 
         if (!anyPaddingPresent) {
-            return;
+            return null;
         }
 
         // Guard against parseDimension returning negative sentinel values such as
@@ -940,8 +962,8 @@ public class StyleHelper {
         if (rightPx  < 0) rightPx  = 0;
         if (bottomPx < 0) bottomPx = 0;
         if (leftPx   < 0) leftPx   = 0;
-
-        view.setPadding(leftPx, topPx, rightPx, bottomPx);
+        out.set(leftPx, topPx, rightPx, bottomPx);
+        return out;
     }
 
     /**
@@ -1119,21 +1141,29 @@ public class StyleHelper {
     }
 
     /**
-     * Parses a text alignment value (supports combined horizontal + vertical).
+     * Parses a CSS text-align value to Android Gravity (horizontal only).
      *
-     * @param textAlign Alignment value (e.g. "left top", "center center", "right bottom")
-     * @return Gravity value; returns -1 if parsing fails
+     * <p>W3C {@code text-align} only controls horizontal alignment. If the
+     * input contains a second vertical token (A2UI two-axis extension,
+     * e.g. "center bottom"), it is silently dropped — consistent with the
+     * iOS and HarmonyOS implementations.
+     *
+     * @param textAlign Alignment value (e.g. "left", "center", "right bottom")
+     * @return Gravity value with horizontal alignment and TOP vertical;
+     *         returns -1 if textAlign is null
      */
     private static int parseTextAlign(String textAlign) {
         if (textAlign == null) {
             return -1;
         }
 
+        // W3C text-align only controls horizontal alignment. The vertical
+        // token from the A2UI two-axis extension (e.g. "center bottom") is
+        // intentionally dropped here, matching iOS and HarmonyOS behaviour.
+        // Vertical positioning is always TOP so that text starts at
+        // paddingTop and extends downward, consistent with HTML rendering.
         String[] parts = textAlign.toLowerCase().trim().split("\\s+");
         int horizontal = Gravity.START;
-        int vertical = Gravity.CENTER_VERTICAL;
-
-        // Parse the first argument (horizontal alignment)
         String h = parts[0];
         if (h.equals("left") || h.equals("start")) {
             horizontal = Gravity.START;
@@ -1143,20 +1173,7 @@ public class StyleHelper {
             horizontal = Gravity.END;
         }
 
-        // Parse the second argument (vertical alignment)
-        if (parts.length > 1) {
-            String v = parts[1];
-            if (v.equals("top")) {
-                vertical = Gravity.TOP;
-            } else if (v.equals("center")) {
-                vertical = Gravity.CENTER_VERTICAL;
-            } else if (v.equals("bottom")) {
-                vertical = Gravity.BOTTOM;
-            }
-        }
-        // Note: if only one argument is given, vertical defaults to CENTER_VERTICAL
-
-        return horizontal | vertical;
+        return horizontal | Gravity.TOP;
     }
 
     /**
@@ -1270,245 +1287,6 @@ public class StyleHelper {
             return 0f;
         }
     }
-
-   /**
-    * Returns the resource ID for a standard icon.
-    * <p>
-    * Maps A2UI v0.9 standard icons to Lucide Icons (46 high-quality SVG icons),
-    * listed in the order defined by the A2UI catalog.
-    * <p>
-    * Note: the following 11 media control icons are not implemented:
-    * fastForward, pause, play, rewind, skipNext, skipPrevious, stop,
-    * volumeDown, volumeMute, volumeOff, volumeUp.
-    *
-    * @param iconName Icon name (case-insensitive)
-    * @return Icon resource ID; returns the default icon if not found
-    */
-   public static int getIconResourceId(String iconName) {
-       if (iconName == null) {
-           return R.drawable.ic_circle_question_mark;
-       }
-
-       switch (iconName.toLowerCase()) {
-           // 1. accountCircle
-           case "accountcircle":
-               return R.drawable.ic_circle_user;
-
-           // 2. add
-           case "add":
-               return R.drawable.ic_plus;
-
-           // 3. arrowBack
-           case "arrowback":
-               return R.drawable.ic_arrow_left;
-
-           // 4. arrowForward
-           case "arrowforward":
-               return R.drawable.ic_arrow_right;
-
-           // 5. attachFile
-           case "attachfile":
-               return R.drawable.ic_paperclip;
-
-           // 6. calendarToday
-           case "calendartoday":
-               return R.drawable.ic_calendar;
-
-           // 7. call
-           case "call":
-               return R.drawable.ic_phone;
-
-           // 8. camera
-           case "camera":
-               return R.drawable.ic_camera;
-
-           // 9. check
-           case "check":
-               return R.drawable.ic_check;
-
-           // 10. close
-           case "close":
-               return R.drawable.ic_x;
-
-           // 11. delete
-           case "delete":
-               return R.drawable.ic_trash;
-
-           // 12. download
-           case "download":
-               return R.drawable.ic_download;
-
-           // 13. edit
-           case "edit":
-               return R.drawable.ic_pencil;
-
-           // 14. event
-           case "event":
-               return R.drawable.ic_calendar;
-
-           // 15. error
-           case "error":
-               return R.drawable.ic_circle_alert;
-
-           // 16. fastForward - not implemented
-
-           // 17. favorite
-           case "favorite":
-               return R.drawable.ic_heart;
-
-           // 18. favoriteOff
-           case "favoriteoff":
-               return R.drawable.ic_heart_off;
-
-           // 19. folder
-           case "folder":
-               return R.drawable.ic_folder;
-
-           // 20. help
-           case "help":
-               return R.drawable.ic_circle_question_mark;
-
-           // 21. home
-           case "home":
-               return R.drawable.ic_house;
-
-           // 22. info
-           case "info":
-               return R.drawable.ic_info;
-
-           // 23. locationOn
-           case "locationon":
-               return R.drawable.ic_map_pin;
-
-           // 24. lock
-           case "lock":
-               return R.drawable.ic_lock;
-
-           // 25. lockOpen
-           case "lockopen":
-               return R.drawable.ic_lock_open;
-
-           // 26. mail
-           case "mail":
-               return R.drawable.ic_mail;
-
-           // 27. menu
-           case "menu":
-               return R.drawable.ic_menu;
-
-           // 28. moreVert
-           case "morevert":
-               return R.drawable.ic_ellipsis_vertical;
-
-           // 29. moreHoriz
-           case "morehoriz":
-               return R.drawable.ic_ellipsis;
-
-           // 30. notificationsOff
-           case "notificationsoff":
-               return R.drawable.ic_bell_off;
-
-           // 31. notifications
-           case "notifications":
-               return R.drawable.ic_bell;
-
-           // 32. pause - not implemented
-
-           // 33. payment
-           case "payment":
-               return R.drawable.ic_credit_card;
-
-           // 34. person
-           case "person":
-               return R.drawable.ic_user;
-
-           // 35. phone
-           case "phone":
-               return R.drawable.ic_phone;
-
-           // 36. photo
-           case "photo":
-               return R.drawable.ic_image;
-
-           // 37. play - not implemented
-
-           // 38. print
-           case "print":
-               return R.drawable.ic_printer;
-
-           // 39. refresh
-           case "refresh":
-               return R.drawable.ic_refresh_cw;
-
-           // 40. rewind - not implemented
-
-           // 41. search
-           case "search":
-               return R.drawable.ic_search;
-
-           // 42. send
-           case "send":
-               return R.drawable.ic_send;
-
-           // 43. settings
-           case "settings":
-               return R.drawable.ic_settings;
-
-           // 44. share
-           case "share":
-               return R.drawable.ic_share;
-
-           // 45. shoppingCart
-           case "shoppingcart":
-               return R.drawable.ic_shopping_cart;
-
-           // 46. skipNext - not implemented
-
-           // 47. skipPrevious - not implemented
-
-           // 48. star
-           case "star":
-               return R.drawable.ic_star;
-
-           // 49. starHalf
-           case "starhalf":
-               return R.drawable.ic_star_half;
-
-           // 50. starOff
-           case "staroff":
-               return R.drawable.ic_star_off;
-
-           // 51. stop - not implemented
-
-           // 52. upload
-           case "upload":
-               return R.drawable.ic_upload;
-
-           // 53. visibility
-           case "visibility":
-               return R.drawable.ic_eye;
-
-           // 54. visibilityOff
-           case "visibilityoff":
-               return R.drawable.ic_eye_off;
-
-           // 55. volumeDown - not implemented
-
-           // 56. volumeMute - not implemented
-
-           // 57. volumeOff - not implemented
-
-           // 58. volumeUp - not implemented
-
-           // 59. warning
-           case "warning":
-               return R.drawable.ic_triangle_alert;
-
-           default:
-               // Return the default icon (help)
-               return R.drawable.ic_circle_question_mark;
-       }
-   }
 
     /**
      * Extracts all URLs from CSS url() functions in the given text.

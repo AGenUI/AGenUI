@@ -7,6 +7,7 @@ import com.amap.agenui.AGenUI;
 import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
+import com.amap.agenui.render.surface.ThemeException;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -21,6 +22,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
@@ -36,6 +39,7 @@ public class StabilityScenarioEngine {
     private final Activity activity;
     private final Random random = new Random();
     private List<String> fixtureFiles;
+    private LinkedList<String> pendingFixtures = new LinkedList<>();
 
     public enum Scenario {
         // Stress scenarios (original 7 + 1 robustness)
@@ -47,6 +51,7 @@ public class StabilityScenarioEngine {
         INTERRUPT_RECOVER,
         EXTREME_RENDER,
         SDK_ROBUSTNESS,
+        SDK_INTERFACE_STABILITY,
         JNI_BRIDGE_RACE,
         // Realistic scenarios (10 new)
         REALISTIC_ARTICLE_STREAM,
@@ -92,6 +97,7 @@ public class StabilityScenarioEngine {
                 case INTERRUPT_RECOVER:
                 case EXTREME_RENDER:
                 case SDK_ROBUSTNESS:
+                case SDK_INTERFACE_STABILITY:
                 case JNI_BRIDGE_RACE:
                     return true;
                 default:
@@ -113,7 +119,7 @@ public class StabilityScenarioEngine {
         public static List<Scenario> stressScenarios() {
             return Arrays.asList(SESSION_STORM, STREAM_MARATHON, MULTI_SURFACE,
                     ACTION_FLOOD, THEME_SWITCH, INTERRUPT_RECOVER, EXTREME_RENDER,
-                    SDK_ROBUSTNESS, JNI_BRIDGE_RACE);
+                    SDK_ROBUSTNESS, SDK_INTERFACE_STABILITY, JNI_BRIDGE_RACE);
         }
 
         public static List<Scenario> realisticScenarios() {
@@ -133,6 +139,25 @@ public class StabilityScenarioEngine {
     public StabilityScenarioEngine(Activity activity) {
         this.activity = activity;
         this.fixtureFiles = loadFixtureFileList();
+        this.pendingFixtures = new LinkedList<>(this.fixtureFiles);
+        Collections.shuffle(this.pendingFixtures);
+    }
+
+    public void setFixtureFilter(List<String> filter) {
+        if (filter == null || filter.isEmpty()) return;
+        List<String> filtered = new ArrayList<>();
+        for (String path : fixtureFiles) {
+            for (String f : filter) {
+                if (path.equals(f) || path.endsWith("/" + f)) {
+                    filtered.add(path);
+                    break;
+                }
+            }
+        }
+        this.fixtureFiles = filtered;
+        this.pendingFixtures = new LinkedList<>(filtered);
+        Collections.shuffle(this.pendingFixtures);
+        Log.i(TAG, "Fixture filter applied: " + filtered.size() + " files retained (all queued for priority run)");
     }
 
     /**
@@ -161,6 +186,8 @@ public class StabilityScenarioEngine {
                 return executeExtremeRender();
             case SDK_ROBUSTNESS:
                 return executeSdkRobustness();
+            case SDK_INTERFACE_STABILITY:
+                return executeSdkInterfaceStability();
             case JNI_BRIDGE_RACE:
                 return executeJniBridgeRace();
             case ALL_COMBINED:
@@ -181,6 +208,7 @@ public class StabilityScenarioEngine {
             case "interrupt_recover": return Scenario.INTERRUPT_RECOVER;
             case "extreme_render": return Scenario.EXTREME_RENDER;
             case "sdk_robustness": return Scenario.SDK_ROBUSTNESS;
+            case "sdk_interface_stability": return Scenario.SDK_INTERFACE_STABILITY;
             case "jni_bridge_race": return Scenario.JNI_BRIDGE_RACE;
             case "realistic_article_stream": return Scenario.REALISTIC_ARTICLE_STREAM;
             case "realistic_multi_card": return Scenario.REALISTIC_MULTI_CARD;
@@ -341,7 +369,13 @@ public class StabilityScenarioEngine {
             Log.w(TAG, "No fixture files available");
             return null;
         }
-        String fixturePath = fixtureFiles.get(random.nextInt(fixtureFiles.size()));
+        String fixturePath;
+        if (!pendingFixtures.isEmpty()) {
+            fixturePath = pendingFixtures.poll();
+            Log.i(TAG, "Priority fixture: " + fixturePath + " (" + pendingFixtures.size() + " remaining)");
+        } else {
+            fixturePath = fixtureFiles.get(random.nextInt(fixtureFiles.size()));
+        }
         String json = loadAssetFile(FIXTURES_DIR + "/" + fixturePath);
         if (json == null) return fixturePath + " (load failed)";
 
@@ -642,20 +676,191 @@ public class StabilityScenarioEngine {
         return results.toString();
     }
 
-    // S9: Random selection from stress scenarios
+    // S9: SDK interface stability — focus on repeated and interleaved public
+    // API usage paths that should stay crash/freeze free.
+    private String executeSdkInterfaceStability() throws Exception {
+        StringBuilder results = new StringBuilder("sdk_interface_stability[");
+        int passed = 0;
+        int total = 10;
+        AGenUI agenui = AGenUI.getInstance();
+
+        try {
+            agenui.registerDefaultTheme(buildThemeJson("ffffff"), buildDesignTokenJson("#ffffff"));
+            List<String> outcomes = new ArrayList<>();
+            try {
+                agenui.registerDefaultTheme("{invalid", buildDesignTokenJson("#000000"));
+                outcomes.add("invalidTheme:no_throw");
+            } catch (ThemeException e) {
+                outcomes.add("invalidTheme:" + e.getClass().getSimpleName());
+            }
+            try {
+                agenui.registerDefaultTheme(buildThemeJson("000000"), "{invalid");
+                outcomes.add("invalidToken:no_throw");
+            } catch (ThemeException e) {
+                outcomes.add("invalidToken:" + e.getClass().getSimpleName());
+            }
+            passed++;
+            results.append("I1:OK(").append(String.join(";", outcomes)).append("),");
+        } catch (Throwable e) {
+            results.append("I1:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            boolean valid = agenui.setPathConfig("{\"templateDir\":\"/tmp/agenui-stability\"}");
+            boolean invalid = agenui.setPathConfig("{invalid");
+            passed++;
+            results.append("I2:OK(valid=").append(valid).append(",invalid=").append(invalid).append("),");
+        } catch (Throwable e) {
+            results.append("I2:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            List<String> loggerSignals = new ArrayList<>();
+            agenui.setCustomLogger((level, tag, func, line, message) -> loggerSignals.add("L" + level));
+            for (int level = 0; level <= 5; level++) {
+                agenui.setMinLogLevel(level);
+                int observed = agenui.getMinLogLevel();
+                if (observed != level) {
+                    loggerSignals.add(level + "->" + observed);
+                }
+            }
+            agenui.setCustomLogger(null);
+            passed++;
+            results.append("I3:OK(").append(loggerSignals.isEmpty() ? "stable" : String.join(";", loggerSignals)).append("),");
+        } catch (Throwable e) {
+            results.append("I3:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            String version = null;
+            for (int i = 0; i < 20; i++) {
+                version = AGenUI.getVersion();
+            }
+            passed++;
+            results.append("I4:OK(").append(version == null ? "null" : version).append("),");
+        } catch (Throwable e) {
+            results.append("I4:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            for (int i = 0; i < 20; i++) {
+                agenui.setDayNightMode(i % 2 == 0 ? "light" : "dark");
+            }
+            agenui.setDayNightMode("invalid-mode");
+            passed++;
+            results.append("I5:OK,");
+        } catch (Throwable e) {
+            results.append("I5:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            SurfaceManager sm = new SurfaceManager(activity);
+            sm.beginTextStream();
+            sm.receiveTextChunk(buildSimpleSurfaceJson("i6-surf"));
+            sm.endTextStream();
+            Thread.sleep(30);
+            for (int i = 0; i < 10; i++) {
+                sm.invalidateFunctionCallValues();
+            }
+            sm.destroy();
+            passed++;
+            results.append("I6:OK,");
+        } catch (Throwable e) {
+            results.append("I6:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            SurfaceManager sm = new SurfaceManager(activity);
+            Surface before = sm.getSurface("i7-surf");
+            sm.beginTextStream();
+            sm.receiveTextChunk(buildSimpleSurfaceJson("i7-surf"));
+            sm.endTextStream();
+            Thread.sleep(80);
+            Surface afterCreate = sm.getSurface("i7-surf");
+            sm.destroy();
+            Surface afterDestroy = sm.getSurface("i7-surf");
+            passed++;
+            results.append("I7:OK(before=").append(before == null).append(",created=").append(afterCreate != null)
+                    .append(",afterDestroy=").append(afterDestroy == null).append("),");
+        } catch (Throwable e) {
+            results.append("I7:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            SurfaceManager sm = new SurfaceManager(activity);
+            final AtomicReference<String> callbackState = new AtomicReference<>("none");
+            ISurfaceManagerListener listener = new ISurfaceManagerListener() {
+                @Override public void onCreateSurface(Surface surface) { callbackState.set("created"); }
+                @Override public void onDeleteSurface(Surface surface) { callbackState.set("deleted"); }
+            };
+            sm.addListener(listener);
+            sm.removeListener(listener);
+            sm.addListener(listener);
+            sm.beginTextStream();
+            sm.receiveTextChunk(buildSimpleSurfaceJson("i8-surf"));
+            sm.receiveTextChunk(buildDeleteSurfaceJson("i8-surf"));
+            sm.endTextStream();
+            Thread.sleep(80);
+            sm.removeListener(listener);
+            sm.destroy();
+            passed++;
+            results.append("I8:OK(").append(callbackState.get()).append("),");
+        } catch (Throwable e) {
+            results.append("I8:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            SurfaceManager sm = new SurfaceManager(activity);
+            sm.beginTextStream();
+            sm.receiveTextChunk(buildSimpleSurfaceJson("i9-a"));
+            sm.receiveTextChunk(buildSimpleSurfaceJson("i9-b"));
+            sm.endTextStream();
+            Thread.sleep(80);
+            Surface a = sm.getSurface("i9-a");
+            Surface b = sm.getSurface("i9-b");
+            sm.destroy();
+            passed++;
+            results.append("I9:OK(").append((a != null && b != null) ? "both" : "missing").append("),");
+        } catch (Throwable e) {
+            results.append("I9:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        try {
+            for (int i = 0; i < 8; i++) {
+                SurfaceManager sm = new SurfaceManager(activity);
+                sm.beginTextStream();
+                sm.receiveTextChunk(buildSimpleSurfaceJson("i10-" + i));
+                sm.endTextStream();
+                agenui.setDayNightMode(i % 2 == 0 ? "light" : "dark");
+                sm.invalidateFunctionCallValues();
+                sm.destroy();
+            }
+            passed++;
+            results.append("I10:OK,");
+        } catch (Throwable e) {
+            results.append("I10:CRASH(").append(e.getClass().getSimpleName()).append("),");
+        }
+
+        results.append("] ").append(passed).append("/").append(total).append(" passed");
+        Log.i(TAG, results.toString());
+        return results.toString();
+    }
+
+    // S10: Random selection from stress scenarios
     private String executeAllCombined() throws Exception {
         Scenario[] scenarios = {
             Scenario.SESSION_STORM, Scenario.STREAM_MARATHON,
             Scenario.MULTI_SURFACE, Scenario.ACTION_FLOOD,
             Scenario.THEME_SWITCH, Scenario.INTERRUPT_RECOVER,
             Scenario.EXTREME_RENDER, Scenario.SDK_ROBUSTNESS,
+            Scenario.SDK_INTERFACE_STABILITY,
             Scenario.JNI_BRIDGE_RACE
         };
         Scenario picked = scenarios[random.nextInt(scenarios.length)];
         return executeRound(picked);
     }
 
-    // S10: JNI bridge cross-thread UAF — exercise the SurfaceSizeProvider bridge
+    // S11: JNI bridge cross-thread UAF — exercise the SurfaceSizeProvider bridge
     // lifetime race using only the public SDK surface (no reflection, no private
     // natives).
     //
@@ -785,11 +990,26 @@ public class StabilityScenarioEngine {
                "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"" + surfaceId + "\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"txt\"],\"align\":\"stretch\"},{\"id\":\"txt\",\"component\":\"Text\",\"text\":\"Test surface: " + surfaceId + "\"}]}}";
     }
 
+    private String buildDeleteSurfaceJson(String surfaceId) {
+        return "{\"version\":\"v0.9\",\"deleteSurface\":{\"surfaceId\":\"" + surfaceId + "\"}}";
+    }
+
+    private String buildThemeJson(String colorHexWithoutHash) {
+        return "{\"colors\":{\"textPrimary\":\"#" + colorHexWithoutHash
+                + "\",\"backgroundPrimary\":\"#" + colorHexWithoutHash + "\"}}";
+    }
+
+    private String buildDesignTokenJson(String colorHex) {
+        return "{\"color\":{\"text\":{\"primary\":\"" + colorHex
+                + "\"},\"bg\":{\"primary\":\"" + colorHex + "\"}}}";
+    }
+
     // Load fixture file list from assets
     private List<String> loadFixtureFileList() {
         List<String> files = new ArrayList<>();
         String[] categories = {"extreme_components", "extreme_data", "extreme_stream",
-                              "extreme_lifecycle", "extreme_interaction"};
+                              "extreme_lifecycle", "extreme_interaction",
+                              "realistic_scenarios"};
         try {
             for (String category : categories) {
                 String[] assetFiles = activity.getAssets().list(FIXTURES_DIR + "/" + category);

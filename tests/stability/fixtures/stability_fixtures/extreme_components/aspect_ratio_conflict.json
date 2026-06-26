@@ -1,0 +1,25 @@
+{
+  "description": "aspect-ratio conflicting with explicit width+height — tests which constraint wins",
+  "surfaceId": "aspect-ratio-conflict",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "aspect-ratio-conflict",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "aspect-ratio-conflict",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["ar1", "ar2", "ar3"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "ar1", "component": "Image", "src": "https://example.com/img.png", "styles": {"width": "200px", "height": "200px", "aspect-ratio": "16/9"}},
+          {"id": "ar2", "component": "Image", "src": "https://example.com/img2.png", "styles": {"width": "100%", "aspect-ratio": "1/1", "max-height": "50px"}},
+          {"id": "ar3", "component": "Image", "src": "https://example.com/img3.png", "styles": {"height": "100px", "aspect-ratio": "3/1", "max-width": "100px"}}
+        ]
+      }
+    }
+  ]
+}

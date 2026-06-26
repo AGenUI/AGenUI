@@ -34,18 +34,18 @@ namespace a2ui {
  *     - border-width: "1px" or a numeric value
  *     - border-color: #hex or rgba()
  */
-class TextFieldComponent : public A2UIComponent {
+class TextFieldComponent final : public A2UIComponent {
 public:
     TextFieldComponent(const std::string& id, const nlohmann::json& properties);
     ~TextFieldComponent() override;
-    void destroy() override;
+    void onDestroy() override;
 
 public:
-    A2UITextInputNode getTextInputNode() {
+    A2UITextInputNode getTextInputNode() const {
         return A2UITextInputNode(m_textInputHandle);
     }
 
-    A2UITextNode getErrorTextNode() {
+    A2UITextNode getErrorTextNode() const {
         return A2UITextNode(m_errorTextHandle);
     }
 

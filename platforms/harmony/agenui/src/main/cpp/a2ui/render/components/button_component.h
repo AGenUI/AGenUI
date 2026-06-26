@@ -19,7 +19,7 @@ namespace a2ui {
  *       - border-color: #RRGGBB / #RRGGBBAA / rgba(r,g,b,a)
  *   - checks: condition checks that control clickability
  */
-class ButtonComponent : public A2UIComponent {
+class ButtonComponent final : public A2UIComponent {
 public:
     ButtonComponent(const std::string& id, const nlohmann::json& properties);
     ~ButtonComponent() override;
@@ -27,6 +27,7 @@ public:
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
     bool shouldApplyChildLayoutPosition(const A2UIComponent* child) const override;
+    void onApplyChildPosition(A2UIComponent* child, float x, float y) override;
     float resolveAppearTargetOpacity(const nlohmann::json& properties) const override;
 
     /**

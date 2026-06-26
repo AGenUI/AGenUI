@@ -1,0 +1,62 @@
+{
+  "description": "Style properties swapped between components across updates to test yoga property decoder hot-update paths",
+  "surfaceId": "property_swap_stress",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "property_swap_stress",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "property_swap_stress",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["s1", "s2"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "s1", "component": "Text", "text": "Box A", "styles": {"width": "200px", "height": "100px", "margin": "10px", "padding": "20px", "flex-grow": "1"}},
+          {"id": "s2", "component": "Text", "text": "Box B", "styles": {"width": "100px", "height": "200px", "margin": "20px", "padding": "10px", "flex-grow": "2"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "property_swap_stress",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["s1", "s2"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "s1", "component": "Text", "text": "Box A swapped", "styles": {"width": "100px", "height": "200px", "margin": "20px", "padding": "10px", "flex-grow": "2"}},
+          {"id": "s2", "component": "Text", "text": "Box B swapped", "styles": {"width": "200px", "height": "100px", "margin": "10px", "padding": "20px", "flex-grow": "1"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "property_swap_stress",
+        "components": [
+          {"id": "root", "component": "Row", "children": ["s1", "s2"], "styles": {"width": "100%", "height": "400px", "flex-wrap": "wrap"}},
+          {"id": "s1", "component": "Text", "text": "Now in Row", "styles": {"width": "50%", "height": "50%", "position": "absolute", "top": "0", "left": "0"}},
+          {"id": "s2", "component": "Text", "text": "Also in Row", "styles": {"width": "50%", "height": "50%", "flex-grow": "1"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "property_swap_stress",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["s1", "s2"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "s1", "component": "Image", "properties": {"url": "https://example.com/img.png", "width": 200, "height": 200}, "styles": {"width": "100%", "aspect-ratio": "1"}},
+          {"id": "s2", "component": "Text", "text": "Text after type change", "styles": {"flex-grow": "1"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

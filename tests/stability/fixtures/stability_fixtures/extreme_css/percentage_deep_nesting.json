@@ -1,0 +1,34 @@
+{
+  "description": "Percentage dimensions through 6 levels of nesting. Tests Yoga percentage resolution in deeply nested contexts where parent sizes may be auto-sized.",
+  "surfaceId": "stability-pct-deep-nest",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-pct-deep-nest",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-pct-deep-nest",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["l1"], "styles": {"width": "100%", "height": "500px"}},
+          {"id": "l1", "component": "Column", "children": ["l2"], "styles": {"width": "90%", "height": "90%", "padding": "4px"}},
+          {"id": "l2", "component": "Column", "children": ["l3"], "styles": {"width": "90%", "height": "90%", "padding": "4px"}},
+          {"id": "l3", "component": "Column", "children": ["l4"], "styles": {"width": "90%", "height": "90%", "padding": "4px"}},
+          {"id": "l4", "component": "Column", "children": ["l5"], "styles": {"width": "90%", "height": "90%", "padding": "4px"}},
+          {"id": "l5", "component": "Column", "children": ["l6"], "styles": {"width": "90%", "height": "90%", "padding": "4px"}},
+          {"id": "l6", "component": "Column", "children": ["leaf"], "styles": {"width": "90%", "height": "90%", "padding": "4px"}},
+          {"id": "leaf", "component": "Text", "text": "90% of 90% of 90% of 90% of 90% of 90% = ~53% of original", "styles": {"width": "100%", "height": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

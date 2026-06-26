@@ -3,6 +3,7 @@
 #include "a2ui/a2ui_message_listener.h"
 #include "log/a2ui_capi_log.h"
 #include <nlohmann/json.hpp>
+#include <vector>
 
 namespace agenui {
 
@@ -98,10 +99,9 @@ FunctionCallResult HarmonyPlatformFunction::callSyncOnMainThread(
     // Read the returned JSON string.
     size_t resultLen = 0;
     napi_get_value_string_utf8(env, result, nullptr, 0, &resultLen);
-    char* resultBuf = new char[resultLen + 1];
-    napi_get_value_string_utf8(env, result, resultBuf, resultLen + 1, &resultLen);
-    std::string resultStr(resultBuf);
-    delete[] resultBuf;
+    std::vector<char> resultBuf(resultLen + 1, '\0');
+    napi_get_value_string_utf8(env, result, resultBuf.data(), resultBuf.size(), &resultLen);
+    std::string resultStr(resultBuf.data(), resultLen);
 
     HM_LOGI("[HarmonyPlatformFunction] callSyncOnMainThread: result=%s", resultStr.c_str());
 

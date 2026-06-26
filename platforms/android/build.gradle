@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.library)
+    id 'com.android.library'
     id 'maven-publish'
 }
 
@@ -24,8 +24,13 @@ def localMavenDir = "${System.getProperty('user.home')}/.m2/repository"
 // ============================================================================
 
 // --- Read local.properties for yoga config ---
+// Check project-level first (works when embedded in external workspace),
+// then fall back to rootProject-level (standalone build).
 def localProps = new Properties()
-def localPropsFile = file("${rootProject.projectDir}/local.properties")
+def localPropsFile = file("${projectDir}/local.properties")
+if (!localPropsFile.exists()) {
+    localPropsFile = file("${rootProject.projectDir}/local.properties")
+}
 if (localPropsFile.exists()) {
     localPropsFile.withInputStream { localProps.load(it) }
 }
@@ -41,7 +46,7 @@ if (project.hasProperty('YOGA_PREBUILT_DIR')) {
 }
 // Validate if set
 if (resolvedYogaPrebuiltDir && !file("${resolvedYogaPrebuiltDir}/libs/libyoga.so").exists()) {
-    throw new GradleException("[yoga] ERROR: yoga.prebuilt.dir is set but invalid — " +
+    throw new GradleException("[yoga] ERROR: yoga.prebuilt.dir is set but invalid \u2014 " +
         "libyoga.so not found at: ${resolvedYogaPrebuiltDir}/libs/libyoga.so")
 }
 
@@ -56,13 +61,14 @@ if (project.hasProperty('YOGA_INCLUDE_IN_AAR')) {
 }
 
 if (!resolvedYogaPrebuiltDir) {
-    logger.lifecycle("[yoga] No prebuilt configured — will use GitHub FetchContent (built-in)")
+    logger.lifecycle("[yoga] No prebuilt configured \u2014 will use GitHub FetchContent (built-in)")
 } else {
     logger.lifecycle("[yoga] Prebuilt: ${resolvedYogaPrebuiltDir}, include in AAR: ${resolvedYogaIncludeInAar}")
 }
 
 android {
     namespace 'com.amap.a2ui_sdk'
+    resourcePrefix 'agenui_'
     compileSdk 34
 
     defaultConfig {
@@ -73,9 +79,6 @@ android {
         consumerProguardFiles "consumer-rules.pro"
 
         // C++ configuration
-        // Inject the repo root into CMake via -DAGENUI_REPO_ROOT to avoid using .. traversal in CMakeLists.
-        // rootProject.projectDir = platforms/android/, its parentFile = platforms/,
-        // and the next parentFile = the agenui/ repo root.
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++17"
@@ -83,16 +86,13 @@ android {
                 // When using prebuilt yoga (compiled with c++_shared), we must use c++_shared
                 // to avoid mixing STL types in the same process (NDK requirement).
                 def stlType = resolvedYogaPrebuiltDir ? "c++_shared" : "c++_static"
+                // projectDir = platforms/android/ \u2192 parentFile = platforms/ \u2192 parentFile = repo root
                 def cmakeArgs = ["-DANDROID_STL=" + stlType,
-                          "-DAGENUI_REPO_ROOT=" + rootProject.projectDir.parentFile.parentFile.absolutePath]
+                          "-DAGENUI_REPO_ROOT=" + projectDir.parentFile.parentFile.absolutePath]
                 // Pass YOGA_PREBUILT_DIR to CMake if resolved
                 if (resolvedYogaPrebuiltDir) {
                     cmakeArgs.add("-DYOGA_PREBUILT_DIR=" + resolvedYogaPrebuiltDir)
                 }
-                // -PagenuiEmitDebugSymbols=true on the Gradle CLI flips on the
-                // CMake post-build step that splits DWARF info into lib*.so.debug
-                // companion files (see CMakeLists.txt agenui_split_debug_symbols).
-                // No effect for debug builds even when the property is set.
                 if (project.hasProperty('agenuiEmitDebugSymbols')
                         && project.property('agenuiEmitDebugSymbols').toString().toBoolean()) {
                     cmakeArgs.add("-DAGENUI_EMIT_DEBUG_SYMBOLS=ON")
@@ -141,28 +141,39 @@ android {
             exclude '**/libc++_shared.so'
         }
     }
-    sourceSets {
-        main {
-            res.srcDirs = ['src/main/res', 'src/main/res-icons']
-        }
-    }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+}
+
+// Processor module path varies by workspace layout
+def processorProject = findProject(':processor') ?: findProject(':a2ui_renderer:processor')
+if (processorProject == null) {
+    throw new GradleException("[AGenUI] Cannot find :processor module. " +
+        "Ensure settings.gradle includes the processor project.")
 }
 
 dependencies {
-    implementation libs.picasso
-    implementation libs.gson
-    implementation libs.cardview
-    implementation libs.viewpager2
-    implementation libs.recyclerview
+    annotationProcessor processorProject
+    compileOnly processorProject
 
-    testImplementation libs.junit
-    androidTestImplementation libs.ext.junit
-    androidTestImplementation libs.espresso.core
+    implementation 'com.squareup.picasso:picasso:2.8'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }
 
 // ==================== afterEvaluate: Publishing ====================
@@ -254,16 +265,8 @@ afterEvaluate {
 }
 
 // ==================== afterEvaluate: Native debug symbols AAR ====================
-// When -PagenuiEmitDebugSymbols=true is passed on the Gradle CLI, the CMake
-// post-build step (CMakeLists.txt agenui_split_debug_symbols) produces a
-// lib<name>.so.debug companion file next to each .so under
-// build/intermediates/cxx/Release/<hash>/obj/<abi>/. This block bundles those
-// .so.debug files into <rootProject.name>-symbols.aar and chains it after
-// assembleRelease via finalizedBy.
-//
-// Note: ".so.debug" follows the GNU/LLVM convention (objcopy's default debug
-// file extension). It is NOT related to Android's "debug" buildType — both
-// release and the symbols AAR are produced from the same release compile.
+// ".so.debug" is the GNU/LLVM convention, NOT Android's debug buildType \u2014
+// both the release AAR and the symbols AAR are produced from the same release compile.
 afterEvaluate {
     if (!project.hasProperty('agenuiEmitDebugSymbols')
             || !project.property('agenuiEmitDebugSymbols').toString().toBoolean()) {
@@ -274,9 +277,6 @@ afterEvaluate {
         group = 'build'
         description = 'Bundle lib*.so.debug companion files into a separate <name>-symbols.aar'
 
-        // Best-effort dependency on the native build task so the .so.debug
-        // files exist before we zip. The task name has stayed stable across
-        // AGP 4.x–8.x for externalNativeBuild { cmake {} } projects.
         def nativeTask = tasks.findByName('externalNativeBuildRelease')
         if (nativeTask != null) {
             dependsOn nativeTask
@@ -287,34 +287,23 @@ afterEvaluate {
         archiveExtension = 'aar'
         destinationDirectory = file("${buildDir}/outputs/aar")
 
-        // AGP keeps a per-config hash subdirectory under intermediates/cxx/Release/.
-        // Old hashes are NOT pruned, so iterating "**/*.so.debug" across the whole
-        // tree would pick up stale duplicates and Zip would fail with
-        // "Entry ... is a duplicate". Always pick the freshest hash directory —
-        // i.e. the one just produced by the externalNativeBuildRelease task that
-        // runs immediately before this Zip task.
+        // AGP never prunes old hash dirs under intermediates/cxx/Release/;
+        // always pick the freshest one to avoid Zip duplicate-entry failures.
         def cxxReleaseRoot = file("${buildDir}/intermediates/cxx/Release")
         def pickFreshestCxxDir = {
             if (!cxxReleaseRoot.exists()) return null
             def candidates = cxxReleaseRoot.listFiles()?.findAll { it.isDirectory() }
             if (!candidates) return null
-            // Rank by the freshest file mtime in each subtree (rather than the
-            // directory's own mtime, which is not always updated when files
-            // inside it change on some filesystems).
             return candidates.max { dir ->
                 def files = fileTree(dir).files
                 files.isEmpty() ? 0L : files*.lastModified().max()
             }
         }
 
-        // from(Closure) is evaluated lazily at task execution — the freshest
-        // hash dir is decided after externalNativeBuildRelease writes its output.
         from({
             def freshest = pickFreshestCxxDir()
             freshest == null ? files() : fileTree(freshest) { include '**/*.so.debug' }
         }) {
-            // CMake output relative to <freshest>/: obj/<abi>/lib*.so.debug
-            // Remap inside the AAR to: jni/<abi>/lib*.so.debug
             eachFile { fcd ->
                 def segs = fcd.relativePath.segments
                 fcd.relativePath = new RelativePath(true, 'jni', segs[-2], segs[-1])
@@ -322,15 +311,9 @@ afterEvaluate {
             includeEmptyDirs = false
         }
 
-        // Reuse the library's real AndroidManifest.xml so the .aar passes
-        // basic structure checks even though it carries no code/resources.
         from("${projectDir}/src/main/AndroidManifest.xml")
 
         doFirst {
-            // Fail loudly if there are no .so.debug files in the freshest cxx
-            // dir — the agenui_split_debug_symbols CMake POST_BUILD step did
-            // not run. Most likely: assembleRelease wasn't invoked, or the
-            // -PagenuiEmitDebugSymbols flag was not piped through to CMake.
             def freshest = pickFreshestCxxDir()
             def found = freshest == null ? [] :
                 fileTree(freshest) { include '**/*.so.debug' }.files

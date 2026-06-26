@@ -42,6 +42,23 @@ std::string parseSnapshotValue(const SerializableData& rawValue) {
     return rawValue.dump();
 }
 
+// Mark all measure-leaf nodes in a subtree dirty (Yoga only allows
+// YGNodeMarkDirty on nodes with a measure function; dirty propagates
+// upward along the owner chain automatically).
+uint32_t markSubtreeMeasureLeavesDirty(YGNodeRef root) {
+    if (!root) return 0;
+    if (YGNodeHasMeasureFunc(root)) {
+        YGNodeMarkDirty(root);
+        return 1;
+    }
+    uint32_t count = 0;
+    const uint32_t childCount = YGNodeGetChildCount(root);
+    for (uint32_t i = 0; i < childCount; ++i) {
+        count += markSubtreeMeasureLeavesDirty(YGNodeGetChild(root, i));
+    }
+    return count;
+}
+
 }  // namespace
 
 VirtualDOMNode::VirtualDOMNode(const std::string& id,
@@ -98,6 +115,16 @@ void VirtualDOMNode::setSnapshot(const ComponentSnapshot& snapshot, const std::s
         return;
     }
 
+    // Capture user-declared display:none before applySnapshot clears styles.
+    bool userExplicitDisplayNone = false;
+    {
+        auto displayIt = snapshot.styles.find("display");
+        if (displayIt != snapshot.styles.end() && displayIt->second.isString() &&
+            displayIt->second.asString() == "none") {
+            userExplicitDisplayNone = true;
+        }
+    }
+
     _parentId = parentId;
 
     if (!_snapshot) {
@@ -117,6 +144,9 @@ void VirtualDOMNode::setSnapshot(const ComponentSnapshot& snapshot, const std::s
             || _snapshot->children   != snapshot.children) {
             _hasPlatformSize = false;
         }
+        // A new snapshot may override the reported size via CSS, so the
+        // pending report flag is no longer valid for the next layout pass.
+        _sizeFromReport = false;
         *_snapshot = snapshot;
         if (_yogaNode) {
             _yogaNode->setHasNewLayout(true);
@@ -189,6 +219,25 @@ void VirtualDOMNode::setSnapshot(const ComponentSnapshot& snapshot, const std::s
             _yogaNode->applySnapshotWithTabsHints(wrapper, parentWrapper, true);
         } else {
             _yogaNode->applySnapshot(wrapper, true);
+        }
+    }
+
+    // Restore placeholder to display:flex and dirty siblings so Yoga
+    // recomputes their resolvedFlexBasis on the next layout pass.
+    if (_yogaNode && _yogaNode->get()) {
+        YGNodeRef yogaRef = _yogaNode->get();
+        if (YGNodeStyleGetDisplay(yogaRef) == YGDisplayNone && !userExplicitDisplayNone) {
+            YGNodeStyleSetDisplay(yogaRef, YGDisplayFlex);
+
+            if (_parent && _parent->_yogaNode && _parent->_yogaNode->get()) {
+                YGNodeRef parentYogaRef = _parent->_yogaNode->get();
+                const uint32_t siblingCount = YGNodeGetChildCount(parentYogaRef);
+                for (uint32_t i = 0; i < siblingCount; ++i) {
+                    YGNodeRef sibling = YGNodeGetChild(parentYogaRef, i);
+                    if (sibling == yogaRef) continue;
+                    markSubtreeMeasureLeavesDirty(sibling);
+                }
+            }
         }
     }
 }
@@ -348,12 +397,14 @@ void VirtualDOMNode::setYogaNodeSize(float width, float height) {
         // Mark that this node has a platform-supplied size so setupMeasureFunctionIfNeeded
         // will not re-register the measureFunc on subsequent setSnapshot calls.
         _hasPlatformSize = true;
+        _sizeFromReport = true;
     }
 }
 
 void VirtualDOMNode::resetPlatformSize() {
     if (!_yogaNode || !_hasPlatformSize) return;
     _hasPlatformSize = false;
+    _sizeFromReport = false;
     _yogaNode->resetToStyleSize();
     _yogaNode->markDirty();
     setupMeasureFunctionIfNeeded();
@@ -479,6 +530,11 @@ void VirtualDOMNode::updateChildren() {
             if (_layoutDelegate && newChild->_yogaNode && !newChild->_yogaNode->isAttached()) {
                 const uint32_t insertIdx = _yogaNode ? _yogaNode->childCount() : 0u;
                 _layoutDelegate->insertChild(_yogaKey, newChild->_yogaKey, insertIdx);
+
+                // Hide placeholder until setSnapshot applies real styles.
+                if (newChild->_yogaNode->get()) {
+                    YGNodeStyleSetDisplay(newChild->_yogaNode->get(), YGDisplayNone);
+                }
             }
         }
 
@@ -529,6 +585,11 @@ void VirtualDOMNode::checkAndNotifyLayoutChanges() {
         return;
     }
 
+    // Consume the report flag early — if setYogaNodeSize was called but the
+    // fast path is taken (no new layout), the flag should still be cleared.
+    bool sizeFromReport = _sizeFromReport;
+    _sizeFromReport = false;
+
     // Fast path: if no new layout and already notified, only recurse into children
     if (_yogaNode && !_yogaNode->hasNewLayout() && _snapshotWithLayout) {
         for (const auto& child : _children) {
@@ -573,6 +634,14 @@ void VirtualDOMNode::checkAndNotifyLayoutChanges() {
         if (snapshotWithLayout.styles.find(pair.first) == snapshotWithLayout.styles.end()) {
             snapshotWithLayout.styles[pair.first] = SerializableData(SerializableData::Impl::parse(pair.second));
         }
+    }
+
+    // If this layout update was triggered by a platform-reported size
+    // (setYogaNodeSize), mark the styles so the component can distinguish
+    // it from a CSS-driven layout change and skip redundant reloads.
+    if (sizeFromReport) {
+        snapshotWithLayout.styles["sizeFromReport"] =
+            SerializableData(SerializableData::Impl::create(true));
     }
 
     if (!_snapshotWithLayout) {

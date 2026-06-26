@@ -1,0 +1,26 @@
+{
+  "description": "Conflicting constraints: min-width > max-width, min-height > max-height to test constraint resolution",
+  "surfaceId": "conflicting-min-max",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "conflicting-min-max",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "conflicting-min-max",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["c1", "c2", "c3"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "c1", "component": "Text", "text": "min-w 300 > max-w 100", "styles": {"min-width": "300px", "max-width": "100px", "height": "50px"}},
+          {"id": "c2", "component": "Text", "text": "min-h 200 > max-h 50", "styles": {"width": "100%", "min-height": "200px", "max-height": "50px"}},
+          {"id": "c3", "component": "Row", "children": ["c3a"], "styles": {"min-width": "500px", "max-width": "200px", "min-height": "300px", "max-height": "100px"}},
+          {"id": "c3a", "component": "Text", "text": "Both axes conflicting"}
+        ]
+      }
+    }
+  ]
+}

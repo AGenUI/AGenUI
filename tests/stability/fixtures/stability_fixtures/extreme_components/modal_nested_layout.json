@@ -1,0 +1,41 @@
+{
+  "description": "Modal containing complex nested layout with Card, Row, Buttons. Tests Modal overlay rendering with deep child hierarchy.",
+  "surfaceId": "stability-modal-nested",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-modal-nested",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-modal-nested",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["bg-content", "modal1"], "styles": {"width": "100%"}},
+          {"id": "bg-content", "component": "Text", "text": "Background content behind modal", "styles": {"width": "100%", "height": "200px"}},
+          {"id": "modal1", "component": "Modal", "visible": true, "child": "modal-card", "styles": {}},
+          {"id": "modal-card", "component": "Card", "child": "m-col", "styles": {"width": "90%", "max-width": "400px"}},
+          {"id": "m-col", "component": "Column", "children": ["m-title", "m-body", "m-actions"], "styles": {"padding": "16px", "gap": "12px"}},
+          {"id": "m-title", "component": "Text", "text": "Confirm Action", "variant": "title", "styles": {"width": "100%"}},
+          {"id": "m-body", "component": "Column", "children": ["m-desc", "m-check", "m-input"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "m-desc", "component": "Text", "text": "Are you sure you want to proceed with this action? This cannot be undone.", "styles": {"width": "100%"}},
+          {"id": "m-check", "component": "CheckBox", "label": "I understand the consequences", "value": false, "styles": {}},
+          {"id": "m-input", "component": "TextField", "label": "Type CONFIRM to proceed", "value": "", "styles": {"width": "100%"}},
+          {"id": "m-actions", "component": "Row", "children": ["m-cancel", "m-ok"], "styles": {"width": "100%", "justify-content": "flex-end", "gap": "8px"}},
+          {"id": "m-cancel", "component": "Button", "child": "cancel-txt", "styles": {}},
+          {"id": "cancel-txt", "component": "Text", "text": "Cancel", "styles": {}},
+          {"id": "m-ok", "component": "Button", "child": "ok-txt", "styles": {}},
+          {"id": "ok-txt", "component": "Text", "text": "Confirm", "styles": {}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

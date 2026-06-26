@@ -3,6 +3,7 @@
 #include "../a2ui_node.h"
 #include "log/a2ui_capi_log.h"
 #include "../../measure/a2ui_platform_layout_bridge.h"
+#include "a2ui/utils/a2ui_parse_utils.h"
 
 #include <algorithm>
 #include <cctype>
@@ -462,23 +463,7 @@ bool DateTimeInputComponent::extractBooleanValue(const nlohmann::json& value, bo
 }
 
 float DateTimeInputComponent::parseStyleDimension(const nlohmann::json& styles, const char* key, float fallbackValue) {
-    if (!styles.is_object() || !styles.contains(key)) {
-        return fallbackValue;
-    }
-
-    const auto& value = styles[key];
-    try {
-        if (value.is_number()) {
-            return value.get<float>();
-        }
-        if (value.is_string()) {
-            return std::stof(value.get<std::string>());
-        }
-    } catch (...) {
-        HM_LOGW("DateTimeInputComponent parseStyleNumber: invalid value for '%s', using fallback %f", key, fallbackValue);
-    }
-
-    return fallbackValue;
+    return a2ui::parseStyleDimension(styles, key, fallbackValue);
 }
 
 std::string DateTimeInputComponent::parseStyleString(const nlohmann::json& styles, const char* key, const std::string& fallbackValue) {

@@ -1,0 +1,35 @@
+{
+  "description": "Components with empty or missing required properties to test defensive handling in style defaults and property decoder",
+  "surfaceId": "empty_required_props",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "empty_required_props",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "empty_required_props",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"], "styles": {"width": "100%"}},
+          {"id": "e1", "component": "Text", "text": ""},
+          {"id": "e2", "component": "Image", "properties": {"url": "", "width": 0, "height": 0}},
+          {"id": "e3", "component": "Markdown", "content": ""},
+          {"id": "e4", "component": "TextField", "label": "", "value": ""},
+          {"id": "e5", "component": "CheckBox", "label": "", "value": false},
+          {"id": "e6", "component": "List", "children": [], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "e7", "component": "Row", "children": [], "styles": {"width": "100%", "height": "50px"}},
+          {"id": "e8", "component": "Slider", "min": 0, "max": 0, "value": 0}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

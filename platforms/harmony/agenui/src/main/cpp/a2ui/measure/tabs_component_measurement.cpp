@@ -3,6 +3,7 @@
 #include "text_component_measurement.h"
 #include "hm_text_measure_utils.h"
 #include "a2ui/third_party/key_define.h"
+#include "a2ui/utils/a2ui_measure_mode.h"
 
 #include "nlohmann/json.hpp"
 #include <algorithm>
@@ -16,7 +17,7 @@ agenui::MeasureResult TabsComponentMeasurement::measure(
         const std::string& paramJson,
         const agenui::MeasureModes& modes) {
 
-    float maxWidth = modes.width.maxValue > 0.0f ? modes.width.maxValue : 720.0f;
+    float maxWidth = modes.width.maxValue > 0.0f ? modes.width.maxValue : kDefaultMaxWidth;
 
     // ---- Read Tabs style configuration from g_component_styles ----
     // TabBar fixed height on render side is 96.0f (a2ui units, corresponding to 48vp)

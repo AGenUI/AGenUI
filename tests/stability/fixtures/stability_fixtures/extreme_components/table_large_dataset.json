@@ -1,0 +1,29 @@
+{
+  "description": "Table with many rows stressing layout calculation. Tests table rendering with 15 rows of data.",
+  "surfaceId": "stability-table-large",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-table-large",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-table-large",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "tbl"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "title", "component": "Text", "text": "Large Dataset Table", "variant": "title", "styles": {"width": "100%"}},
+          {"id": "tbl", "component": "Table", "headers": ["ID", "Name", "Status", "Score", "Updated"], "rows": [["001", "Alpha Project", "Active", "95.2", "2026-06-16"], ["002", "Beta Release", "Pending", "87.1", "2026-06-15"], ["003", "Gamma Test", "Complete", "92.0", "2026-06-14"], ["004", "Delta Build", "Failed", "45.5", "2026-06-13"], ["005", "Epsilon Run", "Active", "78.3", "2026-06-12"], ["006", "Zeta Deploy", "Active", "99.1", "2026-06-11"], ["007", "Eta Config", "Pending", "66.7", "2026-06-10"], ["008", "Theta Scan", "Complete", "88.4", "2026-06-09"], ["009", "Iota Merge", "Active", "73.2", "2026-06-08"], ["010", "Kappa Fix", "Failed", "12.0", "2026-06-07"], ["011", "Lambda Check", "Active", "91.8", "2026-06-06"], ["012", "Mu Verify", "Complete", "85.6", "2026-06-05"], ["013", "Nu Validate", "Pending", "0.0", "2026-06-04"], ["014", "Xi Process", "Active", "100.0", "2026-06-03"], ["015", "Omicron Final", "Complete", "97.3", "2026-06-02"]], "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

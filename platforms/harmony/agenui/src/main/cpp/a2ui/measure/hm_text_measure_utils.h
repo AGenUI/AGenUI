@@ -12,19 +12,17 @@
 #include "a2ui/third_party/Html.h"
 #include "a2ui/utils/hm_font_utils.h"
 #include "a2ui/utils/a2ui_font_weight_utils.h"
-
-#include <native_drawing/drawing_register_font.h>
-#include <native_drawing/drawing_text_typography.h>
-#include <native_drawing/drawing_text_declaration.h>
-#include <native_drawing/drawing_font_collection.h>
+#include "a2ui/utils/a2ui_measure_mode.h"
+#include "a2ui/utils/a2ui_drawing_guard.h"
 
 extern float gFontWeightScale;
 
-#if defined(FLOAT_EQUAL)
-#undef FLOAT_EQUAL
-#endif
-#define FLOAT_EQUAL(a, b) (std::isnan(a) || std::isnan(b) ? false : std::abs(a - b) < std::numeric_limits<float>::epsilon())
 namespace a2ui {
+
+inline bool floatEqual(float a, float b) {
+    if (std::isnan(a) || std::isnan(b)) return false;
+    return std::abs(a - b) < std::numeric_limits<float>::epsilon();
+}
 
 
 constexpr std::string_view kstr_line_through = "line-through";
@@ -196,7 +194,7 @@ public:
         } else if (textOverflow == NODE_PROPERTY_TEXT_OVERFLOW_HEAD) {
             fixTextOverflow = ELLIPSIS_MODAL_HEAD;
         } else {
-            assert(false); // This path should be unreachable.
+            HM_LOGW("[measure] convertToHMLayoutTextOverflow: unknown textOverflow=%d, defaulting to TAIL", textOverflow);
         }
         return fixTextOverflow;
     }
@@ -228,20 +226,21 @@ public:
             maxWidth = width;
             break;
         case MeasureMode::MeasureModeUndefined:
-            maxWidth = 9999.f;
+            maxWidth = a2ui::kUnlimitedWidth;
             break;
         default:
             std::abort();
         }
 
         OH_Drawing_TypographyStyle *typoStyle = OH_Drawing_CreateTypographyStyle();
+        TypoStyleGuard typoStyleGuard(typoStyle);
         OH_Drawing_SetTypographyTextDirection(typoStyle, TEXT_DIRECTION_LTR);
         OH_Drawing_SetTypographyTextAlign(typoStyle, convertToHMLayoutTextAlign(param.textAlign));
         int maxLines = width > 0 ? param.maxLines : 1;
         if (height > 0 && param.fontSize * 2 > height && maxLines == INT32_MAX) {
             maxLines = 1;
         }
-        
+
         OH_Drawing_SetTypographyTextMaxLines(typoStyle, maxLines);
 
         switch (param.textOverflow) {
@@ -260,12 +259,14 @@ public:
         case css::TextOverflow_undefined:
             break;
         }
-        OH_Drawing_FontCollection *fontCollection = nullptr;
-        if (!fontCollection) {
-            fontCollection = OH_Drawing_CreateSharedFontCollection();
-        }
+        OH_Drawing_FontCollection *fontCollection = OH_Drawing_CreateSharedFontCollection();
+        FontCollGuard fontCollGuard(fontCollection);
         OH_Drawing_TypographyCreate *handler = OH_Drawing_CreateTypographyHandler(typoStyle, fontCollection);
-        assert(handler);
+        if (!handler) {
+            HM_LOGE("[measure] OH_Drawing_CreateTypographyHandler returned null");
+            return result;
+        }
+        TypoHandlerGuard handlerGuard(handler);
         MeasureTextStyle rootTextStyle = convertTextStyle(param);
         float maxRichTextHeight = 0.0;
         if (param.isRichtext) {
@@ -297,12 +298,14 @@ public:
         }
 
         OH_Drawing_Typography *typography = OH_Drawing_CreateTypography(handler);
+        TypographyGuard typographyGuard(typography);
         OH_Drawing_TypographyLayout(typography, maxWidth);
 
         baseLine = static_cast<float>(ceil(OH_Drawing_TypographyGetAlphabeticBaseline(typography)));
 
         // Populate result.countOfLines as cumulative per-line character counts.
         OH_Drawing_LineMetrics *lineMetrics = OH_Drawing_TypographyGetLineMetrics(typography);
+        LineMetricsGuard lineMetricsGuard(lineMetrics);
         int vectorMetrics = OH_Drawing_LineMetricsGetSize(lineMetrics);
         int countOfLines = 0;
         for (int i = 0; i < vectorMetrics; i++) {
@@ -315,7 +318,6 @@ public:
                 descent = metrics.descender;
             }
         }
-        OH_Drawing_DestroyLineMetrics(lineMetrics);
         // Rich text uses GetMaxWidth for more accurate multi-style span measurement, especially with bold text.
         // Plain text uses GetLongestLine with a 2% buffer.
         float measuredWidth = 0.0f;
@@ -355,13 +357,6 @@ public:
         // Compensate slightly when very long rich text underestimates its measured height.
         if (param.isRichtext && result.height > 10000) {
             result.height += 2;
-        }
-
-        OH_Drawing_DestroyTypography(typography);
-        OH_Drawing_DestroyTypographyHandler(handler);
-        OH_Drawing_DestroyTypographyStyle(typoStyle);
-        if (fontCollection) {
-            OH_Drawing_DestroyFontCollection(fontCollection);
         }
 
         return result;
@@ -531,7 +526,7 @@ private:
                     HM_LOGE("[measure] span tag %d unknown.", it._tagID);
                 }
             }
-            index = index + (int)sub_span.text.size();
+            index = index + static_cast<int>(sub_span.text.size());
             sub_span.end = index;
             sub_span.style.isMultLineHeight = param.isMultLineHeight;
             sub_span.style.lineHeight = param.lineHeight;
@@ -563,16 +558,15 @@ private:
         OH_Drawing_TextStyle *ohTextStyle = OH_Drawing_CreateTextStyle();
         OH_Drawing_SetTextStyleFontSize(ohTextStyle, textStyle.fontSize);
         
-        int fontWeight = convertToHMLayoutFontWeight(textStyle.fontWeight);
+        OH_Drawing_FontWeight fontWeight = convertToHMLayoutFontWeight(textStyle.fontWeight);
         OH_Drawing_SetTextStyleFontWeight(ohTextStyle, fontWeight);
-        // fontWeight * fontWeightScale prevents clipped text when bold weight increases glyph width.
-        OH_Drawing_TextStyleAddFontVariation(ohTextStyle, "wght", convertToRealFontWeightValue(static_cast<OH_Drawing_FontWeight>(fontWeight)) * gFontWeightScale);
+        OH_Drawing_TextStyleAddFontVariation(ohTextStyle, "wght", convertToRealFontWeightValue(fontWeight) * gFontWeightScale);
         
         OH_Drawing_SetTextStyleBaseLine(ohTextStyle, TEXT_BASELINE_ALPHABETIC);
         if (!textStyle.isMultLineHeight) {
             // Handle absolute line height by converting it to a font-size multiplier.
             OH_Drawing_SetTextStyleFontHeight(ohTextStyle, textStyle.lineHeight / textStyle.fontSize);
-        } else if (!FLOAT_EQUAL(textStyle.lineHeight, 1.0)) {
+        } else if (!floatEqual(textStyle.lineHeight, 1.0f)) {
             OH_Drawing_SetTextStyleFontHeight(ohTextStyle, textStyle.lineHeight);
         }
         OH_Drawing_SetTextStyleLetterSpacing(ohTextStyle, textStyle.letterSpacing);

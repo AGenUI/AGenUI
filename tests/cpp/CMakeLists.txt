@@ -302,19 +302,44 @@ set(AGENUI_TESTS_COMPILE_DEFS
 )
 
 # ---- 8.1 Unit + Integration + Stress + Sanitizer/ASan ----
-file(GLOB_RECURSE _INTEGRATION_SOURCES integration/*.cpp)
-file(GLOB_RECURSE _UNIT_SOURCES        unit/*.cpp)
-file(GLOB_RECURSE _STRESS_SOURCES      stress/*.cpp)
-file(GLOB         _ASAN_SOURCES        sanitizer/memory_safety_test.cpp)
+file(GLOB_RECURSE _INTEGRATION_SOURCES        integration/*.cpp)
+file(GLOB_RECURSE _UNIT_CORE_SOURCES          core/*.cpp)
+file(GLOB_RECURSE _UNIT_FUNCTION_CALL_SOURCES function_call/*.cpp)
+file(GLOB_RECURSE _UNIT_HARMONY_SOURCES       harmony/*.cpp)
+file(GLOB_RECURSE _UNIT_MODULE_SOURCES        module/*.cpp)
+file(GLOB_RECURSE _UNIT_STREAM_SOURCES        stream/integration/*.cpp)
+file(GLOB_RECURSE _UNIT_STYLE_PARSER_SOURCES  style_parser/*.cpp)
+file(GLOB_RECURSE _UNIT_SURFACE_SOURCES       surface/*.cpp)
+file(GLOB_RECURSE _STRESS_SOURCES             stress/*.cpp)
+file(GLOB         _ASAN_SOURCES               sanitizer/memory_safety_test.cpp)
+
+# HarmonyOS measure sources (only platform-independent ones)
+set(HARMONY_MEASURE_DIR "${AGENUI_REPO_ROOT}/platforms/harmony/agenui/src/main/cpp/a2ui/measure")
+set(_HARMONY_MEASURE_SOURCES
+    "${HARMONY_MEASURE_DIR}/image_component_measurement.cpp"
+    "${HARMONY_MEASURE_DIR}/divider_component_measurement.cpp"
+)
 
 add_executable(agenui_unit_tests
     main.cpp
     ${_INTEGRATION_SOURCES}
-    ${_UNIT_SOURCES}
+    ${_UNIT_CORE_SOURCES}
+    ${_UNIT_FUNCTION_CALL_SOURCES}
+    ${_UNIT_HARMONY_SOURCES}
+    ${_UNIT_MODULE_SOURCES}
+    ${_UNIT_STREAM_SOURCES}
+    ${_UNIT_STYLE_PARSER_SOURCES}
+    ${_UNIT_SURFACE_SOURCES}
     ${_STRESS_SOURCES}
     ${_ASAN_SOURCES}
+    ${_HARMONY_MEASURE_SOURCES}
 )
-target_include_directories(agenui_unit_tests PRIVATE ${AGENUI_TESTS_INCLUDE_DIRS})
+target_include_directories(agenui_unit_tests PRIVATE
+    ${AGENUI_TESTS_INCLUDE_DIRS}
+    "${HARMONY_MEASURE_DIR}"
+    "${AGENUI_REPO_ROOT}/platforms/harmony/agenui/src/main/cpp/a2ui/utils"
+    "${AGENUI_REPO_ROOT}/platforms/harmony/agenui/src/main/cpp"
+)
 target_compile_definitions(agenui_unit_tests PRIVATE ${AGENUI_TESTS_COMPILE_DEFS})
 target_link_libraries(agenui_unit_tests PRIVATE
     agenui_core_for_test
@@ -353,7 +378,7 @@ endif()
 # MarkdownStreamPlugin, TextStreamPlugin, CompositeStreamPlugin)
 # have been deleted to enforce black-box testing. Streaming behavior
 # is fully covered by the integration tests (in integration/ and
-# unit/stream/integration/) which exercise the public ISurfaceManager
+# stream/integration/) which exercise the public ISurfaceManager
 # API (beginTextStream / receiveTextChunk / endTextStream).
 
 # ---- 8.4 TSan dedicated executable ----

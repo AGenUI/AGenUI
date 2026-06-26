@@ -1,0 +1,22 @@
+{
+  "description": "Chart inside complex flex layout with competing constraints - tests chart sizing",
+  "surfaceId": "stability-chart-layout",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-layout","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-layout","components":[
+      {"id":"root","component":"Column","children":["header","body"],"styles":{"width":"100%","height":"100%"}},
+      {"id":"header","component":"Row","children":["htxt","hbtn"],"styles":{"width":"100%","padding":"8px","justify-content":"space-between","align-items":"center"}},
+      {"id":"htxt","component":"Text","text":"Analytics"},
+      {"id":"hbtn","component":"Button","child":"hbtxt","action":{"functionCall":{"name":"refresh"}}},
+      {"id":"hbtxt","component":"Text","text":"Refresh"},
+      {"id":"body","component":"Row","children":["sidebar","main"],"styles":{"width":"100%","flex-grow":"1"}},
+      {"id":"sidebar","component":"Column","children":["s1","s2","s3"],"styles":{"width":"120px","padding":"8px","gap":"8px"}},
+      {"id":"s1","component":"Text","text":"Overview"},
+      {"id":"s2","component":"Text","text":"Details"},
+      {"id":"s3","component":"Text","text":"Export"},
+      {"id":"main","component":"Column","children":["ch1","ch2"],"styles":{"flex-grow":"1","padding":"8px","gap":"8px"}},
+      {"id":"ch1","component":"Chart","properties":{"chartType":"line","data":{"labels":["1","2","3","4","5"],"datasets":[{"label":"Series","data":[10,40,30,50,20]}]}},"styles":{"width":"100%","height":"200px","min-height":"150px"}},
+      {"id":"ch2","component":"Chart","properties":{"chartType":"bar","data":{"labels":["A","B","C"],"datasets":[{"label":"Values","data":[100,200,300]}]}},"styles":{"width":"100%","flex-grow":"1","min-height":"100px","max-height":"300px"}}
+    ]}}
+  ]
+}

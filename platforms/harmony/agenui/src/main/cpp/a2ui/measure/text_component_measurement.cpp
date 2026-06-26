@@ -2,6 +2,7 @@
 #include "hm_text_measure_utils.h"
 #include "nlohmann/json.hpp"
 #include "a2ui/third_party/key_define.h"
+#include "a2ui/utils/a2ui_measure_mode.h"
 #include <climits>
 #include <cstdlib>
 #include <algorithm>
@@ -56,9 +57,9 @@ agenui::MeasureResult TextComponentMeasurement::measure(const std::string& param
 
     auto toMode = [](int m) -> MeasureMode {
         switch (m) {
-            case 1:  return MeasureModeExactly;
-            case 2:  return MeasureModeAtMost;
-            default: return MeasureModeUndefined;
+            case a2ui::kModeExactly:     return MeasureModeExactly;
+            case a2ui::kModeAtMost:      return MeasureModeAtMost;
+            default:                     return MeasureModeUndefined;
         }
     };
 

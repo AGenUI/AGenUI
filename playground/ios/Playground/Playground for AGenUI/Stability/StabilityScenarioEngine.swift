@@ -12,6 +12,7 @@ enum StabilityScenario: String, CaseIterable {
     case interruptRecover = "INTERRUPT_RECOVER"
     case extremeRender = "EXTREME_RENDER"
     case sdkRobustness = "SDK_ROBUSTNESS"
+    case sdkInterfaceStability = "SDK_INTERFACE_STABILITY"
 
     // Realistic scenarios (10 new)
     case realisticArticleStream = "REALISTIC_ARTICLE_STREAM"
@@ -45,7 +46,8 @@ enum StabilityScenario: String, CaseIterable {
     var isStress: Bool {
         switch self {
         case .sessionStorm, .streamMarathon, .multiSurface, .actionFlood,
-             .themeSwitch, .interruptRecover, .extremeRender, .sdkRobustness:
+             .themeSwitch, .interruptRecover, .extremeRender, .sdkRobustness,
+             .sdkInterfaceStability:
             return true
         default:
             return false
@@ -94,6 +96,7 @@ struct ScenarioRoundResult {
 /// Executes stress scenarios against the AGenUI SDK.
 class StabilityScenarioEngine {
     private var fixtureFiles: [String: [String]] = [:]
+    private var interfaceLogger: InterfaceLogger?
     private let fixtureCategories = [
         "extreme_components", "extreme_data", "extreme_stream",
         "extreme_lifecycle", "extreme_interaction"
@@ -101,6 +104,18 @@ class StabilityScenarioEngine {
 
     init() {
         loadFixtureManifest()
+    }
+
+    func setFixtureFilter(_ filter: [String]) {
+        guard !filter.isEmpty else { return }
+        for (category, files) in fixtureFiles {
+            fixtureFiles[category] = files.filter { path in
+                filter.contains(where: { path == $0 || path.hasSuffix("/\($0)") })
+            }
+        }
+        fixtureFiles = fixtureFiles.filter { !$0.value.isEmpty }
+        let total = fixtureFiles.values.reduce(0) { $0 + $1.count }
+        NSLog("[StabilityEngine] Fixture filter applied: %d files retained", total)
     }
 
     private func loadFixtureManifest() {
@@ -160,6 +175,9 @@ class StabilityScenarioEngine {
                 return ScenarioRoundResult(fixture: fixture, error: nil)
             case .sdkRobustness:
                 let result = executeSdkRobustness()
+                return ScenarioRoundResult(fixture: result, error: nil)
+            case .sdkInterfaceStability:
+                let result = executeSdkInterfaceStability()
                 return ScenarioRoundResult(fixture: result, error: nil)
             default:
                 return ScenarioRoundResult(fixture: nil, error: "\(scenario.rawValue) not handled by StabilityScenarioEngine")
@@ -507,6 +525,141 @@ class StabilityScenarioEngine {
         return summary
     }
 
+    /// SDK interface stability — repeated and interleaved public API usage.
+    /// Focus is on crash/freeze resistance rather than semantic correctness.
+    private func executeSdkInterfaceStability() -> String {
+        var results: [String] = []
+        var passed = 0
+        let total = 10
+
+        autoreleasepool {
+            let ok = AGenUISDK.registerDefaultTheme(buildThemeJSON("ffffff"), designToken: buildDesignTokenJSON("#ffffff"))
+            let invalidTheme = AGenUISDK.registerDefaultTheme("{invalid", designToken: buildDesignTokenJSON("#000000"))
+            let invalidToken = AGenUISDK.registerDefaultTheme(buildThemeJSON("000000"), designToken: "{invalid")
+            passed += 1
+            results.append("I1:OK(ok=\(ok.result),invalidTheme=\(invalidTheme.result),invalidToken=\(invalidToken.result))")
+        }
+
+        autoreleasepool {
+            let valid = AGenUISDK.setPathConfig("{\"templateDir\":\"/tmp/agenui-stability\"}")
+            let invalid = AGenUISDK.setPathConfig("{invalid")
+            passed += 1
+            results.append("I2:OK(valid=\(valid.result),invalid=\(invalid.result))")
+        }
+
+        autoreleasepool {
+            interfaceLogger = InterfaceLogger()
+            AGenUISDK.setCustomLogger(interfaceLogger)
+            for level in 0...5 {
+                if let swiftLevel = Logger.Level(rawValue: level) {
+                    AGenUISDK.setMinLogLevel(swiftLevel)
+                    let observed = AGenUISDK.getMinLogLevel()
+                    if observed.rawValue != level {
+                        interfaceLogger?.appendSignal("mismatch:\(level)->\(observed.rawValue)")
+                    }
+                }
+            }
+            let signals = interfaceLogger?.snapshotSignals() ?? []
+            AGenUISDK.setCustomLogger(nil)
+            interfaceLogger = nil
+            passed += 1
+            results.append("I3:OK(\(signals.isEmpty ? "stable" : signals.joined(separator: ";")))") 
+        }
+
+        autoreleasepool {
+            var version = ""
+            for _ in 0..<20 {
+                version = AGenUISDK.getVersion()
+            }
+            passed += 1
+            results.append("I4:OK(\(version.isEmpty ? "empty" : version))")
+        }
+
+        autoreleasepool {
+            for i in 0..<20 {
+                AGenUISDK.setDayNightMode(i % 2 == 0 ? "light" : "dark")
+            }
+            AGenUISDK.setDayNightMode("invalid-mode")
+            passed += 1
+            results.append("I5:OK")
+        }
+
+        autoreleasepool {
+            let sm = SurfaceManager()
+            sm.beginTextStream()
+            sm.receiveTextChunk(buildCreateSurfaceJSON(surfaceId: "i6-surf"))
+            sm.endTextStream()
+            for _ in 0..<10 {
+                sm.invalidateFunctionCallValues()
+            }
+            passed += 1
+            results.append("I6:OK")
+        }
+
+        autoreleasepool {
+            let sm = SurfaceManager()
+            let listener = InterfaceListener()
+            sm.addListener(listener)
+            sm.beginTextStream()
+            sm.receiveTextChunk(buildCreateSurfaceJSON(surfaceId: "i7-surf"))
+            sm.receiveTextChunk(buildDeleteSurfaceJSON(surfaceId: "i7-surf"))
+            sm.endTextStream()
+            sm.removeListener(listener)
+            passed += 1
+            results.append("I7:OK(\(listener.lastEvent))")
+        }
+
+        autoreleasepool {
+            let sm = SurfaceManager()
+            sm.beginTextStream()
+            sm.receiveTextChunk(buildCreateSurfaceJSON(surfaceId: "i8-a"))
+            sm.receiveTextChunk(buildCreateSurfaceJSON(surfaceId: "i8-b"))
+            sm.endTextStream()
+            sm.beginTextStream()
+            sm.receiveTextChunk(buildDeleteSurfaceJSON(surfaceId: "i8-a"))
+            sm.receiveTextChunk(buildDeleteSurfaceJSON(surfaceId: "i8-b"))
+            sm.endTextStream()
+            passed += 1
+            results.append("I8:OK")
+        }
+
+        autoreleasepool {
+            for i in 0..<8 {
+                let sm = SurfaceManager()
+                sm.beginTextStream()
+                sm.receiveTextChunk(buildCreateSurfaceJSON(surfaceId: "i9-\(i)"))
+                sm.endTextStream()
+                AGenUISDK.setDayNightMode(i % 2 == 0 ? "light" : "dark")
+                sm.invalidateFunctionCallValues()
+                sm.removeAllListeners()
+            }
+            passed += 1
+            results.append("I9:OK")
+        }
+
+        autoreleasepool {
+            interfaceLogger = InterfaceLogger()
+            AGenUISDK.setCustomLogger(interfaceLogger)
+            let sm = SurfaceManager()
+            let listener = InterfaceListener()
+            sm.addListener(listener)
+            sm.beginTextStream()
+            sm.receiveTextChunk(buildCreateSurfaceJSON(surfaceId: "i10-surf"))
+            sm.receiveTextChunk(buildDeleteSurfaceJSON(surfaceId: "i10-surf"))
+            sm.endTextStream()
+            sm.removeListener(listener)
+            let logCount = interfaceLogger?.snapshotSignals().count ?? 0
+            AGenUISDK.setCustomLogger(nil)
+            interfaceLogger = nil
+            passed += 1
+            results.append("I10:OK(events=\(listener.lastEvent),logs=\(logCount))")
+        }
+
+        let summary = "sdk_interface_stability[\(results.joined(separator: ","))] \(passed)/\(total) passed"
+        NSLog("[StabilityEngine] %@", summary)
+        return summary
+    }
+
     // MARK: - JSON Builders
 
     private func buildCreateSurfaceJSON(surfaceId: String) -> String {
@@ -538,10 +691,56 @@ class StabilityScenarioEngine {
         {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json","sendDataModel":true}}
         """
     }
+
+    private func buildThemeJSON(_ colorHexWithoutHash: String) -> String {
+        return """
+        {"colors":{"textPrimary":"#\(colorHexWithoutHash)","backgroundPrimary":"#\(colorHexWithoutHash)"}}
+        """
+    }
+
+    private func buildDesignTokenJSON(_ colorHex: String) -> String {
+        return """
+        {"color":{"text":{"primary":"\(colorHex)"},"bg":{"primary":"\(colorHex)"}}}
+        """
+    }
 }
 
 /// Helper listener for SDK robustness testing
 private class RobustnessListener: NSObject, SurfaceManagerListener {
     func onCreateSurface(_ surface: Surface) {}
     func onDeleteSurface(_ surface: Surface) {}
+}
+
+private final class InterfaceListener: NSObject, SurfaceManagerListener {
+    var lastEvent = "none"
+
+    func onCreateSurface(_ surface: Surface) {
+        lastEvent = "created"
+    }
+
+    func onDeleteSurface(_ surface: Surface) {
+        lastEvent = "deleted"
+    }
+}
+
+private final class InterfaceLogger: NSObject, LoggerDelegate {
+    private let lock = NSLock()
+    private var storedSignals: [String] = []
+
+    func appendSignal(_ signal: String) {
+        lock.lock()
+        storedSignals.append(signal)
+        lock.unlock()
+    }
+
+    func snapshotSignals() -> [String] {
+        lock.lock()
+        let snapshot = storedSignals
+        lock.unlock()
+        return snapshot
+    }
+
+    func onLog(level: Logger.Level, tag: String, func: String, line: Int, message: String) {
+        appendSignal("\(level.rawValue)")
+    }
 }

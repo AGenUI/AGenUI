@@ -1,0 +1,49 @@
+{
+  "description": "Many different component types in a single surface to test yoga layout with heterogeneous measurement callbacks",
+  "surfaceId": "many_mixed_components",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "many_mixed_components",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "many_mixed_components",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["sec1", "div1", "sec2", "div2", "sec3", "div3", "sec4"], "styles": {"width": "100%", "gap": "8px", "padding": "8px"}},
+          {"id": "sec1", "component": "Row", "children": ["txt1", "icon1", "btn1"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "txt1", "component": "Text", "text": "Header", "styles": {"flex-grow": "1"}},
+          {"id": "icon1", "component": "Icon", "properties": {"icon": "settings"}},
+          {"id": "btn1", "component": "Button", "child": "btn1t"},
+          {"id": "btn1t", "component": "Text", "text": "Action"},
+          {"id": "div1", "component": "Divider"},
+          {"id": "sec2", "component": "Row", "children": ["img1", "card1"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "img1", "component": "Image", "properties": {"url": "https://example.com/photo.png", "width": 120, "height": 120}, "styles": {"width": "120px", "height": "120px"}},
+          {"id": "card1", "component": "Card", "child": "card1-content", "styles": {"flex-grow": "1"}},
+          {"id": "card1-content", "component": "Column", "children": ["card1-title", "card1-desc"], "styles": {"padding": "8px"}},
+          {"id": "card1-title", "component": "Text", "text": "Card Title"},
+          {"id": "card1-desc", "component": "Text", "text": "Card description text"},
+          {"id": "div2", "component": "Divider"},
+          {"id": "sec3", "component": "Column", "children": ["tf1", "cb1", "sl1", "cp1"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "tf1", "component": "TextField", "label": "Input", "value": ""},
+          {"id": "cb1", "component": "CheckBox", "label": "Agree", "value": false},
+          {"id": "sl1", "component": "Slider", "min": 0, "max": 100, "value": 50},
+          {"id": "cp1", "component": "ChoicePicker", "choices": ["Option A", "Option B", "Option C"]},
+          {"id": "div3", "component": "Divider"},
+          {"id": "sec4", "component": "Column", "children": ["md1", "tbl1"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "md1", "component": "Markdown", "content": "### Notes\n\n- Point one\n- Point two\n- Point three"},
+          {"id": "tbl1", "component": "Table", "headers": ["Name", "Value", "Status"], "rows": [["Alpha", "100", "Active"], ["Beta", "200", "Inactive"], ["Gamma", "300", "Pending"]], "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

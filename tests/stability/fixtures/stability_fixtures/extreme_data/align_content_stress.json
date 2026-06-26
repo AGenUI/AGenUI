@@ -1,0 +1,29 @@
+{
+  "description": "All align-content values with flex-wrap - tests cross-axis alignment of wrapped lines",
+  "surfaceId": "stability-align-content",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-align-content","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-align-content","components":[
+      {"id":"root","component":"Column","children":["ac1","ac2","ac3"],"styles":{"width":"100%","gap":"16px","padding":"8px"}},
+      {"id":"ac1","component":"Row","children":["a1a","a1b","a1c","a1d","a1e","a1f"],"styles":{"width":"200px","height":"200px","flex-wrap":"wrap","align-content":"flex-start"}},
+      {"id":"a1a","component":"Text","text":"fs1","styles":{"width":"80px","height":"30px"}},
+      {"id":"a1b","component":"Text","text":"fs2","styles":{"width":"80px","height":"30px"}},
+      {"id":"a1c","component":"Text","text":"fs3","styles":{"width":"80px","height":"30px"}},
+      {"id":"a1d","component":"Text","text":"fs4","styles":{"width":"80px","height":"30px"}},
+      {"id":"a1e","component":"Text","text":"fs5","styles":{"width":"80px","height":"30px"}},
+      {"id":"a1f","component":"Text","text":"fs6","styles":{"width":"80px","height":"30px"}},
+      {"id":"ac2","component":"Row","children":["a2a","a2b","a2c","a2d","a2e","a2f"],"styles":{"width":"200px","height":"200px","flex-wrap":"wrap","align-content":"space-between"}},
+      {"id":"a2a","component":"Text","text":"sb1","styles":{"width":"80px","height":"30px"}},
+      {"id":"a2b","component":"Text","text":"sb2","styles":{"width":"80px","height":"30px"}},
+      {"id":"a2c","component":"Text","text":"sb3","styles":{"width":"80px","height":"30px"}},
+      {"id":"a2d","component":"Text","text":"sb4","styles":{"width":"80px","height":"30px"}},
+      {"id":"a2e","component":"Text","text":"sb5","styles":{"width":"80px","height":"30px"}},
+      {"id":"a2f","component":"Text","text":"sb6","styles":{"width":"80px","height":"30px"}},
+      {"id":"ac3","component":"Row","children":["a3a","a3b","a3c","a3d"],"styles":{"width":"200px","height":"200px","flex-wrap":"wrap","align-content":"stretch"}},
+      {"id":"a3a","component":"Text","text":"st1","styles":{"width":"120px"}},
+      {"id":"a3b","component":"Text","text":"st2","styles":{"width":"120px"}},
+      {"id":"a3c","component":"Text","text":"st3","styles":{"width":"120px"}},
+      {"id":"a3d","component":"Text","text":"st4","styles":{"width":"120px"}}
+    ]}}
+  ]
+}

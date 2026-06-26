@@ -84,6 +84,22 @@ public interface ISurfaceManagerListener {
     }
 
     /**
+     * Callback when a component has appeared on screen.
+     * <p>
+     * Fired when a component (e.g. ListComponent whose child was bound by
+     * RecyclerView) detects display and reports it through the generic display
+     * channel. The host (e.g. AjxA2UIView) typically forwards this to the JS layer.
+     *
+     * @param surface           The Surface the display occurred on;
+     *                          may be {@code null} if the Surface has been destroyed
+     * @param parentComponentId ID of the component that detected the display
+     * @param parentType        Component type name of the detector ("List" / "Carousel" / "Tabs" ...)
+     * @param properties        Display properties as a key-value map
+     */
+    default void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {
+    }
+
+    /**
      * Optional pull callback: return the current size of the given surface in vp units.
      * <p>
      * The engine queries this hook synchronously during the first Yoga layout pass when

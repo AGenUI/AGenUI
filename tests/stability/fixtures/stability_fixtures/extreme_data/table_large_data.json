@@ -1,0 +1,24 @@
+{
+  "description": "Table with 8 columns and 12 rows - tests table layout with large data",
+  "surfaceId": "stability-table-large",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-table-large","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-table-large","components":[
+      {"id":"root","component":"Column","children":["tbl"],"styles":{"width":"100%","padding":"8px"}},
+      {"id":"tbl","component":"Table","properties":{"columns":["ID","Name","Category","Status","Price","Qty","Total","Notes"],"rows":[
+        ["001","Widget A","Cat1","Active","$10","100","$1000","Note 1"],
+        ["002","Widget B","Cat2","Paused","$20","50","$1000","Note 2"],
+        ["003","Widget C","Cat1","Active","$15","200","$3000","Note 3"],
+        ["004","Widget D","Cat3","Closed","$5","500","$2500","Note 4"],
+        ["005","Widget E","Cat2","Active","$30","75","$2250","Note 5"],
+        ["006","Widget F","Cat1","Active","$12","150","$1800","Note 6"],
+        ["007","Widget G","Cat3","Paused","$8","300","$2400","Note 7"],
+        ["008","Widget H","Cat2","Active","$25","80","$2000","Note 8"],
+        ["009","Widget I","Cat1","Closed","$18","120","$2160","Note 9"],
+        ["010","Widget J","Cat3","Active","$22","90","$1980","Note 10"],
+        ["011","Widget K","Cat2","Active","$35","40","$1400","Very long note that contains extra detail"],
+        ["012","Widget L","Cat1","Paused","$7","600","$4200","Final entry"]
+      ]},"styles":{"width":"100%"}}
+    ]}}
+  ]
+}

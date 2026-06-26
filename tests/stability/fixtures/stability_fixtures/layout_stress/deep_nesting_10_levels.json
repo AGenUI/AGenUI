@@ -1,0 +1,38 @@
+{
+  "description": "10 levels of nested Column/Row containers to stress yoga node manager tree traversal and layout delegate recursion",
+  "surfaceId": "deep_nesting_10_levels",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "deep_nesting_10_levels",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "deep_nesting_10_levels",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["d1"], "styles": {"width": "100%", "padding": "4px"}},
+          {"id": "d1", "component": "Row", "children": ["d2"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d2", "component": "Column", "children": ["d3"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d3", "component": "Row", "children": ["d4"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d4", "component": "Column", "children": ["d5"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d5", "component": "Row", "children": ["d6"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d6", "component": "Column", "children": ["d7"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d7", "component": "Row", "children": ["d8"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d8", "component": "Column", "children": ["d9"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d9", "component": "Row", "children": ["d10"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "d10", "component": "Column", "children": ["leaf"], "styles": {"width": "100%", "padding": "4px", "flex-grow": "1"}},
+          {"id": "leaf", "component": "Text", "text": "Leaf at depth 10", "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

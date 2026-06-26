@@ -16,7 +16,7 @@ namespace a2ui {
  *   - filter: CSS filter, currently supporting "drop-shadow(offsetX offsetY blur color)"
  *   - elevation: reserved legacy field, replaced by filter
  */
-class CardComponent : public A2UIComponent {
+class CardComponent final : public A2UIComponent {
 public:
     CardComponent(const std::string& id, const nlohmann::json& properties);
     ~CardComponent() override;

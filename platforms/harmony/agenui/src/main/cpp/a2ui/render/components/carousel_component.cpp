@@ -108,7 +108,7 @@ CarouselComponent::~CarouselComponent() {
 
 // ---- destroy ----
 
-void CarouselComponent::destroy() {
+void CarouselComponent::onDestroy() {
     HM_LOGI("id=%s", m_id.c_str());
 
     // Unregister the swiper change event.
@@ -127,7 +127,6 @@ void CarouselComponent::destroy() {
         m_indicatorContainerHandle = nullptr;
     }
 
-    A2UIComponent::destroy();
 }
 
 // ---- Property Updates ----
@@ -321,8 +320,6 @@ void CarouselComponent::updateIndicatorSelection(int32_t index) {
 // ---- applyAutoPlay ----
 
 void CarouselComponent::applyAutoPlay(const nlohmann::json& properties) {
-    bool changed = false;
-
     if (properties.contains("autoplay")) {
         bool autoplay = false;
         if (properties["autoplay"].is_boolean()) {
@@ -337,11 +334,8 @@ void CarouselComponent::applyAutoPlay(const nlohmann::json& properties) {
             speed = properties["autoplaySpeed"].get<int32_t>();
         }
         A2UISwiperNode(m_swiperHandle).setInterval(speed);
-        changed = true;
         HM_LOGI("autoplaySpeed=%d, id=%s", speed, m_id.c_str());
     }
-
-    (void)changed;
 }
 
 // ---- applyDraggable ----
@@ -374,7 +368,7 @@ void CarouselComponent::onSwiperChangeEvent(ArkUI_NodeEvent* event) {
 
     // Read the current page index from the event.
     ArkUI_NodeComponentEvent* componentEvent = OH_ArkUI_NodeEvent_GetNodeComponentEvent(event);
-    if (!componentEvent) {
+    if (!componentEvent || componentEvent->data[0].i32 < 0) {
         return;
     }
 

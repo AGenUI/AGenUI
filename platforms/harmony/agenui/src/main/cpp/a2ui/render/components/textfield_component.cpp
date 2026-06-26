@@ -1,13 +1,13 @@
 #include "textfield_component.h"
 #include "../a2ui_node.h"
 #include "a2ui/utils/a2ui_color_palette.h"
+#include "a2ui/utils/a2ui_parse_utils.h"
 #include "a2ui/utils/a2ui_padding_utils.h"  // CSS padding shorthand parser
 
 #include "log/a2ui_capi_log.h"
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 
 namespace a2ui {
 
@@ -22,24 +22,6 @@ constexpr uint32_t kValidationErrorColor = 0xFFFF4D4F;
 constexpr const char* kDefaultValidationMessage = "Invalid input format.";
 
 /**
- * @brief Extract a string from a JSON value.
- * @param value JSON value, either a plain string or a DynamicString object.
- * @return The extracted string, or an empty string on failure.
- */
-static std::string extractStringValue(const nlohmann::json& value) {
-    if (value.is_string()) {
-        return value.get<std::string>();
-    }
-
-    // DynamicString format: {"literalString": "..."}
-    if (value.is_object() && value.contains("literalString") && value["literalString"].is_string()) {
-        return value["literalString"].get<std::string>();
-    }
-
-    return "";
-}
-
-/**
  * @brief Parse a CSS-like size string.
  * @param sizeStr Size string such as "10px" or "10".
  * @return Parsed numeric value.
@@ -51,69 +33,7 @@ static float parseSizeValue(const std::string& sizeStr) {
 
     const size_t pxPos = sizeStr.rfind("px");
     const std::string numericValue = (pxPos != std::string::npos) ? sizeStr.substr(0, pxPos) : sizeStr;
-    return static_cast<float>(std::atof(numericValue.c_str()));
-}
-
-/**
- * Extract the raw URL from a CSS url(...) value.
- * Supported formats:
- *   url(https://example.com/image.png)
- *   url('https://example.com/image.png')
- *   url("https://example.com/image.png")
- * Returns the original string when the value is not a url(...) expression.
- *
- * NOTE: Verbatim copy of the file-local helper in
- * platforms/harmony/agenui/src/main/cpp/a2ui/render/a2ui_component.cpp.
- * Kept identical so that fixes to that helper can be ported here directly.
- */
-static std::string extractUrlFromCssUrl(const std::string& value) {
-    if (value.empty()) {
-        return "";
-    }
-
-    size_t start = 0;
-    while (start < value.size() && (value[start] == ' ' || value[start] == '\t')) {
-        start++;
-    }
-
-    if (value.compare(start, 4, "url(") != 0) {
-        return value;
-    }
-
-    size_t parenStart = start + 3;
-    while (parenStart < value.size() && value[parenStart] != '(') {
-        parenStart++;
-    }
-    if (parenStart >= value.size()) {
-        return value;
-    }
-    parenStart++;
-
-    while (parenStart < value.size() && (value[parenStart] == ' ' || value[parenStart] == '\t')) {
-        parenStart++;
-    }
-
-    size_t parenEnd = value.rfind(')');
-    if (parenEnd == std::string::npos || parenEnd <= parenStart) {
-        return value;
-    }
-
-    std::string inner = value.substr(parenStart, parenEnd - parenStart);
-
-    size_t innerEnd = inner.size();
-    while (innerEnd > 0 && (inner[innerEnd - 1] == ' ' || inner[innerEnd - 1] == '\t')) {
-        innerEnd--;
-    }
-    inner = inner.substr(0, innerEnd);
-
-    if (inner.size() >= 2) {
-        if ((inner[0] == '"' && inner[inner.size() - 1] == '"') ||
-            (inner[0] == '\'' && inner[inner.size() - 1] == '\'')) {
-            inner = inner.substr(1, inner.size() - 2);
-        }
-    }
-
-    return inner;
+    return parseFloat(numericValue, 0.0f);
 }
 
 /**
@@ -207,7 +127,7 @@ TextFieldComponent::~TextFieldComponent() {
     HM_LOGI("TextFieldComponent - Destroyed: id=%s", m_id.c_str());
 }
 
-void TextFieldComponent::destroy() {
+void TextFieldComponent::onDestroy() {
     if (m_textInputHandle) {
         g_nodeAPI->unregisterNodeEvent(
             m_textInputHandle,
@@ -225,7 +145,6 @@ void TextFieldComponent::destroy() {
         disposeNodeIfNeeded(m_errorTextHandle);
     }
 
-    A2UIComponent::destroy();
 }
 
 void TextFieldComponent::onUpdateProperties(const nlohmann::json& properties) {

@@ -19,22 +19,16 @@
 -keep class * implements com.amap.agenui.function.IFunction { *; }
 
 -keep public interface com.amap.agenui.render.component.IComponentFactory { *; }
--keep class * implements com.amap.agenui.render.component.IComponentFactory { *; }
 
-# IMeasurer is implemented by host components that opt into Yoga measurement
-# via IComponentFactory.getMeasurer().
 -keep public interface com.amap.agenui.render.measurement.IMeasurer { *; }
--keep class * implements com.amap.agenui.render.measurement.IMeasurer { *; }
 
 -keep public interface com.amap.agenui.render.image.ImageLoader { *; }
 -keep class * implements com.amap.agenui.render.image.ImageLoader { *; }
 
 # ── Base classes that host apps extend (custom components) ────────────────────
 -keep public abstract class com.amap.agenui.render.component.A2UIComponent { public protected *; }
--keep class * extends com.amap.agenui.render.component.A2UIComponent { *; }
 
 -keep public abstract class com.amap.agenui.render.component.A2UILayoutComponent { public protected *; }
--keep class * extends com.amap.agenui.render.component.A2UILayoutComponent { *; }
 
 # ── Data / callback classes used in public API ────────────────────────────────
 -keep public class com.amap.agenui.function.FunctionConfig { *; }

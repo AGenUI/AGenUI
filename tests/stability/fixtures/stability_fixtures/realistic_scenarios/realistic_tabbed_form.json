@@ -1,0 +1,54 @@
+{
+  "description": "Realistic tabbed form with validation-like updates — targets realistic_tab_navigation and tabs yoga helper",
+  "surfaceId": "realistic_tabbed_form",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "realistic_tabbed_form",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "realistic_tabbed_form",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "tabs", "footer"], "styles": {"width": "100%", "height": "700px", "padding": "16px", "gap": "12px"}},
+          {"id": "title", "component": "Text", "text": "Registration Form"},
+          {"id": "tabs", "component": "Tabs", "tabs": [
+            {"label": "Personal", "child": "personal"},
+            {"label": "Address", "child": "address"},
+            {"label": "Preferences", "child": "prefs"}
+          ], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "personal", "component": "Column", "children": ["p-name", "p-email", "p-phone", "p-dob"], "styles": {"width": "100%", "padding": "12px", "gap": "12px"}},
+          {"id": "p-name", "component": "TextField", "label": "Full Name", "value": ""},
+          {"id": "p-email", "component": "TextField", "label": "Email Address", "value": ""},
+          {"id": "p-phone", "component": "TextField", "label": "Phone Number", "value": ""},
+          {"id": "p-dob", "component": "DateTimeInput", "label": "Date of Birth"},
+          {"id": "address", "component": "Column", "children": ["a-street", "a-row", "a-country"], "styles": {"width": "100%", "padding": "12px", "gap": "12px"}},
+          {"id": "a-street", "component": "TextField", "label": "Street Address", "value": ""},
+          {"id": "a-row", "component": "Row", "children": ["a-city", "a-zip"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "a-city", "component": "TextField", "label": "City", "value": "", "styles": {"flex-grow": "2"}},
+          {"id": "a-zip", "component": "TextField", "label": "ZIP Code", "value": "", "styles": {"flex-grow": "1"}},
+          {"id": "a-country", "component": "ChoicePicker", "choices": ["United States", "Canada", "United Kingdom", "Germany", "France", "Japan", "Australia"]},
+          {"id": "prefs", "component": "Column", "children": ["pr-notify", "pr-theme", "pr-lang", "pr-volume"], "styles": {"width": "100%", "padding": "12px", "gap": "12px"}},
+          {"id": "pr-notify", "component": "CheckBox", "label": "Enable email notifications", "value": true},
+          {"id": "pr-theme", "component": "ChoicePicker", "choices": ["Light", "Dark", "System"]},
+          {"id": "pr-lang", "component": "ChoicePicker", "choices": ["English", "Spanish", "French", "German", "Japanese", "Chinese"]},
+          {"id": "pr-volume", "component": "Slider", "min": 0, "max": 100, "value": 75},
+          {"id": "footer", "component": "Row", "children": ["cancel-btn", "submit-btn"], "styles": {"width": "100%", "justify-content": "flex-end", "gap": "12px"}},
+          {"id": "cancel-btn", "component": "Button", "child": "cancel-text"},
+          {"id": "cancel-text", "component": "Text", "text": "Cancel"},
+          {"id": "submit-btn", "component": "Button", "child": "submit-text"},
+          {"id": "submit-text", "component": "Text", "text": "Submit"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

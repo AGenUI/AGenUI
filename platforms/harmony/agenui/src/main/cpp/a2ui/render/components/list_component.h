@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../a2ui_component.h"
-#include <vector>
+#include <unordered_map>
 
 namespace a2ui {
 
@@ -19,7 +19,7 @@ namespace a2ui {
  *   - align:      Cross-axis alignment - start (default), center, end, stretch
  *   - scrollable: Scrollable - true (default), false
  */
-class ListComponent : public A2UIComponent {
+class ListComponent final : public A2UIComponent {
 public:
     ListComponent(const std::string& id, const nlohmann::json& properties);
     ~ListComponent() override;
@@ -45,7 +45,7 @@ public:
      * Horizontal list: y = Yoga align-items offset; x is always 0.
      */
     void onApplyChildPosition(A2UIComponent* child, float x, float y) override;
-    virtual void onChildLayoutSizeChanged(A2UIComponent* child) override;
+    void onChildLayoutSizeChanged(A2UIComponent* child) override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
@@ -64,10 +64,34 @@ private:
     void removeListItemWrapper(ArkUI_NodeHandle childHandle);
 
     // Maps child handle -> ListItem handle
-    std::vector<std::pair<ArkUI_NodeHandle, ArkUI_NodeHandle>> m_listItemWrappers;
+    std::unordered_map<ArkUI_NodeHandle, ArkUI_NodeHandle> m_listItemWrappers;
     bool m_scrollable = true;
     bool m_horizontal = false;
     std::string m_align = "stretch";
+    float m_paddingRight = 0.0f;
+    float m_paddingBottom = 0.0f;
+
+    void parseContainerPadding(const nlohmann::json& properties);
+
+    // ---- NodeAdapter (horizontal list lazy-load / recycling) ----
+    // When m_adapterActive is true, the List uses OH_ArkUI_NodeAdapter to
+    // create ListItem wrappers on-demand (only for visible items) and
+    // recycle them when they scroll out of the viewport.  Vertical lists
+    // keep the eager addChild path and are completely unaffected.
+    ArkUI_NodeAdapterHandle m_adapter = nullptr;
+    bool m_adapterActive = false;
+
+    void setupNodeAdapter();
+    void teardownNodeAdapter();
+    void migrateToAdapterMode();
+    void migrateToEagerMode();
+
+    // Static callback registered with OH_ArkUI_NodeAdapter_RegisterEventReceiver.
+    static void onAdapterEvent(ArkUI_NodeAdapterEvent* event);
+
+    // Helpers invoked from onAdapterEvent (instance methods).
+    void handleAdapterAddNode(uint32_t index, ArkUI_NodeAdapterEvent* event);
+    void handleAdapterRemoveNode(ArkUI_NodeHandle listItemHandle);
 };
 
 } // namespace a2ui

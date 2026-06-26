@@ -3,6 +3,7 @@
 #include <arkui/native_node_napi.h>
 #include <atomic>
 #include <cstdlib>
+#include <mutex>
 #include <sstream>
 #include <vector>
 
@@ -54,12 +55,13 @@ float clampOpacity(float value) {
 
 A2UIComponent::A2UIComponent(const std::string &id, const std::string &componentType)
     : m_id(id), m_componentType(componentType), m_state(nullptr), m_parent(nullptr), m_nodeHandle(nullptr) {
-    if (!g_nodeAPI) {
+    static std::once_flag s_nodeApiOnce;
+    std::call_once(s_nodeApiOnce, [] {
         OH_ArkUI_GetModuleInterface(ARKUI_NATIVE_NODE, ArkUI_NativeNodeAPI_1, g_nodeAPI);
         if (g_nodeAPI == nullptr) {
             HM_LOGE("Fatal: Failed to get ArkUI NativeNodeAPI_1");
         }
-    }
+    });
 }
 
 A2UIComponent::~A2UIComponent() {
@@ -141,11 +143,11 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
             width = stylesJson.value("width", 0.0f);
             height = stylesJson.value("height", 0.0f);
             
-            if (stylesJson.contains("styleInfo")) {
+            if (stylesJson.contains("styleInfo") && stylesJson["styleInfo"].is_string()) {
                 m_styleInfo = stylesJson["styleInfo"].get<std::string>();
             }
             
-            HM_LOGD(" styles: %s", m_id.c_str(), stylesJson.dump().c_str());
+            HM_LOGD("[%s] styles: %s", m_id.c_str(), stylesJson.dump().c_str());
             
             
             m_x = posX;
@@ -167,13 +169,6 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
             if (m_parent) {
                 m_parent->onChildLayoutSizeChanged(this);
             }
-#if 0
-            const float kDebugBorderWidth = 1.0f;
-            const uint32_t kDebugBorderColorRed = 0xFFFF0000;
-            getNode().setBorderWidth(kDebugBorderWidth, kDebugBorderWidth, kDebugBorderWidth, kDebugBorderWidth);
-            getNode().setBorderColor(kDebugBorderColorRed);
-            getNode().setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
-#endif
             HM_LOGI("Updated layout for component %s: x=%.1f, y=%.1f, width=%.1f, height=%.1f", m_id.c_str(), posX, posY, width, height);
             
             // Apply the background-image style
@@ -193,7 +188,7 @@ void A2UIComponent::updateView() {
     const auto& dirtyProps = m_state->getDirtyProperties();
     const auto& properties = m_state->getProperties();
     
-    HM_LOGD(" updating %zu dirty properties", m_id.c_str(), dirtyProps.size());
+    HM_LOGD("[%s] updating %zu dirty properties", m_id.c_str(), dirtyProps.size());
     
     for (const auto& key : dirtyProps) {
         if (properties.contains(key)) {
@@ -236,6 +231,9 @@ void A2UIComponent::removeChild(A2UIComponent* child) {
 void A2UIComponent::removeChildById(const std::string& childId) {
     for (auto it = m_children.begin(); it != m_children.end(); ++it) {
         if ((*it)->m_id == childId) {
+            if (m_nodeHandle && (*it)->m_nodeHandle) {
+                g_nodeAPI->removeChild(m_nodeHandle, (*it)->getNodeHandle());
+            }
             (*it)->m_parent = nullptr;
             m_children.erase(it);
             HM_LOGI("Parent %s removed child %s", m_id.c_str(), childId.c_str());
@@ -246,6 +244,8 @@ void A2UIComponent::removeChildById(const std::string& childId) {
 
 void A2UIComponent::destroy() {
     HM_LOGI("Destroying component %s (type: %s, children: %zu)", m_id.c_str(), m_componentType.c_str(), m_children.size());
+
+    onDestroy();
 
     for (A2UIComponent* child : m_children) {
         if (child) {
@@ -349,7 +349,7 @@ void A2UIComponent::playAppearAnimationIfNeeded() {
 }
 
 void A2UIComponent::onUpdateProperty(const std::string& key, const nlohmann::json& value) {
-    HM_LOGD(" property '%s' (base class, no-op)", m_id.c_str(), key.c_str());
+    HM_LOGD("[%s] property '%s' (base class, no-op)", m_id.c_str(), key.c_str());
 }
 
 void A2UIComponent::onUpdateProperties(const nlohmann::json& properties) {
@@ -399,7 +399,7 @@ void A2UIComponent::onActionClickCallback(ArkUI_NodeEvent* event) {
 
     if (component->m_properties.contains("action") && component->m_properties["action"].is_object()) {
         const auto& actionDef = component->m_properties["action"];
-        HM_LOGI("Dispatching action: %s", actionDef.dump().c_str());
+        HM_LOGD("Dispatching action: %s", actionDef.dump().c_str());
         component->dispatchAction(actionDef);
     } else {
         HM_LOGW("No action defined for component: %s", component->m_id.c_str());
@@ -438,6 +438,26 @@ void A2UIComponent::dispatchAction(const nlohmann::json& actionDef) {
     } else {
         HM_LOGE("instanceId not found for surfaceId=%s", m_surfaceId.c_str());
     }
+}
+
+void A2UIComponent::notifyAppeared(const std::string& parentType, const nlohmann::json& properties) {
+    if (properties.empty()) {
+        return;
+    }
+    if (m_surfaceId.empty()) {
+        HM_LOGW("notifyAppeared: surfaceId is empty, id=%s", m_id.c_str());
+        return;
+    }
+
+    agenui::A2UIMessageListener* listener =
+        agenui::A2UIMessageListener::findListenerBySurfaceId(m_surfaceId);
+    if (!listener) {
+        HM_LOGW("notifyAppeared: listener not found for surfaceId=%s", m_surfaceId.c_str());
+        return;
+    }
+
+    listener->dispatchComponentAppeared(
+        m_surfaceId, m_id, parentType, properties.dump());
 }
 
 void A2UIComponent::syncState(const nlohmann::json& changeJson) {
@@ -637,7 +657,7 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
         std::string currentUrl   = bgImageUrl;
         std::string componentId  = m_id;
 
-        std::string requestId = ImageLoaderBridge::getInstance().loadImage(
+        std::string requestId = ImageLoaderBridge::getInstance().loadImage({
             bgImageUrl,
             getWidth(),
             getHeight(),
@@ -661,7 +681,7 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
                 HM_LOGI("bg image_loader: success(PixelMap set), componentId=%s url=%s",
                     componentId.c_str(), currentUrl.c_str());
             }
-        );
+        });
 
         if (requestId.empty()) {
             HM_LOGW("bg image_loader: loadImage failed, fallback ArkUI, componentId=%s", m_id.c_str());
@@ -823,76 +843,5 @@ void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
         }
     }
 }
-
-/**
- * DEPRECATED: CSS padding is handled by Yoga layout engine; applying it
- * on native ArkUI nodes causes double-counting (Yoga layout dimensions
- * already include padding).  All former callers (RichTextComponent,
- * ButtonComponent, ListComponent) have been updated to NOT call this.
- * Kept for reference only.
- */
-#if 0
-void A2UIComponent::applyPaddingStyles(const nlohmann::json& properties) {
-    if (!m_nodeHandle) {
-        return;
-    }
-    
-    if (!properties.contains("styles") || !properties["styles"].is_object()) {
-        return;
-    }
-    
-    const auto& styles = properties["styles"];
-    if (!styles.contains("padding")) {
-        return;
-    }
-    
-    A2UINode node(m_nodeHandle);
-    const auto& paddingVal = styles["padding"];
-    
-    float paddingTop = 0.0f;
-    float paddingRight = 0.0f;
-    float paddingBottom = 0.0f;
-    float paddingLeft = 0.0f;
-    
-    if (paddingVal.is_string()) {
-        // Parse CSS shorthand format like "10 20 30 40"
-        std::string paddingStr = paddingVal.get<std::string>();
-        // Remove "px" suffix if present
-        size_t pxPos = paddingStr.find("px");
-        if (pxPos != std::string::npos) {
-            paddingStr = paddingStr.substr(0, pxPos);
-        }
-        
-        std::vector<float> values;
-        std::istringstream stream(paddingStr);
-        std::string token;
-        while (stream >> token) {
-            values.push_back(static_cast<float>(std::atof(token.c_str())));
-        }
-        
-        if (values.size() == 1) {
-            paddingTop = paddingRight = paddingBottom = paddingLeft = values[0];
-        } else if (values.size() == 2) {
-            paddingTop = paddingBottom = values[0];
-            paddingRight = paddingLeft = values[1];
-        } else if (values.size() == 3) {
-            paddingTop = values[0];
-            paddingRight = paddingLeft = values[1];
-            paddingBottom = values[2];
-        } else if (values.size() >= 4) {
-            paddingTop = values[0];
-            paddingRight = values[1];
-            paddingBottom = values[2];
-            paddingLeft = values[3];
-        }
-    } else if (paddingVal.is_number()) {
-        // Single numeric value
-        const float pad = paddingVal.get<float>();
-        paddingTop = paddingRight = paddingBottom = paddingLeft = pad;
-    }
-    
-    node.setPadding(paddingTop, paddingRight, paddingBottom, paddingLeft);
-}
-#endif
 
 } // namespace a2ui

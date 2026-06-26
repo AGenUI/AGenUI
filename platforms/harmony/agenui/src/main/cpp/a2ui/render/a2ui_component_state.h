@@ -25,7 +25,7 @@ enum class UpdateType {
 
 class UpdateState {
 public:
-	UpdateState(UpdateType type) : m_type(type), m_property(0) {
+	explicit UpdateState(UpdateType type) : m_type(type), m_property(0) {
 	}
 
     UpdateState(UpdateType type, int property) : m_type(type), m_property(property) {

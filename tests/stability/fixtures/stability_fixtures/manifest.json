@@ -3,7 +3,7 @@
   "description": "AGenUI SDK Stability Test Fixtures - Extreme scenarios for long-running stability testing",
   "categories": {
     "extreme_components": {
-      "count": 10,
+      "count": 64,
       "files": [
         "100_components.json",
         "all_types_mixed.json",
@@ -14,11 +14,443 @@
         "many_buttons_50.json",
         "nested_cards_10.json",
         "unicode_emoji.json",
-        "wide_row_30.json"
+        "wide_row_30.json",
+        {
+          "name": "thirty_text_components.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "modal_nested_layout.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "many_mixed_components.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "bold_weight_boundary.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "list_with_mixed_items.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "many_text_components.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "list_horizontal_direction.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "missing_required_props.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "list_deferred_children_deep.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "list_many_children_cache.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "tabs_heavy_content.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "empty_containers.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "carousel_with_complex_items.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "icon_edge_cases.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "table_large_dataset.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "conflicting_min_max.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "mixed_layout_modes.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "text_align_center_bottom.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "text_align_all_variants.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "aspect_ratio_conflict.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "flex_grow_fixed_max.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "gone_children_layout.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "extreme_large_values.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "absolute_in_flex.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "zero_dimensions.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "negative_margins.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "empty_list_no_children.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "deep_nested_layout.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "nested_list_lazy_child.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "overflow_hidden_large.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "list_vertical_many_items.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "fractional_precision.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "multi_update_same_id.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "type_change_same_id.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "component_add_remove.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "error_recovery_flow.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "chart_dashboard.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "mixed_dashboard.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "long_list_streaming.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "form_with_validation.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "empty_required_props.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "card_deeply_nested.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "list_many_items.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "mixed_position_absolute.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "flex_wrap_many_items.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "modal_complex_content.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "web_in_modal.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "extreme_zero_dimensions.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "lottie_in_list.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "video_multiple_instances.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "row_rtl_direction.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "overflow_hidden_large_child.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "carousel_many_slides.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "audio_multiple.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
       ]
     },
     "extreme_data": {
-      "count": 8,
+      "count": 20,
       "files": [
         "array_1000.json",
         "binding_many_paths.json",
@@ -27,7 +459,103 @@
         "large_datamodel.json",
         "multiple_updates_20.json",
         "overwrite_components_10.json",
-        "special_chars.json"
+        "special_chars.json",
+        {
+          "name": "align_content_stress.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "extreme_conflicting_minmax.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "table_large_data.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "extreme_huge_values.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "fractional_flex.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "text_extreme_length.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "column_mixed_flex_fixed.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "padding_overflow_clash.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "flex_grow_shrink_conflict.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "slider_boundary.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "percentage_deep_nested.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "aspect_ratio_vs_explicit.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
       ]
     },
     "extreme_stream": {
@@ -42,29 +570,101 @@
       ]
     },
     "extreme_lifecycle": {
-      "count": 6,
+      "count": 13,
       "files": [
         "concurrent_operations.json",
         "double_create.json",
         "immediate_destroy.json",
         "multi_surface_20.json",
         "out_of_order.json",
-        "rapid_create_destroy.json"
+        "rapid_create_destroy.json",
+        {
+          "name": "rapid_component_churn.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "same_id_multi_update.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "property_swap_stress.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "tree_restructure.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "property_hot_swap_image.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "multiple_update_same_id.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "component_add_remove_cycle.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        }
       ]
     },
     "extreme_interaction": {
-      "count": 6,
+      "count": 8,
       "files": [
         "action_complex_args.json",
         "concurrent_sync.json",
         "many_function_types.json",
         "nested_functions_10.json",
         "rapid_actions.json",
-        "validation_storm.json"
+        "validation_storm.json",
+        {
+          "name": "multi_update_same_id.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "display_none_children.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
       ]
     },
     "realistic_scenarios": {
-      "count": 10,
+      "count": 21,
       "description": "Realistic user scenarios with visible UI rendering and timed steps",
       "files": [
         "article_stream.json",
@@ -76,9 +676,517 @@
         "tab_navigation.json",
         "lottie_carousel.json",
         "mixed_dashboard.json",
-        "error_recovery.json"
+        "error_recovery.json",
+        {
+          "name": "realistic_page_switch.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "realistic_tabbed_form.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "chart_rapid_data_refresh.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "error_recovery_workflow.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "mixed_dashboard_complex.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "chart_in_tabs.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "chart_complex_layout.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "dashboard_nested_layout.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "dashboard_all_components.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "dashboard_cards_grid.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "chart_multi_update.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-17",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
       ]
+    },
+    "layout_stress": {
+      "files": [
+        {
+          "name": "wide_column_30_children.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "mixed_absolute_flex.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "flex_wrap_many_items.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "deep_nesting_10_levels.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "wide_row_25_children.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "nested_row_column_grid.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "percentage_deep_nested.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
+      ],
+      "description": "AI-generated layout_stress fixtures",
+      "count": 7
+    },
+    "boundary_values": {
+      "files": [
+        {
+          "name": "fractional_flex_precision.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "empty_required_props.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "extreme_large_values.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "zero_dimensions.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "zero_flex_basis_grow.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "negative_margins.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "extreme_padding_border.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "max_int_dimensions.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
+      ],
+      "description": "AI-generated boundary_values fixtures",
+      "count": 8
+    },
+    "css_yoga_edge": {
+      "files": [
+        {
+          "name": "direction_rtl_mixed.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "margin_auto_center.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "inset_block_inline.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "display_none_toggle.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "gap_all_variants.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "all_align_combos.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
+      ],
+      "description": "AI-generated css_yoga_edge fixtures",
+      "count": 6
+    },
+    "conflicting_constraints": {
+      "files": [
+        {
+          "name": "flex_grow_fixed_max.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "aspect_ratio_wh_conflict.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "absolute_in_flex_align.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "min_exceeds_max_width.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "min_exceeds_max_height.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "conflicting_flex_properties.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "overflow_hidden_oversized.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
+      ],
+      "description": "AI-generated conflicting_constraints fixtures",
+      "count": 7
+    },
+    "tabs_specific": {
+      "files": [
+        {
+          "name": "tabs_fifteen_tabs.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "tabs_zero_children.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "tabs_with_list_carousel.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "tabs_nested_in_tabs.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "tabs_complex_content.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "explore",
+            "system": "ai-evolving"
+          }
+        }
+      ],
+      "description": "AI-generated tabs_specific fixtures",
+      "count": 5
+    },
+    "extreme_css": {
+      "files": [
+        {
+          "name": "negative_margins_overlap.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "text_align_all_keywords.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "gradient_complex_stops.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "conflicting_min_max_width.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "wide_row_25_children.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "percentage_deep_nesting.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "zero_height_list_items.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "extreme_dimensions_99999.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "absolute_inside_flex.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "flex_grow_fixed_maxwidth.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "display_none_in_list.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "text_align_horizontal_drop_vertical.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "fractional_flex_percentages.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "overflow_hidden_oversized.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        },
+        {
+          "name": "aspect_ratio_vs_explicit.json",
+          "ai_metadata": {
+            "generated_date": "2026-06-16",
+            "mode": "diff",
+            "system": "ai-evolving"
+          }
+        }
+      ],
+      "description": "AI-generated extreme_css fixtures",
+      "count": 15
     }
   },
-  "total_fixtures": 46
+  "total_fixtures": 180
 }

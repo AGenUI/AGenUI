@@ -1,0 +1,37 @@
+{
+  "description": "Nested containers with List inside Column to exercise shouldCreateChildView and createChildViews deferred creation path in A2UILayoutComponent",
+  "surfaceId": "nested-list-lazy-child",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "nested-list-lazy-child",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "nested-list-lazy-child",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["header", "list1"], "styles": {"width": "100%"}},
+          {"id": "header", "component": "Text", "text": "List Header", "styles": {"width": "100%", "height": "48px", "padding": "8px"}},
+          {"id": "list1", "component": "List", "children": ["card1", "card2", "card3"], "styles": {"width": "100%", "height": "300px"}},
+          {"id": "card1", "component": "Card", "children": ["card1-col"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "card1-col", "component": "Column", "children": ["card1-title", "card1-desc", "card1-row"], "styles": {"width": "100%"}},
+          {"id": "card1-title", "component": "Text", "text": "Card 1 Title", "styles": {"width": "100%"}},
+          {"id": "card1-desc", "component": "Text", "text": "Description for card 1 with nested layout", "styles": {"width": "100%"}},
+          {"id": "card1-row", "component": "Row", "children": ["card1-btn1", "card1-btn2"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "card1-btn1", "component": "Button", "label": "Action 1"},
+          {"id": "card1-btn2", "component": "Button", "label": "Action 2"},
+          {"id": "card2", "component": "Card", "children": ["card2-inner"], "styles": {"width": "100%", "padding": "12px", "margin-bottom": "8px"}},
+          {"id": "card2-inner", "component": "Column", "children": ["card2-img", "card2-text"], "styles": {"width": "100%"}},
+          {"id": "card2-img", "component": "Image", "src": "https://example.com/photo.jpg", "styles": {"width": "100%", "height": "120px"}},
+          {"id": "card2-text", "component": "Text", "text": "Card 2 with image"},
+          {"id": "card3", "component": "Card", "children": ["card3-text"], "styles": {"width": "100%", "padding": "12px"}},
+          {"id": "card3-text", "component": "Text", "text": "Card 3 simple content"}
+        ]
+      }
+    }
+  ]
+}

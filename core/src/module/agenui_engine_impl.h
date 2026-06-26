@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <atomic>
+#include <mutex>
 
 namespace agenui {
 
@@ -72,8 +73,9 @@ private:
     TemplateRegistry* _templateRegistry = nullptr;
     PathConfig* _pathConfig = nullptr;
 
-    // Multi-instance SurfaceManager map
+    // Multi-instance SurfaceManager map; guarded by _surfaceManagersMutex.
     std::map<int32_t, std::shared_ptr<SurfaceManager>> _surfaceManagers;
+    mutable std::mutex _surfaceManagersMutex;
     std::atomic<int32_t> _nextInstanceId{1};
 
     // Shared MeasurementManager (engine-level singleton)

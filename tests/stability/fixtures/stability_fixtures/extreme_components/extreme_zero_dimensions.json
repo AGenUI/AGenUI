@@ -1,0 +1,18 @@
+{
+  "description": "Components with zero width and height - tests Yoga layout with degenerate dimensions",
+  "surfaceId": "stability-zero-dims",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-zero-dims","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-zero-dims","components":[
+      {"id":"root","component":"Column","children":["z1","z2","z3","z4","z5"],"styles":{"width":"100%","padding":"8px"}},
+      {"id":"z1","component":"Text","text":"Zero width text","styles":{"width":"0"}},
+      {"id":"z2","component":"Image","properties":{"url":"https://example.com/img.png","width":0,"height":0},"styles":{"width":"0","height":"0"}},
+      {"id":"z3","component":"Row","children":["z3a","z3b"],"styles":{"width":"0","height":"0"}},
+      {"id":"z3a","component":"Text","text":"Inside zero row","styles":{"flex-grow":"1"}},
+      {"id":"z3b","component":"Icon","icon":"star","styles":{"width":"0","height":"0"}},
+      {"id":"z4","component":"Column","children":["z4a"],"styles":{"width":"0","height":"0","overflow":"hidden"}},
+      {"id":"z4a","component":"Text","text":"Hidden in zero column"},
+      {"id":"z5","component":"Divider","styles":{"width":"0","height":"0"}}
+    ]}}
+  ]
+}

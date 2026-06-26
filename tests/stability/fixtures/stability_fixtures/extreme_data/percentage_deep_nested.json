@@ -1,0 +1,16 @@
+{
+  "description": "Percentage widths/heights through 6 levels of nesting - tests percentage resolution chain",
+  "surfaceId": "stability-pct-deep",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-pct-deep","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-pct-deep","components":[
+      {"id":"l0","component":"Column","children":["l1"],"styles":{"width":"100%","height":"600px"}},
+      {"id":"l1","component":"Column","children":["l2"],"styles":{"width":"90%","height":"90%","padding":"4px"}},
+      {"id":"l2","component":"Row","children":["l3"],"styles":{"width":"80%","height":"80%","padding":"4px"}},
+      {"id":"l3","component":"Column","children":["l4"],"styles":{"width":"70%","height":"70%","padding":"4px"}},
+      {"id":"l4","component":"Row","children":["l5"],"styles":{"width":"60%","height":"60%","padding":"4px"}},
+      {"id":"l5","component":"Column","children":["l6"],"styles":{"width":"50%","height":"50%","padding":"4px"}},
+      {"id":"l6","component":"Text","text":"50% of 60% of 70% of 80% of 90% of 100%","styles":{"width":"100%","height":"100%"}}
+    ]}}
+  ]
+}

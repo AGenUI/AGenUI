@@ -104,8 +104,12 @@ private:
     /// Extracts the incremental content from buffer[fromPos, toPos); when toPos==npos reads to end and handles trailing odd backslash.
     std::string extractDelta(const std::string& buffer, size_t fromPos, size_t toPos) const;
 
-    /// Builds a textChunk component JSON using the cached _cachedComponentId and the delta text.
+    /// Builds a textChunk component JSON using the cached _cachedComponentId, the delta text, and any cached extra fields.
     std::string buildAppendTextChunkJson(const std::string& delta) const;
+
+    /// Caches post-text fields (e.g., "styles") from a complete component JSON
+    /// for inclusion in subsequent textChunk JSONs via buildAppendTextChunkJson.
+    void cacheExtraFieldsFromComponent(const std::string& componentJson);
 
     // ---- DataModel nested path helpers ----
 
@@ -145,6 +149,7 @@ private:
     size_t _textValueStart = 0;           // Start position of the text value
     size_t _lastSentContentEnd = 0;       // Buffer end position of the last sent content
     std::string _cachedComponentId;       // Cached component id during streaming (raw JSON-encoded)
+    std::string _cachedExtraFields;        // Post-text fields as raw JSON key-value pairs (e.g., "styles":{...})
 
     // ---- DataModel streaming state ----
     bool _isDataModelStreaming = false;

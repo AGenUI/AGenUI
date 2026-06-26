@@ -111,34 +111,10 @@ public class ComponentRegistry {
         initialized = true;
         AGenUILogger.d(TAG, "registerBuiltInComponents");
 
-        registerComponent("Text", new com.amap.agenui.render.component.factory.TextComponentFactory());
-        registerComponent("Image", new com.amap.agenui.render.component.factory.ImageComponentFactory());
-        registerComponent("Icon", new com.amap.agenui.render.component.factory.IconComponentFactory());
-        registerComponent("Divider", new com.amap.agenui.render.component.factory.DividerComponentFactory());
-        registerComponent("Video", new com.amap.agenui.render.component.factory.VideoComponentFactory());
-        registerComponent("AudioPlayer", new com.amap.agenui.render.component.factory.AudioPlayerComponentFactory());
-
-        registerComponent("Row", new com.amap.agenui.render.component.factory.RowComponentFactory());
-        registerComponent("Column", new com.amap.agenui.render.component.factory.ColumnComponentFactory());
-        registerComponent("Card", new com.amap.agenui.render.component.factory.CardComponentFactory());
-        registerComponent("List", new com.amap.agenui.render.component.factory.ListComponentFactory());
-        registerComponent("Tabs", new com.amap.agenui.render.component.factory.TabsComponentFactory());
-        registerComponent("Modal", new com.amap.agenui.render.component.factory.ModalComponentFactory());
-
-        registerComponent("Button", new com.amap.agenui.render.component.factory.ButtonComponentFactory());
-        registerComponent("TextField", new com.amap.agenui.render.component.factory.TextFieldComponentFactory());
-        registerComponent("CheckBox", new com.amap.agenui.render.component.factory.CheckBoxComponentFactory());
-        registerComponent("Slider", new com.amap.agenui.render.component.factory.SliderComponentFactory());
-        registerComponent("ChoicePicker", new com.amap.agenui.render.component.factory.ChoicePickerComponentFactory());
-        registerComponent("DateTimeInput", new com.amap.agenui.render.component.factory.DateTimeInputComponentFactory());
-
-        registerComponent("Table", new com.amap.agenui.render.component.factory.TableComponentFactory());
-        registerComponent("Carousel", new com.amap.agenui.render.component.factory.CarouselComponentFactory());
-        registerComponent("Web", new com.amap.agenui.render.component.factory.WebComponentFactory());
-        registerComponent("RichText", new com.amap.agenui.render.component.factory.RichTextComponentFactory());
+        BuiltInComponentRegistrar.registerAll();
 
         if (AGenUILogger.isLoggingEnabled()) {
-            AGenUILogger.d(TAG, "Built-in components registered: " + factories.size() + "/22 ✅ All done");
+            AGenUILogger.d(TAG, "Built-in components registered: " + factories.size() + " ✅ All done");
         }
     }
 

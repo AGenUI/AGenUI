@@ -1,0 +1,36 @@
+{
+  "description": "Extreme large dimension values to stress yoga layout computation and overflow handling",
+  "surfaceId": "extreme_large_values",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "extreme_large_values",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "extreme_large_values",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["r1", "r2", "r3", "r4", "r5", "r6"], "styles": {"width": "100%"}},
+          {"id": "r1", "component": "Text", "text": "Giant width", "styles": {"width": "99999px", "height": "50px"}},
+          {"id": "r2", "component": "Text", "text": "Giant height", "styles": {"width": "100px", "height": "99999px"}},
+          {"id": "r3", "component": "Row", "children": ["r3a", "r3b"], "styles": {"margin": "10000px", "padding": "10000px"}},
+          {"id": "r3a", "component": "Text", "text": "Extreme margin child"},
+          {"id": "r3b", "component": "Text", "text": "Sibling"},
+          {"id": "r4", "component": "Column", "children": ["r4a"], "styles": {"width": "99999px", "height": "99999px", "gap": "9999px"}},
+          {"id": "r4a", "component": "Text", "text": "Inside huge container"},
+          {"id": "r5", "component": "Text", "text": "Extreme min/max", "styles": {"min-width": "99999px", "max-height": "99999px"}},
+          {"id": "r6", "component": "Image", "properties": {"url": "https://example.com/big.png", "width": 99999, "height": 99999}, "styles": {"width": "99999px", "height": "99999px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

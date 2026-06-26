@@ -1,0 +1,51 @@
+{
+  "description": "Complex mixed dashboard with Tabs, List, Card, Chart, and nested layouts — layout stress under realistic content composition",
+  "surfaceId": "mixed-dashboard",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "mixed-dashboard",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "mixed-dashboard",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["header", "tabs"], "styles": {"width": "100%"}},
+          {"id": "header", "component": "Row", "children": ["logo", "title", "menu-btn"], "styles": {"width": "100%", "height": "56px", "align-items": "center", "padding": "8px", "gap": "8px"}},
+          {"id": "logo", "component": "Icon", "icon": "home", "styles": {"width": "32px", "height": "32px"}},
+          {"id": "title", "component": "Text", "text": "Dashboard", "styles": {"flex-grow": "1"}},
+          {"id": "menu-btn", "component": "Button", "label": "Settings"},
+          {"id": "tabs", "component": "Tabs", "children": ["tab-overview", "tab-data", "tab-settings"], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "tab-overview", "component": "Column", "children": ["overview-cards", "overview-list"], "label": "Overview", "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "overview-cards", "component": "Row", "children": ["oc1", "oc2"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "oc1", "component": "Card", "children": ["oc1-text"], "styles": {"flex-grow": "1", "padding": "16px"}},
+          {"id": "oc1-text", "component": "Text", "text": "Active: 1,234"},
+          {"id": "oc2", "component": "Card", "children": ["oc2-text"], "styles": {"flex-grow": "1", "padding": "16px"}},
+          {"id": "oc2-text", "component": "Text", "text": "Revenue: $56K"},
+          {"id": "overview-list", "component": "List", "children": ["ol1", "ol2", "ol3", "ol4", "ol5"], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "ol1", "component": "Row", "children": ["ol1-icon", "ol1-text"], "styles": {"width": "100%", "height": "48px", "align-items": "center", "padding": "8px", "gap": "8px"}},
+          {"id": "ol1-icon", "component": "Icon", "icon": "info", "styles": {"width": "24px", "height": "24px"}},
+          {"id": "ol1-text", "component": "Text", "text": "Server status: OK"},
+          {"id": "ol2", "component": "Row", "children": ["ol2-icon", "ol2-text"], "styles": {"width": "100%", "height": "48px", "align-items": "center", "padding": "8px", "gap": "8px"}},
+          {"id": "ol2-icon", "component": "Icon", "icon": "warning", "styles": {"width": "24px", "height": "24px"}},
+          {"id": "ol2-text", "component": "Text", "text": "Memory: 85%"},
+          {"id": "ol3", "component": "Row", "children": ["ol3-text"], "styles": {"width": "100%", "height": "48px", "padding": "8px"}},
+          {"id": "ol3-text", "component": "Text", "text": "CPU: 42%"},
+          {"id": "ol4", "component": "Row", "children": ["ol4-text"], "styles": {"width": "100%", "height": "48px", "padding": "8px"}},
+          {"id": "ol4-text", "component": "Text", "text": "Disk: 67%"},
+          {"id": "ol5", "component": "Row", "children": ["ol5-text"], "styles": {"width": "100%", "height": "48px", "padding": "8px"}},
+          {"id": "ol5-text", "component": "Text", "text": "Network: 12MB/s"},
+          {"id": "tab-data", "component": "Column", "children": ["data-chart"], "label": "Data", "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "data-chart", "component": "Chart", "chartType": "bar", "data": {"labels": ["Mon","Tue","Wed","Thu","Fri"], "datasets": [{"label": "Requests", "data": [420,380,510,475,600]}]}, "styles": {"width": "100%", "height": "250px"}},
+          {"id": "tab-settings", "component": "Column", "children": ["settings-cb", "settings-slider"], "label": "Settings", "styles": {"width": "100%", "padding": "16px", "gap": "16px"}},
+          {"id": "settings-cb", "component": "CheckBox", "label": "Enable notifications", "value": true},
+          {"id": "settings-slider", "component": "Slider", "label": "Refresh rate", "min": 1, "max": 60, "value": 15, "styles": {"width": "100%"}}
+        ]
+      }
+    }
+  ]
+}

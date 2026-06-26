@@ -1,0 +1,33 @@
+{
+  "description": "Tests parseTextAlign dropping vertical token. Diff adds: vertical always Gravity.TOP, second token in 'center bottom' is silently dropped. Positive-hit for h.equals('center') branch and vertical-drop behavior.",
+  "surfaceId": "stability-text-align-drop-vert",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-text-align-drop-vert",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-text-align-drop-vert",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["t1", "t2", "t3", "t4", "t5", "t6"], "styles": {"width": "100%", "padding": "8px", "gap": "4px"}},
+          {"id": "t1", "component": "Text", "text": "center bottom => only center horizontal, TOP vertical", "styles": {"width": "100%", "height": "60px", "text-align": "center bottom"}},
+          {"id": "t2", "component": "Text", "text": "left top => only left horizontal, TOP vertical", "styles": {"width": "100%", "height": "60px", "text-align": "left top"}},
+          {"id": "t3", "component": "Text", "text": "right bottom => only right horizontal, TOP vertical", "styles": {"width": "100%", "height": "60px", "text-align": "right bottom"}},
+          {"id": "t4", "component": "Text", "text": "center center => only center horizontal, TOP vertical", "styles": {"width": "100%", "height": "60px", "text-align": "center center"}},
+          {"id": "t5", "component": "Text", "text": "start bottom => only start horizontal, TOP vertical", "styles": {"width": "100%", "height": "60px", "text-align": "start bottom"}},
+          {"id": "t6", "component": "Text", "text": "end top => only end horizontal, TOP vertical", "styles": {"width": "100%", "height": "60px", "text-align": "end top"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

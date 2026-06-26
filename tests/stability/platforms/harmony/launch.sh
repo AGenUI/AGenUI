@@ -16,6 +16,7 @@ INTERVAL_MS=100
 CRASH_THRESHOLD=5
 OUTPUT_DIR=""
 DO_INSTALL=false
+FIXTURES=""
 BUNDLE_NAME="com.harmony.agenui"
 ABILITY_NAME="StabilityTestAbility"
 MODULE_NAME="entry"
@@ -29,6 +30,7 @@ while [[ $# -gt 0 ]]; do
         --crash-threshold)  CRASH_THRESHOLD="$2"; shift 2 ;;
         --output-dir)       OUTPUT_DIR="$2"; shift 2 ;;
         --install)          DO_INSTALL=true; shift ;;
+        --fixtures)         FIXTURES="$2"; shift 2 ;;
         *)                  shift ;;
     esac
 done
@@ -118,6 +120,11 @@ echo "[Harmony] Cleared previous crash registry, markers, and logs"
 echo "[Harmony] Starting StabilityTestAbility..."
 echo "[Harmony]   scenario=${SCENARIO}, duration=${DURATION_MIN}min, rounds=${ROUNDS}, interval=${INTERVAL_MS}ms, crash_threshold=${CRASH_THRESHOLD}"
 
+FIXTURES_ARGS=""
+if [[ -n "$FIXTURES" ]]; then
+    FIXTURES_ARGS="--ps fixtures $FIXTURES"
+fi
+
 hdc shell aa start \
     -a "$ABILITY_NAME" \
     -b "$BUNDLE_NAME" \
@@ -126,7 +133,8 @@ hdc shell aa start \
     --pi duration_minutes "$DURATION_MIN" \
     --pi rounds "$ROUNDS" \
     --pi interval_ms "$INTERVAL_MS" \
-    --pi crash_threshold "$CRASH_THRESHOLD"
+    --pi crash_threshold "$CRASH_THRESHOLD" \
+    $FIXTURES_ARGS
 
 sleep 2
 

@@ -4,9 +4,17 @@ plugins {
     alias(libs.plugins.android.library) apply false
 }
 
-def agenuiSdkSource = providers.gradleProperty('agenui.sdk.source').getOrElse('false').toBoolean()
+// Load local.properties (not read by providers.gradleProperty)
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localProps.load(localPropsFile.newDataInputStream())
+}
 
-if (!agenuiSdkSource) {
+def agenuiSdkSource = (localProps.getProperty('agenui.sdk.source') ?: providers.gradleProperty('agenui.sdk.source').getOrElse('false')).toBoolean()
+def skipSdkBuild = (localProps.getProperty('agenui.skip.sdk.build') ?: providers.gradleProperty('agenui.skip.sdk.build').getOrElse('false')).toBoolean()
+
+if (!agenuiSdkSource && !skipSdkBuild) {
     // AAR mode: build the SDK in platforms/android first, then copy the artifact to app/libs/
     tasks.register('buildSdkAar', GradleBuild) {
         dir = file('../../platforms/android')

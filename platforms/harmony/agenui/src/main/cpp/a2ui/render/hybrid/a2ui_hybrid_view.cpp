@@ -114,6 +114,7 @@ void A2UIHybridView::onInvokeEx(const std::string& key, const nlohmann::json& pa
 }
 
 void A2UIHybridView::updateAttributeToHybridView(const std::string &key, const std::string &value) {
+    if (!m_state) return;
     std::vector<UpdateState> updateStates;
     updateStates.emplace_back(UpdateType::AttributeChanged, key);
     nlohmann::json json;

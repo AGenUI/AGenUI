@@ -1,0 +1,64 @@
+{
+  "description": "Component tree structure completely changes between updates — children move between parents to test yoga node manager reparenting",
+  "surfaceId": "tree_restructure",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "tree_restructure",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "tree_restructure",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["left", "right"], "styles": {"width": "100%"}},
+          {"id": "left", "component": "Column", "children": ["a", "b", "c"], "styles": {"width": "50%"}},
+          {"id": "a", "component": "Text", "text": "A in left"},
+          {"id": "b", "component": "Text", "text": "B in left"},
+          {"id": "c", "component": "Text", "text": "C in left"},
+          {"id": "right", "component": "Column", "children": ["d", "e"], "styles": {"width": "50%"}},
+          {"id": "d", "component": "Text", "text": "D in right"},
+          {"id": "e", "component": "Text", "text": "E in right"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "tree_restructure",
+        "components": [
+          {"id": "root", "component": "Row", "children": ["left", "right"], "styles": {"width": "100%"}},
+          {"id": "left", "component": "Column", "children": ["d", "e"], "styles": {"flex-grow": "1"}},
+          {"id": "d", "component": "Text", "text": "D moved to left"},
+          {"id": "e", "component": "Text", "text": "E moved to left"},
+          {"id": "right", "component": "Column", "children": ["a", "b", "c"], "styles": {"flex-grow": "1"}},
+          {"id": "a", "component": "Text", "text": "A moved to right"},
+          {"id": "b", "component": "Text", "text": "B moved to right"},
+          {"id": "c", "component": "Text", "text": "C moved to right"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "tree_restructure",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["a", "b", "c", "d", "e"], "styles": {"width": "100%"}},
+          {"id": "a", "component": "Text", "text": "A flat"},
+          {"id": "b", "component": "Text", "text": "B flat"},
+          {"id": "c", "component": "Text", "text": "C flat"},
+          {"id": "d", "component": "Text", "text": "D flat"},
+          {"id": "e", "component": "Text", "text": "E flat"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

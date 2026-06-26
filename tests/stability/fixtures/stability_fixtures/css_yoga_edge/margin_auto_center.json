@@ -1,0 +1,40 @@
+{
+  "description": "margin:auto for centering in various flex contexts to test yoga value auto margin handling",
+  "surfaceId": "margin_auto_center",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "margin_auto_center",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "margin_auto_center",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["m1", "m2", "m3", "m4"], "styles": {"width": "100%", "height": "600px", "gap": "10px"}},
+          {"id": "m1", "component": "Row", "children": ["m1a"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "m1a", "component": "Text", "text": "Auto margins all", "styles": {"width": "100px", "margin-left": "auto", "margin-right": "auto", "margin-top": "auto", "margin-bottom": "auto"}},
+          {"id": "m2", "component": "Row", "children": ["m2a", "m2b"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "m2a", "component": "Text", "text": "Left auto", "styles": {"margin-left": "auto"}},
+          {"id": "m2b", "component": "Text", "text": "Right auto", "styles": {"margin-right": "auto"}},
+          {"id": "m3", "component": "Column", "children": ["m3a", "m3b", "m3c"], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "m3a", "component": "Text", "text": "Top auto", "styles": {"margin-top": "auto"}},
+          {"id": "m3b", "component": "Text", "text": "Both auto", "styles": {"margin-top": "auto", "margin-bottom": "auto"}},
+          {"id": "m3c", "component": "Text", "text": "Bottom auto", "styles": {"margin-bottom": "auto"}},
+          {"id": "m4", "component": "Row", "children": ["m4a", "m4b", "m4c"], "styles": {"width": "100%", "height": "100px", "flex-wrap": "wrap"}},
+          {"id": "m4a", "component": "Text", "text": "A", "styles": {"width": "40%", "margin-left": "auto"}},
+          {"id": "m4b", "component": "Text", "text": "B", "styles": {"width": "40%", "margin-right": "auto"}},
+          {"id": "m4c", "component": "Text", "text": "C", "styles": {"width": "40%", "margin": "auto"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

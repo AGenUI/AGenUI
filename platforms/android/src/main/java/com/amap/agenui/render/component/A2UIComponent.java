@@ -43,6 +43,13 @@ public abstract class A2UIComponent {
     protected final List<A2UIComponent> children = new ArrayList<>();
 
     /**
+     * Whether this component's createView() has already executed.
+     * Set to true the first time createView() runs; used by the createView guard
+     * to make the call idempotent so RecyclerView re-binds do not re-create the view.
+     */
+    private boolean isViewCreated = false;
+
+    /**
      * The Surface ID this component belongs to.
      * Set by Surface.addComponent().
      *
@@ -56,6 +63,7 @@ public abstract class A2UIComponent {
      */
     private ComponentEventDispatcher componentEventDispatcher;
     private SurfaceLayoutDispatcher surfaceLayoutDispatcher;
+    private ComponentState state;
     private YogaAbsoluteLayout.LayoutState appliedYogaLayout;
 
     /**
@@ -170,23 +178,36 @@ public abstract class A2UIComponent {
      * @return Created View
      */
     public View createView(Context context, ViewGroup parent) {
+        if (isViewCreated) {
+            return view;
+        }
+
         if (view == null) {
             view = onCreateView(context);
+
+            if (view == null) {
+                // onCreateView returned null — do NOT set isViewCreated so that
+                // a subsequent call can retry when the component is ready.
+                return null;
+            }
 
             // Apply initial styles immediately after the View is created.
             // If properties have already been set (updateProperties was called before createView),
             // apply styles now.
-            if (view != null && properties != null && !properties.isEmpty()) {
+            if (properties != null && !properties.isEmpty()) {
                 applyYogaLayout(view, properties, parent, false);
                 applyCommonStyles(view, properties, parent);
             }
 
             // Set a generic click listener (A2UI v0.9 protocol: all components support the action property).
             // If the component has an action property, set a click listener automatically.
-            if (view != null) {
-                setupClickListener(view);
-            }
+            setupClickListener(view);
         }
+
+        // Mark created only after view is confirmed non-null, so that a failed
+        // onCreateView does not permanently block future retry attempts.
+        isViewCreated = true;
+
         return view;
     }
 
@@ -208,29 +229,48 @@ public abstract class A2UIComponent {
     /**
      * Updates component properties (template method).
      *
-     * Execution order:
-     * 1. Save properties
-     * 2. Automatically apply common styles (required for all components)
-     * 3. Update click listener (if an action property is present)
-     * 4. Call the subclass's onUpdateProperties (handle component-specific logic)
+     * <p>First call: initialises {@link ComponentState} and runs the full-apply path
+     * (equivalent to the initial add). Subsequent calls: uses the incremental path —
+     * the diff is compared per-key against the stored values, and processing is
+     * skipped entirely when nothing actually changed.
      *
-     * Note: This method is final; subclasses cannot override it.
-     * Subclasses should implement onUpdateProperties to handle type-specific styles.
+     * <p>Aligned with HarmonyOS {@code A2UIComponent::updateProperties}.
      *
-     * @param properties Properties Map
+     * @param changedProps diff map from the core engine (only changed keys)
      */
-    public final void updateProperties(Map<String, Object> properties) {
-        this.properties.putAll(properties);
+    public final void updateProperties(Map<String, Object> changedProps) {
+        if (state == null) {
+            state = new ComponentState(id);
+        }
+
+        // Per-key compare against stored values; only truly changed keys are marked dirty.
+        state.updateProperties(changedProps);
+
+        // Merge diff into full properties
+        this.properties.putAll(changedProps);
+
+        // Skip the entire apply cycle when nothing actually changed.
+        if (!state.isDirty()) {
+            return;
+        }
 
         if (view != null) {
-            applyYogaLayout(view, this.properties, null, true);
-            applyCommonStyles(view, this.properties);
-            onUpdateProperties(this.properties);
-            // The action property may arrive after createView; set the listener here as a catch-up
-            if (properties.containsKey("action")) {
+            // Re-layout + common styles only when styles changed
+            if (changedProps.containsKey("styles")) {
+                applyYogaLayout(view, changedProps, null, true);
+                applyCommonStyles(view, changedProps);
+            }
+
+            // Subclass diff hook
+            onUpdateProperties(changedProps);
+
+            // Action catch-up
+            if (changedProps.containsKey("action")) {
                 setupClickListener(view);
             }
         }
+
+        state.clearDirty();
     }
 
     /**
@@ -470,9 +510,10 @@ public abstract class A2UIComponent {
      * Subclasses implement this method to process property and style updates
      * (e.g. text, color, fontSize, backgroundColor, padding, etc.).
      *
-     * @param properties Properties Map (includes style properties)
+     * @param changedProps diff map containing only changed keys; use
+     *                     {@code this.properties} for the full merged state
      */
-    protected abstract void onUpdateProperties(Map<String, Object> properties);
+    protected abstract void onUpdateProperties(Map<String, Object> changedProps);
 
 
     public String getId() {
@@ -497,6 +538,29 @@ public abstract class A2UIComponent {
 
     public Map<String, Object> getProperties() {
         return Collections.unmodifiableMap(properties);
+    }
+
+    /**
+     * Whether this component should be created eagerly when its parent calls addChild,
+     * or deferred until it actually becomes visible (lazy-load).
+     *
+     * Default: true. Propagates parent-chain false — once any ancestor returns false,
+     * all descendants return false.
+     *
+     * Containers that want to lazy-load their subtree (such as ListComponent) override
+     * this to return false. Surface.handleChildComponent reads this on the *child*
+     * being added to decide whether to skip createView+addView.
+     */
+    public boolean shouldCreateChildView() {
+        return true;
+    }
+
+    /**
+     * Whether createView() has already executed on this component.
+     * Used by RecyclerView re-bind paths to avoid recreating views.
+     */
+    public boolean isViewCreated() {
+        return isViewCreated;
     }
 
     /**
@@ -631,6 +695,38 @@ public abstract class A2UIComponent {
             return;
         }
         componentEventDispatcher.submitUIDataModel(surfaceId, id, jsonData);
+    }
+
+    /**
+     * Submits a display event for this component, deriving parentComponentId
+     * and parentType from {@link #parent}. Strips "styles" from properties and
+     * injects "id" — aligned with the iOS Component.notifyAppeared() contract.
+     */
+    public final void notifyAppeared() {
+        if (surfaceId == null) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "SurfaceId is null, cannot notifyAppeared for component: " + id);
+            }
+            return;
+        }
+        if (componentEventDispatcher == null) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "ComponentEventDispatcher is null, cannot notifyAppeared for component: " + id);
+            }
+            return;
+        }
+        if (parent == null) {
+            if (AGenUILogger.isLoggingEnabled()) {
+                AGenUILogger.w(TAG, "Parent is null, cannot notifyAppeared for component: " + id);
+            }
+            return;
+        }
+
+        Map<String, Object> props = new HashMap<>(properties);
+        props.remove("styles");
+        props.put("id", id);
+        componentEventDispatcher.notifyAppearedEvent(
+                surfaceId, parent.id, parent.componentType, props);
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)

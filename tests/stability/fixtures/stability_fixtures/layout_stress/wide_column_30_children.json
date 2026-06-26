@@ -1,0 +1,57 @@
+{
+  "description": "Column with 30 children of varying flex properties to stress yoga node manager and layout computation",
+  "surfaceId": "wide_column_30_children",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "wide_column_30_children",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "wide_column_30_children",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["c1","c2","c3","c4","c5","c6","c7","c8","c9","c10","c11","c12","c13","c14","c15","c16","c17","c18","c19","c20","c21","c22","c23","c24","c25","c26","c27","c28","c29","c30"], "styles": {"width": "100%", "gap": "2px"}},
+          {"id": "c1", "component": "Text", "text": "Item 1", "styles": {"flex-grow": "1"}},
+          {"id": "c2", "component": "Divider"},
+          {"id": "c3", "component": "Text", "text": "Item 3", "styles": {"flex-grow": "2"}},
+          {"id": "c4", "component": "Divider"},
+          {"id": "c5", "component": "Text", "text": "Item 5", "styles": {"height": "30px"}},
+          {"id": "c6", "component": "Text", "text": "Item 6", "styles": {"flex-grow": "0.5"}},
+          {"id": "c7", "component": "Divider"},
+          {"id": "c8", "component": "Text", "text": "Item 8", "styles": {"height": "20px"}},
+          {"id": "c9", "component": "Text", "text": "Item 9", "styles": {"flex-grow": "1"}},
+          {"id": "c10", "component": "Divider"},
+          {"id": "c11", "component": "Text", "text": "Item 11", "styles": {"min-height": "40px"}},
+          {"id": "c12", "component": "Text", "text": "Item 12", "styles": {"max-height": "15px"}},
+          {"id": "c13", "component": "Divider"},
+          {"id": "c14", "component": "Text", "text": "Item 14", "styles": {"flex-grow": "3"}},
+          {"id": "c15", "component": "Text", "text": "Item 15", "styles": {"height": "25px"}},
+          {"id": "c16", "component": "Divider"},
+          {"id": "c17", "component": "Text", "text": "Item 17", "styles": {"flex-grow": "1"}},
+          {"id": "c18", "component": "Text", "text": "Item 18", "styles": {"flex-shrink": "0"}},
+          {"id": "c19", "component": "Divider"},
+          {"id": "c20", "component": "Text", "text": "Item 20", "styles": {"height": "35px"}},
+          {"id": "c21", "component": "Text", "text": "Item 21", "styles": {"flex-grow": "1"}},
+          {"id": "c22", "component": "Divider"},
+          {"id": "c23", "component": "Text", "text": "Item 23", "styles": {"flex-basis": "50px"}},
+          {"id": "c24", "component": "Text", "text": "Item 24", "styles": {"flex-grow": "2"}},
+          {"id": "c25", "component": "Divider"},
+          {"id": "c26", "component": "Text", "text": "Item 26", "styles": {"height": "10px"}},
+          {"id": "c27", "component": "Text", "text": "Item 27", "styles": {"flex-grow": "1"}},
+          {"id": "c28", "component": "Divider"},
+          {"id": "c29", "component": "Text", "text": "Item 29", "styles": {"flex-grow": "4"}},
+          {"id": "c30", "component": "Text", "text": "Item 30", "styles": {"height": "40px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

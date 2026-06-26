@@ -109,6 +109,8 @@ Synchronous execution, no UI rendering, focused on extreme operational pressure:
 | Interrupt Recover | `interrupt_recover` | Interrupt mid-stream and recover |
 | Extreme Render | `extreme_render` | Randomly load 36 extreme fixture files for rendering |
 | SDK Robustness | `sdk_robustness` | 12 API misuse defense sub-cases (access after destroy, null params, malformed JSON, etc.) |
+| SDK Interface Stability | `sdk_interface_stability` | Global config, listener, stream, surface, and utility API stability under repeated, interleaved, and edge-case usage |
+| JNI Bridge Race | `jni_bridge_race` | Concurrent set/clear of `nativeSetSurfaceSizeProvider` / `nativeClearSurfaceSizeProvider` while engine worker thread is mid-call into the JNI surface-size bridge — targets cross-thread UAF on the bridge's `_javaHost` global ref |
 
 ### Realistic Scenarios
 

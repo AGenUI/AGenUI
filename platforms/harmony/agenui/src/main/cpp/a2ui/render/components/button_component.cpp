@@ -4,8 +4,6 @@
 #include "log/a2ui_capi_log.h"
 #include <cstdlib>
 #include <cstdio>
-#include <sstream>
-#include <vector>
 
 #undef LOG_DOMAIN
 #undef LOG_TAG
@@ -13,61 +11,6 @@
 #define LOG_TAG "A2UI_ButtonComponent"
 
 namespace a2ui {
-
-namespace {
-
-float parseCssSize(const std::string& value, float fallback = 0.0f) {
-    if (value.empty()) {
-        return fallback;
-    }
-    return static_cast<float>(std::atof(value.c_str()));
-}
-
-// DEPRECATED: applyPaddingStyle was used to apply CSS padding to native ArkUI
-// nodes, but this causes double-counting because Yoga layout dimensions already
-// include padding.  The call site has been commented out.  Kept for reference.
-#if 0
-void applyPaddingStyle(A2UINode& node, const nlohmann::json& styles) {
-    if (!styles.contains("padding") || !styles["padding"].is_string()) {
-        return;
-    }
-
-    std::istringstream stream(styles["padding"].get<std::string>());
-    std::vector<float> values;
-    std::string token;
-    while (stream >> token) {
-        values.push_back(parseCssSize(token, 0.0f));
-    }
-
-    if (values.empty()) {
-        return;
-    }
-
-    float top = 0.0f;
-    float right = 0.0f;
-    float bottom = 0.0f;
-    float left = 0.0f;
-    if (values.size() == 1) {
-        top = right = bottom = left = values[0];
-    } else if (values.size() == 2) {
-        top = bottom = values[0];
-        right = left = values[1];
-    } else if (values.size() == 3) {
-        top = values[0];
-        right = left = values[1];
-        bottom = values[2];
-    } else {
-        top = values[0];
-        right = values[1];
-        bottom = values[2];
-        left = values[3];
-    }
-
-    node.setPadding(top, right, bottom, left);
-}
-#endif
-
-}  // namespace
 
 ButtonComponent::ButtonComponent(const std::string& id, const nlohmann::json& properties)
     : A2UIComponent(id, "Button")
@@ -110,6 +53,11 @@ bool ButtonComponent::shouldApplyChildLayoutPosition(const A2UIComponent* child)
     (void)child;
     // Let the native Stack center the child without Yoga x/y offsets.
     return false;
+}
+
+void ButtonComponent::onApplyChildPosition(A2UIComponent* child, float x, float y) {
+    (void)child; (void)x; (void)y;
+    // No-op: suppress base-class setPosition so that Stack ALIGNMENT_CENTER takes effect.
 }
 
 float ButtonComponent::resolveAppearTargetOpacity(const nlohmann::json& properties) const {
@@ -246,44 +194,6 @@ void ButtonComponent::applyStyles(const nlohmann::json& properties) {
         node.setBorderColor(parseColor(styles["border-color"].get<std::string>()));
     }
 
-    // CSS padding is handled by Yoga layout engine; do NOT apply it again on
-    // the native ArkUI node to avoid double-counting (Yoga already includes
-    // padding in the layout dimensions).  Same approach as TextComponent and
-    // RichTextComponent.
-    // applyPaddingStyle(node, styles);
-
-    // CSS margin is handled by Yoga layout engine; do NOT apply it again on
-    // the native ArkUI node to avoid double-counting (Yoga already includes
-    // margin in the layout positions).  Same approach as padding.
-    // {
-    //     auto parseMarginVal = [&](const char* camel, const char* kebab) -> std::pair<bool, float> {
-    //         std::string val;
-    //         if (styles.contains(camel) && styles[camel].is_string()) {
-    //             val = styles[camel].get<std::string>();
-    //         } else if (styles.contains(kebab) && styles[kebab].is_string()) {
-    //             val = styles[kebab].get<std::string>();
-    //         }
-    //         if (!val.empty()) {
-    //             return {true, static_cast<float>(std::atof(val.c_str()))};
-    //         }
-    //         return {false, 0.0f};
-    //     };
-    //
-    //     auto [hasTop,    mt] = parseMarginVal("marginTop",    "margin-top");
-    //     auto [hasRight,  mr] = parseMarginVal("marginRight",  "margin-right");
-    //     auto [hasBottom, mb] = parseMarginVal("marginBottom", "margin-bottom");
-    //     auto [hasLeft,   ml] = parseMarginVal("marginLeft",   "margin-left");
-    //
-    //     if (hasTop || hasRight || hasBottom || hasLeft) {
-    //         float top = 0.0f, right = 0.0f, bottom = 0.0f, left = 0.0f;
-    //         node.getMargin(top, right, bottom, left);
-    //         if (hasTop)    top    = mt;
-    //         if (hasRight)  right  = mr;
-    //         if (hasBottom) bottom = mb;
-    //         if (hasLeft)   left   = ml;
-    //         node.setMargin(top, right, bottom, left);
-    //     }
-    // }
 }
 
 // ---- Checks ----

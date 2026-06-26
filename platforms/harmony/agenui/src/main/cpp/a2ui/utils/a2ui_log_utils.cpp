@@ -38,7 +38,6 @@ std::string A2UILogUtils::formatComponentBrief(const std::string& componentJson)
                ", w:" + formatNumber(width) +
                ", h:" + formatNumber(height) +
                ", raw:" + componentJson;
-        return "raw:" + componentJson;
     } catch (...) {
         HM_LOGW("formatComponentJson: parse failed, returning raw payload");
         return "raw:" + componentJson;

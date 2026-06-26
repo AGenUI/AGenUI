@@ -25,13 +25,13 @@ namespace a2ui {
  *   - styles.height: numeric vp value, default 200
  *   - styles.margin-top: top margin in vp
  */
-class CarouselComponent : public A2UIComponent {
+class CarouselComponent final : public A2UIComponent {
 public:
     CarouselComponent(const std::string& id, const nlohmann::json& properties);
     ~CarouselComponent() override;
 
     /** Clean internal handles before delegating to the base destroy path. */
-    void destroy() override;
+    void onDestroy() override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;

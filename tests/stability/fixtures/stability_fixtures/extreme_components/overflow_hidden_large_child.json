@@ -1,0 +1,19 @@
+{
+  "description": "overflow:hidden with children 5x larger than parent container - tests clipping",
+  "surfaceId": "stability-overflow-clip",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-overflow-clip","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-overflow-clip","components":[
+      {"id":"root","component":"Column","children":["box1","box2","box3"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
+      {"id":"box1","component":"Column","children":["big1"],"styles":{"width":"100px","height":"100px","overflow":"hidden"}},
+      {"id":"big1","component":"Text","text":"This text is inside a 100x100 hidden overflow box but should be much larger than the container can display properly","styles":{"width":"500px","height":"500px"}},
+      {"id":"box2","component":"Row","children":["big2a","big2b","big2c"],"styles":{"width":"150px","height":"80px","overflow":"hidden"}},
+      {"id":"big2a","component":"Image","properties":{"url":"https://example.com/wide.png","width":400,"height":400},"styles":{"width":"400px","height":"400px"}},
+      {"id":"big2b","component":"Text","text":"Overflowing sibling","styles":{"width":"300px"}},
+      {"id":"big2c","component":"Icon","icon":"arrow","styles":{"width":"200px","height":"200px"}},
+      {"id":"box3","component":"Column","children":["nested"],"styles":{"width":"80px","height":"80px","overflow":"hidden"}},
+      {"id":"nested","component":"Column","children":["deep"],"styles":{"width":"400px","height":"400px","overflow":"hidden"}},
+      {"id":"deep","component":"Text","text":"Double overflow hidden nesting","styles":{"width":"800px","height":"800px"}}
+    ]}}
+  ]
+}

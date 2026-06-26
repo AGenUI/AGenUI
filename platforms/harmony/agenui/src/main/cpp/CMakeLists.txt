@@ -189,6 +189,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(a2ui-capi SHARED
     napi_init.cpp
+    napi_surface.cpp
+    napi_measurement.cpp
+    napi_image.cpp
+    napi_theme.cpp
+    napi_function.cpp
+    napi_text_stream.cpp
+    napi_misc.cpp
     a2ui_api.h
     a2ui_hm_helper.h
     ${AGENUI_SOURCES}

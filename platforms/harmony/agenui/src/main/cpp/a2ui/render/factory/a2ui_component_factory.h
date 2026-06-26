@@ -16,7 +16,7 @@ class A2UIComponent;
  */
 class ComponentFactory {
 public:
-    virtual ~ComponentFactory() {}
+    virtual ~ComponentFactory() = default;
 
     /**
      * Create a component instance.

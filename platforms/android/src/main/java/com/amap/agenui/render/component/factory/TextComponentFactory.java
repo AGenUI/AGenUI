@@ -1,5 +1,6 @@
 package com.amap.agenui.render.component.factory;
 
+import com.amap.agenui.annotation.BuiltInComponent;
 import android.content.Context;
 
 import androidx.annotation.Nullable;
@@ -12,6 +13,7 @@ import com.amap.agenui.render.measurement.TextMeasurer;
 
 import java.util.Map;
 
+@BuiltInComponent
 public class TextComponentFactory implements IComponentFactory {
 
     @Override

@@ -11,7 +11,9 @@ import com.amap.agenui.render.measurement.DateTimeInputMeasurer;
 import com.amap.agenui.render.measurement.IMeasurer;
 
 import java.util.Map;
+import com.amap.agenui.annotation.BuiltInComponent;
 
+@BuiltInComponent
 public class DateTimeInputComponentFactory implements IComponentFactory {
 
     @Override

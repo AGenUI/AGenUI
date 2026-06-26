@@ -1,8 +1,9 @@
 #include "card_component.h"
 #include "../a2ui_node.h"
 #include "a2ui/utils/a2ui_color_palette.h"
+#include "a2ui/utils/a2ui_parse_utils.h"
+#include "a2ui/utils/a2ui_shadow_utils.h"
 #include "log/a2ui_capi_log.h"
-#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -75,20 +76,7 @@ void CardComponent::onUpdateProperties(const nlohmann::json& properties) {
 // ---- CSS Length Parsing ----
 
 float CardComponent::parseCssLength(const nlohmann::json& val, float fallback) {
-    if (val.is_number()) {
-        float f = val.get<float>();
-        return f >= 0.0f ? f : fallback;
-    }
-    if (val.is_string()) {
-        std::string s = val.get<std::string>();
-        // Drop the optional "px" suffix.
-        if (s.size() > 2 && s.substr(s.size() - 2) == "px") {
-            s = s.substr(0, s.size() - 2);
-        }
-        float f = static_cast<float>(std::atof(s.c_str()));
-        return f >= 0.0f ? f : fallback;
-    }
-    return fallback;
+    return a2ui::parseCssLength(val, fallback);
 }
 
 // ---- Radius ----
@@ -141,68 +129,18 @@ void CardComponent::applyFilter(const nlohmann::json& properties) {
 
     std::string filterVal = properties["filter"].get<std::string>();
 
-    // Find the drop-shadow payload.
-    const std::string dsPrefix = "drop-shadow(";
-    size_t dsStart = filterVal.find(dsPrefix);
-    if (dsStart == std::string::npos) return;
-    dsStart += dsPrefix.size();
-
-    size_t dsEnd = filterVal.rfind(')');
-    if (dsEnd == std::string::npos || dsEnd < dsStart) return;
-
-    // Examples:
-    // "10px 10px 16px rgba(0, 0, 0, 0.2)"
-    // "10px 10px 16px 0px rgba(0, 0, 0, 0.2)"
-    std::string inner = filterVal.substr(dsStart, dsEnd - dsStart);
-    const char* p = inner.c_str();
-    char* endPtr;
-
-    auto skipSeparators = [](const char*& cursor) {
-        while (*cursor == ' ' || *cursor == ',') cursor++;
-    };
-
-    auto parseLength = [&](float& outValue) -> bool {
-        skipSeparators(p);
-        outValue = std::strtof(p, &endPtr);
-        if (endPtr == p) return false;
-        p = endPtr;
-        // Skip unit suffixes such as px, vp, or em.
-        while (*p && *p != ' ' && *p != ',' && *p != '(') p++;
-        return true;
-    };
-
-    // Support both 3-length and 4-length drop-shadow forms.
-    float vals[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    for (int i = 0; i < 3; i++) {
-        if (!parseLength(vals[i])) return;
-    }
-
-    // Parse spread when present, but ignore it because ArkUI does not expose it yet.
-    {
-        const char* lookahead = p;
-        skipSeparators(lookahead);
-        if (*lookahead != '\0' && *lookahead != 'r' && *lookahead != '#' && *lookahead != 't') {
-            p = lookahead;
-            if (!parseLength(vals[3])) return;
-        } else {
-            p = lookahead;
-        }
-    }
-
-    // Treat the remaining payload as the color string.
-    skipSeparators(p);
-    std::string colorStr = p;
-    if (colorStr.empty()) return;
+    auto params = parseDropShadow(filterVal);
+    if (!params.valid) return;
 
     // Parse the shadow color.
-    uint32_t color = parseColor(colorStr);
-    if (color == kColorTransparent && colorStr != "#00000000" && colorStr != "rgba(0, 0, 0, 0)" &&
-        colorStr != "rgba(0,0,0,0)" && colorStr != "rgb(0, 0, 0)") {
+    uint32_t color = parseColor(params.colorStr);
+    if (color == kColorTransparent && params.colorStr != "#00000000" && params.colorStr != "rgba(0, 0, 0, 0)" &&
+        params.colorStr != "rgba(0,0,0,0)" && params.colorStr != "rgb(0, 0, 0)") {
         return;
     }
 
     // Apply the shadow.
-    A2UINode(m_nodeHandle).setCustomShadow(vals[2], vals[0], vals[1], color);
+    A2UINode(m_nodeHandle).setCustomShadow(params.blurRadius, params.offsetX, params.offsetY, color);
 }
 
 // ---- Elevation ----

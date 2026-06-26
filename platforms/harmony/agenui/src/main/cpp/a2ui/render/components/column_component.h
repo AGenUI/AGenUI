@@ -12,7 +12,7 @@ namespace a2ui {
  *   - align: cross-axis alignment in the horizontal direction
  *   - styles.background-color / styles.backgroundColor: background color, including #hex and rgba()
  */
-class ColumnComponent : public A2UIComponent {
+class ColumnComponent final : public A2UIComponent {
 public:
     ColumnComponent(const std::string& id, const nlohmann::json& properties);
     ~ColumnComponent() override;
@@ -29,12 +29,6 @@ private:
 
     /** Parse styles and apply background-related attributes. */
     void applyStyles(const nlohmann::json& properties);
-
-    /** Map justify strings to ArkUI enum values. */
-    static int32_t mapJustifyContent(const std::string& justify);
-
-    /** Map align strings to ArkUI enum values. */
-    static int32_t mapAlignItems(const std::string& align);
 };
 
 } // namespace a2ui

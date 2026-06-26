@@ -1,0 +1,79 @@
+{
+  "description": "Rapid component add/remove cycles via multiple updateComponents messages to test yoga node manager tree mutation stability",
+  "surfaceId": "rapid_component_churn",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "rapid_component_churn",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "rapid_component_churn",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["a1", "a2", "a3", "a4", "a5"], "styles": {"width": "100%"}},
+          {"id": "a1", "component": "Text", "text": "Item 1"},
+          {"id": "a2", "component": "Text", "text": "Item 2"},
+          {"id": "a3", "component": "Text", "text": "Item 3"},
+          {"id": "a4", "component": "Text", "text": "Item 4"},
+          {"id": "a5", "component": "Text", "text": "Item 5"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "rapid_component_churn",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["a1", "a3"], "styles": {"width": "100%"}},
+          {"id": "a1", "component": "Text", "text": "Item 1 survived"},
+          {"id": "a3", "component": "Text", "text": "Item 3 survived"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "rapid_component_churn",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8"], "styles": {"width": "100%"}},
+          {"id": "b1", "component": "Text", "text": "New batch 1"},
+          {"id": "b2", "component": "Text", "text": "New batch 2"},
+          {"id": "b3", "component": "Text", "text": "New batch 3"},
+          {"id": "b4", "component": "Text", "text": "New batch 4"},
+          {"id": "b5", "component": "Text", "text": "New batch 5"},
+          {"id": "b6", "component": "Text", "text": "New batch 6"},
+          {"id": "b7", "component": "Text", "text": "New batch 7"},
+          {"id": "b8", "component": "Text", "text": "New batch 8"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "rapid_component_churn",
+        "components": [
+          {"id": "root", "component": "Column", "children": [], "styles": {"width": "100%"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "rapid_component_churn",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["final1"], "styles": {"width": "100%"}},
+          {"id": "final1", "component": "Text", "text": "Final single child after full churn"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

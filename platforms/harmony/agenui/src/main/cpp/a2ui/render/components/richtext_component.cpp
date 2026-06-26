@@ -6,11 +6,11 @@
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
 #include "a2ui/utils/a2ui_unit_utils.h"
 #include "a2ui/utils/a2ui_color_palette.h"
+#include "a2ui/utils/a2ui_shadow_utils.h"
 #include "a2ui/utils/hm_font_utils.h"
 #include "log/a2ui_capi_log.h"
 #include <cstdlib>
 #include <cstring>
-#include <regex>
 
 namespace a2ui {
 
@@ -42,14 +42,13 @@ RichTextComponent::~RichTextComponent() {
     HM_LOGI( "RichTextComponent - Destroyed: id=%s", m_id.c_str());
 }
 
-void RichTextComponent::destroy() {
+void RichTextComponent::onDestroy() {
     // Unregister link clicks before the node tree is released.
     for (auto& clickNode : m_clickNodes) {
         if (clickNode->handle) {
             g_nodeAPI->unregisterNodeEvent(clickNode->handle, NODE_ON_CLICK);
         }
     }
-    A2UIComponent::destroy();
 }
 
 // ---- Property Updates ----
@@ -86,20 +85,26 @@ void RichTextComponent::onUpdateProperties(const nlohmann::json& properties) {
 
 // ---- HTML Preprocessing ----
 
+static void replaceAll(std::string& str, const std::string& from, const std::string& to) {
+    size_t pos = 0;
+    while ((pos = str.find(from, pos)) != std::string::npos) {
+        str.replace(pos, from.size(), to);
+        pos += to.size();
+    }
+}
+
 std::string RichTextComponent::preprocessHtml(const std::string& html) {
     std::string result = html;
-    
-    result = std::regex_replace(result, std::regex("</h1>"), "</h1>\n");
-    result = std::regex_replace(result, std::regex("</h2>"), "</h2>\n");
-    result = std::regex_replace(result, std::regex("</h3>"), "</h3>\n");
-    result = std::regex_replace(result, std::regex("</h4>"), "</h4>\n");
-    result = std::regex_replace(result, std::regex("</h5>"), "</h5>\n");
-    result = std::regex_replace(result, std::regex("</h6>"), "</h6>\n");
-    
-    result = std::regex_replace(result, std::regex("</p>"), "</p>\n");
-    
-    result = std::regex_replace(result, std::regex("</div>"), "</div>\n");
-    
+
+    replaceAll(result, "</h1>", "</h1>\n");
+    replaceAll(result, "</h2>", "</h2>\n");
+    replaceAll(result, "</h3>", "</h3>\n");
+    replaceAll(result, "</h4>", "</h4>\n");
+    replaceAll(result, "</h5>", "</h5>\n");
+    replaceAll(result, "</h6>", "</h6>\n");
+    replaceAll(result, "</p>", "</p>\n");
+    replaceAll(result, "</div>", "</div>\n");
+
     return result;
 }
 
@@ -135,200 +140,202 @@ void RichTextComponent::setHtmlContent(const std::string& html) {
         m_spanNodes.push_back(spanNodeHandle);
 
         if (isImageSpan) {
-            // Image spans use dedicated image nodes.
-            for (const auto& t : span->_tag_list) {
-                if (t._tagID != a2ui::Html::img) continue;
-
-                std::string imgId;
-                std::string imgSrc;
-                std::string customEmoji;
-                int imgWidth = 60;
-                int imgHeight = 60;
-
-                for (const auto& kv : t._attributes) {
-                    if (kv.first == "id") {
-                        imgId = kv.second;
-                    } else if (kv.first == "src") {
-                        imgSrc = kv.second;
-                    } else if (kv.first == "width") {
-                        imgWidth = std::atoi(kv.second.c_str());
-                        if (imgWidth <= 0) imgWidth = 300;
-                    } else if (kv.first == "height") {
-                        imgHeight = std::atoi(kv.second.c_str());
-                        if (imgHeight <= 0) imgHeight = 200;
-                    } else if (kv.first == "customEmoji") {
-                        customEmoji = kv.second;
-                    }
-                }
-
-                // Rich text parsing does not carry span font size yet.
-                if (customEmoji == "true") {
-                    HM_LOGI( "RichTextComponent - customEmoji detected, id=%s", imgId.c_str());
-                }
-
-                ArkUI_NumberValue alignVal[] = {{.i32 = ARKUI_IMAGE_SPAN_ALIGNMENT_CENTER}};
-                ArkUI_AttributeItem alignItem = {alignVal, 1, nullptr, nullptr};
-                g_nodeAPI->setAttribute(spanNodeHandle, NODE_IMAGE_SPAN_VERTICAL_ALIGNMENT, &alignItem);
-
-                A2UINode imgSpan(spanNodeHandle);
-                imgSpan.setWidth(static_cast<float>(imgWidth));
-                imgSpan.setHeight(static_cast<float>(imgHeight));
-
-                if (!imgSrc.empty() && imgWidth > 0 && imgHeight > 0) {
-                    ArkUI_AttributeItem srcItem = {nullptr, 0, imgSrc.c_str(), nullptr};
-                    g_nodeAPI->setAttribute(spanNodeHandle, NODE_IMAGE_SRC, &srcItem);
-
-                    HM_LOGI( "RichTextComponent - ImageSpan id=%s, src=%s, width=%d, height=%d, customEmoji=%s",
-                                imgId.c_str(), imgSrc.c_str(), imgWidth, imgHeight, customEmoji.c_str());
-                } else {
-                    HM_LOGE( "RichTextComponent - Invalid ImageSpan: src=%s, width=%d, height=%d",
-                                 imgSrc.c_str(), imgWidth, imgHeight);
-                }
-
-                break;
-            }
-
-            // Add to the root node
-            g_nodeAPI->addChild(m_nodeHandle, spanNodeHandle);
-
+            createImageSpanNode(spanNodeHandle, span);
         } else {
-            {
-                ArkUI_AttributeItem familyItem = {nullptr, 0, harmonyDefaultFontFamily().c_str(), nullptr};
-                g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_FAMILY, &familyItem);
-            }
-
-            ArkUI_AttributeItem textItem = {nullptr, 0, span->_text.c_str(), nullptr};
-            g_nodeAPI->setAttribute(spanNodeHandle, NODE_SPAN_CONTENT, &textItem);
-
-            // Add to the root node
-            g_nodeAPI->addChild(m_nodeHandle, spanNodeHandle);
-
-            uint32_t fontColor = m_fontColor;  // Use cached color from styles
-            int32_t decorationType = ARKUI_TEXT_DECORATION_TYPE_NONE;
-
-            for (const auto& t : span->_tag_list) {
-                switch (t._tagID) {
-                    case a2ui::Html::font: {
-                        for (const auto& kv : t._attributes) {
-                            if (kv.first == "color") {
-                                fontColor = parseColor(kv.second);
-                            } else if (kv.first == "size") {
-                                // <font size="xxx"> Set font size
-                                std::string sizeStr = kv.second;
-                                // Strip the "px" suffix
-                                size_t pxPos = sizeStr.rfind("px");
-                                if (pxPos != std::string::npos) {
-                                    sizeStr = sizeStr.substr(0, pxPos);
-                                }
-                                float fontSize = static_cast<float>(std::atof(sizeStr.c_str()));
-                                if (fontSize > 0) {
-                                    ArkUI_NumberValue sizeVal[] = {{.f32 = UnitConverter::a2uiToVp(fontSize)}};
-                                    ArkUI_AttributeItem sizeItem = {sizeVal, 1, nullptr, nullptr};
-                                    g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_SIZE, &sizeItem);
-                                }
-                            } else if (kv.first == "face") {
-                                const std::string fontFamily = normalizeHarmonyFontFamily(kv.second);
-                                ArkUI_AttributeItem faceItem = {nullptr, 0, fontFamily.c_str(), nullptr};
-                                g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_FAMILY, &faceItem);
-                            } else if (kv.first == "font-weight") {
-                                int32_t weight = font_weight::mapStringToArkUIFontWeight(kv.second);
-                                ArkUI_NumberValue weightVal[] = {{.i32 = weight}};
-                                ArkUI_AttributeItem weightItem = {weightVal, 1, nullptr, nullptr};
-                                g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_WEIGHT, &weightItem);
-                            } else if (kv.first == "background-color") {
-                                uint32_t bgColor = parseColor(kv.second);
-                                ArkUI_NumberValue bgVal[] = {{.u32 = bgColor}};
-                                ArkUI_AttributeItem bgItem = {bgVal, 1, nullptr, nullptr};
-                                g_nodeAPI->setAttribute(spanNodeHandle, NODE_BACKGROUND_COLOR, &bgItem);
-                            }
-                        }
-                        break;
-                    }
-
-                    case a2ui::Html::b:
-                    case a2ui::Html::strong: {
-                        ArkUI_NumberValue weightVal[] = {{.i32 = ARKUI_FONT_WEIGHT_BOLD}};
-                        ArkUI_AttributeItem weightItem = {weightVal, 1, nullptr, nullptr};
-                        g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_WEIGHT, &weightItem);
-                        break;
-                    }
-
-                    case a2ui::Html::i: {
-                        ArkUI_NumberValue styleVal[] = {{.i32 = ARKUI_FONT_STYLE_ITALIC}};
-                        ArkUI_AttributeItem styleItem = {styleVal, 1, nullptr, nullptr};
-                        g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_STYLE, &styleItem);
-                        break;
-                    }
-
-                    case a2ui::Html::u: {
-                        decorationType = ARKUI_TEXT_DECORATION_TYPE_UNDERLINE;
-                        break;
-                    }
-
-                    case a2ui::Html::strike: {
-                        decorationType = ARKUI_TEXT_DECORATION_TYPE_LINE_THROUGH;
-                        break;
-                    }
-
-                    case a2ui::Html::a: {
-                        fontColor = 0xFF007FFF;
-                        decorationType = ARKUI_TEXT_DECORATION_TYPE_UNDERLINE;
-
-                        std::string id;
-                        std::string href;
-                        for (const auto& kv : t._attributes) {
-                            if (kv.first == "id") {
-                                id = kv.second;
-                            } else if (kv.first == "href") {
-                                href = kv.second;
-                            } else if (kv.first == "face") {
-                                const std::string fontFamily = normalizeHarmonyFontFamily(kv.second);
-                                ArkUI_AttributeItem faceItem = {nullptr, 0, fontFamily.c_str(), nullptr};
-                                g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_FAMILY, &faceItem);
-                            }
-                        }
-
-                        auto* clickNode = new ClickNode{this, spanNodeHandle, id, href};
-                        m_clickNodes.push_back(clickNode);
-                        HM_LOGI( "RichTextComponent - Link found: id=%s, href=%s",
-                                    id.c_str(), href.c_str());
-                        break;
-                    }
-
-
-                    case a2ui::Html::br:
-                    case a2ui::Html::blockquote:
-                        break;
-                    
-                    case a2ui::Html::text:
-                    case a2ui::Html::img:
-                    case a2ui::Html::sub:
-                    case a2ui::Html::sup:
-                    case a2ui::Html::small:
-                        break;
-                }
-            }
-
-            ArkUI_NumberValue colorVal[] = {{.u32 = fontColor}};
-            ArkUI_AttributeItem colorItem = {colorVal, 1, nullptr, nullptr};
-            g_nodeAPI->setAttribute(spanNodeHandle, NODE_FONT_COLOR, &colorItem);
-
-            if (decorationType != ARKUI_TEXT_DECORATION_TYPE_NONE) {
-                ArkUI_NumberValue decoVal[] = {{.i32 = decorationType}, {.u32 = fontColor}};
-                ArkUI_AttributeItem decoItem = {decoVal, 2, nullptr, nullptr};
-                g_nodeAPI->setAttribute(spanNodeHandle, NODE_TEXT_DECORATION, &decoItem);
-            }
+            createTextSpanNode(spanNodeHandle, span);
         }
+
+        g_nodeAPI->addChild(m_nodeHandle, spanNodeHandle);
     }
 
     registerLinkClicks();
+}
+
+void RichTextComponent::createImageSpanNode(ArkUI_NodeHandle spanHandle, const void* spanData) {
+    auto* span = static_cast<const a2ui::Html::Span*>(spanData);
+
+    for (const auto& t : span->_tag_list) {
+        if (t._tagID != a2ui::Html::img) continue;
+
+        std::string imgId;
+        std::string imgSrc;
+        std::string customEmoji;
+        int imgWidth = 60;
+        int imgHeight = 60;
+
+        for (const auto& kv : t._attributes) {
+            if (kv.first == "id") {
+                imgId = kv.second;
+            } else if (kv.first == "src") {
+                imgSrc = kv.second;
+            } else if (kv.first == "width") {
+                imgWidth = std::atoi(kv.second.c_str());
+                if (imgWidth <= 0) imgWidth = 300;
+            } else if (kv.first == "height") {
+                imgHeight = std::atoi(kv.second.c_str());
+                if (imgHeight <= 0) imgHeight = 200;
+            } else if (kv.first == "customEmoji") {
+                customEmoji = kv.second;
+            }
+        }
+
+        if (customEmoji == "true") {
+            HM_LOGI( "RichTextComponent - customEmoji detected, id=%s", imgId.c_str());
+        }
+
+        ArkUI_NumberValue alignVal[] = {{.i32 = ARKUI_IMAGE_SPAN_ALIGNMENT_CENTER}};
+        ArkUI_AttributeItem alignItem = {alignVal, 1, nullptr, nullptr};
+        g_nodeAPI->setAttribute(spanHandle, NODE_IMAGE_SPAN_VERTICAL_ALIGNMENT, &alignItem);
+
+        A2UINode imgSpan(spanHandle);
+        imgSpan.setWidth(static_cast<float>(imgWidth));
+        imgSpan.setHeight(static_cast<float>(imgHeight));
+
+        if (!imgSrc.empty() && imgWidth > 0 && imgHeight > 0) {
+            ArkUI_AttributeItem srcItem = {nullptr, 0, imgSrc.c_str(), nullptr};
+            g_nodeAPI->setAttribute(spanHandle, NODE_IMAGE_SRC, &srcItem);
+
+            HM_LOGI( "RichTextComponent - ImageSpan id=%s, src=%s, width=%d, height=%d, customEmoji=%s",
+                        imgId.c_str(), imgSrc.c_str(), imgWidth, imgHeight, customEmoji.c_str());
+        } else {
+            HM_LOGE( "RichTextComponent - Invalid ImageSpan: src=%s, width=%d, height=%d",
+                         imgSrc.c_str(), imgWidth, imgHeight);
+        }
+
+        break;
+    }
+}
+
+void RichTextComponent::createTextSpanNode(ArkUI_NodeHandle spanHandle, const void* spanData) {
+    auto* span = static_cast<const a2ui::Html::Span*>(spanData);
+
+    {
+        ArkUI_AttributeItem familyItem = {nullptr, 0, harmonyDefaultFontFamily().c_str(), nullptr};
+        g_nodeAPI->setAttribute(spanHandle, NODE_FONT_FAMILY, &familyItem);
+    }
+
+    ArkUI_AttributeItem textItem = {nullptr, 0, span->_text.c_str(), nullptr};
+    g_nodeAPI->setAttribute(spanHandle, NODE_SPAN_CONTENT, &textItem);
+
+    uint32_t fontColor = m_fontColor;
+    int32_t decorationType = ARKUI_TEXT_DECORATION_TYPE_NONE;
+
+    for (const auto& t : span->_tag_list) {
+        switch (t._tagID) {
+            case a2ui::Html::font: {
+                for (const auto& kv : t._attributes) {
+                    if (kv.first == "color") {
+                        fontColor = parseColor(kv.second);
+                    } else if (kv.first == "size") {
+                        std::string sizeStr = kv.second;
+                        size_t pxPos = sizeStr.rfind("px");
+                        if (pxPos != std::string::npos) {
+                            sizeStr = sizeStr.substr(0, pxPos);
+                        }
+                        float fontSize = static_cast<float>(std::atof(sizeStr.c_str()));
+                        if (fontSize > 0) {
+                            ArkUI_NumberValue sizeVal[] = {{.f32 = UnitConverter::a2uiToVp(fontSize)}};
+                            ArkUI_AttributeItem sizeItem = {sizeVal, 1, nullptr, nullptr};
+                            g_nodeAPI->setAttribute(spanHandle, NODE_FONT_SIZE, &sizeItem);
+                        }
+                    } else if (kv.first == "face") {
+                        const std::string fontFamily = normalizeHarmonyFontFamily(kv.second);
+                        ArkUI_AttributeItem faceItem = {nullptr, 0, fontFamily.c_str(), nullptr};
+                        g_nodeAPI->setAttribute(spanHandle, NODE_FONT_FAMILY, &faceItem);
+                    } else if (kv.first == "font-weight") {
+                        int32_t weight = font_weight::mapStringToArkUIFontWeight(kv.second);
+                        ArkUI_NumberValue weightVal[] = {{.i32 = weight}};
+                        ArkUI_AttributeItem weightItem = {weightVal, 1, nullptr, nullptr};
+                        g_nodeAPI->setAttribute(spanHandle, NODE_FONT_WEIGHT, &weightItem);
+                    } else if (kv.first == "background-color") {
+                        uint32_t bgColor = parseColor(kv.second);
+                        ArkUI_NumberValue bgVal[] = {{.u32 = bgColor}};
+                        ArkUI_AttributeItem bgItem = {bgVal, 1, nullptr, nullptr};
+                        g_nodeAPI->setAttribute(spanHandle, NODE_BACKGROUND_COLOR, &bgItem);
+                    }
+                }
+                break;
+            }
+
+            case a2ui::Html::b:
+            case a2ui::Html::strong: {
+                ArkUI_NumberValue weightVal[] = {{.i32 = ARKUI_FONT_WEIGHT_BOLD}};
+                ArkUI_AttributeItem weightItem = {weightVal, 1, nullptr, nullptr};
+                g_nodeAPI->setAttribute(spanHandle, NODE_FONT_WEIGHT, &weightItem);
+                break;
+            }
+
+            case a2ui::Html::i: {
+                ArkUI_NumberValue styleVal[] = {{.i32 = ARKUI_FONT_STYLE_ITALIC}};
+                ArkUI_AttributeItem styleItem = {styleVal, 1, nullptr, nullptr};
+                g_nodeAPI->setAttribute(spanHandle, NODE_FONT_STYLE, &styleItem);
+                break;
+            }
+
+            case a2ui::Html::u: {
+                decorationType = ARKUI_TEXT_DECORATION_TYPE_UNDERLINE;
+                break;
+            }
+
+            case a2ui::Html::strike: {
+                decorationType = ARKUI_TEXT_DECORATION_TYPE_LINE_THROUGH;
+                break;
+            }
+
+            case a2ui::Html::a: {
+                fontColor = 0xFF007FFF;
+                decorationType = ARKUI_TEXT_DECORATION_TYPE_UNDERLINE;
+
+                std::string id;
+                std::string href;
+                for (const auto& kv : t._attributes) {
+                    if (kv.first == "id") {
+                        id = kv.second;
+                    } else if (kv.first == "href") {
+                        href = kv.second;
+                    } else if (kv.first == "face") {
+                        const std::string fontFamily = normalizeHarmonyFontFamily(kv.second);
+                        ArkUI_AttributeItem faceItem = {nullptr, 0, fontFamily.c_str(), nullptr};
+                        g_nodeAPI->setAttribute(spanHandle, NODE_FONT_FAMILY, &faceItem);
+                    }
+                }
+
+                m_clickNodes.push_back(std::unique_ptr<ClickNode>(
+                    new ClickNode{this, spanHandle, id, href}));
+                HM_LOGI( "RichTextComponent - Link found: id=%s, href=%s",
+                            id.c_str(), href.c_str());
+                break;
+            }
+
+            case a2ui::Html::br:
+            case a2ui::Html::blockquote:
+                break;
+
+            case a2ui::Html::text:
+            case a2ui::Html::img:
+            case a2ui::Html::sub:
+            case a2ui::Html::sup:
+            case a2ui::Html::small:
+                break;
+        }
+    }
+
+    ArkUI_NumberValue colorVal[] = {{.u32 = fontColor}};
+    ArkUI_AttributeItem colorItem = {colorVal, 1, nullptr, nullptr};
+    g_nodeAPI->setAttribute(spanHandle, NODE_FONT_COLOR, &colorItem);
+
+    if (decorationType != ARKUI_TEXT_DECORATION_TYPE_NONE) {
+        ArkUI_NumberValue decoVal[] = {{.i32 = decorationType}, {.u32 = fontColor}};
+        ArkUI_AttributeItem decoItem = {decoVal, 2, nullptr, nullptr};
+        g_nodeAPI->setAttribute(spanHandle, NODE_TEXT_DECORATION, &decoItem);
+    }
 }
 
 
 void RichTextComponent::registerLinkClicks() {
     for (auto& clickNode : m_clickNodes) {
         g_nodeAPI->addNodeEventReceiver(clickNode->handle, onLinkClickCallback);
-        g_nodeAPI->registerNodeEvent(clickNode->handle, NODE_ON_CLICK, 0, clickNode);
+        g_nodeAPI->registerNodeEvent(clickNode->handle, NODE_ON_CLICK, 0, clickNode.get());
     }
 
     if (!m_clickNodes.empty()) {
@@ -356,7 +363,6 @@ void RichTextComponent::cleanSpanNodes() {
         if (clickNode->handle) {
             g_nodeAPI->unregisterNodeEvent(clickNode->handle, NODE_ON_CLICK);
         }
-        delete clickNode;
     }
     m_clickNodes.clear();
 
@@ -459,65 +465,18 @@ void RichTextComponent::applyFilter(const nlohmann::json& styles) {
 
     std::string filterVal = styles["filter"].get<std::string>();
 
-    // Find the drop-shadow payload.
-    const std::string dsPrefix = "drop-shadow(";
-    size_t dsStart = filterVal.find(dsPrefix);
-    if (dsStart == std::string::npos) return;
-    dsStart += dsPrefix.size();
-
-    size_t dsEnd = filterVal.rfind(')');
-    if (dsEnd == std::string::npos || dsEnd < dsStart) return;
-
-    std::string inner = filterVal.substr(dsStart, dsEnd - dsStart);
-    const char* p = inner.c_str();
-    char* endPtr;
-
-    auto skipSeparators = [](const char*& cursor) {
-        while (*cursor == ' ' || *cursor == ',') cursor++;
-    };
-
-    auto parseLength = [&](float& outValue) -> bool {
-        skipSeparators(p);
-        outValue = std::strtof(p, &endPtr);
-        if (endPtr == p) return false;
-        p = endPtr;
-        // Skip unit suffixes such as px, vp, or em.
-        while (*p && *p != ' ' && *p != ',' && *p != '(') p++;
-        return true;
-    };
-
-    // Support both 3-length and 4-length drop-shadow forms.
-    float vals[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    for (int i = 0; i < 3; i++) {
-        if (!parseLength(vals[i])) return;
-    }
-
-    // Parse spread when present, but ignore it because ArkUI does not expose it yet.
-    {
-        const char* lookahead = p;
-        skipSeparators(lookahead);
-        if (*lookahead != '\0' && *lookahead != 'r' && *lookahead != '#' && *lookahead != 't') {
-            p = lookahead;
-            if (!parseLength(vals[3])) return;
-        } else {
-            p = lookahead;
-        }
-    }
-
-    // Treat the remaining payload as the color string.
-    skipSeparators(p);
-    std::string colorStr = p;
-    if (colorStr.empty()) return;
+    auto params = parseDropShadow(filterVal);
+    if (!params.valid) return;
 
     // Parse the shadow color.
-    uint32_t color = parseColor(colorStr);
-    if (color == colors::kColorTransparent && colorStr != "#00000000" && colorStr != "rgba(0, 0, 0, 0)" &&
-        colorStr != "rgba(0,0,0,0)" && colorStr != "rgb(0, 0, 0)") {
+    uint32_t color = parseColor(params.colorStr);
+    if (color == colors::kColorTransparent && params.colorStr != "#00000000" && params.colorStr != "rgba(0, 0, 0, 0)" &&
+        params.colorStr != "rgba(0,0,0,0)" && params.colorStr != "rgb(0, 0, 0)") {
         return;
     }
 
     // Apply the shadow.
-    A2UINode(m_nodeHandle).setCustomShadow(vals[2], vals[0], vals[1], color);
+    A2UINode(m_nodeHandle).setCustomShadow(params.blurRadius, params.offsetX, params.offsetY, color);
 }
 
 } // namespace a2ui

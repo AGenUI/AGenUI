@@ -1,0 +1,24 @@
+{
+  "description": "Empty List component with no children — exercises YogaLayoutManager children==null and empty frames path",
+  "surfaceId": "empty-list-no-children",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "empty-list-no-children",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "empty-list-no-children",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["empty-list", "msg"], "styles": {"width": "100%"}},
+          {"id": "empty-list", "component": "List", "children": [], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "msg", "component": "Text", "text": "No items in list", "styles": {"width": "100%", "padding": "16px"}}
+        ]
+      }
+    }
+  ]
+}

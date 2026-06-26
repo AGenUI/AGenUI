@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <nlohmann/json.hpp>
 
 namespace a2ui {
 
@@ -14,7 +15,7 @@ class A2UISurface;
  */
 class ISurfaceListener {
 public:
-    virtual ~ISurfaceListener() {}
+    virtual ~ISurfaceListener() = default;
 
     /**
      * Called after surface creation.
@@ -50,6 +51,20 @@ public:
      * @param componentId Component ID
      */
     virtual void onComponentRemoved(const std::string& surfaceId, const std::string& componentId) = 0;
+
+    /**
+     * Called when a component appears in a container (e.g., List item bound to viewport).
+     * Bind == Display: fired when the NodeAdapter binds a child to a viewport slot.
+     *
+     * @param surfaceId Surface ID
+     * @param parentComponentId Container component ID (e.g., the List's id)
+     * @param parentType Container type (e.g., "List")
+     * @param properties Child's raw properties (JSON pass-through)
+     */
+    virtual void onComponentAppeared(const std::string& surfaceId,
+                                     const std::string& parentComponentId,
+                                     const std::string& parentType,
+                                     const nlohmann::json& properties) {}
 };
 
 } // namespace a2ui

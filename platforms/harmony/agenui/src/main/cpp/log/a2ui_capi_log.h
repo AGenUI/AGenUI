@@ -108,8 +108,10 @@ inline void a2ui_capi_assert_log_format(LogLevel level, const char* file, const 
     #define HM_LOGD(fmt, ...)
     #define HM_LOGI(fmt, ...)
     #define HM_LOGW(fmt, ...)
-    #define HM_LOGE(fmt, ...)
-    #define HM_LOGF(fmt, ...)
+    #define HM_LOGE(fmt, ...) \
+        a2ui_capi_log_format(LOG_ERROR, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__)
+    #define HM_LOGF(fmt, ...) \
+        a2ui_capi_log_format(LOG_FATAL, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__)
 #endif
 
 // Redefine assertion macros
@@ -126,13 +128,17 @@ inline void a2ui_capi_assert_log_format(LogLevel level, const char* file, const 
  * Output: [a2ui-capi][filename:line][functionName] assertion failure
  */
 #define RELEASE_ASSERT_WITHLOG(expr, format, ...) \
-    if(!(expr)) { \
-        a2ui_capi_assert_log_format(LOG_FATAL, __FILE__, __FUNCTION__, __LINE__, "Assertion failed: %s " format, #expr, ##__VA_ARGS__); \
-        abort(); \
-    }
+    do { \
+        if(!(expr)) { \
+            a2ui_capi_assert_log_format(LOG_FATAL, __FILE__, __FUNCTION__, __LINE__, "Assertion failed: %s " format, #expr, ##__VA_ARGS__); \
+            abort(); \
+        } \
+    } while(0)
 
 #define RELEASE_ASSERT(expr) \
-    if(!(expr)) { \
-        a2ui_capi_assert_log_format(LOG_FATAL, __FILE__, __FUNCTION__, __LINE__, "Assertion failed: %s", #expr); \
-        abort(); \
-    }
+    do { \
+        if(!(expr)) { \
+            a2ui_capi_assert_log_format(LOG_FATAL, __FILE__, __FUNCTION__, __LINE__, "Assertion failed: %s", #expr); \
+            abort(); \
+        } \
+    } while(0)

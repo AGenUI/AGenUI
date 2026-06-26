@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.amap.agenui.render.component.A2UIComponent;
+import com.amap.agenui.render.style.IconResourceMapper;
 import com.amap.agenui.render.style.StyleHelper;
 
 import java.util.Map;
@@ -59,14 +60,14 @@ public class IconComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (imageView == null) {
             return;
         }
 
         // Update icon name
-        if (properties.containsKey("name")) {
-            Object nameObj = properties.get("name");
+        if (changedProps.containsKey("name")) {
+            Object nameObj = changedProps.get("name");
             String iconName = null;
 
             // name can be a string or an object containing a path
@@ -85,8 +86,8 @@ public class IconComponent extends A2UIComponent {
         }
 
         // Update icon size
-        if (properties.containsKey("size")) {
-            Object sizeObj = properties.get("size");
+        if (changedProps.containsKey("size")) {
+            Object sizeObj = changedProps.get("size");
             int sizeDp = 24; // default size
 
             if (sizeObj instanceof Number) {
@@ -109,8 +110,8 @@ public class IconComponent extends A2UIComponent {
         }
 
         // Update icon color
-        if (properties.containsKey("color")) {
-            Object colorObj = properties.get("color");
+        if (changedProps.containsKey("color")) {
+            Object colorObj = changedProps.get("color");
             if (colorObj instanceof String) {
                 try {
                     int color = Color.parseColor((String) colorObj);
@@ -128,7 +129,7 @@ public class IconComponent extends A2UIComponent {
      */
     private void loadIcon(String iconName) {
         // Use StyleHelper's static method to get the standard icon resource ID
-        int resId = StyleHelper.getIconResourceId(iconName);
+        int resId = IconResourceMapper.getIconResourceId(iconName);
 
         if (resId != 0) {
             imageView.setImageResource(resId);

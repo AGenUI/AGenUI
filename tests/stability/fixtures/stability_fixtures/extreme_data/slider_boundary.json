@@ -1,0 +1,16 @@
+{
+  "description": "Sliders with boundary and unusual min/max/value combinations - tests slider edge cases",
+  "surfaceId": "stability-slider-bounds",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-slider-bounds","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-slider-bounds","components":[
+      {"id":"root","component":"Column","children":["s1","s2","s3","s4","s5","s6"],"styles":{"width":"100%","padding":"16px","gap":"12px"}},
+      {"id":"s1","component":"Slider","min":0,"max":0,"value":0},
+      {"id":"s2","component":"Slider","min":-100,"max":100,"value":0},
+      {"id":"s3","component":"Slider","min":0,"max":999999,"value":500000},
+      {"id":"s4","component":"Slider","min":100,"max":0,"value":50},
+      {"id":"s5","component":"Slider","min":0,"max":1,"value":0.5},
+      {"id":"s6","component":"Slider","min":0,"max":100,"value":200}
+    ]}}
+  ]
+}

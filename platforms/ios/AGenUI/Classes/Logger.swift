@@ -166,6 +166,35 @@ extension Logger {
                        line: Int = #line) {
         log(message, level: .performance, file: file, function: function, line: line)
     }
+
+    /// Output performance log with an explicit event tag.
+    ///
+    /// Mirrors the C++ `AGENUI_PERFORMANCE_LOG(tag, fmt, ...)` and the Android
+    /// `AGenUILogger.perf(eventTag, message)` conventions: `eventTag` is the
+    /// performance event name (e.g. "components_applied") and is delivered as
+    /// the `tag` parameter to `LoggerDelegate.onLog`, bypassing the file-name
+    /// derivation used by `performance(_ message:)`.
+    ///
+    /// - Parameters:
+    ///   - eventTag: Performance event name (forwarded as `tag` to the delegate).
+    ///   - message:  Contextual information (e.g. surfaceId).
+    @objc public func performance(_ eventTag: String,
+                       message: String,
+                       file: String = #file,
+                       function: String = #function,
+                       line: Int = #line) {
+        guard isEnabled, Level.performance.rawValue >= minimumLevel.rawValue else { return }
+        if let delegate = delegate {
+            delegate.onLog(level: .performance, tag: eventTag, func: function, line: line, message: message)
+        } else {
+            if showFileInfo {
+                let fileName = (file as NSString).lastPathComponent
+                NSLog("[PERFORMANCE] [%@] [%@:%d] %@", eventTag, fileName, line, message)
+            } else {
+                NSLog("[PERFORMANCE] [%@] %@", eventTag, message)
+            }
+        }
+    }
 }
 
 

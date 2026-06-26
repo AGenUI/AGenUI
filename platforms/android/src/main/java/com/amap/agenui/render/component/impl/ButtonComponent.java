@@ -9,7 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import com.amap.agenui.render.component.A2UIComponent;
+import com.amap.agenui.render.component.A2UILayoutComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
 
@@ -31,7 +31,7 @@ import com.amap.agenui.render.utils.AGenUILogger;
  * - Child components are added via Surface.addComponent() and are not created inside Button
  *
  */
-public class ButtonComponent extends A2UIComponent {
+public class ButtonComponent extends A2UILayoutComponent {
 
     private static final String TAG = "ButtonComponent";
 
@@ -50,7 +50,21 @@ public class ButtonComponent extends A2UIComponent {
     @Override
     protected View onCreateView(Context context) {
         // Use FrameLayout as the button container to support child components
-        buttonContainer = new FrameLayout(context);
+        buttonContainer = new FrameLayout(context) {
+            @Override
+            protected void onLayout(boolean changed, int l, int t, int r, int b) {
+                int pw = r - l;
+                int ph = b - t;
+                for (int i = 0; i < getChildCount(); i++) {
+                    View child = getChildAt(i);
+                    int cw = child.getMeasuredWidth();
+                    int ch = child.getMeasuredHeight();
+                    int cl = (pw - cw) / 2;
+                    int ct = (ph - ch) / 2;
+                    child.layout(cl, ct, cl + cw, ct + ch);
+                }
+            }
+        };
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -62,31 +76,33 @@ public class ButtonComponent extends A2UIComponent {
 
         // Important: if properties already has attributes, apply them immediately here
         if (!properties.isEmpty()) {
-            applyProperties();
+            applyProperties(this.properties);
         }
 
         return buttonContainer;
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    public void onUpdateProperties(Map<String, Object> changedProps) {
         if (buttonContainer == null) {
             return;
         }
-        applyProperties();
+        applyProperties(changedProps);
     }
 
     /**
-     * Apply properties to the Button
+     * Apply properties to the Button.
+     * @param props the property diff (only changed keys); containsKey checks
+     *              naturally skip unchanged attributes.
      */
-    private void applyProperties() {
+    private void applyProperties(Map<String, Object> props) {
         if (buttonContainer == null) {
             return;
         }
 
         // Update child component ID
-        if (properties.containsKey("child")) {
-            childComponentId = String.valueOf(properties.get("child"));
+        if (props.containsKey("child")) {
+            childComponentId = String.valueOf(props.get("child"));
             // Note: the child component's View is automatically added via Surface.addComponent()
             // No manual handling needed here
         }
@@ -95,8 +111,8 @@ public class ButtonComponent extends A2UIComponent {
         // No need to save actionDef here
 
         // checks adaptation
-        if (properties.containsKey("checks")) {
-            Object checksValue = properties.get("checks");
+        if (props.containsKey("checks")) {
+            Object checksValue = props.get("checks");
             if (checksValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> checksMap = (Map<String, Object>) checksValue;
@@ -109,27 +125,17 @@ public class ButtonComponent extends A2UIComponent {
             }
         }
 
-        // disable property adaptation
-        boolean isDisabled = false;  // default is enabled (not disabled)
-        if (properties.containsKey("disable")) {
-            Object disableValue = properties.get("disable");
+        // Apply visual state: disable + styles are handled together in applyStyles
+        if (props.containsKey("disable") || props.containsKey("styles")) {
+            boolean isDisabled = false;
+            Object disableValue = this.properties.get("disable");
             if (disableValue instanceof Boolean) {
                 isDisabled = (Boolean) disableValue;
             }
-        }
-
-        // Set the button's clickable state
-        buttonContainer.setClickable(!isDisabled);
-        buttonContainer.setEnabled(!isDisabled);
-
-        // Apply styles (including disabled state styles)
-        if (properties.containsKey("styles")) {
-            Object stylesValue = properties.get("styles");
-            if (stylesValue instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> styles = (Map<String, Object>) stylesValue;
-                applyStyles(styles, isDisabled);
-            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> styles = this.properties.get("styles") instanceof Map
+                    ? (Map<String, Object>) this.properties.get("styles") : null;
+            applyStyles(styles, isDisabled);
         }
     }
 
@@ -158,9 +164,9 @@ public class ButtonComponent extends A2UIComponent {
      * @param isDisabled whether in disabled state
      */
     private void applyStyles(Map<String, Object> styles, boolean isDisabled) {
-        if (styles == null || styles.isEmpty()) {
-            return;
-        }
+        // Update clickable/enabled state
+        buttonContainer.setClickable(!isDisabled);
+        buttonContainer.setEnabled(!isDisabled);
 
         if (isDisabled) {
 
@@ -182,7 +188,7 @@ public class ButtonComponent extends A2UIComponent {
             // Enabled state, restore full opacity
             buttonContainer.setAlpha(1.0f);
 
-            if (styles.containsKey("background-color")) {
+            if (styles != null && styles.containsKey("background-color")) {
                 String colorStr = String.valueOf(styles.get("background-color"));
                 int color = StyleHelper.parseColor(colorStr);
                 if (color != 0) {

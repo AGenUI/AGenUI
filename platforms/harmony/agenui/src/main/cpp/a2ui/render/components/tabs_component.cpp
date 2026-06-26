@@ -75,7 +75,7 @@ TabsComponent::~TabsComponent() {
     HM_LOGI( "TabsComponent - Destructor: id=%s", m_id.c_str());
 }
 
-void TabsComponent::destroy() {
+void TabsComponent::onDestroy() {
     HM_LOGI( "id=%s, tabs=%zu",
                 m_id.c_str(), m_tabInfos.size());
 
@@ -103,7 +103,6 @@ void TabsComponent::destroy() {
     m_contentContainerHandle = nullptr;
     m_contentShown = false;
 
-    A2UIComponent::destroy();
 }
 
 // ---- shouldAutoAddChildView ----

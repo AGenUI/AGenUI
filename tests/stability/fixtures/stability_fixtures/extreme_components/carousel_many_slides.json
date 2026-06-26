@@ -1,0 +1,30 @@
+{
+  "description": "Carousel with 15 slides of varied content - tests carousel with many children",
+  "surfaceId": "stability-carousel-15",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-carousel-15","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-carousel-15","components":[
+      {"id":"root","component":"Column","children":["car1"],"styles":{"width":"100%","padding":"8px"}},
+      {"id":"car1","component":"Carousel","children":["s0","s1","s2","s3","s4","s5","s6","s7","s8","s9","s10","s11","s12","s13","s14"],"styles":{"width":"100%","height":"200px"}},
+      {"id":"s0","component":"Column","children":["s0t","s0i"],"styles":{"width":"100%","align-items":"center","padding":"16px"}},
+      {"id":"s0t","component":"Text","text":"Slide 0"},
+      {"id":"s0i","component":"Image","properties":{"url":"https://example.com/0.png","width":200,"height":120}},
+      {"id":"s1","component":"Text","text":"Slide 1 - Text only","styles":{"width":"100%","padding":"16px"}},
+      {"id":"s2","component":"Image","properties":{"url":"https://example.com/2.png","width":300,"height":200},"styles":{"width":"100%"}},
+      {"id":"s3","component":"Text","text":"Slide 3"},
+      {"id":"s4","component":"Text","text":"Slide 4"},
+      {"id":"s5","component":"Column","children":["s5a","s5b"],"styles":{"padding":"8px"}},
+      {"id":"s5a","component":"Text","text":"Slide 5 Top"},
+      {"id":"s5b","component":"Text","text":"Slide 5 Bottom"},
+      {"id":"s6","component":"Text","text":"Slide 6"},
+      {"id":"s7","component":"Text","text":"Slide 7"},
+      {"id":"s8","component":"Text","text":"Slide 8"},
+      {"id":"s9","component":"Text","text":"Slide 9"},
+      {"id":"s10","component":"Text","text":"Slide 10"},
+      {"id":"s11","component":"Text","text":"Slide 11"},
+      {"id":"s12","component":"Text","text":"Slide 12"},
+      {"id":"s13","component":"Text","text":"Slide 13"},
+      {"id":"s14","component":"Text","text":"Slide 14"}
+    ]}}
+  ]
+}

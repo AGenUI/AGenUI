@@ -1,0 +1,31 @@
+{
+  "description": "Components with display:none mixed with visible siblings - tests display toggling",
+  "surfaceId": "stability-display-none",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-display-none","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-display-none","components":[
+      {"id":"root","component":"Column","children":["vis1","hid1","vis2","hid2","vis3","hid3"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
+      {"id":"vis1","component":"Text","text":"Visible 1","styles":{"width":"100%"}},
+      {"id":"hid1","component":"Column","children":["hid1a","hid1b"],"styles":{"display":"none"}},
+      {"id":"hid1a","component":"Text","text":"Hidden child A"},
+      {"id":"hid1b","component":"Image","properties":{"url":"https://example.com/hidden.png","width":200,"height":200}},
+      {"id":"vis2","component":"Text","text":"Visible 2","styles":{"width":"100%"}},
+      {"id":"hid2","component":"Row","children":["hid2a"],"styles":{"display":"none","width":"100%","height":"500px"}},
+      {"id":"hid2a","component":"Video","properties":{"url":"https://example.com/hidden.mp4"},"styles":{"width":"100%","height":"300px"}},
+      {"id":"vis3","component":"Text","text":"Visible 3","styles":{"width":"100%"}},
+      {"id":"hid3","component":"Chart","properties":{"chartType":"bar","data":{"labels":["X"],"datasets":[{"label":"Y","data":[100]}]}},"styles":{"display":"none","width":"100%","height":"300px"}}
+    ]}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-display-none","components":[
+      {"id":"root","component":"Column","children":["vis1","hid1","vis2","hid2","vis3","hid3"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
+      {"id":"vis1","component":"Text","text":"Now hidden","styles":{"display":"none"}},
+      {"id":"hid1","component":"Column","children":["hid1a","hid1b"],"styles":{"width":"100%"}},
+      {"id":"hid1a","component":"Text","text":"Now visible child A"},
+      {"id":"hid1b","component":"Image","properties":{"url":"https://example.com/shown.png","width":200,"height":200},"styles":{"width":"100%","height":"100px"}},
+      {"id":"vis2","component":"Text","text":"Still visible","styles":{"width":"100%"}},
+      {"id":"hid2","component":"Row","children":["hid2a"],"styles":{"width":"100%"}},
+      {"id":"hid2a","component":"Text","text":"Row content now visible"},
+      {"id":"vis3","component":"Text","text":"Still visible 3","styles":{"width":"100%"}},
+      {"id":"hid3","component":"Chart","properties":{"chartType":"line","data":{"labels":["A","B"],"datasets":[{"label":"Data","data":[10,20]}]}},"styles":{"width":"100%","height":"200px"}}
+    ]}}
+  ]
+}

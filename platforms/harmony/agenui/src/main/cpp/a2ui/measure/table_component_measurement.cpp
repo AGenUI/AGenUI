@@ -3,6 +3,7 @@
 #include "text_component_measurement.h"
 #include "hm_text_measure_utils.h"
 #include "a2ui/third_party/key_define.h"
+#include "a2ui/utils/a2ui_measure_mode.h"
 
 #include "nlohmann/json.hpp"
 #include <algorithm>
@@ -19,7 +20,7 @@ agenui::MeasureResult TableComponentMeasurement::measure(
 
     ParsedTable table = parseTable(paramJson);
 
-    float maxWidth = modes.width.maxValue > 0.0f ? modes.width.maxValue : 720.0f;
+    float maxWidth = modes.width.maxValue > 0.0f ? modes.width.maxValue : a2ui::kDefaultMaxWidth;
     int colCount = static_cast<int>(table.headers.size());
     if (colCount == 0 && !table.rows.empty()) {
         colCount = static_cast<int>(table.rows[0].size());
@@ -68,7 +69,7 @@ agenui::MeasureResult TableComponentMeasurement::measure(
     if (!table.headers.empty()) {
         float rowHeight = 0.0f;
         for (int c = 0; c < colCount; c++) {
-            const std::string& text = (c < (int)table.headers.size()) ? table.headers[c] : "";
+            const std::string& text = (c < static_cast<int>(table.headers.size())) ? table.headers[c] : "";
             float h = measureCellText(text, colWidths[c], cellPaddingH, cellPaddingV, headerStyleJson);
             rowHeight = std::max(rowHeight, h);
         }
@@ -79,7 +80,7 @@ agenui::MeasureResult TableComponentMeasurement::measure(
     for (const auto& row : table.rows) {
         float rowHeight = 0.0f;
         for (int c = 0; c < colCount; c++) {
-            const std::string& text = (c < (int)row.size()) ? row[c] : "";
+            const std::string& text = (c < static_cast<int>(row.size())) ? row[c] : "";
             float h = measureCellText(text, colWidths[c], cellPaddingH, cellPaddingV, bodyStyleJson);
             rowHeight = std::max(rowHeight, h);
         }
@@ -157,11 +158,11 @@ std::vector<float> TableComponentMeasurement::calcColumnWidths(
         int colCount, float maxWidth, const std::vector<float>& weights) const {
     float totalWeight = 0.0f;
     for (int i = 0; i < colCount; i++) {
-        totalWeight += (i < (int)weights.size()) ? weights[i] : 1.0f;
+        totalWeight += (i < static_cast<int>(weights.size())) ? weights[i] : 1.0f;
     }
     std::vector<float> widths(colCount);
     for (int i = 0; i < colCount; i++) {
-        float w = (i < (int)weights.size()) ? weights[i] : 1.0f;
+        float w = (i < static_cast<int>(weights.size())) ? weights[i] : 1.0f;
         widths[i] = (totalWeight > 0.0f) ? (maxWidth * w / totalWeight) : (maxWidth / colCount);
     }
     return widths;

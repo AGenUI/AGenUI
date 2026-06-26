@@ -1,4 +1,5 @@
 #include "column_component.h"
+#include "a2ui/utils/a2ui_enum_utils.h"
 #include "log/a2ui_capi_log.h"
 
 
@@ -45,7 +46,7 @@ void ColumnComponent::applyJustify(const nlohmann::json& properties) {
         return;
     }
 
-    ArkUI_FlexAlignment justifyValue = (ArkUI_FlexAlignment)mapJustifyContent(properties["justify"].get<std::string>());
+    auto justifyValue = static_cast<ArkUI_FlexAlignment>(mapFlexJustifyContent(properties["justify"].get<std::string>()));
     A2UIColumnNode node(m_nodeHandle);
     node.setJustifyContent(justifyValue);
 }
@@ -57,7 +58,7 @@ void ColumnComponent::applyAlign(const nlohmann::json& properties) {
         return;
     }
 
-    ArkUI_ItemAlignment alignValue = (ArkUI_ItemAlignment)mapAlignItems(properties["align"].get<std::string>());
+    auto alignValue = static_cast<ArkUI_ItemAlignment>(mapFlexAlignItems(properties["align"].get<std::string>()));
     A2UIColumnNode node(m_nodeHandle);
     node.setAlignItems(alignValue);
 }
@@ -72,36 +73,6 @@ void ColumnComponent::applyStyles(const nlohmann::json& properties) {
     // Delegate background and border handling to the base class
     applyBackgroundColor(properties);
     applyBorderStyles(properties);
-}
-
-// ---- Enum Mappings ----
-
-int32_t ColumnComponent::mapJustifyContent(const std::string& justify) {
-    if (justify == "center") {
-        return ARKUI_FLEX_ALIGNMENT_CENTER;
-    } else if (justify == "end") {
-        return ARKUI_FLEX_ALIGNMENT_END;
-    } else if (justify == "spaceBetween") {
-        return ARKUI_FLEX_ALIGNMENT_SPACE_BETWEEN;
-    } else if (justify == "spaceAround") {
-        return ARKUI_FLEX_ALIGNMENT_SPACE_AROUND;
-    } else if (justify == "spaceEvenly") {
-        return ARKUI_FLEX_ALIGNMENT_SPACE_EVENLY;
-    }
-    // Default to START.
-    return ARKUI_FLEX_ALIGNMENT_START;
-}
-
-int32_t ColumnComponent::mapAlignItems(const std::string& align) {
-    if (align == "center") {
-        return ARKUI_ITEM_ALIGNMENT_CENTER;
-    } else if (align == "end") {
-        return ARKUI_ITEM_ALIGNMENT_END;
-    } else if (align == "stretch") {
-        return ARKUI_ITEM_ALIGNMENT_STRETCH;
-    }
-    // Default to START.
-    return ARKUI_ITEM_ALIGNMENT_START;
 }
 
 } // namespace a2ui

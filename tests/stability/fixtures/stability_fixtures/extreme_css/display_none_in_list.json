@@ -1,0 +1,37 @@
+{
+  "description": "Tests YogaLayoutManager isGone() path: children with display:none should be skipped in computeContentBoundsPx. Mix of visible and GONE children stresses the GONE-check branch.",
+  "surfaceId": "stability-display-none-list",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-display-none-list",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-display-none-list",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["lst"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "lst", "component": "List", "children": ["vis-0", "gone-1", "vis-2", "gone-3", "vis-4", "gone-5", "vis-6", "gone-7"], "styles": {"width": "100%", "height": "350px"}},
+          {"id": "vis-0", "component": "Text", "text": "Visible 0", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "gone-1", "component": "Text", "text": "Hidden 1", "styles": {"width": "100%", "height": "50px", "display": "none"}},
+          {"id": "vis-2", "component": "Text", "text": "Visible 2", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "gone-3", "component": "Text", "text": "Hidden 3", "styles": {"width": "100%", "height": "50px", "display": "none"}},
+          {"id": "vis-4", "component": "Text", "text": "Visible 4", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "gone-5", "component": "Column", "children": ["gone-5-child"], "styles": {"width": "100%", "height": "100px", "display": "none"}},
+          {"id": "gone-5-child", "component": "Text", "text": "Child of hidden container", "styles": {"width": "100%"}},
+          {"id": "vis-6", "component": "Text", "text": "Visible 6", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "gone-7", "component": "Text", "text": "All hidden last item", "styles": {"width": "100%", "height": "50px", "display": "none"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

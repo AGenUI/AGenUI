@@ -1,0 +1,65 @@
+{
+  "description": "Complex mixed dashboard with Cards, Charts, Lists, Images, and Text in a nested layout. Tests realistic layout stress with many component types interacting.",
+  "surfaceId": "stability-mixed-dash",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-mixed-dash",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-mixed-dash",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["header", "stats-row", "chart-section", "list-section"], "styles": {"width": "100%", "padding": "12px", "gap": "12px"}},
+          {"id": "header", "component": "Row", "children": ["h-icon", "h-title"], "styles": {"width": "100%", "align-items": "center", "gap": "8px"}},
+          {"id": "h-icon", "component": "Icon", "icon": "home", "styles": {"width": "24px", "height": "24px"}},
+          {"id": "h-title", "component": "Text", "text": "Dashboard Overview", "variant": "title", "styles": {"flex-grow": "1"}},
+          {"id": "stats-row", "component": "Row", "children": ["stat1", "stat2", "stat3"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "stat1", "component": "Card", "child": "stat1-inner", "styles": {"flex-grow": "1"}},
+          {"id": "stat1-inner", "component": "Column", "children": ["s1-val", "s1-lbl"], "styles": {"padding": "8px", "align-items": "center"}},
+          {"id": "s1-val", "component": "Text", "text": "1,234", "variant": "title", "styles": {}},
+          {"id": "s1-lbl", "component": "Text", "text": "Users", "styles": {}},
+          {"id": "stat2", "component": "Card", "child": "stat2-inner", "styles": {"flex-grow": "1"}},
+          {"id": "stat2-inner", "component": "Column", "children": ["s2-val", "s2-lbl"], "styles": {"padding": "8px", "align-items": "center"}},
+          {"id": "s2-val", "component": "Text", "text": "56.7%", "variant": "title", "styles": {}},
+          {"id": "s2-lbl", "component": "Text", "text": "Growth", "styles": {}},
+          {"id": "stat3", "component": "Card", "child": "stat3-inner", "styles": {"flex-grow": "1"}},
+          {"id": "stat3-inner", "component": "Column", "children": ["s3-val", "s3-lbl"], "styles": {"padding": "8px", "align-items": "center"}},
+          {"id": "s3-val", "component": "Text", "text": "$89K", "variant": "title", "styles": {}},
+          {"id": "s3-lbl", "component": "Text", "text": "Revenue", "styles": {}},
+          {"id": "chart-section", "component": "Card", "child": "chart-col", "styles": {"width": "100%"}},
+          {"id": "chart-col", "component": "Column", "children": ["chart-title", "chart-widget"], "styles": {"padding": "12px", "gap": "8px"}},
+          {"id": "chart-title", "component": "Text", "text": "Weekly Trend", "variant": "subtitle", "styles": {}},
+          {"id": "chart-widget", "component": "Chart", "chartType": "line", "data": {"labels": ["Mon", "Tue", "Wed", "Thu", "Fri"], "datasets": [{"data": [65, 78, 52, 91, 83]}]}, "styles": {"width": "100%", "height": "160px"}},
+          {"id": "list-section", "component": "List", "children": ["li-0", "li-1", "li-2", "li-3", "li-4"], "styles": {"width": "100%", "height": "250px"}},
+          {"id": "li-0", "component": "Row", "children": ["li0-img", "li0-txt", "li0-btn"], "styles": {"width": "100%", "padding": "8px", "align-items": "center", "gap": "8px"}},
+          {"id": "li0-img", "component": "Image", "properties": {"url": "https://example.com/avatar0.png", "width": 40, "height": 40}},
+          {"id": "li0-txt", "component": "Text", "text": "Alice Johnson", "styles": {"flex-grow": "1"}},
+          {"id": "li0-btn", "component": "Button", "child": "li0-btn-t", "styles": {}},
+          {"id": "li0-btn-t", "component": "Text", "text": "View", "styles": {}},
+          {"id": "li-1", "component": "Row", "children": ["li1-img", "li1-txt"], "styles": {"width": "100%", "padding": "8px", "align-items": "center", "gap": "8px"}},
+          {"id": "li1-img", "component": "Image", "properties": {"url": "https://example.com/avatar1.png", "width": 40, "height": 40}},
+          {"id": "li1-txt", "component": "Text", "text": "Bob Smith", "styles": {"flex-grow": "1"}},
+          {"id": "li-2", "component": "Row", "children": ["li2-img", "li2-txt"], "styles": {"width": "100%", "padding": "8px", "align-items": "center", "gap": "8px"}},
+          {"id": "li2-img", "component": "Image", "properties": {"url": "https://example.com/avatar2.png", "width": 40, "height": 40}},
+          {"id": "li2-txt", "component": "Text", "text": "Carol Davis", "styles": {"flex-grow": "1"}},
+          {"id": "li-3", "component": "Row", "children": ["li3-img", "li3-txt"], "styles": {"width": "100%", "padding": "8px", "align-items": "center", "gap": "8px"}},
+          {"id": "li3-img", "component": "Image", "properties": {"url": "https://example.com/avatar3.png", "width": 40, "height": 40}},
+          {"id": "li3-txt", "component": "Text", "text": "Dan Wilson", "styles": {"flex-grow": "1"}},
+          {"id": "li-4", "component": "Row", "children": ["li4-img", "li4-txt"], "styles": {"width": "100%", "padding": "8px", "align-items": "center", "gap": "8px"}},
+          {"id": "li4-img", "component": "Image", "properties": {"url": "https://example.com/avatar4.png", "width": 40, "height": 40}},
+          {"id": "li4-txt", "component": "Text", "text": "Eve Miller", "styles": {"flex-grow": "1"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

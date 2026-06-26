@@ -22,7 +22,7 @@ namespace a2ui {
  *   - visible: reserved visibility flag
  *   - child management: first child = trigger, second child = content
  */
-class ModalComponent : public A2UIComponent {
+class ModalComponent final : public A2UIComponent {
 public:
     ModalComponent(const std::string& id, const nlohmann::json& properties);
     ~ModalComponent() override;
@@ -30,12 +30,7 @@ public:
     /** Modal manages child mounting itself. */
     bool shouldAutoAddChildView() const override;
 
-    /**
-     * Child mount callback invoked by Surface after addChild.
-     * Since the base addChild is not virtual, mounting is handled through
-     * the same dynamic_cast + onChildMounted pattern used by TabsComponent.
-     */
-    void onChildMounted(A2UIComponent* child);
+    void onChildMounted(A2UIComponent* child) override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;

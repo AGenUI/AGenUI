@@ -5,7 +5,7 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 # ============================================================================
-# tests/integration/platforms/ios.sh
+# tests/integration/platforms/ios/ios.sh
 # Run iOS Playground integration tests (XCTest)
 #
 # Prerequisites:
@@ -13,7 +13,7 @@ export LC_ALL=en_US.UTF-8
 #   - CocoaPods installed (pod command available)
 #
 # Usage:
-#   ./tests/integration/platforms/ios.sh [options]
+#   ./tests/integration/platforms/ios/ios.sh [options]
 #
 # Options:
 #   --simulator <name>      Simulator name (default "iPhone 16", only effective when no --udid and no booted simulator)
@@ -31,9 +31,9 @@ export LC_ALL=en_US.UTF-8
 #   3) --simulator + --os match by name + version
 #
 # Examples:
-#   ./tests/integration/platforms/ios.sh
-#   ./tests/integration/platforms/ios.sh --simulator "iPhone 14" --os "17.0"
-#   ./tests/integration/platforms/ios.sh --output-dir /tmp/reports/ios
+#   ./tests/integration/platforms/ios/ios.sh
+#   ./tests/integration/platforms/ios/ios.sh --simulator "iPhone 14" --os "17.0"
+#   ./tests/integration/platforms/ios/ios.sh --output-dir /tmp/reports/ios
 # ============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

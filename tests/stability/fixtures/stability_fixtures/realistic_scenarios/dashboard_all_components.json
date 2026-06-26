@@ -1,0 +1,37 @@
+{
+  "description": "Dashboard with 15+ different component types in one surface - tests heterogeneous rendering",
+  "surfaceId": "stability-dashboard-all",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-dashboard-all","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-dashboard-all","components":[
+      {"id":"root","component":"Column","children":["hdr","row1","div1","row2","div2","form","div3","media"],"styles":{"width":"100%","padding":"12px","gap":"8px"}},
+      {"id":"hdr","component":"Row","children":["logo","title","badge"],"styles":{"width":"100%","align-items":"center","gap":"8px"}},
+      {"id":"logo","component":"Icon","icon":"dashboard","styles":{"width":"24px","height":"24px"}},
+      {"id":"title","component":"Text","text":"Mixed Dashboard"},
+      {"id":"badge","component":"CheckBox","label":"Dark Mode","value":false},
+      {"id":"row1","component":"Row","children":["card1","card2"],"styles":{"width":"100%","gap":"8px"}},
+      {"id":"card1","component":"Card","child":"card1c","styles":{"flex-grow":"1"}},
+      {"id":"card1c","component":"Column","children":["c1t","c1chart"],"styles":{"padding":"8px"}},
+      {"id":"c1t","component":"Text","text":"Revenue"},
+      {"id":"c1chart","component":"Chart","properties":{"chartType":"line","data":{"labels":["1","2","3"],"datasets":[{"label":"$","data":[100,200,150]}]}},"styles":{"height":"120px","width":"100%"}},
+      {"id":"card2","component":"Card","child":"card2c","styles":{"flex-grow":"1"}},
+      {"id":"card2c","component":"Column","children":["c2t","c2slider"],"styles":{"padding":"8px"}},
+      {"id":"c2t","component":"Text","text":"Threshold"},
+      {"id":"c2slider","component":"Slider","min":0,"max":100,"value":50},
+      {"id":"div1","component":"Divider"},
+      {"id":"row2","component":"Row","children":["md","tbl"],"styles":{"width":"100%","gap":"8px"}},
+      {"id":"md","component":"Markdown","content":"## Notes\n- Item A\n- Item B\n- **Bold** text","styles":{"flex-grow":"1"}},
+      {"id":"tbl","component":"Table","properties":{"columns":["Name","Value"],"rows":[["Alpha","100"],["Beta","200"],["Gamma","300"]]},"styles":{"flex-grow":"1"}},
+      {"id":"div2","component":"Divider"},
+      {"id":"form","component":"Row","children":["tf","dt","btn"],"styles":{"width":"100%","gap":"8px","align-items":"center"}},
+      {"id":"tf","component":"TextField","label":"Search","value":"","styles":{"flex-grow":"1"}},
+      {"id":"dt","component":"DateTimeInput","label":"Date","value":"2026-01-15"},
+      {"id":"btn","component":"Button","child":"btxt","action":{"functionCall":{"name":"search"}}},
+      {"id":"btxt","component":"Text","text":"Go"},
+      {"id":"div3","component":"Divider"},
+      {"id":"media","component":"Row","children":["img1","lottie1"],"styles":{"width":"100%","gap":"8px","height":"100px"}},
+      {"id":"img1","component":"Image","properties":{"url":"https://example.com/photo.png","width":100,"height":100},"styles":{"width":"100px","height":"100px"}},
+      {"id":"lottie1","component":"Lottie","properties":{"url":"https://example.com/anim.json"},"styles":{"width":"100px","height":"100px"}}
+    ]}}
+  ]
+}

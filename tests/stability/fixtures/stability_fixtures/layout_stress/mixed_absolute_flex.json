@@ -1,0 +1,41 @@
+{
+  "description": "Mixed absolute and flex-positioned siblings to test yoga layout delegate handling of mixed positioning modes",
+  "surfaceId": "mixed_absolute_flex",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "mixed_absolute_flex",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "mixed_absolute_flex",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["mx1", "mx2"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "mx1", "component": "Row", "children": ["mx1a", "mx1b", "mx1c", "mx1d", "mx1e", "mx1f"], "styles": {"width": "100%", "height": "400px", "flex-wrap": "wrap"}},
+          {"id": "mx1a", "component": "Text", "text": "Flex normal", "styles": {"width": "30%", "flex-grow": "1"}},
+          {"id": "mx1b", "component": "Text", "text": "Absolute TL", "styles": {"position": "absolute", "top": "0", "left": "0", "width": "100px"}},
+          {"id": "mx1c", "component": "Text", "text": "Flex normal 2", "styles": {"width": "30%", "flex-grow": "1"}},
+          {"id": "mx1d", "component": "Text", "text": "Absolute BR", "styles": {"position": "absolute", "bottom": "0", "right": "0", "width": "100px"}},
+          {"id": "mx1e", "component": "Text", "text": "Flex normal 3", "styles": {"width": "30%", "flex-grow": "1"}},
+          {"id": "mx1f", "component": "Column", "children": ["mx1f1"], "styles": {"position": "absolute", "top": "50px", "left": "50px", "width": "200px", "height": "200px"}},
+          {"id": "mx1f1", "component": "Text", "text": "Absolute nested with content"},
+          {"id": "mx2", "component": "Column", "children": ["mx2a", "mx2b", "mx2c"], "styles": {"width": "100%", "height": "400px"}},
+          {"id": "mx2a", "component": "Row", "children": ["mx2a1", "mx2a2"], "styles": {"position": "absolute", "top": "0", "left": "0", "right": "0"}},
+          {"id": "mx2a1", "component": "Text", "text": "Abs row child A", "styles": {"flex-grow": "1"}},
+          {"id": "mx2a2", "component": "Text", "text": "Abs row child B", "styles": {"flex-grow": "2"}},
+          {"id": "mx2b", "component": "Text", "text": "Normal flow after absolute", "styles": {"flex-grow": "1"}},
+          {"id": "mx2c", "component": "Text", "text": "Another normal", "styles": {"flex-grow": "1"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

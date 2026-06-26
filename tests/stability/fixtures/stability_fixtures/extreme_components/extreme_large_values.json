@@ -1,0 +1,25 @@
+{
+  "description": "Extreme large dimension values to test overflow handling in layout calculations",
+  "surfaceId": "extreme-large-values",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "extreme-large-values",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "extreme-large-values",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["big1", "big2", "big3"], "styles": {"width": "100%"}},
+          {"id": "big1", "component": "Text", "text": "Huge width", "styles": {"width": "99999px", "height": "50px"}},
+          {"id": "big2", "component": "Text", "text": "Huge margin", "styles": {"width": "100px", "height": "50px", "margin": "10000px"}},
+          {"id": "big3", "component": "Text", "text": "Huge padding", "styles": {"width": "200px", "height": "50px", "padding": "5000px"}}
+        ]
+      }
+    }
+  ]
+}

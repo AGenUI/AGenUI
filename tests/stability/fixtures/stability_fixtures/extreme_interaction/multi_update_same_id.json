@@ -1,0 +1,29 @@
+{
+  "description": "Multiple updateComponents messages changing the same component properties - tests incremental update",
+  "surfaceId": "stability-multi-update",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-multi-update","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-update","components":[
+      {"id":"root","component":"Column","children":["txt","img","chk"],"styles":{"width":"100%","padding":"16px","gap":"8px"}},
+      {"id":"txt","component":"Text","text":"Initial text","styles":{"width":"100%"}},
+      {"id":"img","component":"Image","properties":{"url":"https://example.com/v1.png","width":200,"height":200},"styles":{"width":"100%","height":"150px"}},
+      {"id":"chk","component":"CheckBox","label":"Option","value":false}
+    ]}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-update","components":[
+      {"id":"root","component":"Column","children":["txt","img","chk"],"styles":{"width":"100%","padding":"16px","gap":"8px"}},
+      {"id":"txt","component":"Text","text":"Updated text - round 2","styles":{"width":"80%"}},
+      {"id":"img","component":"Image","properties":{"url":"https://example.com/v2.png","width":300,"height":100},"styles":{"width":"80%","height":"200px"}},
+      {"id":"chk","component":"CheckBox","label":"Changed label","value":true}
+    ]}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-update","components":[
+      {"id":"root","component":"Column","children":["txt","slider","chk"],"styles":{"width":"100%","padding":"8px","gap":"4px"}},
+      {"id":"txt","component":"Text","text":"Third update - image replaced with slider","styles":{"width":"100%"}},
+      {"id":"slider","component":"Slider","min":0,"max":100,"value":75},
+      {"id":"chk","component":"CheckBox","label":"Final state","value":false}
+    ]}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-update","components":[
+      {"id":"root","component":"Column","children":["txt"],"styles":{"width":"100%","padding":"16px"}},
+      {"id":"txt","component":"Text","text":"All children removed except this text"}
+    ]}}
+  ]
+}

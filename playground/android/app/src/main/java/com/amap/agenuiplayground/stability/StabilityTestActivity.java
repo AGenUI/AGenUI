@@ -26,6 +26,7 @@ import com.amap.agenuiplayground.component.factory.MarkdownComponentFactory;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -122,6 +123,12 @@ public class StabilityTestActivity extends AppCompatActivity {
         // Initialize components
         memoryMonitor = new MemoryMonitor();
         engine = new StabilityScenarioEngine(this);
+
+        String fixturesParam = getIntent().getStringExtra("fixtures");
+        if (fixturesParam != null && !fixturesParam.isEmpty()) {
+            engine.setFixtureFilter(Arrays.asList(fixturesParam.split(",")));
+        }
+
         handler = new Handler(Looper.getMainLooper());
 
         realisticEngine = new RealisticScenarioEngine(this, engine);

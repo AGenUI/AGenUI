@@ -1,0 +1,39 @@
+{
+  "description": "flex-grow + fixed width + max-width all set simultaneously to stress yoga property decoder priority resolution",
+  "surfaceId": "flex_grow_fixed_max",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "flex_grow_fixed_max",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "flex_grow_fixed_max",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["rw1", "rw2", "rw3"], "styles": {"width": "100%", "height": "600px", "gap": "10px"}},
+          {"id": "rw1", "component": "Row", "children": ["a1", "a2", "a3"], "styles": {"width": "100%", "height": "100px"}},
+          {"id": "a1", "component": "Text", "text": "grow:1 w:200 max:100", "styles": {"flex-grow": "1", "width": "200px", "max-width": "100px"}},
+          {"id": "a2", "component": "Text", "text": "grow:2 w:50 max:300", "styles": {"flex-grow": "2", "width": "50px", "max-width": "300px"}},
+          {"id": "a3", "component": "Text", "text": "grow:3 w:100 max:50", "styles": {"flex-grow": "3", "width": "100px", "max-width": "50px"}},
+          {"id": "rw2", "component": "Row", "children": ["b1", "b2"], "styles": {"width": "400px", "height": "100px"}},
+          {"id": "b1", "component": "Text", "text": "All three + basis", "styles": {"flex-grow": "1", "flex-basis": "200px", "width": "300px", "max-width": "150px", "min-width": "250px"}},
+          {"id": "b2", "component": "Text", "text": "Counterpart", "styles": {"flex-grow": "1", "flex-basis": "100px", "width": "50px", "max-width": "80px", "min-width": "120px"}},
+          {"id": "rw3", "component": "Row", "children": ["c1", "c2", "c3", "c4"], "styles": {"width": "100%", "height": "100px", "flex-wrap": "wrap"}},
+          {"id": "c1", "component": "Text", "text": "Wrap+grow+fixed", "styles": {"flex-grow": "1", "width": "40%", "max-width": "20%"}},
+          {"id": "c2", "component": "Text", "text": "Wrap+grow+fixed", "styles": {"flex-grow": "1", "width": "40%", "max-width": "20%"}},
+          {"id": "c3", "component": "Text", "text": "Wrap+grow+fixed", "styles": {"flex-grow": "1", "width": "40%", "max-width": "20%"}},
+          {"id": "c4", "component": "Text", "text": "Wrap+grow+fixed", "styles": {"flex-grow": "1", "width": "40%", "max-width": "20%"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

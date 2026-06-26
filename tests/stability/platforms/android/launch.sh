@@ -16,6 +16,7 @@ INTERVAL_MS=100
 CRASH_THRESHOLD=5
 OUTPUT_DIR=""
 DO_INSTALL=false
+FIXTURES=""
 PACKAGE="com.amap.agenuiplayground"
 ACTIVITY=".stability.StabilityTestActivity"
 
@@ -27,6 +28,7 @@ while [[ $# -gt 0 ]]; do
         --interval)         INTERVAL_MS="$2"; shift 2 ;;
         --crash-threshold)  CRASH_THRESHOLD="$2"; shift 2 ;;
         --output-dir)       OUTPUT_DIR="$2"; shift 2 ;;
+        --fixtures)         FIXTURES="$2"; shift 2 ;;
         --install)          DO_INSTALL=true; shift ;;
         *)                  shift ;;
     esac
@@ -115,12 +117,18 @@ echo "[Android] Cleared previous crash registry, markers, and logs"
 echo "[Android] Starting StabilityTestActivity..."
 echo "[Android]   scenario=${SCENARIO}, duration=${DURATION_MIN}min, rounds=${ROUNDS}, interval=${INTERVAL_MS}ms, crash_threshold=${CRASH_THRESHOLD}"
 
+FIXTURES_ARGS=""
+if [[ -n "$FIXTURES" ]]; then
+    FIXTURES_ARGS="--es fixtures $FIXTURES"
+fi
+
 adb shell am start -n "${PACKAGE}/${ACTIVITY}" \
     --es scenario "$SCENARIO" \
     --ei duration_minutes "$DURATION_MIN" \
     --ei rounds "$ROUNDS" \
     --ei interval_ms "$INTERVAL_MS" \
-    --ei crash_threshold "$CRASH_THRESHOLD"
+    --ei crash_threshold "$CRASH_THRESHOLD" \
+    $FIXTURES_ARGS
 
 # Brief check that the activity was accepted by the system
 sleep 1

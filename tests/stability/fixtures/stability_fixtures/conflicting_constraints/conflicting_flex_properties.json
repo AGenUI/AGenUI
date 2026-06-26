@@ -1,0 +1,39 @@
+{
+  "description": "Contradictory flex properties applied simultaneously to test yoga property decoder and layout delegate conflict resolution",
+  "surfaceId": "conflicting_flex_properties",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "conflicting_flex_properties",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "conflicting_flex_properties",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["cf1", "cf2", "cf3", "cf4"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "cf1", "component": "Row", "children": ["cf1a", "cf1b"], "styles": {"flex-direction": "column", "width": "100%", "height": "200px"}},
+          {"id": "cf1a", "component": "Text", "text": "Row with flex-direction:column"},
+          {"id": "cf1b", "component": "Text", "text": "Should this be vertical?"},
+          {"id": "cf2", "component": "Column", "children": ["cf2a", "cf2b", "cf2c"], "styles": {"width": "100%", "height": "200px", "flex-wrap": "wrap", "align-content": "space-around", "align-items": "stretch", "justify-content": "space-between"}},
+          {"id": "cf2a", "component": "Text", "text": "All align props set", "styles": {"width": "60%", "align-self": "center"}},
+          {"id": "cf2b", "component": "Text", "text": "All align props set", "styles": {"width": "60%", "align-self": "flex-start"}},
+          {"id": "cf2c", "component": "Text", "text": "All align props set", "styles": {"width": "60%", "align-self": "flex-end"}},
+          {"id": "cf3", "component": "Row", "children": ["cf3a"], "styles": {"width": "100%", "height": "150px", "display": "none"}},
+          {"id": "cf3a", "component": "Text", "text": "Inside display:none parent"},
+          {"id": "cf4", "component": "Row", "children": ["cf4a", "cf4b"], "styles": {"width": "100%", "height": "150px"}},
+          {"id": "cf4a", "component": "Text", "text": "Grow+shrink+basis all max", "styles": {"flex-grow": "999", "flex-shrink": "999", "flex-basis": "99999px", "width": "1px", "min-width": "500px", "max-width": "50px"}},
+          {"id": "cf4b", "component": "Text", "text": "Counter", "styles": {"flex-grow": "0.001", "flex-shrink": "0.001", "flex-basis": "1px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "description": "Component appears then disappears via successive updateComponents — tests add/remove lifecycle",
+  "surfaceId": "component-add-remove",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "component-add-remove",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "component-add-remove",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["a", "b", "c"], "styles": {"width": "100%"}},
+          {"id": "a", "component": "Text", "text": "Item A", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "b", "component": "Text", "text": "Item B (will be removed)", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "c", "component": "Text", "text": "Item C", "styles": {"width": "100%", "height": "50px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "component-add-remove",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["a", "c"], "styles": {"width": "100%"}},
+          {"id": "a", "component": "Text", "text": "Item A", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "c", "component": "Text", "text": "Item C (B removed)", "styles": {"width": "100%", "height": "50px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "component-add-remove",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["a", "d", "c"], "styles": {"width": "100%"}},
+          {"id": "a", "component": "Text", "text": "Item A", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "d", "component": "Text", "text": "Item D (new)", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "c", "component": "Text", "text": "Item C", "styles": {"width": "100%", "height": "50px"}}
+        ]
+      }
+    }
+  ]
+}

@@ -7,7 +7,9 @@ import com.amap.agenui.render.component.IComponentFactory;
 import com.amap.agenui.render.component.impl.CarouselComponent;
 
 import java.util.Map;
+import com.amap.agenui.annotation.BuiltInComponent;
 
+@BuiltInComponent
 public class CarouselComponentFactory implements IComponentFactory {
 
     @Override

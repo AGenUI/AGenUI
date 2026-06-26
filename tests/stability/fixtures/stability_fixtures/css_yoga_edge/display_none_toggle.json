@@ -1,0 +1,62 @@
+{
+  "description": "display:none on various components then toggling back to test yoga node manager show/hide and layout recalculation",
+  "surfaceId": "display_none_toggle",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "display_none_toggle",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "display_none_toggle",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["v1", "h1", "v2", "h2", "v3", "h3"], "styles": {"width": "100%", "gap": "8px", "padding": "8px"}},
+          {"id": "v1", "component": "Text", "text": "Visible 1", "styles": {"height": "40px"}},
+          {"id": "h1", "component": "Column", "children": ["h1a", "h1b"], "styles": {"display": "none", "width": "100%"}},
+          {"id": "h1a", "component": "Text", "text": "Hidden child A"},
+          {"id": "h1b", "component": "Text", "text": "Hidden child B"},
+          {"id": "v2", "component": "Row", "children": ["v2a", "v2b", "v2c"], "styles": {"width": "100%"}},
+          {"id": "v2a", "component": "Text", "text": "Vis", "styles": {"flex-grow": "1"}},
+          {"id": "v2b", "component": "Text", "text": "Hidden mid", "styles": {"display": "none", "flex-grow": "2"}},
+          {"id": "v2c", "component": "Text", "text": "Vis", "styles": {"flex-grow": "1"}},
+          {"id": "h2", "component": "Row", "children": ["h2a"], "styles": {"display": "none", "width": "100%", "height": "500px"}},
+          {"id": "h2a", "component": "Image", "properties": {"url": "https://example.com/big.png", "width": 1000, "height": 1000}},
+          {"id": "v3", "component": "Text", "text": "Visible 3 (should be right after Visible 2)"},
+          {"id": "h3", "component": "Tabs", "tabs": [{"label": "Tab A", "child": "h3a"}], "styles": {"display": "none", "width": "100%"}},
+          {"id": "h3a", "component": "Text", "text": "Hidden tab content"}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "display_none_toggle",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["v1", "h1", "v2", "h2", "v3", "h3"], "styles": {"width": "100%", "gap": "8px", "padding": "8px"}},
+          {"id": "v1", "component": "Text", "text": "Visible 1", "styles": {"display": "none"}},
+          {"id": "h1", "component": "Column", "children": ["h1a", "h1b"], "styles": {"width": "100%"}},
+          {"id": "h1a", "component": "Text", "text": "Now visible child A"},
+          {"id": "h1b", "component": "Text", "text": "Now visible child B"},
+          {"id": "v2", "component": "Row", "children": ["v2a", "v2b", "v2c"], "styles": {"width": "100%"}},
+          {"id": "v2a", "component": "Text", "text": "Vis", "styles": {"flex-grow": "1"}},
+          {"id": "v2b", "component": "Text", "text": "Now visible mid", "styles": {"flex-grow": "2"}},
+          {"id": "v2c", "component": "Text", "text": "Vis", "styles": {"flex-grow": "1"}},
+          {"id": "h2", "component": "Row", "children": ["h2a"], "styles": {"width": "100%", "height": "500px"}},
+          {"id": "h2a", "component": "Image", "properties": {"url": "https://example.com/big.png", "width": 1000, "height": 1000}},
+          {"id": "v3", "component": "Text", "text": "Visible 3"},
+          {"id": "h3", "component": "Tabs", "tabs": [{"label": "Tab A", "child": "h3a"}], "styles": {"width": "100%"}},
+          {"id": "h3a", "component": "Text", "text": "Now visible tab content"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

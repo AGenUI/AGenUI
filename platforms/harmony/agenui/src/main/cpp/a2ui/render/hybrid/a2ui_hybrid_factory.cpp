@@ -4,15 +4,10 @@
 #include "a2ui_hybrid_view.h"
 #include "a2ui/render/a2ui_component_state.h"
 #include <a2ui_hm_helper.h>
+#include "a2ui/utils/a2ui_napi_utils.h"
 #include "../components/web_component.h"
 
 namespace a2ui {
-
-// Stack buffer sizes for reading NAPI string arguments passed across the JS<->Native boundary.
-// Attribute keys are short identifiers, while values may carry larger payloads (e.g. JSON snippets).
-// Strings longer than these limits will be silently truncated by napi_get_value_string_utf8.
-constexpr size_t kHybridAttrKeyBufferSize   = 512;
-constexpr size_t kHybridAttrValueBufferSize = 1024;
 
 // Static member definition
 std::string A2UIHybridFactory::s_engineWorkspace;
@@ -49,7 +44,7 @@ static napi_value createUpdateStateArray(napi_env env, const std::vector<UpdateS
     for (uint32_t i = 0; i < updateStates.size(); ++i) {
         const UpdateState& state = updateStates[i];
         napi_value type;
-        napi_create_int32(env, (int32_t)state.type(), &type);
+        napi_create_int32(env, static_cast<int32_t>(state.type()), &type);
         desc[0].value = type;
 
         if (state.type() == UpdateType::AttributeChanged || state.type() == UpdateType::AttributeRemoved) {
@@ -179,15 +174,8 @@ napi_value A2UIHybridFactory::addAttributeChangeObserver(napi_env env, napi_call
         return nullptr;
     }
     
-    // Get the key
-    char key[kHybridAttrKeyBufferSize] = {0};
-    size_t keyLen = 0;
-    napi_status keyStatus = napi_get_value_string_utf8(env, args[0], key, sizeof(key), &keyLen);
-    if (keyStatus != napi_ok) {
-        HM_LOGE("addAttributeChangeObserver: napi_get_value_string_utf8 failed, status=%d", keyStatus);
-        return nullptr;
-    }
-    
+    std::string key = a2ui::napiGetString(env, args[0]);
+
     // Create the callback reference.
     napi_ref callbackRef = nullptr;
     napi_status refStatus = napi_create_reference(env, args[1], 1, &callbackRef);
@@ -195,9 +183,9 @@ napi_value A2UIHybridFactory::addAttributeChangeObserver(napi_env env, napi_call
         HM_LOGE("addAttributeChangeObserver: napi_create_reference failed, status=%d", refStatus);
         return nullptr;
     }
-    
+
     // Store the observer.
-    s_attributeObservers[std::string(key, keyLen)] = {env, callbackRef};
+    s_attributeObservers[key] = {env, callbackRef};
     
     return nullptr;
 }
@@ -212,17 +200,10 @@ napi_value A2UIHybridFactory::removeAttributeChangeObserver(napi_env env, napi_c
         return nullptr;
     }
     
-    // Get the key
-    char key[kHybridAttrKeyBufferSize] = {0};
-    size_t keyLen = 0;
-    napi_status keyStatus = napi_get_value_string_utf8(env, args[0], key, sizeof(key), &keyLen);
-    if (keyStatus != napi_ok) {
-        HM_LOGE("removeAttributeChangeObserver: napi_get_value_string_utf8 failed, status=%d", keyStatus);
-        return nullptr;
-    }
-    
+    std::string key = a2ui::napiGetString(env, args[0]);
+
     // Remove the observer.
-    auto it = s_attributeObservers.find(std::string(key, keyLen));
+    auto it = s_attributeObservers.find(key);
     if (it != s_attributeObservers.end()) {
         napi_delete_reference(it->second.first, it->second.second);
         s_attributeObservers.erase(it);
@@ -251,26 +232,12 @@ napi_value A2UIHybridFactory::setAttribute(napi_env env, napi_callback_info info
         return nullptr;
     }
     
-    // Read the key and value.
-    char key[kHybridAttrKeyBufferSize] = {0};
-    size_t keyLen = 0;
-    napi_status keyStatus = napi_get_value_string_utf8(env, args[1], key, sizeof(key), &keyLen);
-    if (keyStatus != napi_ok) {
-        HM_LOGE("setAttribute: read key failed, status=%d", keyStatus);
-        return nullptr;
-    }
-    
-    char value[kHybridAttrValueBufferSize] = {0};
-    size_t valueLen = 0;
-    napi_status valueStatus = napi_get_value_string_utf8(env, args[2], value, sizeof(value), &valueLen);
-    if (valueStatus != napi_ok) {
-        HM_LOGE("setAttribute: read value failed, status=%d", valueStatus);
-        return nullptr;
-    }
-    
+    std::string key = a2ui::napiGetString(env, args[1]);
+    std::string value = a2ui::napiGetString(env, args[2]);
+
     // Update the attribute in the ComponentState.
     nlohmann::json props = state->getProperties();
-    props[std::string(key, keyLen)] = std::string(value, valueLen);
+    props[key] = value;
     state->updateProperties(props);
     
     return nullptr;
@@ -296,19 +263,11 @@ napi_value A2UIHybridFactory::getAttribute(napi_env env, napi_callback_info info
         return nullptr;
     }
     
-    // Get the key
-    char key[kHybridAttrKeyBufferSize] = {0};
-    size_t keyLen = 0;
-    napi_status keyStatus = napi_get_value_string_utf8(env, args[1], key, sizeof(key), &keyLen);
-    if (keyStatus != napi_ok) {
-        HM_LOGE("getAttribute: read key failed, status=%d", keyStatus);
-        return nullptr;
-    }
-    
+    std::string keyStr = a2ui::napiGetString(env, args[1]);
+
     // Read the attribute from the ComponentState.
     const nlohmann::json& props = state->getProperties();
-    std::string keyStr(key, keyLen);
-    
+
     if (!props.contains(keyStr)) {
         return nullptr;
     }

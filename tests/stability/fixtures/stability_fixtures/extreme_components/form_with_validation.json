@@ -1,0 +1,30 @@
+{
+  "description": "Realistic form with multiple input types, validation states, and complex layout — exercises TextField, CheckBox, Slider interaction",
+  "surfaceId": "form-with-validation",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "form-with-validation",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "form-with-validation",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["form-title", "name-field", "email-field", "age-slider", "terms-cb", "submit-row"], "styles": {"width": "100%", "padding": "16px", "gap": "12px"}},
+          {"id": "form-title", "component": "Text", "text": "Registration Form", "styles": {"width": "100%", "height": "36px"}},
+          {"id": "name-field", "component": "TextField", "label": "Full Name", "value": "", "styles": {"width": "100%"}},
+          {"id": "email-field", "component": "TextField", "label": "Email Address", "value": "user@example.com", "styles": {"width": "100%"}},
+          {"id": "age-slider", "component": "Slider", "label": "Age", "min": 18, "max": 100, "value": 25, "styles": {"width": "100%"}},
+          {"id": "terms-cb", "component": "CheckBox", "label": "I agree to the terms and conditions", "value": false},
+          {"id": "submit-row", "component": "Row", "children": ["cancel-btn", "submit-btn"], "styles": {"width": "100%", "justify-content": "flex-end", "gap": "8px"}},
+          {"id": "cancel-btn", "component": "Button", "label": "Cancel"},
+          {"id": "submit-btn", "component": "Button", "label": "Submit"}
+        ]
+      }
+    }
+  ]
+}

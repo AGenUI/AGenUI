@@ -134,27 +134,17 @@ public class TextFieldComponent extends A2UIComponent {
         errorTextView.setLayoutParams(errorParams);
         containerLayout.addView(errorTextView);
 
-        applyProperties();
+        applyProperties(this.properties);
 
         return containerLayout;
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
-        applyProperties();
-
-        // Apply styles
-        if (properties.containsKey("styles")) {
-            Object stylesValue = properties.get("styles");
-            if (stylesValue instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> styles = (Map<String, Object>) stylesValue;
-                applyStyles(styles);
-            }
-        }
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
+        applyProperties(changedProps);
     }
 
-    private void applyProperties() {
+    private void applyProperties(Map<String, Object> props) {
         if (editText == null) {
             return;
         }
@@ -162,15 +152,15 @@ public class TextFieldComponent extends A2UIComponent {
         editText.removeTextChangedListener(textWatcher);
 
         // Update label (displayed as hint)
-        if (properties.containsKey("label")) {
-            Object labelValue = properties.get("label");
+        if (props.containsKey("label")) {
+            Object labelValue = props.get("label");
             String label = extractTextValue(labelValue);
             editText.setHint(label);
         }
 
         // Update text value (data update from C++)
-        if (properties.containsKey("value")) {
-            Object textValue = properties.get("value");
+        if (props.containsKey("value")) {
+            Object textValue = props.get("value");
 
             // Update text content
             isUpdatingFromNative = true;
@@ -183,14 +173,14 @@ public class TextFieldComponent extends A2UIComponent {
         }
 
         // Update input type (A2UI v0.9 protocol: variant)
-        if (properties.containsKey("variant")) {
-            String variant = String.valueOf(properties.get("variant"));
+        if (props.containsKey("variant")) {
+            String variant = String.valueOf(props.get("variant"));
             editText.setInputType(parseVariant(variant));
         }
 
         // Parse validationRegexp
-        if (properties.containsKey("validationRegexp")) {
-            Object regexpObj = properties.get("validationRegexp");
+        if (props.containsKey("validationRegexp")) {
+            Object regexpObj = props.get("validationRegexp");
             validationRegexp = (regexpObj instanceof String) ? (String) regexpObj : null;
             if (validationRegexp != null && !validationRegexp.isEmpty()) {
                 try {
@@ -204,11 +194,21 @@ public class TextFieldComponent extends A2UIComponent {
             }
         }
 
+        // Apply styles
+        if (props.containsKey("styles")) {
+            Object stylesValue = props.get("styles");
+            if (stylesValue instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> styles = (Map<String, Object>) stylesValue;
+                applyStyles(styles);
+            }
+        }
+
         // checks adaptation - external validation error from the host. Stored
         // separately from regexp failure so display priority is: external first,
         // then regexp failure, otherwise no error.
-        if (properties.containsKey("checks")) {
-            Object checksValue = properties.get("checks");
+        if (props.containsKey("checks")) {
+            Object checksValue = props.get("checks");
             if (checksValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> checksMap = (Map<String, Object>) checksValue;

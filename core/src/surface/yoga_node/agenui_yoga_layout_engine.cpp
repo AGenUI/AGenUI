@@ -97,7 +97,7 @@ void YogaLayoutEngine::setupMeasureFunctionIfNeeded(const std::string& nodeId,
     // INTERNAL types (declared in agenui_measurement_manager.h), not part of
     // the public IMeasurementManager interface. Engine pairs with the
     // bundled MeasurementManagerImpl and does the downcast here (Phase A
-    // Hard Rule 2 — the cast lives in the concrete consumer).
+    // Hard constraint 2 — the cast lives in the concrete consumer).
     auto* mgrImpl = static_cast<MeasurementManagerImpl*>(_measurementManager);
     ::agenui::MeasureDecision decision = ::agenui::MeasureDecision::Skip;
     if (mgrImpl) {

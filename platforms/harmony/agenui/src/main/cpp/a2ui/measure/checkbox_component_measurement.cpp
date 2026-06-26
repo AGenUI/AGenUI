@@ -1,6 +1,7 @@
 #include "checkbox_component_measurement.h"
 #include "a2ui_platform_layout_bridge.h"
 #include "text_measurement_utils.h"
+#include "a2ui/utils/a2ui_measure_mode.h"
 
 #include "nlohmann/json.hpp"
 #include <algorithm>
@@ -13,7 +14,7 @@ agenui::MeasureResult CheckBoxComponentMeasurement::measure(
         const std::string& paramJson,
         const agenui::MeasureModes& modes) {
 
-    float maxWidth    = modes.width.maxValue > 0.0f ? modes.width.maxValue : 720.0f;
+    float maxWidth    = modes.width.maxValue > 0.0f ? modes.width.maxValue : kDefaultMaxWidth;
     float checkboxSize = 32.0f;
     float textMargin   = 16.0f;
     float textFontSize = 32.0f;

@@ -1,0 +1,93 @@
+{
+  "description": "Realistic page switch simulation where component tree completely changes between updates — targets realistic_page_switch coverage",
+  "surfaceId": "realistic_page_switch",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "realistic_page_switch",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "realistic_page_switch",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["nav", "page-home"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "nav", "component": "Row", "children": ["nav1", "nav2", "nav3"], "styles": {"width": "100%", "justify-content": "space-around", "padding": "8px"}},
+          {"id": "nav1", "component": "Button", "child": "nav1t"},
+          {"id": "nav1t", "component": "Text", "text": "Home"},
+          {"id": "nav2", "component": "Button", "child": "nav2t"},
+          {"id": "nav2t", "component": "Text", "text": "Search"},
+          {"id": "nav3", "component": "Button", "child": "nav3t"},
+          {"id": "nav3t", "component": "Text", "text": "Profile"},
+          {"id": "page-home", "component": "Column", "children": ["home-hero", "home-list"], "styles": {"flex-grow": "1", "padding": "16px", "gap": "12px"}},
+          {"id": "home-hero", "component": "Image", "properties": {"url": "https://example.com/hero.png", "width": 400, "height": 200}, "styles": {"width": "100%", "aspect-ratio": "2"}},
+          {"id": "home-list", "component": "List", "children": ["hl1", "hl2", "hl3"], "styles": {"flex-grow": "1"}},
+          {"id": "hl1", "component": "Text", "text": "Featured item 1", "styles": {"padding": "12px"}},
+          {"id": "hl2", "component": "Text", "text": "Featured item 2", "styles": {"padding": "12px"}},
+          {"id": "hl3", "component": "Text", "text": "Featured item 3", "styles": {"padding": "12px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "realistic_page_switch",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["nav", "page-search"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "nav", "component": "Row", "children": ["nav1", "nav2", "nav3"], "styles": {"width": "100%", "justify-content": "space-around", "padding": "8px"}},
+          {"id": "nav1", "component": "Button", "child": "nav1t"},
+          {"id": "nav1t", "component": "Text", "text": "Home"},
+          {"id": "nav2", "component": "Button", "child": "nav2t"},
+          {"id": "nav2t", "component": "Text", "text": "Search"},
+          {"id": "nav3", "component": "Button", "child": "nav3t"},
+          {"id": "nav3t", "component": "Text", "text": "Profile"},
+          {"id": "page-search", "component": "Column", "children": ["search-bar", "search-results"], "styles": {"flex-grow": "1", "padding": "16px", "gap": "8px"}},
+          {"id": "search-bar", "component": "TextField", "label": "Search...", "value": ""},
+          {"id": "search-results", "component": "Column", "children": ["sr1", "sr2", "sr3", "sr4"], "styles": {"flex-grow": "1", "gap": "4px"}},
+          {"id": "sr1", "component": "Card", "child": "sr1c", "styles": {"width": "100%"}},
+          {"id": "sr1c", "component": "Text", "text": "Search result 1", "styles": {"padding": "12px"}},
+          {"id": "sr2", "component": "Card", "child": "sr2c", "styles": {"width": "100%"}},
+          {"id": "sr2c", "component": "Text", "text": "Search result 2", "styles": {"padding": "12px"}},
+          {"id": "sr3", "component": "Card", "child": "sr3c", "styles": {"width": "100%"}},
+          {"id": "sr3c", "component": "Text", "text": "Search result 3", "styles": {"padding": "12px"}},
+          {"id": "sr4", "component": "Card", "child": "sr4c", "styles": {"width": "100%"}},
+          {"id": "sr4c", "component": "Text", "text": "Search result 4", "styles": {"padding": "12px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "realistic_page_switch",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["nav", "page-profile"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "nav", "component": "Row", "children": ["nav1", "nav2", "nav3"], "styles": {"width": "100%", "justify-content": "space-around", "padding": "8px"}},
+          {"id": "nav1", "component": "Button", "child": "nav1t"},
+          {"id": "nav1t", "component": "Text", "text": "Home"},
+          {"id": "nav2", "component": "Button", "child": "nav2t"},
+          {"id": "nav2t", "component": "Text", "text": "Search"},
+          {"id": "nav3", "component": "Button", "child": "nav3t"},
+          {"id": "nav3t", "component": "Text", "text": "Profile"},
+          {"id": "page-profile", "component": "Column", "children": ["avatar-row", "prof-details", "prof-actions"], "styles": {"flex-grow": "1", "padding": "16px", "gap": "16px", "align-items": "center"}},
+          {"id": "avatar-row", "component": "Image", "properties": {"url": "https://example.com/avatar.png", "width": 120, "height": 120}, "styles": {"width": "120px", "height": "120px"}},
+          {"id": "prof-details", "component": "Column", "children": ["prof-name", "prof-email"], "styles": {"align-items": "center", "gap": "4px"}},
+          {"id": "prof-name", "component": "Text", "text": "John Doe"},
+          {"id": "prof-email", "component": "Text", "text": "john@example.com"},
+          {"id": "prof-actions", "component": "Column", "children": ["edit-btn", "logout-btn"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "edit-btn", "component": "Button", "child": "edit-text"},
+          {"id": "edit-text", "component": "Text", "text": "Edit Profile"},
+          {"id": "logout-btn", "component": "Button", "child": "logout-text"},
+          {"id": "logout-text", "component": "Text", "text": "Log Out"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "realistic_scenarios",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

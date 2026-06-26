@@ -1,0 +1,17 @@
+{
+  "description": "Padding larger than container dimensions - tests padding overflow behavior",
+  "surfaceId": "stability-pad-overflow",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-pad-overflow","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-pad-overflow","components":[
+      {"id":"root","component":"Column","children":["p1","p2","p3"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
+      {"id":"p1","component":"Column","children":["p1t"],"styles":{"width":"100px","height":"50px","padding":"60px"}},
+      {"id":"p1t","component":"Text","text":"Padding bigger than box"},
+      {"id":"p2","component":"Row","children":["p2a","p2b"],"styles":{"width":"200px","height":"40px","padding-left":"150px","padding-right":"150px"}},
+      {"id":"p2a","component":"Text","text":"Left"},
+      {"id":"p2b","component":"Text","text":"Right"},
+      {"id":"p3","component":"Column","children":["p3t"],"styles":{"width":"80px","height":"80px","padding-top":"100px","padding-bottom":"100px","padding-left":"100px","padding-right":"100px","overflow":"hidden"}},
+      {"id":"p3t","component":"Text","text":"Crushed"}
+    ]}}
+  ]
+}

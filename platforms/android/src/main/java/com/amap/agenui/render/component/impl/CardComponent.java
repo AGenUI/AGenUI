@@ -37,6 +37,7 @@ public class CardComponent extends A2UILayoutComponent {
         cardView.setLayoutParams(new ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+        cardView.setCardElevation(0);
 
         contentContainer = new YogaAbsoluteLayout(context);
         cardView.addView(contentContainer, new CardView.LayoutParams(
@@ -55,17 +56,19 @@ public class CardComponent extends A2UILayoutComponent {
     }
 
     @Override
-    public void onUpdateProperties(Map<String, Object> properties) {
-        super.onUpdateProperties(properties);
+    public void onUpdateProperties(Map<String, Object> changedProps) {
+        super.onUpdateProperties(changedProps);
         if (cardView == null) {
             return;
         }
 
-        Object radius = this.properties.get("radius");
-        if (radius instanceof Number) {
-            cardView.setRadius(dpToPx(cardView.getContext(), ((Number) radius).floatValue()));
-        } else {
-            cardView.setRadius(dpToPx(cardView.getContext(), 8f));
+        if (changedProps.containsKey("radius")) {
+            Object radius = changedProps.get("radius");
+            if (radius instanceof Number) {
+                cardView.setRadius(dpToPx(cardView.getContext(), ((Number) radius).floatValue()));
+            } else {
+                cardView.setRadius(dpToPx(cardView.getContext(), 8f));
+            }
         }
         cardView.setCardBackgroundColor(0xFFFFFFFF);
         cardView.setClickable(true);

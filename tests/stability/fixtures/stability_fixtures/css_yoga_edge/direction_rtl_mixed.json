@@ -1,0 +1,38 @@
+{
+  "description": "RTL direction with mixed LTR children to test yoga property decoder direction handling and inset-inline properties",
+  "surfaceId": "direction_rtl_mixed",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "direction_rtl_mixed",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "direction_rtl_mixed",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["rtl1", "rtl2", "rtl3"], "styles": {"width": "100%", "direction": "rtl"}},
+          {"id": "rtl1", "component": "Row", "children": ["rtl1a", "rtl1b", "rtl1c"], "styles": {"width": "100%", "padding": "8px", "gap": "8px"}},
+          {"id": "rtl1a", "component": "Text", "text": "First (should be right)", "styles": {"flex-grow": "1"}},
+          {"id": "rtl1b", "component": "Text", "text": "Middle"},
+          {"id": "rtl1c", "component": "Text", "text": "Last (should be left)", "styles": {"flex-grow": "1"}},
+          {"id": "rtl2", "component": "Column", "children": ["rtl2a", "rtl2b"], "styles": {"width": "100%", "direction": "ltr", "padding": "8px"}},
+          {"id": "rtl2a", "component": "Text", "text": "LTR override inside RTL", "styles": {"margin-inline-start": "20px"}},
+          {"id": "rtl2b", "component": "Row", "children": ["rtl2b1", "rtl2b2"], "styles": {"width": "100%", "direction": "rtl"}},
+          {"id": "rtl2b1", "component": "Text", "text": "Back to RTL", "styles": {"padding-inline-start": "16px"}},
+          {"id": "rtl2b2", "component": "Text", "text": "Also RTL", "styles": {"margin-inline-end": "16px"}},
+          {"id": "rtl3", "component": "Row", "children": ["rtl3a"], "styles": {"width": "100%", "padding": "8px"}},
+          {"id": "rtl3a", "component": "Text", "text": "Absolute in RTL", "styles": {"position": "absolute", "inset-inline-start": "10px", "inset-block-start": "10px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -190,6 +190,13 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
         }
       }
     },
+    "List": {
+      "styles": {
+        "default": {
+          "overflow": "scroll"
+        }
+      }
+    },
     "Carousel": {
       "autoplay": {"default": false},
       "draggable": {"default": true},

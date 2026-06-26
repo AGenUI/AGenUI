@@ -2,7 +2,7 @@
 
 #include "napi/native_api.h"
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <mutex>
 
 namespace a2ui {
@@ -70,7 +70,7 @@ private:
     napi_ref m_destroyRef = nullptr;
 
     // componentId -> STACK ArkUI_NodeHandle stored as uintptr_t
-    std::map<std::string, uintptr_t> m_containerHandleMap;
+    std::unordered_map<std::string, uintptr_t> m_containerHandleMap;
 
     std::mutex m_mutex;
 };

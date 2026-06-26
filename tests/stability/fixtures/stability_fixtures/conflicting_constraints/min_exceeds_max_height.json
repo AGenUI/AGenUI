@@ -1,0 +1,36 @@
+{
+  "description": "min-height exceeding max-height with flex layout to test yoga constraint resolution on cross axis",
+  "surfaceId": "min_exceeds_max_height",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "min_exceeds_max_height",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "min_exceeds_max_height",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["h1", "h2", "h3"], "styles": {"width": "100%", "height": "800px"}},
+          {"id": "h1", "component": "Column", "children": ["h1a", "h1b"], "styles": {"min-height": "600px", "max-height": "100px", "width": "100%"}},
+          {"id": "h1a", "component": "Text", "text": "In min>max height container", "styles": {"flex-grow": "1"}},
+          {"id": "h1b", "component": "Text", "text": "Sibling", "styles": {"flex-grow": "1"}},
+          {"id": "h2", "component": "Row", "children": ["h2a", "h2b", "h2c"], "styles": {"width": "100%", "min-height": "400px", "max-height": "50px", "align-items": "stretch"}},
+          {"id": "h2a", "component": "Text", "text": "Stretched A", "styles": {"flex-grow": "1"}},
+          {"id": "h2b", "component": "Text", "text": "Stretched B", "styles": {"flex-grow": "1"}},
+          {"id": "h2c", "component": "Text", "text": "Stretched C", "styles": {"flex-grow": "1"}},
+          {"id": "h3", "component": "Column", "children": ["h3a"], "styles": {"height": "200px", "min-height": "500px", "max-height": "100px", "flex-grow": "1"}},
+          {"id": "h3a", "component": "Text", "text": "Triple height conflict"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "extreme",
+    "expected_behavior": "no_crash"
+  }
+}

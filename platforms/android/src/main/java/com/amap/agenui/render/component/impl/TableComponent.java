@@ -326,20 +326,30 @@ public class TableComponent extends A2UIComponent {
     }
 
     @Override
-    protected void onUpdateProperties(Map<String, Object> properties) {
+    protected void onUpdateProperties(Map<String, Object> changedProps) {
         if (tableLayout == null) {
             return;
         }
 
+        // Skip full rebuild when no table-relevant keys changed
+        if (!changedProps.containsKey("columns") && !changedProps.containsKey("rows")
+                && !changedProps.containsKey("styles")) {
+            return;
+        }
+
+        // Table rebuild needs the full merged state because columns/rows/styles
+        // must all be present to construct the complete table.
+        Map<String, Object> merged = this.properties;
+
         // Parse style configuration (only parse horizontal-scroll and column-weights)
-        parseStyles(properties);
+        parseStyles(merged);
 
         // Clear existing table content
         tableLayout.removeAllViews();
 
         // Get header and data
-        List<String> columns = extractColumns(properties);
-        List<List<String>> rows = extractRows(properties);
+        List<String> columns = extractColumns(merged);
+        List<List<String>> rows = extractRows(merged);
 
         // Calculate total number of rows (header + data rows)
         int totalRows = (columns != null && !columns.isEmpty() ? 1 : 0) + (rows != null ? rows.size() : 0);

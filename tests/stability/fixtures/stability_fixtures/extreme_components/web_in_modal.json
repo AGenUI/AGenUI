@@ -1,0 +1,24 @@
+{
+  "description": "Web component inside a Modal - tests Web rendering in modal context",
+  "surfaceId": "stability-web-modal",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-web-modal","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-web-modal","components":[
+      {"id":"root","component":"Column","children":["trigger","modal1"],"styles":{"width":"100%","padding":"16px"}},
+      {"id":"trigger","component":"Button","child":"trigt","action":{"functionCall":{"name":"open_modal"}}},
+      {"id":"trigt","component":"Text","text":"Open Web Modal"},
+      {"id":"modal1","component":"Modal","visible":true,"child":"mbody"},
+      {"id":"mbody","component":"Column","children":["mhdr","web1","mftr"],"styles":{"width":"100%","height":"400px","padding":"8px"}},
+      {"id":"mhdr","component":"Row","children":["mtitle","mclose"],"styles":{"width":"100%","justify-content":"space-between","align-items":"center"}},
+      {"id":"mtitle","component":"Text","text":"Web Preview"},
+      {"id":"mclose","component":"Button","child":"mcloset","action":{"functionCall":{"name":"close"}}},
+      {"id":"mcloset","component":"Text","text":"X"},
+      {"id":"web1","component":"Web","properties":{"url":"https://example.com"},"styles":{"width":"100%","flex-grow":"1"}},
+      {"id":"mftr","component":"Row","children":["mback","mfwd"],"styles":{"width":"100%","gap":"8px"}},
+      {"id":"mback","component":"Button","child":"mbackt","action":{"functionCall":{"name":"back"}}},
+      {"id":"mbackt","component":"Text","text":"Back"},
+      {"id":"mfwd","component":"Button","child":"mfwdt","action":{"functionCall":{"name":"forward"}}},
+      {"id":"mfwdt","component":"Text","text":"Forward"}
+    ]}}
+  ]
+}

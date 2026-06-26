@@ -82,25 +82,18 @@ void Surface::ensureSurfaceSizeFetched() {
     if (_surfaceSizeFetched) {
         return;
     }
-    // Only count as "fetched" when we actually reach the provider — a missing
-    // SurfaceManager or a not-yet-injected ISurfaceSizeProvider leaves the
-    // flag false so a later call retries the bootstrap once the host has
-    // wired everything up.
     if (!_surfaceManager) {
         return;
     }
-    ISurfaceSizeProvider* provider = _surfaceManager->getSurfaceSizeProvider();
-    if (!provider) {
+    // Route through SurfaceManager::getSurfaceSize() so the provider call is
+    // serialized with setSurfaceSizeProvider() and never dereferences a
+    // dangling pointer. nullopt = no provider injected yet, retry later.
+    auto size = _surfaceManager->getSurfaceSize(_surfaceId);
+    if (!size.has_value()) {
         return;
     }
-    // Whatever the provider returns is authoritative — same policy as the
-    // push channel. No positivity guard; the source of truth lives outside
-    // this class. After this call subsequent real size changes only arrive
-    // through the push channel (Surface::updateSurfaceSize) which overwrites
-    // these fields verbatim.
-    SurfaceSize size = provider->getSurfaceSize(_surfaceId);
-    _surfaceWidth  = size.width;
-    _surfaceHeight = size.height;
+    _surfaceWidth  = size->width;
+    _surfaceHeight = size->height;
     _surfaceSizeFetched = true;
 }
 

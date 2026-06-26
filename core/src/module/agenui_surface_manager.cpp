@@ -143,6 +143,7 @@ void SurfaceManager::submitUIDataModel(const SyncUIToDataMessage& msg) {
 
 void SurfaceManager::beginTextStream() {
     AGENUI_LOG("begin text stream");
+    AGENUI_PERFORMANCE_LOG("surface_begin_text_stream", "instanceId=%d", _instanceId);
     if (!_isRunning.load()) {
         return;
     }
@@ -161,6 +162,7 @@ void SurfaceManager::beginTextStream() {
 
 void SurfaceManager::endTextStream() {
     AGENUI_LOG("end text stream");
+    AGENUI_PERFORMANCE_LOG("surface_end_text_stream", "instanceId=%d", _instanceId);
     if (!_isRunning.load()) {
         return;
     }
@@ -178,6 +180,7 @@ void SurfaceManager::endTextStream() {
 }
 
 void SurfaceManager::receiveTextChunk(const std::string& data) {
+    AGENUI_PERFORMANCE_LOG("surface_receive_text_chunk", "instanceId=%d, bytes=%zu", _instanceId, data.size());
     if (!_isRunning.load()) {
         return;
     }
@@ -249,9 +252,14 @@ void SurfaceManager::setSurfaceSizeProvider(ISurfaceSizeProvider* provider) {
     _surfaceSizeProvider = provider;
 }
 
-ISurfaceSizeProvider* SurfaceManager::getSurfaceSizeProvider() const {
+std::optional<SurfaceSize> SurfaceManager::getSurfaceSize(const std::string& surfaceId) const {
+    // Hold the lock across the provider dispatch to prevent a concurrent
+    // setSurfaceSizeProvider() from leaving us with a dangling pointer.
     std::lock_guard<std::mutex> lock(_surfaceSizeProviderMutex);
-    return _surfaceSizeProvider;
+    if (!_surfaceSizeProvider) {
+        return std::nullopt;
+    }
+    return _surfaceSizeProvider->getSurfaceSize(surfaceId);
 }
 
 EventDispatcher* SurfaceManager::getEventDispatcher() {

@@ -46,8 +46,7 @@ inline std::string normalizeHarmonyFontFamily(const std::string& rawFamily) {
     if (family.empty()) {
         return harmonyDefaultFontFamily();
     }
-
-    return harmonyDefaultFontFamily();
+    return family;
 }
 
 } // namespace a2ui

@@ -26,6 +26,7 @@ echo "[Collect] Pulling logs from ${DEVICE_LOG_DIR}..."
 
 if adb shell "test -d ${DEVICE_LOG_DIR}" 2>/dev/null; then
     adb pull "${DEVICE_LOG_DIR}/stability_log.jsonl" "${OUTPUT_DIR}/stability_log.jsonl" 2>/dev/null || true
+    adb pull "${DEVICE_LOG_DIR}/crash_registry.json" "${OUTPUT_DIR}/crash_registry.json" 2>/dev/null || true
     echo "[Collect] Log file pulled successfully"
 else
     echo "[Collect] Warning: Log directory not found on device"
@@ -33,6 +34,7 @@ else
     ALT_DIR="/data/data/${PACKAGE}/files/stability"
     if adb shell "run-as ${PACKAGE} test -d files/stability" 2>/dev/null; then
         adb shell "run-as ${PACKAGE} cat files/stability/stability_log.jsonl" > "${OUTPUT_DIR}/stability_log.jsonl" 2>/dev/null || true
+        adb shell "run-as ${PACKAGE} cat files/stability/crash_registry.json" > "${OUTPUT_DIR}/crash_registry.json" 2>/dev/null || true
         echo "[Collect] Log pulled via run-as"
     fi
 fi

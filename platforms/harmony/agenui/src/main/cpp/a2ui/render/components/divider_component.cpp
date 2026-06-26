@@ -2,8 +2,8 @@
 #include "../a2ui_node.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
 #include "a2ui/utils/a2ui_color_palette.h"
+#include "a2ui/utils/a2ui_parse_utils.h"
 #include "log/a2ui_capi_log.h"
-#include <cstdlib>
 
 namespace a2ui {
 
@@ -55,10 +55,9 @@ DividerComponent::~DividerComponent() {
 
 // ---- destroy ----
 
-void DividerComponent::destroy() {
+void DividerComponent::onDestroy() {
     // Clear child handles before the root node is disposed.
     m_lineHandle = nullptr;
-    A2UIComponent::destroy();
 }
 
 // ---- Property Updates ----
@@ -93,14 +92,14 @@ void DividerComponent::applyAxis(const nlohmann::json& properties) {
 // ---- applyStyles ----
 
 void DividerComponent::applyStyles(const nlohmann::json& properties) {
-    HM_LOGI("properties JSON: %s", properties.dump().c_str());
+    HM_LOGD("properties JSON: %s", properties.dump().c_str());
 
     if (!properties.contains("styles") || !properties["styles"].is_object()) {
         return;
     }
 
     const auto& styles = properties["styles"];
-    HM_LOGI("styles JSON: %s", styles.dump().c_str());
+    HM_LOGD("styles JSON: %s", styles.dump().c_str());
     bool needsLayoutUpdate = false;
 
     // Divider thickness.
@@ -109,9 +108,7 @@ void DividerComponent::applyStyles(const nlohmann::json& properties) {
         if (styles["thickness"].is_number()) {
             t = styles["thickness"].get<float>();
         } else if (styles["thickness"].is_string()) {
-            std::string ts = styles["thickness"].get<std::string>();
-            // Ignore unit suffixes and keep the numeric value.
-            t = static_cast<float>(std::atof(ts.c_str()));
+            t = parseFloat(styles["thickness"].get<std::string>(), 0.0f);
         }
         if (t > 0.0f && t != m_thickness) {
             m_thickness = t;
@@ -140,7 +137,7 @@ void DividerComponent::applyStyles(const nlohmann::json& properties) {
         if (styles["width"].is_number()) {
             w = styles["width"].get<float>();
         } else if (styles["width"].is_string()) {
-            w = static_cast<float>(std::atof(styles["width"].get<std::string>().c_str()));
+            w = parseFloat(styles["width"].get<std::string>(), 0.0f);
         }
         if (w != m_explicitWidth) {
             m_explicitWidth = w;
@@ -154,7 +151,7 @@ void DividerComponent::applyStyles(const nlohmann::json& properties) {
         if (styles["height"].is_number()) {
             h = styles["height"].get<float>();
         } else if (styles["height"].is_string()) {
-            h = static_cast<float>(std::atof(styles["height"].get<std::string>().c_str()));
+            h = parseFloat(styles["height"].get<std::string>(), 0.0f);
         }
         if (h != m_explicitHeight) {
             m_explicitHeight = h;
@@ -168,7 +165,7 @@ void DividerComponent::applyStyles(const nlohmann::json& properties) {
         if (styles["margin-left"].is_number()) {
             ml = styles["margin-left"].get<float>();
         } else if (styles["margin-left"].is_string()) {
-            ml = static_cast<float>(std::atof(styles["margin-left"].get<std::string>().c_str()));
+            ml = parseFloat(styles["margin-left"].get<std::string>(), 0.0f);
         }
         if (ml != m_marginLeft) {
             m_marginLeft = ml;
@@ -182,7 +179,7 @@ void DividerComponent::applyStyles(const nlohmann::json& properties) {
         if (styles["margin-right"].is_number()) {
             mr = styles["margin-right"].get<float>();
         } else if (styles["margin-right"].is_string()) {
-            mr = static_cast<float>(std::atof(styles["margin-right"].get<std::string>().c_str()));
+            mr = parseFloat(styles["margin-right"].get<std::string>(), 0.0f);
         }
         if (mr != m_marginRight) {
             m_marginRight = mr;

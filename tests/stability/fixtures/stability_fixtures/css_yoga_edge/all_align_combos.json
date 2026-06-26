@@ -1,0 +1,48 @@
+{
+  "description": "All combinations of align-items, align-self, align-content, and justify-content to stress yoga property decoder alignment resolution",
+  "surfaceId": "all_align_combos",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "all_align_combos",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "all_align_combos",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["s1", "s2", "s3", "s4", "s5"], "styles": {"width": "100%", "gap": "8px"}},
+          {"id": "s1", "component": "Row", "children": ["s1a", "s1b", "s1c"], "styles": {"width": "100%", "height": "80px", "align-items": "flex-start", "justify-content": "flex-start"}},
+          {"id": "s1a", "component": "Text", "text": "start/start", "styles": {"align-self": "flex-end"}},
+          {"id": "s1b", "component": "Text", "text": "center self", "styles": {"align-self": "center"}},
+          {"id": "s1c", "component": "Text", "text": "stretch self", "styles": {"align-self": "stretch"}},
+          {"id": "s2", "component": "Row", "children": ["s2a", "s2b", "s2c"], "styles": {"width": "100%", "height": "80px", "align-items": "center", "justify-content": "center"}},
+          {"id": "s2a", "component": "Text", "text": "center/center"},
+          {"id": "s2b", "component": "Text", "text": "auto self", "styles": {"align-self": "auto"}},
+          {"id": "s2c", "component": "Text", "text": "stretch", "styles": {"align-self": "stretch"}},
+          {"id": "s3", "component": "Row", "children": ["s3a", "s3b", "s3c"], "styles": {"width": "100%", "height": "80px", "align-items": "flex-end", "justify-content": "flex-end"}},
+          {"id": "s3a", "component": "Text", "text": "end/end"},
+          {"id": "s3b", "component": "Text", "text": "start self", "styles": {"align-self": "flex-start"}},
+          {"id": "s3c", "component": "Text", "text": "center self", "styles": {"align-self": "center"}},
+          {"id": "s4", "component": "Row", "children": ["s4a", "s4b", "s4c"], "styles": {"width": "100%", "height": "80px", "align-items": "stretch", "justify-content": "space-between"}},
+          {"id": "s4a", "component": "Text", "text": "stretch/between"},
+          {"id": "s4b", "component": "Text", "text": "center", "styles": {"align-self": "center"}},
+          {"id": "s4c", "component": "Text", "text": "end", "styles": {"align-self": "flex-end"}},
+          {"id": "s5", "component": "Row", "children": ["s5a", "s5b", "s5c", "s5d"], "styles": {"width": "100%", "height": "120px", "flex-wrap": "wrap", "align-content": "space-around", "align-items": "center", "justify-content": "space-evenly"}},
+          {"id": "s5a", "component": "Text", "text": "Wrap A", "styles": {"width": "60%"}},
+          {"id": "s5b", "component": "Text", "text": "Wrap B", "styles": {"width": "60%"}},
+          {"id": "s5c", "component": "Text", "text": "Wrap C", "styles": {"width": "60%", "align-self": "flex-start"}},
+          {"id": "s5d", "component": "Text", "text": "Wrap D", "styles": {"width": "60%", "align-self": "flex-end"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "medium",
+    "expected_behavior": "no_crash"
+  }
+}

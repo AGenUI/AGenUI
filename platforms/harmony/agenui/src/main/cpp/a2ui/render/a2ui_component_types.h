@@ -6,35 +6,35 @@ namespace a2ui {
 namespace ComponentType {
 
     // Base components
-    static const std::string kText          = "Text";
-    static const std::string kButton        = "Button";
-    static const std::string kImage         = "Image";
-    static const std::string kIcon          = "Icon";
-    static const std::string kDivider       = "Divider";
-    static const std::string kVideo         = "Video";
-    static const std::string kAudioPlayer   = "AudioPlayer";
-    static const std::string kModal         = "Modal";
+    inline const std::string kText          = "Text";
+    inline const std::string kButton        = "Button";
+    inline const std::string kImage         = "Image";
+    inline const std::string kIcon          = "Icon";
+    inline const std::string kDivider       = "Divider";
+    inline const std::string kVideo         = "Video";
+    inline const std::string kAudioPlayer   = "AudioPlayer";
+    inline const std::string kModal         = "Modal";
 
     // Layout components
-    static const std::string kColumn        = "Column";
-    static const std::string kRow           = "Row";
-    static const std::string kCard          = "Card";
-    static const std::string kTabs          = "Tabs";
-    static const std::string kList          = "List";
+    inline const std::string kColumn        = "Column";
+    inline const std::string kRow           = "Row";
+    inline const std::string kCard          = "Card";
+    inline const std::string kTabs          = "Tabs";
+    inline const std::string kList          = "List";
 
     // Interactive components
-    static const std::string kTextField     = "TextField";
-    static const std::string kCheckBox      = "CheckBox";
-    static const std::string kSlider        = "Slider";
-    static const std::string kChoicePicker  = "ChoicePicker";
-    static const std::string kDateTimeInput = "DateTimeInput";
+    inline const std::string kTextField     = "TextField";
+    inline const std::string kCheckBox      = "CheckBox";
+    inline const std::string kSlider        = "Slider";
+    inline const std::string kChoicePicker  = "ChoicePicker";
+    inline const std::string kDateTimeInput = "DateTimeInput";
 
     // Extended components
-    static const std::string kRichText      = "RichText";
-    static const std::string kLottie        = "Lottie";
-    static const std::string kWeb           = "Web";
-    static const std::string kTable         = "Table";
-    static const std::string kCarousel      = "Carousel";
+    inline const std::string kRichText      = "RichText";
+    inline const std::string kLottie        = "Lottie";
+    inline const std::string kWeb           = "Web";
+    inline const std::string kTable         = "Table";
+    inline const std::string kCarousel      = "Carousel";
 
 } // namespace ComponentType
 } // namespace a2ui

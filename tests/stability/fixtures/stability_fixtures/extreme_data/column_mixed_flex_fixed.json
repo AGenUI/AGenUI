@@ -1,0 +1,19 @@
+{
+  "description": "Column mixing flex-grow children with fixed-height children - tests flex distribution",
+  "surfaceId": "stability-mixed-flex-fixed",
+  "messages": [
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-mixed-flex-fixed","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","updateComponents":{"surfaceId":"stability-mixed-flex-fixed","components":[
+      {"id":"root","component":"Column","children":["f1","fix1","f2","fix2","f3","fix3","f4"],"styles":{"width":"100%","height":"500px"}},
+      {"id":"f1","component":"Text","text":"Flex 1","styles":{"flex-grow":"1","width":"100%"}},
+      {"id":"fix1","component":"Text","text":"Fixed 40px","styles":{"height":"40px","width":"100%"}},
+      {"id":"f2","component":"Text","text":"Flex 2","styles":{"flex-grow":"2","width":"100%"}},
+      {"id":"fix2","component":"Divider","styles":{"height":"1px"}},
+      {"id":"f3","component":"Text","text":"Flex 0.5","styles":{"flex-grow":"0.5","width":"100%"}},
+      {"id":"fix3","component":"Row","children":["fix3a","fix3b"],"styles":{"height":"60px","width":"100%"}},
+      {"id":"fix3a","component":"Text","text":"Left","styles":{"flex-grow":"1"}},
+      {"id":"fix3b","component":"Text","text":"Right","styles":{"flex-grow":"1"}},
+      {"id":"f4","component":"Text","text":"Flex 3","styles":{"flex-grow":"3","width":"100%"}}
+    ]}}
+  ]
+}

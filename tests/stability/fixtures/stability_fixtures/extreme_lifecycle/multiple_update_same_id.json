@@ -1,0 +1,65 @@
+{
+  "description": "Multiple updateComponents messages targeting the same component IDs with changed properties. Tests property update paths and component recycling when the same ID gets new data.",
+  "surfaceId": "stability-multi-update-id",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "stability-multi-update-id",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-update-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "img"], "styles": {"width": "100%", "padding": "16px"}},
+          {"id": "title", "component": "Text", "text": "Version 1", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "img", "component": "Image", "properties": {"url": "https://example.com/v1.png", "width": 200, "height": 200}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-update-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "img", "desc"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "title", "component": "Text", "text": "Version 2 - added description", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "img", "component": "Image", "properties": {"url": "https://example.com/v2.png", "width": 300, "height": 200}},
+          {"id": "desc", "component": "Text", "text": "New description text added", "styles": {"width": "100%"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-update-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title"], "styles": {"width": "100%", "padding": "16px"}},
+          {"id": "title", "component": "Text", "text": "Version 3 - removed image and desc", "styles": {"width": "100%", "height": "40px"}}
+        ]
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "stability-multi-update-id",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["title", "img", "list"], "styles": {"width": "100%", "padding": "16px", "gap": "8px"}},
+          {"id": "title", "component": "Text", "text": "Version 4 - re-added image plus list", "styles": {"width": "100%", "height": "40px"}},
+          {"id": "img", "component": "Image", "properties": {"url": "https://example.com/v4.png", "width": 100, "height": 100}},
+          {"id": "list", "component": "List", "children": ["li1", "li2"], "styles": {"width": "100%", "height": "120px"}},
+          {"id": "li1", "component": "Text", "text": "Re-added list item 1", "styles": {"width": "100%", "height": "50px"}},
+          {"id": "li2", "component": "Text", "text": "Re-added list item 2", "styles": {"width": "100%", "height": "50px"}}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_lifecycle",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "description": "Tabs component with empty tabs array to test tabs yoga helper handling of zero-child edge case",
+  "surfaceId": "tabs_zero_children",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "tabs_zero_children",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "tabs_zero_children",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["t1", "t2", "filler"], "styles": {"width": "100%"}},
+          {"id": "t1", "component": "Tabs", "tabs": [], "styles": {"width": "100%", "height": "200px"}},
+          {"id": "t2", "component": "Tabs", "tabs": [], "styles": {"width": "100%", "flex-grow": "1"}},
+          {"id": "filler", "component": "Text", "text": "Content after empty tabs"}
+        ]
+      }
+    }
+  ],
+  "stability_meta": {
+    "category": "extreme_components",
+    "stress_level": "high",
+    "expected_behavior": "no_crash"
+  }
+}
