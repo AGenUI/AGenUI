@@ -58,7 +58,7 @@ jobs:
 
       - name: Cache HarmonyOS Command Line Tools
         id: cache-clt
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.CLT_FILENAME }}
           key: harmonyos-clt-${{ env.CLT_FILENAME }}
