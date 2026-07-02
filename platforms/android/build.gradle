@@ -216,7 +216,7 @@ afterEvaluate {
                     pom {
                         name        = 'AGenUI'
                         description = 'A Native Renderer for A2UI - AGen UI SDK.'
-                        url         = 'https://github.com/AGenUI/AGenUI-Client-Android'
+                        url         = 'https://github.com/AGenUI/AGenUI'
 
                         licenses {
                             license {
