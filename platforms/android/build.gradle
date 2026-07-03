@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'maven-publish'
+    id 'signing'
 }
 
 // ==================== Maven Publishing Configuration ====================
@@ -225,6 +226,20 @@ afterEvaluate {
                             }
                         }
 
+                        developers {
+                            developer {
+                                id    = 'agenui'
+                                name  = 'AGenUI Team'
+                                email = 'agenui.team@alibaba-inc.com'
+                            }
+                        }
+
+                        scm {
+                            connection          = 'scm:git:git://github.com/AGenUI/AGenUI.git'
+                            developerConnection = 'scm:git:ssh://github.com/AGenUI/AGenUI.git'
+                            url                 = 'https://github.com/AGenUI/AGenUI'
+                        }
+
                         withXml {
                             def deps = asNode().appendNode('dependencies')
                             configurations["${variant}RuntimeClasspath"]
@@ -261,6 +276,11 @@ afterEvaluate {
                 }
             }
         }
+    }
+
+    signing {
+        required { project.hasProperty('signing.keyId') }
+        sign publishing.publications.release
     }
 }
 
