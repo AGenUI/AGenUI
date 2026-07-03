@@ -3,6 +3,12 @@ name: Release - Android
 on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to (re)publish Android artifacts for, e.g. AGenUI-1.1.0'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -11,18 +17,28 @@ jobs:
   release-android:
     name: Build & Publish Android
     runs-on: ubuntu-latest
-    # Only run when tag matches AGenUI-* format
-    if: startsWith(github.event.release.tag_name, 'AGenUI-')
+    # Run for AGenUI-* tags (release event) or manual dispatch with such a tag
+    if: >-
+      (github.event_name == 'release' && startsWith(github.event.release.tag_name, 'AGenUI-')) ||
+      (github.event_name == 'workflow_dispatch' && startsWith(github.event.inputs.tag, 'AGenUI-'))
 
     steps:
       # ==================== Setup ====================
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          # For manual dispatch, check out the exact tag being (re)published;
+          # for a release event the default (tag commit) is already correct.
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
 
       - name: Extract version from tag
         id: version
         run: |
-          TAG="${{ github.event.release.tag_name }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${{ github.event.release.tag_name }}"
+          fi
           VERSION="${TAG#AGenUI-}"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
@@ -146,9 +162,33 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         run: |
           ./scripts/android/build.sh --publish-maven
-          echo "✅ Published to Maven Central Staging"
-          echo ""
-          echo "⚠️  Action Required: Log in to https://central.sonatype.com/ to verify and publish the deployment."
+          echo "✅ Deployed to OSSRH staging (not yet visible in the Central Portal)"
+
+      # ==================== Promote staging repo to Central Portal ====================
+      # The OSSRH Staging API keeps freshly-deployed artifacts in a "default
+      # repository" scoped to the uploader's egress IP. It stays invisible in the
+      # Central Portal until promoted, so this MUST run in the SAME job (same IP)
+      # as the deploy above — otherwise the staging repo is orphaned and can never
+      # be published.
+      - name: Promote staging repository to Central Portal
+        if: steps.version.outputs.is_stable == 'true'
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+        run: |
+          TOKEN=$(printf '%s' "${MAVEN_USERNAME}:${MAVEN_PASSWORD}" | base64 -w0)
+          echo "Promoting default staging repository for com.amap.genui to the Central Portal..."
+          HTTP=$(curl -s -o /tmp/promote.out -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer ${TOKEN}" \
+            "https://ossrh-staging-api.central.sonatype.com/manual/upload/defaultRepository/com.amap.genui?publishing_type=user_managed")
+          echo "Response: $(cat /tmp/promote.out 2>/dev/null)"
+          echo "HTTP status: ${HTTP}"
+          if [[ "$HTTP" != "200" && "$HTTP" != "201" ]]; then
+            echo "::error::Failed to promote staging repository to Central Portal (HTTP ${HTTP})"
+            exit 1
+          fi
+          echo "✅ Promoted to Central Portal."
+          echo "⚠️  Action Required: Log in to https://central.sonatype.com/ (Deployments) to verify and publish."
 
       # ==================== Summary ====================
       - name: Summary
@@ -164,7 +204,7 @@ jobs:
           echo "| Release Type | $([ "$IS_STABLE" = 'true' ] && echo 'Stable' || echo 'Pre-release') |" >> "$GITHUB_STEP_SUMMARY"
           echo "| GitHub Release | AAR uploaded ✅ |" >> "$GITHUB_STEP_SUMMARY"
           if [[ "$IS_STABLE" == "true" ]]; then
-            echo "| Maven Central | published to staging ✅ |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Maven Central | deployed & promoted to Portal ✅ |" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "> **Action Required**: Log in to [Sonatype Central Portal](https://central.sonatype.com/) to verify and publish." >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
