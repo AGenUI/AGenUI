@@ -499,7 +499,7 @@ void VirtualDOMNode::updateChildren() {
     }
 
     const auto& targetChildrenIds = _snapshot->children;
-    std::map<std::string, ComponentSnapshot> removedSnapshots;
+    std::map<std::string, std::shared_ptr<VirtualDOMNode>> removedNodes;
     size_t i = 0;
     const size_t targetSize = targetChildrenIds.size();
 
@@ -512,28 +512,41 @@ void VirtualDOMNode::updateChildren() {
             if (currentChild && _layoutDelegate) {
                 _layoutDelegate->removeChild(_yogaKey, currentChild->_yogaKey);
             }
-            if (currentChild && currentChild->hasSnapshot()) {
-                removedSnapshots[currentChild->getId()] = *(currentChild->_snapshot);
-            }
+            removedNodes[currentChild->getId()] = currentChild;
             _children.erase(_children.begin() + i);
         }
 
         if (i >= _children.size()) {
-            // Not found: insert a new node at the end
-            auto newChild = std::make_shared<VirtualDOMNode>(targetId, _observer, _orphanFetcher,
-                                                              _measurementManager
-                                                              , _layoutDelegate
-                                                              );
-            newChild->_parent = this;
-            _children.emplace_back(newChild);
+            // Not found in remaining children; check if it was removed earlier
+            auto removedIt = removedNodes.find(targetId);
+            if (removedIt != removedNodes.end()) {
+                // Reuse the previously removed node — preserves Yoga state,
+                // platform size, measure function, layout cache, etc.
+                auto reusedChild = removedIt->second;
+                removedNodes.erase(removedIt);
+                _children.emplace_back(reusedChild);
 
-            if (_layoutDelegate && newChild->_yogaNode && !newChild->_yogaNode->isAttached()) {
-                const uint32_t insertIdx = _yogaNode ? _yogaNode->childCount() : 0u;
-                _layoutDelegate->insertChild(_yogaKey, newChild->_yogaKey, insertIdx);
+                if (_layoutDelegate && reusedChild->_yogaNode && !reusedChild->_yogaNode->isAttached()) {
+                    const uint32_t insertIdx = _yogaNode ? _yogaNode->childCount() : 0u;
+                    _layoutDelegate->insertChild(_yogaKey, reusedChild->_yogaKey, insertIdx);
+                }
+            } else {
+                // Insert a brand new node
+                auto newChild = std::make_shared<VirtualDOMNode>(targetId, _observer, _orphanFetcher,
+                                                                  _measurementManager
+                                                                  , _layoutDelegate
+                                                                  );
+                newChild->_parent = this;
+                _children.emplace_back(newChild);
 
-                // Hide placeholder until setSnapshot applies real styles.
-                if (newChild->_yogaNode->get()) {
-                    YGNodeStyleSetDisplay(newChild->_yogaNode->get(), YGDisplayNone);
+                if (_layoutDelegate && newChild->_yogaNode && !newChild->_yogaNode->isAttached()) {
+                    const uint32_t insertIdx = _yogaNode ? _yogaNode->childCount() : 0u;
+                    _layoutDelegate->insertChild(_yogaKey, newChild->_yogaKey, insertIdx);
+
+                    // Hide placeholder until setSnapshot applies real styles.
+                    if (newChild->_yogaNode->get()) {
+                        YGNodeStyleSetDisplay(newChild->_yogaNode->get(), YGDisplayNone);
+                    }
                 }
             }
         }
@@ -541,13 +554,8 @@ void VirtualDOMNode::updateChildren() {
         if (i < _children.size() && _children[i]) {
             auto child = _children[i];
             if (!child->hasSnapshot()) {
-                // Restore from stash if available
-                auto it = removedSnapshots.find(targetId);
-                if (it != removedSnapshots.end()) {
-                    child->setSnapshot(it->second, _id);
-                    removedSnapshots.erase(it);
-                } else if (_orphanFetcher != nullptr) {
-                    // Try to fetch from orphan snapshot pool
+                // Try to fetch from orphan snapshot pool
+                if (_orphanFetcher != nullptr) {
                     ComponentSnapshot orphanSnapshot;
                     if (_orphanFetcher->takeOrphanSnapshot(targetId, orphanSnapshot)) {
                         child->setSnapshot(orphanSnapshot, _id);
