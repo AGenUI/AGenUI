@@ -22,17 +22,14 @@
 
 ---
 
-## v1.1.0 新版本亮点
+## v1.2.0 新版本亮点
 
-> 发布于 2026-06-26
+> 发布于 2026-07-08
 
-- **List 懒加载 + 曝光埋点**：三端实现横向 List 懒加载（iOS `UICollectionView` / Android `RecyclerView` / 鸿蒙 cell 复用），按方向分离渲染路径。新增 List Item 曝光埋点。
-- **Properties 增量更新**：Android/iOS 实现基于 properties 的增量更新，替代全量 style 重渲染。协议新增 `id` 字段，移除 `styles` 依赖。
-- **组件生命周期事件**：三端生命周期对齐；鸿蒙端引入 `onDestroy` 方法。
-- **Button 子组件居中对齐**：Button 子组件默认采用居中布局，统一三端根视图行为。
-- **Image 自动尺寸测量统一**：统一三端 Image 测量逻辑——有明确约束时同步返回约束值，宽高未指定时返回 0 并在图片加载完成后异步上报实际尺寸，解决未指定宽高时图片显示异常问题。
-- **CSS `gap` 属性支持**：引擎支持 CSS `gap` 属性，Flex 布局中子元素间距无需手动设置 margin。
-- **Text 渲染一致性问题修复**：修复文字绘制被视图边界裁剪、padding 不生效等问题，确保三端行高与间距表现一致。
+- **A2UI 无障碍字段支持**：在 Core 引擎、Android、iOS 和鸿蒙端全平台新增 `accessibility` 字段及其二级字段的解析，支持数据绑定，可接入屏幕阅读器和语义标注。
+- **List Item 出现事件 & 首屏渲染埋点**：向集成层透出 list item appear 事件和 first-render trackInfo，用于数据分析和性能监控。
+- **Padding 解析接口开放**：开放 padding 解析接口，集成方可直接获取解析后的 padding 值。
+- **linear-gradient 渐变背景支持**：Text、Button、List、Checkbox、Divider、TextField 组件的 background-color 统一使用基类方法处理，支持 `linear-gradient` 渐变色。
 
 ---
 

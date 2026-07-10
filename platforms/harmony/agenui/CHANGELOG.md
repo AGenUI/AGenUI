@@ -92,11 +92,11 @@
 - (iOS) 修复阴影偏淡问题——设定 `shadowOpacity` 为 `1.0`，防止 alpha 被乘两次。
 - (iOS) 修复 `Surface.updateSize()` 递归布局通知导致栈溢出崩溃。
 - (iOS) 修复 `TabsComponent.addChild` 闭包强引用子组件导致永久内存泄漏。
-- (iOS) 修复并发 `ImageLoader` 注册导致 ARC 引用计数竞争崩溃 (#83354930)。
-- (iOS) 修复并发 Function 注册/注销导致 Swift `Dictionary` 竞争崩溃 (#83354917)。
+- (iOS) 修复并发 `ImageLoader` 注册导致 ARC 引用计数竞争崩溃。
+- (iOS) 修复并发 Function 注册/注销导致 Swift `Dictionary` 竞争崩溃。
 - (Android) 修复 Image 显式 `0px` 被图片固有尺寸覆盖导致的布局抖动。
-- (Android) 修复删除线位置错误问题，改进行高处理逻辑 (#83884229)。
-- (鸿蒙) 修复 Row 子元素重叠、垂直居中对齐异常 (#83823723)。
+- (Android) 修复删除线位置错误问题，改进行高处理逻辑。
+- (鸿蒙) 修复 Row 子元素重叠、垂直居中对齐异常。
 - (鸿蒙) 修复 API 17 崩溃——使用 `dlsym` wrapper 替换 `OH_ArkUI_PostFrameCallback`。
 
 ---
