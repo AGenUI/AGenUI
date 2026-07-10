@@ -19,11 +19,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - (iOS) Fixed shadow rendering too light — set `shadowOpacity` to `1.0` to prevent alpha being multiplied twice.
 - (iOS) Fixed `Surface.updateSize()` recursive layout notification causing stack overflow crash.
 - (iOS) Fixed `TabsComponent.addChild` closure strongly referencing child components, causing permanent memory leak.
-- (iOS) Fixed concurrent `ImageLoader` registration causing ARC reference count race crash (#83354930).
-- (iOS) Fixed concurrent Function registration/deregistration causing Swift `Dictionary` race crash (#83354917).
+- (iOS) Fixed concurrent `ImageLoader` registration causing ARC reference count race crash.
+- (iOS) Fixed concurrent Function registration/deregistration causing Swift `Dictionary` race crash.
 - (Android) Fixed Image with explicit `0px` being overridden by intrinsic image size, causing layout jitter.
-- (Android) Fixed strikethrough position error and improved line-height handling logic (#83884229).
-- (HarmonyOS) Fixed Row child element overlap and vertical centering anomaly (#83823723).
+- (Android) Fixed strikethrough position error and improved line-height handling logic.
+- (HarmonyOS) Fixed Row child element overlap and vertical centering anomaly.
 - (HarmonyOS) Fixed API 17 crash by replacing `OH_ArkUI_PostFrameCallback` with `dlsym` wrapper.
 
 ---
