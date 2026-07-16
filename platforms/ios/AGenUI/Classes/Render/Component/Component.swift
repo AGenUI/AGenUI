@@ -417,6 +417,15 @@ public enum MeasureMode: Int {
         updateProperties(self.properties)
     }
 
+    /// Keep an installed background gradient pinned below child content.
+    /// Children mount via `insertSubview(_:at:)` at explicit indices, which can
+    /// otherwise raise a bare gradient sublayer above them and hide their
+    /// content (ISSUE-004). Solid backgroundColor is unaffected.
+    open override func didAddSubview(_ subview: UIView) {
+        super.didAddSubview(subview)
+        CSSPropertyApplier.enforceGradientBottom(on: self)
+    }
+
 
     /// Recursively create views for all children and add them to the view hierarchy.
     private func createChildViews() {

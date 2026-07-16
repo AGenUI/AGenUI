@@ -458,6 +458,15 @@ class CSSPropertyApplier {
         view.layer.shadowPath = nil
         view.layer.shouldRasterize = false
     }
+
+    /// Re-asserts an installed background gradient to the bottom of the sublayer
+    /// stack. Container components call this from `didAddSubview`: children are
+    /// mounted via `insertSubview(_:at:)` at explicit indices, which can push a
+    /// bare gradient sublayer above the child views and hide their content
+    /// (ISSUE-004). Solid `backgroundColor` is unaffected as it is not a sublayer.
+    @MainActor static func enforceGradientBottom(on view: UIView) {
+        BackgroundGradientHolder.moveToBack(on: view)
+    }
         
 
 
@@ -491,6 +500,14 @@ fileprivate enum BackgroundGradientHolder {
         objc_setAssociatedObject(view, &key, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
 
+    /// Force the installed gradient layer back to the bottom of its host's
+    /// sublayer stack (no-op when none is installed).
+    static func moveToBack(on view: UIView) {
+        if let state = objc_getAssociatedObject(view, &key) as? State {
+            state.enforceBottom()
+        }
+    }
+
     /// One per (view, gradient) installation. Holds the CAGradientLayer + KVO token.
     private final class State {
         private weak var view: UIView?
@@ -514,6 +531,17 @@ fileprivate enum BackgroundGradientHolder {
             observation = nil
             gradientLayer?.removeFromSuperlayer()
             gradientLayer = nil
+        }
+
+        /// Re-insert the gradient at sublayer index 0 if something (typically a
+        /// child `insertSubview(_:at:)`) has pushed it up the stack.
+        func enforceBottom() {
+            guard let view = view, let layer = gradientLayer else { return }
+            guard view.layer.sublayers?.first !== layer else { return }
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            view.layer.insertSublayer(layer, at: 0)
+            CATransaction.commit()
         }
 
         private func rebuild() {
@@ -546,6 +574,9 @@ fileprivate enum BackgroundGradientHolder {
                 existing.endPoint = fresh.endPoint
                 existing.cornerRadius = fresh.cornerRadius
                 existing.masksToBounds = fresh.masksToBounds
+                // Keep the gradient pinned to the bottom: a child mounted via
+                // insertSubview(_:at:) after the last rebuild may have displaced it.
+                view.layer.insertSublayer(existing, at: 0)
                 CATransaction.commit()
             } else {
                 CATransaction.begin()
