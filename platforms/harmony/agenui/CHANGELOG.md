@@ -85,6 +85,7 @@
 - **List Item 出现事件 & 首屏渲染埋点**：向集成层透出 list item appear 事件和 first-render trackInfo，用于数据分析和性能监控。
 - **Padding 解析接口开放**：开放 padding 解析接口，集成方可直接获取解析后的 padding 值。
 - **linear-gradient 渐变背景支持**：Text、Button、List、Checkbox、Divider、TextField 组件的 background-color 统一使用基类方法处理，支持 `linear-gradient` 渐变色。
+- **虚线下划线支持**：在 iOS、Android 和鸿蒙端新增自定义虚线下划线样式，通过 `text-decoration` 属性控制。
 
 ### Bug 修复
 
@@ -92,11 +93,16 @@
 - (iOS) 修复阴影偏淡问题——设定 `shadowOpacity` 为 `1.0`，防止 alpha 被乘两次。
 - (iOS) 修复 `Surface.updateSize()` 递归布局通知导致栈溢出崩溃。
 - (iOS) 修复 `TabsComponent.addChild` 闭包强引用子组件导致永久内存泄漏。
-- (iOS) 修复并发 `ImageLoader` 注册导致 ARC 引用计数竞争崩溃。
-- (iOS) 修复并发 Function 注册/注销导致 Swift `Dictionary` 竞争崩溃。
+- (iOS) 修复并发 `ImageLoader` 注册导致 ARC 引用计数竞争崩溃 (#83354930)。
+- (iOS) 修复并发 Function 注册/注销导致 Swift `Dictionary` 竞争崩溃 (#83354917)。
 - (Android) 修复 Image 显式 `0px` 被图片固有尺寸覆盖导致的布局抖动。
-- (Android) 修复删除线位置错误问题，改进行高处理逻辑。
-- (鸿蒙) 修复 Row 子元素重叠、垂直居中对齐异常。
+- (Android) 修复删除线位置错误问题，改进行高处理逻辑 (#83884229)。
+- (鸿蒙) 修复 Row 子元素重叠、垂直居中对齐异常 (#83823723)。
 - (鸿蒙) 修复 API 17 崩溃——使用 `dlsym` wrapper 替换 `OH_ArkUI_PostFrameCallback`。
+- (全平台) 优化大图加载卡顿问题。
+- (全平台) 修复下划线多行计算问题和 `thickness` 单位转换。
+- (iOS) 修复删除线简写写法不生效。
+- (全平台) 修复图片裁剪尺寸未乘以屏幕密度。
+- (全平台) 修复横滑 List 无法动态追加 child 的问题。
 
 ---

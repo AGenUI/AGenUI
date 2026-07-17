@@ -6,6 +6,7 @@
 
 #include "a2ui_component.h"
 #include "log/a2ui_capi_log.h"
+#include "utils/a2ui_parse_utils.h"
 
 namespace a2ui {
 
@@ -380,12 +381,28 @@ void A2UISurface::notifyRootContentSizeIfChanged() {
     if (currentHeight <= 0.0f) {
         return;
     }
+    float currentWidth = rootComponent_->getWidth();
+
+    // Root node has no Yoga parent to consume its margin.
+    // Yoga's getLayoutLeft/Top already include margin-left/top in the
+    // position (see YGNode::setPosition), so those are handled via
+    // setPosition(m_x, m_y). Only margin-bottom/right are lost — add
+    // them to the reported content size so the host container can
+    // allocate the correct total space.
+    const auto& props = rootComponent_->getProperties();
+    if (props.contains("styles") && props["styles"].is_object()) {
+        float mt = 0, mr = 0, mb = 0, ml = 0;
+        resolveUserMargin(props["styles"], mt, mr, mb, ml);
+        // top/left already in Yoga position (m_x/m_y), only add bottom/right
+        currentWidth  += mr;
+        currentHeight += mb;
+    }
+
     // Only notify when height actually changes (avoid redundant callbacks during streaming).
     if (std::abs(currentHeight - lastNotifiedRootHeight_) < 0.5f) {
         return;
     }
     lastNotifiedRootHeight_ = currentHeight;
-    float currentWidth = rootComponent_->getWidth();
     HM_LOGI("notifyRootContentSizeIfChanged: surfaceId=%s w=%.1f h=%.1f",
             surfaceId_.c_str(), currentWidth, currentHeight);
     contentSizeChangedCallback_(surfaceId_, currentWidth, currentHeight);

@@ -1036,7 +1036,7 @@ public class StyleHelper {
         int color = (decorationColor != null) ? parseColor(decorationColor) : textView.getCurrentTextColor();
         int thickness = parseDimension(decorationThickness, context);
         if (thickness <= 0) {
-            thickness = 1; // Default: 1px
+            thickness = StyleHelper.standardUnitToPx(context, 2); // Default: 2 a2ui unit
         }
 
         // 5. Get the TextView's gravity
@@ -1054,12 +1054,14 @@ public class StyleHelper {
         if (decorationLine.equals("underline")) {
             com.amap.agenui.render.component.impl.span.CustomUnderlineSpan.Style style = parseUnderlineStyle(decorationStyle);
             com.amap.agenui.render.component.impl.span.CustomUnderlineSpan span =
-                    new com.amap.agenui.render.component.impl.span.CustomUnderlineSpan(color, thickness, style, gravity);
+                    new com.amap.agenui.render.component.impl.span.CustomUnderlineSpan(
+                            color, thickness, style, gravity, context);
             spannableString.setSpan(span, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         } else if (decorationLine.equals("line-through")) {
             com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan.Style style = parseStrikethroughStyle(decorationStyle);
             com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan span =
-                    new com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan(color, thickness, style, gravity);
+                    new com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan(
+                            color, thickness, style, gravity, context);
             spannableString.setSpan(span, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
 
@@ -1202,6 +1204,9 @@ public class StyleHelper {
      * @return Converted pixel value
      */
     public static int standardUnitToPx(Context context, float value) {
+        if (context == null) {
+            return (int)value;
+        }
         // Standard unit must be divided by 2 before converting to dp
         float dipValue = value / 2;
         float density = context.getResources().getDisplayMetrics().density;
@@ -1320,5 +1325,74 @@ public class StyleHelper {
         }
 
         return null;
+    }
+
+    /**
+     * Resolve CSS margin from a styles map into pixel values.
+     * Handles both the shorthand "margin" (1~4 values) and individual
+     * "margin-top" / "margin-right" / "margin-bottom" / "margin-left"
+     * properties. Individual properties override the shorthand, matching
+     * CSS cascade / Yoga semantics (CSSStyleConverter::applyStyles).
+     *
+     * Mirrors {@link #resolveCSSPaddingPx} in naming convention and structure.
+     *
+     * @param styles CSS styles map
+     * @param context Android context for unit conversion
+     * @return Rect(left, top, right, bottom) in pixels, or null if no margin is present
+     */
+    @Nullable
+    public static Rect resolveCSSMarginPx(@Nullable Map<String, Object> styles,
+                                          @NonNull Context context) {
+        if (styles == null || styles.isEmpty()) {
+            return null;
+        }
+
+        int topPx = 0, rightPx = 0, bottomPx = 0, leftPx = 0;
+        boolean anyMarginPresent = false;
+
+        // 1. Parse shorthand "margin" via native edge-insets parser
+        if (styles.containsKey("margin")) {
+            String shorthand = String.valueOf(styles.get("margin")).trim();
+            if (!shorthand.isEmpty() && !shorthand.equalsIgnoreCase("null")) {
+                EdgeInsetsValue insets = AGenUI.nativeParseEdgeInsets(shorthand);
+                if (insets != null) {
+                    topPx    = resolveSidePx(insets.top,    context);
+                    rightPx  = resolveSidePx(insets.right,  context);
+                    bottomPx = resolveSidePx(insets.bottom, context);
+                    leftPx   = resolveSidePx(insets.left,   context);
+                    anyMarginPresent = true;
+                }
+            }
+        }
+
+        // 2. Individual properties override shorthand
+        if (styles.containsKey("margin-top")) {
+            topPx = parseDimension(styles.get("margin-top"), context);
+            anyMarginPresent = true;
+        }
+        if (styles.containsKey("margin-right")) {
+            rightPx = parseDimension(styles.get("margin-right"), context);
+            anyMarginPresent = true;
+        }
+        if (styles.containsKey("margin-bottom")) {
+            bottomPx = parseDimension(styles.get("margin-bottom"), context);
+            anyMarginPresent = true;
+        }
+        if (styles.containsKey("margin-left")) {
+            leftPx = parseDimension(styles.get("margin-left"), context);
+            anyMarginPresent = true;
+        }
+
+        if (!anyMarginPresent) {
+            return null;
+        }
+
+        if (topPx    < 0) topPx    = 0;
+        if (rightPx  < 0) rightPx  = 0;
+        if (bottomPx < 0) bottomPx = 0;
+        if (leftPx   < 0) leftPx   = 0;
+
+        Rect out = new Rect(leftPx, topPx, rightPx, bottomPx);
+        return out;
     }
 }

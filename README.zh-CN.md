@@ -30,6 +30,7 @@
 - **List Item 出现事件 & 首屏渲染埋点**：向集成层透出 list item appear 事件和 first-render trackInfo，用于数据分析和性能监控。
 - **Padding 解析接口开放**：开放 padding 解析接口，集成方可直接获取解析后的 padding 值。
 - **linear-gradient 渐变背景支持**：Text、Button、List、Checkbox、Divider、TextField 组件的 background-color 统一使用基类方法处理，支持 `linear-gradient` 渐变色。
+- **虚线下划线支持**：在 iOS、Android 和鸿蒙端新增自定义虚线下划线样式，通过 `text-decoration` 属性控制。
 
 ---
 

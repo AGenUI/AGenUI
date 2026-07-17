@@ -284,16 +284,22 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
         int n = Math.min(itemCount, frameCount);
         for (int i = 0; i < n; i++) {
             Frame f = frames.get(i);
-            if (f.isEmpty()) continue;
             // Skip GONE children (mirrors YogaAbsoluteLayout).
             if (isGone(f.child)) continue;
 
             int width = f.rect.width();
             int height = effectiveFrameHeight(f);
             // Viewport intersection uses the effective (wrap-resolved) rect.
-            Rect frameRect = new Rect(f.rect.left, f.rect.top,
-                    f.rect.left + width, f.rect.top + height);
-            if (!Rect.intersects(frameRect, viewport)) continue;
+            // Zero-size frames (Yoga flex values pending) fall back to a
+            // point-in-viewport check using x,y position, so that off-screen
+            // items remain lazy while visible ones get views created.
+            if (width > 0 && height > 0) {
+                Rect frameRect = new Rect(f.rect.left, f.rect.top,
+                        f.rect.left + width, f.rect.top + height);
+                if (!Rect.intersects(frameRect, viewport)) continue;
+            } else {
+                if (!viewport.contains(f.rect.left, f.rect.top)) continue;
+            }
 
             View v = recycler.getViewForPosition(i);
             addView(v);
@@ -478,9 +484,6 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
         int h = readIntStyle(styles.get("height"));
         int zIndex = readIntStyle(styles.containsKey("z-index")
                 ? styles.get("z-index") : styles.get("zIndex"));
-        if (w <= 0) {
-            return new Frame(new Rect(), zIndex, child);
-        }
         int xPx = StyleHelper.standardUnitToPx(context, x);
         int yPx = StyleHelper.standardUnitToPx(context, y);
         int wPx = Math.max(0, StyleHelper.standardUnitToPx(context, w));

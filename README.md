@@ -30,6 +30,7 @@ English | [中文](README.zh-CN.md)
 - **List Item Appear Event & First Render Tracking**: Exposed list item appear event and first-render trackInfo to the integration layer for analytics and performance monitoring.
 - **Padding Parsing API**: Opened the padding parsing interface for external use, allowing integrators to access parsed padding values directly.
 - **linear-gradient Background Support**: Text, Button, List, Checkbox, Divider, and TextField components now support `linear-gradient` backgrounds via a unified base class method.
+- **Dashed Underline Support**: Added custom dashed underline style on iOS, Android, and HarmonyOS via `text-decoration` properties.
 
 ---
 

@@ -1,5 +1,6 @@
 package com.amap.agenui.render.component.impl.span;
 
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
@@ -8,6 +9,8 @@ import android.text.style.LineBackgroundSpan;
 import android.view.Gravity;
 
 import androidx.annotation.NonNull;
+
+import com.amap.agenui.render.style.StyleHelper;
 
 /**
  * Custom underline Span, supporting multiple line styles
@@ -37,6 +40,7 @@ public class CustomUnderlineSpan implements LineBackgroundSpan {
     private final float thickness;     // decoration line thickness (pixels)
     private final Style style;         // decoration line style
     private final int gravity;         // text alignment
+    private final Context context;     // for standardUnitToPx conversion
 
     /**
      * Constructor
@@ -45,12 +49,14 @@ public class CustomUnderlineSpan implements LineBackgroundSpan {
      * @param thickness decoration line thickness (pixels)
      * @param style     decoration line style
      * @param gravity   text alignment
+     * @param context   Android Context for unit conversion
      */
-    public CustomUnderlineSpan(int color, float thickness, Style style, int gravity) {
+    public CustomUnderlineSpan(int color, float thickness, Style style, int gravity, Context context) {
         this.color = color;
         this.thickness = thickness;
         this.style = style;
         this.gravity = gravity;
+        this.context = context;
     }
 
     @Override
@@ -91,8 +97,13 @@ public class CustomUnderlineSpan implements LineBackgroundSpan {
             textStart = left;
         }
 
-        // Calculate underline position (slightly below the text baseline)
-        float lineY = bottom - (bottom - baseline) * 0.2f;
+        // Calculate underline position just below glyph bottom,
+        // using font descent instead of line-box bottom to stay
+        // consistent across different line-height values.
+        // Clamp to [baseline + 1, bottom] so the line is always visible
+        // even when line-height is tight (small line-height).
+        float descent = paint.getFontMetrics().descent;
+        float lineY = Math.max(baseline + 1f, Math.min(baseline + descent + thickness, bottom));
 
         // Draw the decoration line starting from the actual text position
         switch (style) {
@@ -127,8 +138,10 @@ public class CustomUnderlineSpan implements LineBackgroundSpan {
      */
     private void drawDashedLine(Canvas canvas, Paint paint, float startX, float startY,
                                 float endX, float endY) {
-        // Dashed effect: segment length 10, gap 5
-        paint.setPathEffect(new DashPathEffect(new float[]{10, 5}, 0));
+        // Aligned with production config
+        float dashW = StyleHelper.standardUnitToPx(context, 4);
+        float dashG = StyleHelper.standardUnitToPx(context, 3);
+        paint.setPathEffect(new DashPathEffect(new float[]{dashW, dashG}, 0));
         canvas.drawLine(startX, startY, endX, endY, paint);
         paint.setPathEffect(null);
     }

@@ -6,6 +6,24 @@
 //
 
 import UIKit
+import CoreText
+
+// MARK: - Custom Attribute Key
+
+extension NSAttributedString.Key {
+    /// Custom decoration attribute, value is TextDecorationConfigBox
+    /// Used only for custom Core Graphics drawing of .dashed style
+    static let customDecoration = NSAttributedString.Key("CustomTextDecorationAttributeName")
+}
+
+/// Box wrapper for storing TextDecorationConfig in NSAttributedString (requires ObjC object)
+private class TextDecorationConfigBox: NSObject {
+    let config: TextDecorationConfig
+    init(_ config: TextDecorationConfig) {
+        self.config = config
+        super.init()
+    }
+}
 
 // MARK: - Text Decoration Configuration (W3C Standard)
 
@@ -29,24 +47,33 @@ enum TextDecorationStyle: String {
 /// Text decoration configuration (W3C compliant)
 struct TextDecorationConfig {
     /// Decoration line position
-    var line: TextDecorationLine = .underline
+    var line: TextDecorationLine = .none
     /// Decoration line style
     var style: TextDecorationStyle = .solid
     /// Decoration line color
-    var color: UIColor = .black
+    var color: UIColor? = nil
     /// Decoration line thickness (W3C text-decoration-thickness)
     var thickness: CGFloat = 1.0
+    /// Dashed line segment width (only for .dashed style, default 2)
+    var dashWidth: CGFloat = 2
+    /// Dashed line gap width (only for .dashed style, default 1.5)
+    var dashGap: CGFloat = 1.5
+    /// Extra underline offset from baseline position (default 1)
+    var offset: CGFloat = 1
     
     /// Parse from CSS style dictionary
     static func from(styles: [String: Any]) -> TextDecorationConfig? {
         var config = TextDecorationConfig()
-        var hasDecoration = false
+        
+        // Parse shorthand property text-decoration
+        if let decoration = styles["text-decoration"] as? String {
+            parseTextDecoration(decoration, into: &config)
+        }
         
         // Parse text-decoration-line
         if let lineValue = styles["text-decoration-line"] as? String {
             if let line = TextDecorationLine(rawValue: lineValue.lowercased()) {
                 config.line = line
-                hasDecoration = true
             }
         }
         
@@ -54,7 +81,6 @@ struct TextDecorationConfig {
         if let styleValue = styles["text-decoration-style"] as? String {
             if let style = TextDecorationStyle(rawValue: styleValue.lowercased()) {
                 config.style = style
-                hasDecoration = true
             }
         }
         
@@ -63,49 +89,40 @@ struct TextDecorationConfig {
             let parsedColor = CSSPropertyParser.parseColor(colorValue)
             if case .color(let value) = parsedColor {
                 config.color = value
-                hasDecoration = true
             }
         }
         
         // Parse text-decoration-thickness
         if let thicknessValue = styles["text-decoration-thickness"] as? String {
-            if let thickness = parseLength(thicknessValue) {
+            if let thickness = parseLength(thicknessValue), thickness > 0 {
                 config.thickness = thickness
-                hasDecoration = true
             }
-        } else if let thicknessValue = styles["text-decoration-thickness"] as? CGFloat {
-            config.thickness = thicknessValue
-            hasDecoration = true
+        } else if let thicknessValue = styles["text-decoration-thickness"] as? CGFloat, thicknessValue > 0 {
+            config.thickness = thicknessValue * Component.BS_POINT_SCALE
         }
         
-        // Parse shorthand property text-decoration
-        if let decoration = styles["text-decoration"] as? String {
-            parseTextDecoration(decoration, into: &config)
-            hasDecoration = true
-        }
-        
-        return hasDecoration ? config : nil
+        return config.line != TextDecorationLine.none ? config : nil
     }
     
-    /// Parse text-decoration shorthand property
+    /// Parse text-decoration shorthand property (positional format, aligned with Android)
+    /// Format: "line style color" (e.g. "underline dashed #FF0000")
+    /// - parts[0]: line type (underline, line-through, overline, none)
+    /// - parts[1]: style (solid, dashed, dotted, double, wavy)
+    /// - parts[2]: color (#hex or rgb)
     private static func parseTextDecoration(_ value: String, into config: inout TextDecorationConfig) {
         let parts = value.lowercased().split(separator: " ").map { String($0) }
-        
-        for part in parts {
-            // Try parsing as line
-            if let line = TextDecorationLine(rawValue: part) {
-                config.line = line
-            }
-            // Try parsing as style
-            else if let style = TextDecorationStyle(rawValue: part) {
-                config.style = style
-            }
-            // Try parsing as color
-            else if part.hasPrefix("#") || part.hasPrefix("rgb") {
-                let parsedColor = CSSPropertyParser.parseColor(part)
-                if case .color(let value) = parsedColor {
-                    config.color = value
-                }
+
+        // Positional parsing: parts[0]=line, parts[1]=style, parts[2]=color
+        if parts.count >= 1, let line = TextDecorationLine(rawValue: parts[0]) {
+            config.line = line
+        }
+        if parts.count >= 2, let style = TextDecorationStyle(rawValue: parts[1]) {
+            config.style = style
+        }
+        if parts.count >= 3 {
+            let parsedColor = CSSPropertyParser.parseColor(parts[2])
+            if case .color(let colorValue) = parsedColor {
+                config.color = colorValue
             }
         }
     }
@@ -117,7 +134,7 @@ struct TextDecorationConfig {
             .trimmingCharacters(in: .whitespaces)
         
         if let number = Double(cleanValue) {
-            return CGFloat(number)
+            return CGFloat(number) * Component.BS_POINT_SCALE
         }
         return nil
     }
@@ -177,8 +194,9 @@ class TextDecorationLabel: UILabel {
         let paragraphStyle: NSMutableParagraphStyle
         if let existingAttributedText = super.attributedText,
            existingAttributedText.length > 0,
-           let existingStyle = existingAttributedText.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
-            paragraphStyle = existingStyle.mutableCopy() as! NSMutableParagraphStyle
+           let existingStyle = existingAttributedText.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle,
+           let mutableStyle = existingStyle.mutableCopy() as? NSMutableParagraphStyle {
+            paragraphStyle = mutableStyle
         } else {
             paragraphStyle = NSMutableParagraphStyle()
             // Keep current alignment
@@ -197,6 +215,11 @@ class TextDecorationLabel: UILabel {
     
     /// Create decoration attributes
     private func createDecorationAttributes(config: TextDecorationConfig) -> [NSAttributedString.Key: Any] {
+        // .dashed uses custom Core Graphics drawing, no NSUnderlineStyle set
+        if config.style == .dashed && config.line != .none {
+            return [.customDecoration: TextDecorationConfigBox(config)]
+        }
+
         var attributes: [NSAttributedString.Key: Any] = [:]
         
         // Set decoration line style
@@ -239,6 +262,135 @@ class TextDecorationLabel: UILabel {
         }
         
         return attributes
+    }
+
+    // MARK: - Custom Dashed Underline Drawing
+
+    override func draw(_ rect: CGRect) {
+        super.draw(rect)
+        drawDashedUnderlines(in: rect)
+    }
+
+    private func drawDashedUnderlines(in rect: CGRect) {
+        guard let attributedText = attributedText,
+              attributedText.length > 0 else { return }
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+
+        // Find decoration config early — bail out if not dashed
+        guard let box = attributedText.attribute(.customDecoration, at: 0, effectiveRange: nil) as? TextDecorationConfigBox else { return }
+        let config = box.config
+        guard config.style == .dashed else { return }
+
+        // Use NSLayoutManager to get per-line geometry directly.
+        // Each lineFragmentRect already contains the correct Y origin and height
+        // as computed by TextKit, so we don't need to manually derive perLineHeight,
+        // lineCount, or verticalOffset.
+        let lm = NSLayoutManager()
+        let tc = NSTextContainer(size: CGSize(width: self.bounds.width, height: .greatestFiniteMagnitude))
+        tc.lineFragmentPadding = 0
+        tc.maximumNumberOfLines = numberOfLines
+        tc.lineBreakMode = .byWordWrapping
+
+        let fixedString = NSMutableAttributedString(attributedString: attributedText)
+        let fixRange = NSRange(location: 0, length: fixedString.length)
+        fixedString.enumerateAttribute(.paragraphStyle, in: fixRange, options: []) { value, range, _ in
+            if let ps = value as? NSParagraphStyle {
+                if let mutable = ps.mutableCopy() as? NSMutableParagraphStyle {
+                    mutable.lineBreakMode = .byWordWrapping
+                    fixedString.addAttribute(.paragraphStyle, value: mutable, range: range)
+                }
+            }
+        }
+        let ts = NSTextStorage(attributedString: fixedString)
+        ts.addLayoutManager(lm)
+        lm.addTextContainer(tc)
+        lm.ensureLayout(for: tc)
+        let glyphRange = lm.glyphRange(for: tc)
+
+        var lineInfos: [(lineRect: CGRect, usedRect: CGRect, textRect: CGRect)] = []
+        lm.enumerateLineFragments(forGlyphRange: glyphRange) {
+            lineFragmentRect, usedRect, container, lineGlyphRange, _ in
+            let textRect = lm.boundingRect(forGlyphRange: lineGlyphRange, in: container)
+            lineInfos.append((lineFragmentRect, usedRect, textRect))
+        }
+
+        guard !lineInfos.isEmpty else { return }
+
+        let font = attributedText.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
+        // Read baselineOffset directly from attributed string (set by buildAttributedText
+        // as half-leading = (targetLineHeight - font.lineHeight) / 2).
+        // No need to manually compute halfLeading from perLineHeight.
+        let baselineOffset = (attributedText.attribute(.baselineOffset, at: 0, effectiveRange: nil) as? CGFloat) ?? 0
+        let color = (config.color != nil) ? config.color : textColor
+        let dashWidth = config.dashWidth
+        let dashGap = config.dashGap
+        let underlineHeight = config.thickness
+        let underlineOffset = config.offset
+        let strokeHalf = underlineHeight / 2.0
+
+        let defaultOffset: CGFloat = {
+            let base = underlineHeight * 2.0
+            if let font = font { return max(base, abs(font.descender) - strokeHalf) }
+            return base
+        }()
+        // Draw one dashed decoration per line fragment from NSLayoutManager.
+        // lineFragmentRect already has the correct Y origin and height from TextKit,
+        // and baselineOffset encodes the half-leading centering — no manual perLineHeight needed.
+        for (_, info) in lineInfos.enumerated() {
+            let lineRect = info.lineRect
+            let lineTop = lineRect.minY
+            let lineBottom = lineRect.maxY
+            let lineHeight = lineRect.height
+
+            // Compute Y offset relative to baseline based on decoration line position:
+            //   .underline   — below baseline (default)
+            //   .lineThrough — at x-height center (~1/3 of ascender above baseline)
+            //   .overline    — above ascender
+            let lineYOffset: CGFloat
+            switch config.line {
+            case .underline:
+                lineYOffset = defaultOffset + underlineOffset
+            case .lineThrough:
+                // Strikethrough sits at roughly 1/3 of ascender height above baseline
+                lineYOffset = -(font?.ascender ?? lineHeight) * 0.3
+            case .overline:
+                // Above the ascender: move up by ascender height, add strokeHalf to keep stroke within bounds
+                lineYOffset = -(font?.ascender ?? lineHeight * 0.8) + strokeHalf
+            case .none:
+                lineYOffset = 0
+            }
+            // Baseline position within the line fragment:
+            //   lineTop + ascender (natural baseline) + baselineOffset (half-leading shift)
+            let baselineY = lineTop + (font?.ascender ?? lineHeight * 0.8) + baselineOffset
+            let y = baselineY + lineYOffset
+
+            // Cap Y to stay within the line fragment
+            let descenderBottom = baselineY + abs(font?.descender ?? 0)
+            let maxY = min(lineBottom - strokeHalf, descenderBottom + 1.0)
+            let minY = lineTop + strokeHalf
+            let cappedY = min(max(y, minY), maxY)
+
+            // X: use per-line usedRect (the actual used portion of each line fragment)
+            // instead of boundingRect which can overshoot with negative baselineOffset.
+            let drawMinX = max(0, info.usedRect.minX)
+            let drawMaxX = min(self.bounds.width, info.usedRect.maxX)
+
+            // Skip if outside the dirty rect
+            if !CGRect(x: drawMinX - 1, y: lineTop - 1, width: drawMaxX - drawMinX + 2, height: lineHeight + 2).intersects(rect) {
+                continue
+            }
+
+            context.saveGState()
+            context.setStrokeColor(color?.cgColor ?? UIColor.black.cgColor)
+            context.setLineWidth(underlineHeight)
+            context.setLineCap(.butt)
+            context.setLineDash(phase: 0, lengths: [dashWidth, dashGap])
+            context.move(to: CGPoint(x: drawMinX, y: cappedY))
+            context.addLine(to: CGPoint(x: drawMaxX, y: cappedY))
+            context.strokePath()
+            context.restoreGState()
+        }
+
     }
 }
 
@@ -294,7 +446,7 @@ extension TextAlignment {
     
 }
 
-/// TextComponent component implementation (compliant with A2UI v0.9 protocol)
+/// TextComponent component implementation
 ///
 /// Supported properties:
 /// - text: Text content string (String)
@@ -396,9 +548,9 @@ class TextComponent: Component {
     override func updateProperties(_ properties: [String: Any]) {
         // Call parent method to apply CSS properties to self (padding, background-color, etc.)
         super.updateProperties(properties)
-        
+
         guard let label = label else { return }
-        
+
         // Handle textChunk field (content append, supports both String and numeric types)
         if let textChunkValue = properties["textChunk"] {
             let textChunk = TextComponent.extractTextValue(textChunkValue) ?? ""
@@ -414,7 +566,7 @@ class TextComponent: Component {
             label.text = text.count == 0 ? " " : text
             label.invalidateIntrinsicContentSize()
         }
-        
+
         // Update style properties
         if let styles = properties["styles"] as? [String: Any] {
             applyStyles(styles)
@@ -446,7 +598,7 @@ class TextComponent: Component {
         if let fontSizeValue = styles["font-size"] as? String {
             parsed.fontSize = extractFontSize(from: fontSizeValue)
         } else if let num = styles["font-size"] as? NSNumber {
-            parsed.fontSize = CGFloat(num.doubleValue)
+            parsed.fontSize = CGFloat(num.doubleValue) * Component.BS_POINT_SCALE
         }
 
         // Parse font-weight
@@ -631,7 +783,7 @@ class TextComponent: Component {
         let glyphCount = manager.numberOfGlyphs
         while index < glyphCount {
             var range = NSRange()
-            _ = manager.lineFragmentRect(forGlyphAt: index, effectiveRange: &range)
+            let fragRect = manager.lineFragmentRect(forGlyphAt: index, effectiveRange: &range)
             index = NSMaxRange(range)
             count += 1
         }
@@ -720,6 +872,11 @@ class TextComponent: Component {
     
     /// Build text decoration attribute dictionary (does not modify label)
     private class func buildDecorationAttributes(config: TextDecorationConfig) -> [NSAttributedString.Key: Any] {
+        // .dashed uses custom Core Graphics drawing, no NSUnderlineStyle set
+        if config.style == .dashed && config.line != .none {
+            return [.customDecoration: TextDecorationConfigBox(config)]
+        }
+
         var attributes: [NSAttributedString.Key: Any] = [:]
         
         var underlineStyle: NSUnderlineStyle = []
@@ -768,7 +925,7 @@ class TextComponent: Component {
         } else {
             // No unit or other unit: use value directly
             if let size = Double(fontSizeString) {
-                return CGFloat(size)
+                return CGFloat(size) * Component.BS_POINT_SCALE
             }
         }
         return nil
@@ -932,7 +1089,8 @@ class TextComponent: Component {
                 : CGFloat(maxHeight)
         }
 
-        return CGSize(width: measuredWidth, height: measuredHeight)
+        let result = CGSize(width: measuredWidth, height: measuredHeight)
+        return result
     }
 
     // MARK: - Shared Text Construction (used by both applyStyles and measure)

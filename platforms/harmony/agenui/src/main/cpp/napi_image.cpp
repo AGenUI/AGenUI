@@ -79,6 +79,38 @@ napi_value SetImagePixelMap(napi_env env, napi_callback_info info) {
     return ret;
 }
 
+napi_value SetImagePixelMapNative(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+    if (argc < 2) {
+      HM_LOGE("SetImagePixelMapNative: Expected 2 arguments, got %zu", argc);
+      napi_value result;
+      napi_get_undefined(env, &result);
+      return result;
+    }
+
+    std::string requestId = napiGetString(env, args[0]);
+
+    OH_PixelmapNative* nativePixelMap = nullptr;
+    Image_ErrorCode err = OH_PixelmapNative_ConvertPixelmapNativeFromNapi(env, args[1], &nativePixelMap);
+    if (err != IMAGE_SUCCESS || nativePixelMap == nullptr) {
+        HM_LOGE("SetImagePixelMapNative: convert pixelMap failed, requestId=%s err=%d",
+            requestId.c_str(), err);
+        a2ui::ImageLoaderBridge::getInstance().onFailed(requestId, false);
+        napi_value ret;
+        napi_get_undefined(env, &ret);
+        return ret;
+    }
+
+    a2ui::ImageLoaderBridge::getInstance().setImagePixelMapFromNative(requestId, nativePixelMap);
+
+    napi_value ret;
+    napi_get_undefined(env, &ret);
+    return ret;
+}
+
 napi_value OnImageLoadFailed(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value args[2];

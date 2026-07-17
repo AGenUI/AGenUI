@@ -261,8 +261,8 @@ class ImageComponent: Component {
             ImageLoadOptionsKey.surfaceId: surface?.surfaceId ?? "",
             ImageLoadOptionsKey.componentId: componentId
         ]
-        let w = CGFloat(yogaWidth) * 0.5
-        let h = CGFloat(yogaHeight) * 0.5
+        let w = CGFloat(yogaWidth) * Component.BS_POINT_SCALE * UIScreen.main.scale
+        let h = CGFloat(yogaHeight) * Component.BS_POINT_SCALE * UIScreen.main.scale
         if w > 0 {
             options[ImageLoadOptionsKey.width] = w
         }
