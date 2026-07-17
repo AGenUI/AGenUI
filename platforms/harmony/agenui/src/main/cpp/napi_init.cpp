@@ -477,6 +477,7 @@ static napi_value Init(napi_env env, napi_value exports)
         { "registerComponent", nullptr, RegisterComponent, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "registerImageLoader", nullptr, RegisterImageLoader, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "setImagePixelMap", nullptr, SetImagePixelMap, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "setImagePixelMapNative", nullptr, SetImagePixelMapNative, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "onImageLoadFailed", nullptr, OnImageLoadFailed, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "surfaceStartBlankCheck", nullptr, Surface_startBlankCheck, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "surfaceCancelBlankCheck", nullptr, Surface_cancelBlankCheck, nullptr, nullptr, nullptr, napi_default, nullptr },

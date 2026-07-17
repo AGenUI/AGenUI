@@ -183,13 +183,6 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
         }
       }
     },
-    "Markdown": {
-      "styles": {
-        "default": {
-            "margin-bottom": "24px"
-        }
-      }
-    },
     "List": {
       "styles": {
         "default": {

@@ -1,5 +1,6 @@
 package com.amap.agenui.render.component.impl.span;
 
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
@@ -8,6 +9,8 @@ import android.text.style.LineBackgroundSpan;
 import android.view.Gravity;
 
 import androidx.annotation.NonNull;
+
+import com.amap.agenui.render.style.StyleHelper;
 
 /**
  * Custom strikethrough Span, supporting multiple line styles
@@ -37,6 +40,7 @@ public class CustomStrikethroughSpan implements LineBackgroundSpan {
     private final float thickness;     // decoration line thickness (pixels)
     private final Style style;         // decoration line style
     private final int gravity;         // text alignment
+    private final Context context;     // for standardUnitToPx conversion
 
     /**
      * Constructor
@@ -45,12 +49,14 @@ public class CustomStrikethroughSpan implements LineBackgroundSpan {
      * @param thickness decoration line thickness (pixels)
      * @param style     decoration line style
      * @param gravity   text alignment
+     * @param context   Android Context for unit conversion
      */
-    public CustomStrikethroughSpan(int color, float thickness, Style style, int gravity) {
+    public CustomStrikethroughSpan(int color, float thickness, Style style, int gravity, Context context) {
         this.color = color;
         this.thickness = thickness;
         this.style = style;
         this.gravity = gravity;
+        this.context = context;
     }
 
     @Override
@@ -127,8 +133,10 @@ public class CustomStrikethroughSpan implements LineBackgroundSpan {
      */
     private void drawDashedLine(Canvas canvas, Paint paint, float startX, float startY,
                                 float endX, float endY) {
-        // Dashed effect: segment length 10, gap 5
-        paint.setPathEffect(new DashPathEffect(new float[]{10, 5}, 0));
+        // Aligned with production config
+        float dashW = StyleHelper.standardUnitToPx(context, 4);
+        float dashG = StyleHelper.standardUnitToPx(context, 3);
+        paint.setPathEffect(new DashPathEffect(new float[]{dashW, dashG}, 0));
         canvas.drawLine(startX, startY, endX, endY, paint);
         paint.setPathEffect(null);
     }

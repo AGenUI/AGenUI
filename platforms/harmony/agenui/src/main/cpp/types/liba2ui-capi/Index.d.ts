@@ -200,6 +200,9 @@ export const registerImageLoader: (loader: object) => void;
 /** Applies raw image pixel data to the matching ArkUI image node. */
 export const setImagePixelMap: (requestId: string, buffer: ArrayBuffer, width: number, height: number, pixelFormat: number, alphaType: number) => void;
 
+/** Applies a native PixelMap object to the matching ArkUI image node. */
+export const setImagePixelMapNative: (requestId: string, pixelMap: object) => void;
+
 /** Reports image load failure or cancellation from ETS. */
 export const onImageLoadFailed: (requestId: string, isCancelled: boolean) => void;
 

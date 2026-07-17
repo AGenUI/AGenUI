@@ -76,6 +76,7 @@ napi_value UnregisterMeasurement(napi_env env, napi_callback_info info);
 // napi_image.cpp
 napi_value RegisterImageLoader(napi_env env, napi_callback_info info);
 napi_value SetImagePixelMap(napi_env env, napi_callback_info info);
+napi_value SetImagePixelMapNative(napi_env env, napi_callback_info info);
 napi_value OnImageLoadFailed(napi_env env, napi_callback_info info);
 
 // napi_theme.cpp

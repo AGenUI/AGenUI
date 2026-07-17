@@ -393,6 +393,60 @@ void ImageLoaderBridge::setImagePixelMapFromBytes(const PixelMapData& pixelMap) 
     if (cb) cb(pixelMap.requestId, true, false);
 }
 
+void ImageLoaderBridge::setImagePixelMapFromNative(const std::string& requestId, OH_PixelmapNative* nativePixelMap) {
+    ImageLoadCallback cb;
+    ArkUI_NodeHandle handle = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto it = pending_callbacks_.find(requestId);
+        if (it == pending_callbacks_.end()) {
+            HM_LOGW("ImageLoaderBridge::setImagePixelMapFromNative - unknown requestId=%s (cancelled or not found)",
+                requestId.c_str());
+            if (nativePixelMap != nullptr) {
+                OH_PixelmapNative_Release(nativePixelMap);
+            }
+            return;
+        }
+        cb = std::move(it->second);
+        pending_callbacks_.erase(it);
+
+        auto hit = pending_handles_.find(requestId);
+        if (hit != pending_handles_.end()) {
+            handle = hit->second;
+            pending_handles_.erase(hit);
+        }
+    }
+
+    HM_LOGI("ImageLoaderBridge::setImagePixelMapFromNative - requestId=%s handle=%p pixelMap=%p",
+        requestId.c_str(), handle, nativePixelMap);
+
+    if (handle == nullptr || nativePixelMap == nullptr) {
+        HM_LOGE("ImageLoaderBridge::setImagePixelMapFromNative - invalid params, requestId=%s", requestId.c_str());
+        if (nativePixelMap != nullptr) {
+            OH_PixelmapNative_Release(nativePixelMap);
+        }
+        if (cb) cb(requestId, false, false);
+        return;
+    }
+
+    ArkUI_DrawableDescriptor* descriptor = OH_ArkUI_DrawableDescriptor_CreateFromPixelMap(nativePixelMap);
+    if (descriptor == nullptr) {
+        HM_LOGE("ImageLoaderBridge::setImagePixelMapFromNative - OH_ArkUI_DrawableDescriptor_CreateFromPixelMap failed, requestId=%s",
+            requestId.c_str());
+        OH_PixelmapNative_Release(nativePixelMap);
+        if (cb) cb(requestId, false, false);
+        return;
+    }
+
+    ArkUI_AttributeItem item = { .object = descriptor };
+    g_nodeAPI->setAttribute(handle, NODE_IMAGE_SRC, &item);
+    OH_ArkUI_DrawableDescriptor_Dispose(descriptor);
+    OH_PixelmapNative_Release(nativePixelMap);
+    HM_LOGI("ImageLoaderBridge::setImagePixelMapFromNative - PixelMap set to node OK, requestId=%s",
+        requestId.c_str());
+    if (cb) cb(requestId, true, false);
+}
+
 // ---- Failure / Cancel Callback ----
 
 void ImageLoaderBridge::onFailed(const std::string& requestId, bool isCancelled) {

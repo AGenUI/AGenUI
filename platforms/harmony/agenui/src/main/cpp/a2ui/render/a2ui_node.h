@@ -88,20 +88,29 @@ public:
 
     /**
      * Set a custom shadow, matching CSS drop-shadow / box-shadow semantics.
-     * NODE_CUSTOM_SHADOW parameters:
-     *   [0] blur   - blur radius in px
-     *   [1] spread - spread radius, always 0 here
-     *   [2] offsetX - x offset in physical px
-     *   [3] offsetY - y offset in physical px
-     *   [4] type   - shadow type, ARKUI_SHADOW_TYPE_COLOR = 0
-     *   [5] color  - color in 0xAARRGGBB
-     *   [6] fill   - fill flag, 0 means no fill
-     * All inputs use a2ui units and are converted internally.
+     * NODE_CUSTOM_SHADOW parameters. Harmony's public docs define blur and
+     * offsets in px.
+     *   [0] blur    - blur radius (documented as px)
+     *   [1] coloring - coloring strategy flag (0 = disabled, default)
+     *   [2] offsetX - x offset (documented as px)
+     *   [3] offsetY - y offset (documented as px)
+     *   [4] type    - shadow type, ARKUI_SHADOW_TYPE_COLOR = 0
+     *   [5] color   - color in 0xAARRGGBB
+     *   [6] fill    - fill flag. Keep this disabled so CSS drop-shadow only
+     *                 draws the outer shadow instead of filling the source shape.
      */
     void setCustomShadow(float blurA2ui, float offsetXA2ui, float offsetYA2ui, uint32_t color) {
+        float blurPx = UnitConverter::a2uiToPx(blurA2ui);
+        // Harmony's NODE_CUSTOM_SHADOW behaves inconsistently at exactly 0 blur
+        // for CSS drop-shadow edge cases. Clamp to the smallest practical
+        // positive px value so 0px shadows remain visually aligned with the
+        // other platforms instead of disappearing or degrading.
+        if (blurPx <= 0.0f) {
+            blurPx = 1.0f;
+        }
         ArkUI_NumberValue value[] = {
-            {.f32 = UnitConverter::a2uiToVp(blurA2ui)},
-            {.f32 = 0.0f},
+            {.f32 = blurPx},
+            {.i32 = 0},
             {.f32 = UnitConverter::a2uiToPx(offsetXA2ui)},
             {.f32 = UnitConverter::a2uiToPx(offsetYA2ui)},
             {.i32 = 0},
@@ -638,9 +647,10 @@ public:
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_ELLIPSIS_MODE, &item);
     }
 
-    void setTextDecoration(ArkUI_TextDecorationType type, uint32_t color) {
-        ArkUI_NumberValue value[] = {{.i32 = type}, {.u32 = color}};
-        ArkUI_AttributeItem item = {value, 2};
+    void setTextDecoration(ArkUI_TextDecorationType type, uint32_t color,
+                           ArkUI_TextDecorationStyle style = ARKUI_TEXT_DECORATION_STYLE_SOLID) {
+        ArkUI_NumberValue value[] = {{.i32 = type}, {.u32 = color}, {.i32 = style}};
+        ArkUI_AttributeItem item = {value, 3};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_DECORATION, &item);
     }
 

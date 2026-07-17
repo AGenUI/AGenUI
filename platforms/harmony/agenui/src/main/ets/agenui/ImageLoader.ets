@@ -18,8 +18,17 @@ import image from '@ohos.multimedia.image';
  * Uses a Uint8Array snapshot to move pixel data across layers and avoid native buffer lifetime issues.
  */
 export interface PixelData {
-  /** Raw pixel bytes; actual format is indicated by the pixelFormat field (e.g. BGRA_8888 = 4) */
+  /**
+   * Raw pixel bytes; actual format is indicated by the pixelFormat field (e.g. BGRA_8888 = 4).
+   * When pixelMap is provided directly, the loader may leave this buffer empty.
+   */
   bytes: Uint8Array;
+  /**
+   * Optional native PixelMap object.
+   * Preferred on Harmony when the loader can return a PixelMap directly, because it avoids
+   * JS raw-buffer reconstruction and preserves the original alpha semantics.
+   */
+  pixelMap?: image.PixelMap | null;
   /** Image width in px */
   width: number;
   /** Image height in px */

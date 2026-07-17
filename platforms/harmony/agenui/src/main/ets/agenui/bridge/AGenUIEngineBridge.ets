@@ -18,6 +18,7 @@ import {
   setDayNightMode,
   registerImageLoader as nativeRegisterImageLoader,
   setImagePixelMap,
+  setImagePixelMapNative,
   onImageLoadFailed,
   createSurfaceManager as nativeCreateSurfaceManager,
   destroySurfaceManager as nativeDestroySurfaceManager,
@@ -203,6 +204,11 @@ export class AGenUIEngineBridge {
             if (result !== null && result.image != null) {
               const pd = result.image;
               try {
+                const nativePixelMap = pd.pixelMap;
+                if (nativePixelMap != null) {
+                  setImagePixelMapNative(requestId, nativePixelMap as object);
+                  return;
+                }
                 if (!pd.bytes || pd.bytes.byteLength === 0 || pd.width <= 0 || pd.height <= 0) {
                   hilog.error(0x0000, 'AGenUIBridge', `invalid PixelData: bytes=%{public}s %{public}d x %{public}d`, `${pd.bytes?.byteLength}`, pd.width, pd.height);
                   onImageLoadFailed(requestId, false);

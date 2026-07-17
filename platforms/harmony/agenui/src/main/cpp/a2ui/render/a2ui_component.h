@@ -344,6 +344,14 @@ protected:
     void applyBorderStyles(const nlohmann::json& properties);
 
     /**
+     * Apply the CSS filter: drop-shadow(...) style to the native node.
+     * Shared by container components (Column, Row, ...) that otherwise have no
+     * shadow handling. Card/RichText keep their own local implementations.
+     * @param properties Properties JSON object (contains "styles" field)
+     */
+    void applyFilter(const nlohmann::json& properties);
+
+    /**
      * Apply accessibility properties from DSL to the native ArkUI node.
      * Maps "accessibility.label" to NODE_ACCESSIBILITY_TEXT and
      * "accessibility.description" to NODE_ACCESSIBILITY_DESCRIPTION.

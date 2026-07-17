@@ -119,8 +119,6 @@ void TextComponent::applyTextContent(const nlohmann::json& properties) {
 
         if (chunkValue.is_string()) {
             chunkContent = chunkValue.get<std::string>();
-        } else if (chunkValue.is_number()) {
-            chunkContent = chunkValue.dump();
         } else if (chunkValue.is_object()) {
             auto litIt = chunkValue.find("literalString");
             if (litIt != chunkValue.end() && litIt->is_string()) {
@@ -150,10 +148,6 @@ void TextComponent::applyTextContent(const nlohmann::json& properties) {
         // Format 2: {"text": "Hello"}
         else if (textValue.is_string()) {
             textContent = textValue.get<std::string>();
-        }
-        // Format 3: {"text": 1} — number type, convert to string
-        else if (textValue.is_number()) {
-            textContent = textValue.dump();
         }
 
         if (!textContent.empty()) {
@@ -492,7 +486,24 @@ void TextComponent::applyBorderDecorationStyles(const nlohmann::json& styles, fl
         }
 
         if (decorationType != ARKUI_TEXT_DECORATION_TYPE_NONE) {
-            node.setTextDecoration(decorationType, decorationColor);
+            // Parse text-decoration-style
+            std::string styleStr = "solid";
+            if (styles.find("text-decoration-style") != styles.end() && styles["text-decoration-style"].is_string()) {
+                styleStr = styles["text-decoration-style"].get<std::string>();
+            }
+
+            ArkUI_TextDecorationStyle decorationStyle = ARKUI_TEXT_DECORATION_STYLE_SOLID;
+            if (styleStr == "dashed") {
+                decorationStyle = ARKUI_TEXT_DECORATION_STYLE_DASHED;
+            } else if (styleStr == "dotted") {
+                decorationStyle = ARKUI_TEXT_DECORATION_STYLE_DOTTED;
+            } else if (styleStr == "double") {
+                decorationStyle = ARKUI_TEXT_DECORATION_STYLE_DOUBLE;
+            } else if (styleStr == "wavy") {
+                decorationStyle = ARKUI_TEXT_DECORATION_STYLE_WAVY;
+            }
+
+            node.setTextDecoration(decorationType, decorationColor, decorationStyle);
         }
     }
 

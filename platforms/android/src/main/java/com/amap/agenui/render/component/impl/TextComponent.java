@@ -64,7 +64,7 @@ public class TextComponent extends A2UIComponent {
         if (this.context == null) {
             this.context = context;
         }
-        textView = new A2UITextView(context);
+        textView = new TextView(context);
         textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // ⚠️ Important: apply initial properties

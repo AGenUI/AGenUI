@@ -111,8 +111,21 @@ import UIKit
         // Each Component's frame is set by applyLayoutFromStyles() when updateProperties() is called.
         // Without this step, surface.view always has zero height and callers cannot read the
         // rendered content height from surface.view.frame in the onLayoutChanged callback.
-        let contentWidth  = rootComponent.frame.width
-        let contentHeight = rootComponent.frame.maxY  // use maxY to include absolute-positioned children that extend below root
+        var contentWidth  = rootComponent.frame.width
+        var contentHeight = rootComponent.frame.maxY  // use maxY to include absolute-positioned children that extend below root
+
+        // Root node has no Yoga parent to consume its margin.
+        // Yoga's getLayoutLeft/Top already include margin-left/top in the
+        // position (see YGNode::setPosition), and maxY includes origin.y,
+        // so margin-top is already accounted for. Only margin-bottom/right
+        // are lost — add them here.
+        if let styles = rootComponent.properties["styles"] as? [String: Any] {
+            let margin = CSSMarginResolver.resolve(styles)
+            // top/left already in Yoga position (frame.origin), only add bottom/right
+            contentWidth  += margin.right
+            contentHeight += margin.bottom
+        }
+
         if contentWidth > 0 || contentHeight > 0 {
             view.frame = CGRect(x: view.frame.origin.x,
                                 y: view.frame.origin.y,

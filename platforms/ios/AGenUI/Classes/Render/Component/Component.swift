@@ -370,7 +370,7 @@ public enum MeasureMode: Int {
         let y = cgFloatValue(styles["y"]) * Component.BS_POINT_SCALE
         let width = max(0, cgFloatValue(styles["width"]) * Component.BS_POINT_SCALE)
         let height = max(0, cgFloatValue(styles["height"]) * Component.BS_POINT_SCALE)
-        
+
         var newFrame = self.frame
         newFrame.origin.x = x
         newFrame.origin.y = y

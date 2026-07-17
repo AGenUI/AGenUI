@@ -95,6 +95,7 @@ public:
     // PixelMap delivery, called by NAPI setImagePixelMap on the JS main thread
 
     void setImagePixelMapFromBytes(const PixelMapData& pixelMap);
+    void setImagePixelMapFromNative(const std::string& requestId, OH_PixelmapNative* nativePixelMap);
 
     // Failure and cancellation callback, called by NAPI onImageLoadFailed on the JS main thread
 

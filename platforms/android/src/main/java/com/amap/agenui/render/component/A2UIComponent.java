@@ -1,6 +1,7 @@
 package com.amap.agenui.render.component;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
@@ -1091,6 +1092,25 @@ public abstract class A2UIComponent {
         params.height = layoutState.heightPx;
         params.leftMargin = layoutState.xPx;
         params.topMargin = layoutState.yPx;
+
+        // Root node has no Yoga parent to consume its margin.
+        // Yoga's getLayoutLeft/Top already include margin-left/top in the
+        // position (see YGNode::setPosition), so leftMargin/topMargin above
+        // are correct. But margin-bottom/right are not reflected in either
+        // position or width/height, so set them explicitly on LayoutParams.
+        if ("root".equals(getId())) {
+            Map<String, Object> styles = extractStyles(properties);
+            if (styles != null) {
+                Context ctx = targetView.getContext();
+                Rect marginPx = StyleHelper.resolveCSSMarginPx(styles, ctx);
+                if (marginPx != null) {
+                    // top/left already in Yoga position (xPx/yPx), only set bottom/right
+                    params.bottomMargin = marginPx.bottom;
+                    params.rightMargin = marginPx.right;
+                }
+            }
+        }
+
         targetView.setLayoutParams(params);
         targetView.setZ(layoutState.zIndex);
     }

@@ -179,9 +179,14 @@ private class YogaCollectionViewLayout: UICollectionViewLayout {
         }
     }
 
-    /// Total scrollable content size — union of all child Yoga frames
+
+    /// Clamp content height to no more than the viewport height, to prevent vertical scrolling.
     override var collectionViewContentSize: CGSize {
-        return contentBounds
+        var size = contentBounds
+        if let viewportHeight = collectionView?.bounds.height, viewportHeight > 0 {
+            size.height = min(size.height, viewportHeight)
+        }
+        return size
     }
     
     /// Returns cached attributes for elements in the visible rect

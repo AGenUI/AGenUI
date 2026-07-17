@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - **List Item Appear Event & First Render Tracking**: Exposed list item appear event and first-render trackInfo to the integration layer for analytics and performance monitoring.
 - **Padding Parsing API**: Opened the padding parsing interface for external use, allowing integrators to access parsed padding values directly.
 - **linear-gradient Background Support**: Text, Button, List, Checkbox, Divider, and TextField components now support `linear-gradient` backgrounds via a unified base class method.
+- **Dashed Underline Support**: Added custom dashed underline style on iOS, Android, and HarmonyOS via `text-decoration` properties.
 
 ### Bug Fixes
 
@@ -19,12 +20,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - (iOS) Fixed shadow rendering too light — set `shadowOpacity` to `1.0` to prevent alpha being multiplied twice.
 - (iOS) Fixed `Surface.updateSize()` recursive layout notification causing stack overflow crash.
 - (iOS) Fixed `TabsComponent.addChild` closure strongly referencing child components, causing permanent memory leak.
-- (iOS) Fixed concurrent `ImageLoader` registration causing ARC reference count race crash.
-- (iOS) Fixed concurrent Function registration/deregistration causing Swift `Dictionary` race crash.
+- (iOS) Fixed concurrent `ImageLoader` registration causing ARC reference count race crash (#83354930).
+- (iOS) Fixed concurrent Function registration/deregistration causing Swift `Dictionary` race crash (#83354917).
 - (Android) Fixed Image with explicit `0px` being overridden by intrinsic image size, causing layout jitter.
-- (Android) Fixed strikethrough position error and improved line-height handling logic.
-- (HarmonyOS) Fixed Row child element overlap and vertical centering anomaly.
+- (Android) Fixed strikethrough position error and improved line-height handling logic (#83884229).
+- (HarmonyOS) Fixed Row child element overlap and vertical centering anomaly (#83823723).
 - (HarmonyOS) Fixed API 17 crash by replacing `OH_ArkUI_PostFrameCallback` with `dlsym` wrapper.
+- (All) Optimized large image loading to reduce UI jank.
+- (All) Fixed underline calculation for multi-line text and `thickness` unit conversion.
+- (iOS) Fixed strikethrough shorthand syntax not working.
+- (All) Fixed image crop size not multiplied by screen density.
+- (All) Fixed horizontal List unable to dynamically append child elements.
 
 ---
 

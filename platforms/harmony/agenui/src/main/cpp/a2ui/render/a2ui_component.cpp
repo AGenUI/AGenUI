@@ -8,9 +8,11 @@
 #include <vector>
 
 #include "a2ui_component.h"
+#include "utils/a2ui_parse_utils.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
 #include "a2ui/utils/a2ui_unit_utils.h"
 #include "a2ui/utils/a2ui_color_palette.h"
+#include "a2ui/utils/a2ui_shadow_utils.h"
 #include "a2ui/utils/a2ui_animate_utils.h"
 #include "a2ui_component_state.h"
 #include "agenui_engine_entry.h"
@@ -169,6 +171,17 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
             if (!m_parent || m_parent->shouldApplyChildLayoutSize(this)) {
                 getNode().setWidth(m_width);
                 getNode().setHeight(m_height);
+            }
+            // Root node has no Yoga parent to consume its margin.
+            // Yoga's getLayoutLeft/Top already include margin-left/top in the
+            // position, but margin-bottom/right are lost. Apply them to the
+            // ArkUI node so the parent Stack can allocate the correct space.
+            if (m_id == "root") {
+                float mt = 0, mr = 0, mb = 0, ml = 0;
+                resolveUserMargin(stylesJson, mt, mr, mb, ml);
+                if (mb > 0 || mr > 0) {
+                    getNode().setMargin(0, mr, mb, 0);
+                }
             }
             if (m_parent) {
                 m_parent->onChildLayoutSizeChanged(this);
@@ -579,63 +592,7 @@ uint32_t A2UIComponent::parseColorWithToken(const nlohmann::json& colorValue, ui
     return fallbackValue;
 }
 
-/**
- * Extract the raw URL from a CSS url(...) value.
- * Supported formats:
- *   url(https://example.com/image.png)
- *   url('https://example.com/image.png')
- *   url("https://example.com/image.png")
- * Returns the original string when the value is not a url(...) expression.
- */
-static std::string extractUrlFromCssUrl(const std::string& value) {
-    if (value.empty()) {
-        return "";
-    }
-    
-    size_t start = 0;
-    while (start < value.size() && (value[start] == ' ' || value[start] == '\t')) {
-        start++;
-    }
-    
-    if (value.compare(start, 4, "url(") != 0) {
-        return value;
-    }
-    
-    size_t parenStart = start + 3;
-    while (parenStart < value.size() && value[parenStart] != '(') {
-        parenStart++;
-    }
-    if (parenStart >= value.size()) {
-        return value;
-    }
-    parenStart++;
-    
-    while (parenStart < value.size() && (value[parenStart] == ' ' || value[parenStart] == '\t')) {
-        parenStart++;
-    }
-    
-    size_t parenEnd = value.rfind(')');
-    if (parenEnd == std::string::npos || parenEnd <= parenStart) {
-        return value;
-    }
-    
-    std::string inner = value.substr(parenStart, parenEnd - parenStart);
-    
-    size_t innerEnd = inner.size();
-    while (innerEnd > 0 && (inner[innerEnd - 1] == ' ' || inner[innerEnd - 1] == '\t')) {
-        innerEnd--;
-    }
-    inner = inner.substr(0, innerEnd);
-    
-    if (inner.size() >= 2) {
-        if ((inner[0] == '"' && inner[inner.size() - 1] == '"') ||
-            (inner[0] == '\'' && inner[inner.size() - 1] == '\'')) {
-            inner = inner.substr(1, inner.size() - 2);
-        }
-    }
-    
-    return inner;
-}
+// extractUrlFromCssUrl is provided by utils/a2ui_parse_utils.h (inline).
 
 void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
     if (!m_nodeHandle) {
@@ -889,6 +846,33 @@ void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
             node.setBorderColor(color);
         }
     }
+}
+
+void A2UIComponent::applyFilter(const nlohmann::json& properties) {
+    if (!m_nodeHandle) {
+        return;
+    }
+
+    if (!properties.contains("styles") || !properties["styles"].is_object()) {
+        return;
+    }
+
+    const auto& styles = properties["styles"];
+    if (!styles.contains("filter") || !styles["filter"].is_string()) {
+        return;
+    }
+
+    DropShadowParams params = parseDropShadow(styles["filter"].get<std::string>());
+    if (!params.valid) {
+        return;
+    }
+
+    uint32_t color = parseColor(params.colorStr);
+    if (color == kColorTransparent && params.colorStr != "#00000000" && params.colorStr != "rgba(0, 0, 0, 0)" &&
+        params.colorStr != "rgba(0,0,0,0)" && params.colorStr != "rgb(0, 0, 0)") {
+        return;
+    }
+    A2UINode(m_nodeHandle).setCustomShadow(params.blurRadius, params.offsetX, params.offsetY, color);
 }
 
 void A2UIComponent::applyAccessibility(const nlohmann::json& properties) {

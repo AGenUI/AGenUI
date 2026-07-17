@@ -50,6 +50,7 @@ void RowComponent::applyStyles(const nlohmann::json& properties) {
     // Delegate background and border handling to the base class
     applyBackgroundColor(properties);
     applyBorderStyles(properties);
+    applyFilter(properties);
 }
 
 // ---- Justify ----
