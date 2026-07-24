@@ -28,7 +28,41 @@ public enum MeasureMode: Int {
 /// - Parent-child relationship is view hierarchy: addChild() automatically calls addSubview()
 /// - Tree structure managed via Component's parent/children properties
 @objc open class Component: UIView {
-    
+
+    // MARK: - Layer Class
+
+    /// Backing layer is CAGradientLayer; `colors == nil` behaves like CALayer.
+    override public class var layerClass: AnyClass {
+        return CAGradientLayer.self
+    }
+
+    var gradientLayer: CAGradientLayer? {
+        return layer as? CAGradientLayer
+    }
+
+    // MARK: - Gradient Background
+
+    private var gradientInfo: AGUIGradientInfo?
+
+    /// Set gradient (non-nil) or clear it (nil) on the view's own layer.
+    @MainActor func setGradient(_ info: AGUIGradientInfo?) {
+        gradientInfo = info
+        guard let gl = gradientLayer else { return }
+        guard let gInfo = gradientInfo else {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            gl.colors = nil
+            gl.locations = nil
+            CATransaction.commit()
+            return
+        }
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        CAGradientLayerFactory.configure(gInfo, on: gl, bounds: bounds)
+        CATransaction.commit()
+    }
+
     // MARK: - Core Properties
     
     /// Unique component identifier
@@ -428,11 +462,10 @@ public enum MeasureMode: Int {
         }
         
     }
+
     // MARK: - Layout
 
-    /// Override UIView.frame setter so that container parents (e.g., ListComponent)
-    /// can be notified via `onFrameChange` whenever the engine writes a new frame.
-    /// `super.frame = newValue` first ensures the closure observes the new value.
+    /// Frame setter: notifies `onFrameChange` and re-applies gradient geometry on resize.
     open override var frame: CGRect {
         get { super.frame }
         set {
@@ -440,6 +473,9 @@ public enum MeasureMode: Int {
             super.frame = newValue
             if oldFrame != newValue {
                 onFrameChange?(newValue)
+                if oldFrame.size != newValue.size {
+                    setGradient(gradientInfo)
+                }
             }
         }
     }

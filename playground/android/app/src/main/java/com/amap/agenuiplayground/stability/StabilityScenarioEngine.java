@@ -7,6 +7,7 @@ import com.amap.agenui.AGenUI;
 import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
+import com.amap.agenui.render.surface.SurfaceSize;
 import com.amap.agenui.render.surface.ThemeException;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -309,6 +311,18 @@ public class StabilityScenarioEngine {
             public void onCreateSurface(Surface surface) {}
             @Override
             public void onDeleteSurface(Surface surface) {}
+            @Override
+            public void onReceiveActionEvent(String event) {}
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+            @Override
+            public void onError(Surface surface, int code, String message) {}
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+            @Override
+            public SurfaceSize surfaceSize(String surfaceId) { return null; }
         });
         sm.beginTextStream();
 
@@ -386,6 +400,18 @@ public class StabilityScenarioEngine {
             public void onCreateSurface(Surface surface) {}
             @Override
             public void onDeleteSurface(Surface surface) {}
+            @Override
+            public void onReceiveActionEvent(String event) {}
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+            @Override
+            public void onError(Surface surface, int code, String message) {}
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+            @Override
+            public SurfaceSize surfaceSize(String surfaceId) { return null; }
         });
 
         sm.beginTextStream();
@@ -433,6 +459,12 @@ public class StabilityScenarioEngine {
             try { sm.addListener(new ISurfaceManagerListener() {
                 @Override public void onCreateSurface(Surface surface) {}
                 @Override public void onDeleteSurface(Surface surface) {}
+                @Override public void onReceiveActionEvent(String event) {}
+                @Override public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+                @Override public void onError(Surface surface, int code, String message) {}
+                @Override public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+                @Override public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+                @Override public SurfaceSize surfaceSize(String surfaceId) { return null; }
             }); } catch (Throwable t) { r1Exceptions.add("addListener:" + t.getClass().getSimpleName()); }
             passed++;
             if (r1Exceptions.isEmpty()) {
@@ -624,6 +656,12 @@ public class StabilityScenarioEngine {
             ISurfaceManagerListener unregistered = new ISurfaceManagerListener() {
                 @Override public void onCreateSurface(Surface surface) {}
                 @Override public void onDeleteSurface(Surface surface) {}
+                @Override public void onReceiveActionEvent(String event) {}
+                @Override public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+                @Override public void onError(Surface surface, int code, String message) {}
+                @Override public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+                @Override public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+                @Override public SurfaceSize surfaceSize(String surfaceId) { return null; }
             };
             sm.removeListener(unregistered); // never added
             sm.removeListener(unregistered); // twice
@@ -651,12 +689,24 @@ public class StabilityScenarioEngine {
                 sm.addListener(new ISurfaceManagerListener() {
                     @Override public void onCreateSurface(Surface surface) {}
                     @Override public void onDeleteSurface(Surface surface) {}
+                    @Override public void onReceiveActionEvent(String event) {}
+                    @Override public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+                    @Override public void onError(Surface surface, int code, String message) {}
+                    @Override public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+                    @Override public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+                    @Override public SurfaceSize surfaceSize(String surfaceId) { return null; }
                 });
             } catch (Throwable t) { r12Exceptions.add("addListener:" + t.getClass().getSimpleName()); }
             try {
                 sm.removeListener(new ISurfaceManagerListener() {
                     @Override public void onCreateSurface(Surface surface) {}
                     @Override public void onDeleteSurface(Surface surface) {}
+                    @Override public void onReceiveActionEvent(String event) {}
+                    @Override public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+                    @Override public void onError(Surface surface, int code, String message) {}
+                    @Override public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+                    @Override public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+                    @Override public SurfaceSize surfaceSize(String surfaceId) { return null; }
                 });
             } catch (Throwable t) { r12Exceptions.add("removeListener:" + t.getClass().getSimpleName()); }
             passed++;
@@ -792,6 +842,12 @@ public class StabilityScenarioEngine {
             ISurfaceManagerListener listener = new ISurfaceManagerListener() {
                 @Override public void onCreateSurface(Surface surface) { callbackState.set("created"); }
                 @Override public void onDeleteSurface(Surface surface) { callbackState.set("deleted"); }
+                @Override public void onReceiveActionEvent(String event) {}
+                @Override public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+                @Override public void onError(Surface surface, int code, String message) {}
+                @Override public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+                @Override public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+                @Override public SurfaceSize surfaceSize(String surfaceId) { return null; }
             };
             sm.addListener(listener);
             sm.removeListener(listener);

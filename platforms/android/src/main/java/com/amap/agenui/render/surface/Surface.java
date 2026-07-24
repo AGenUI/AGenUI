@@ -1,6 +1,7 @@
 package com.amap.agenui.render.surface;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
@@ -8,10 +9,13 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 
+import androidx.annotation.NonNull;
+
+import com.amap.a2ui_sdk.R;
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.A2UILayoutComponent;
 import com.amap.agenui.render.component.ComponentEventDispatcher;
-import com.amap.agenui.render.component.impl.ImageComponent;
+import com.amap.agenui.render.drawable.ShadowPainter;
 import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.ArrayList;
@@ -84,7 +88,16 @@ public class Surface {
         this.surfaceLayoutDispatcher = surfaceLayoutDispatcher;
 
         // If a container is provided at construction time, enter the BOUND state immediately
-        this.container = new FrameLayout(context);
+        this.container = new FrameLayout(context){
+            @Override
+            protected boolean drawChild(@NonNull Canvas canvas, View child, long drawingTime) {
+                ShadowPainter.drawIfNeeded(canvas, child);
+                return super.drawChild(canvas, child, drawingTime);
+            }
+        };
+        // Marks AGenUI's outermost view. ShadowPainter uses this to stop clip-disabling here so a
+        // root-node shadow never mutates the host view tree above the surface (matches iOS/Harmony).
+        this.container.setTag(R.id.agenui_surface_root, Boolean.TRUE);
         this.container.setLayoutParams(new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT));

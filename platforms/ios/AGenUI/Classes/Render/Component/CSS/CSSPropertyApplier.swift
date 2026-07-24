@@ -175,23 +175,15 @@ class CSSPropertyApplier {
     
     // MARK: - Style Properties
     
-    /// Applies background color
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
+    /// Applies background color (solid or gradient).
     @MainActor private static func applyBackgroundColor(_ value: CSSPropertyValue, to view: UIView) {
-        // Tear down any gradient installed by a previous update so the new value
-        // is the sole source of truth (idempotent across re-applies).
-        BackgroundGradientHolder.remove(from: view)
-
         switch value {
         case .color(let color):
             view.backgroundColor = color
+            (view as? Component)?.setGradient(nil)
         case .gradient(let info):
-            // CAGradientLayer paints the background; clear the UIView color so
-            // the two don't double-stack.
             view.backgroundColor = .clear
-            BackgroundGradientHolder.install(info, on: view)
+            (view as? Component)?.setGradient(info)
         default:
             return
         }
@@ -463,97 +455,4 @@ class CSSPropertyApplier {
 
 }
 
-// MARK: - Background Gradient Lifecycle
 
-/// Owns the CAGradientLayer that backs a CSS `background: linear-gradient(...)`
-/// (or radial / conic) value. Lives on the host UIView via an associated object so
-/// repeated applies stay idempotent and so we can tear the layer down cleanly when
-/// the background switches back to a solid color.
-///
-/// Geometry is bounds-dependent, so we watch `view.layer.bounds` via
-/// NSKeyValueObservation and rebuild on each change. The engine also re-invokes
-/// `applyBackgroundColor` whenever it pushes a layout update (since layout x/y/w/h
-/// arrive inside the same styles dict), so the KVO path is mostly belt-and-suspenders
-/// for non-engine-driven frame changes.
-fileprivate enum BackgroundGradientHolder {
-
-    private static var key: UInt8 = 0
-
-    static func install(_ info: AGUIGradientInfo, on view: UIView) {
-        let state = State(view: view, info: info)
-        objc_setAssociatedObject(view, &key, state, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-    }
-
-    static func remove(from view: UIView) {
-        if let state = objc_getAssociatedObject(view, &key) as? State {
-            state.dispose()
-        }
-        objc_setAssociatedObject(view, &key, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-    }
-
-    /// One per (view, gradient) installation. Holds the CAGradientLayer + KVO token.
-    private final class State {
-        private weak var view: UIView?
-        private let info: AGUIGradientInfo
-        private var gradientLayer: CAGradientLayer?
-        private var observation: NSKeyValueObservation?
-
-        init(view: UIView, info: AGUIGradientInfo) {
-            self.view = view
-            self.info = info
-            rebuild()
-            // CALayer.bounds is KVO-compliant (unlike most UIView properties),
-            // so we observe at the layer level for reliable updates.
-            self.observation = view.layer.observe(\.bounds, options: [.new]) { [weak self] _, _ in
-                self?.rebuild()
-            }
-        }
-
-        func dispose() {
-            observation?.invalidate()
-            observation = nil
-            gradientLayer?.removeFromSuperlayer()
-            gradientLayer = nil
-        }
-
-        private func rebuild() {
-            guard let view = view else { return }
-            let bounds = view.bounds
-            // Defer until the view actually has a non-zero size; KVO will fire again.
-            guard bounds.width > 0, bounds.height > 0 else { return }
-
-            guard let fresh = CAGradientLayerFactory.build(info, bounds: bounds) else {
-                return
-            }
-
-            // Mirror the host view's cornerRadius so the gradient is clipped by
-            // border-radius even when the host has not opted into masksToBounds
-            // (UIView's solid backgroundColor is rounded for free; sublayers are
-            // not unless we set their own cornerRadius + masksToBounds).
-            let hostRadius = view.layer.cornerRadius
-            fresh.cornerRadius = hostRadius
-            fresh.masksToBounds = hostRadius > 0
-
-            if let existing = gradientLayer {
-                // Reuse the existing layer to avoid sublayer churn / flicker.
-                CATransaction.begin()
-                CATransaction.setDisableActions(true)
-                existing.frame = bounds
-                existing.type = fresh.type
-                existing.colors = fresh.colors
-                existing.locations = fresh.locations
-                existing.startPoint = fresh.startPoint
-                existing.endPoint = fresh.endPoint
-                existing.cornerRadius = fresh.cornerRadius
-                existing.masksToBounds = fresh.masksToBounds
-                CATransaction.commit()
-            } else {
-                CATransaction.begin()
-                CATransaction.setDisableActions(true)
-                view.layer.insertSublayer(fresh, at: 0)
-                CATransaction.commit()
-                gradientLayer = fresh
-            }
-        }
-    }
-}

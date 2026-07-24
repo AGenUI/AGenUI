@@ -61,7 +61,5 @@ public interface IComponentFactory {
      * @return IMeasurer implementation, or null to opt out of measurement
      */
     @Nullable
-    default IMeasurer getMeasurer() {
-        return null;
-    }
+    IMeasurer getMeasurer();
 }

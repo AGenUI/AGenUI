@@ -68,6 +68,15 @@ class DefaultImageLoader implements ImageLoader {
         return requestId;
     }
 
+    @Override
+    public String loadImage(@NonNull String url, @NonNull ImageCallback callback) {
+        return loadImage(url, null, callback);
+    }
+
+    @Override
+    public void clearCache() {
+    }
+
     /**
      * Extracts an integer value from options (compatible with Number types).
      */

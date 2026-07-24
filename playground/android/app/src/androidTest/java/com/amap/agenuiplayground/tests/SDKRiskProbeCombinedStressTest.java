@@ -8,6 +8,7 @@ import com.amap.agenui.AGenUI;
 import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
+import com.amap.agenui.render.surface.SurfaceSize;
 import com.amap.agenuiplayground.base.AGenUIBaseTest;
 
 import org.junit.Test;
@@ -15,6 +16,7 @@ import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -96,6 +98,26 @@ public class SDKRiskProbeCombinedStressTest extends AGenUIBaseTest {
                             public void onCreateSurface(Surface s) {}
                             @Override
                             public void onDeleteSurface(Surface s) {}
+
+                            @Override
+                            public void onReceiveActionEvent(String event) {}
+
+                            @Override
+                            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+
+                            @Override
+                            public void onError(Surface surface, int code, String message) {}
+
+                            @Override
+                            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+
+                            @Override
+                            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+
+                            @Override
+                            public SurfaceSize surfaceSize(String surfaceId) {
+                                return null;
+                            }
                         };
                         sm.addListener(inner);
                         sm.removeListener(inner);
@@ -116,6 +138,26 @@ public class SDKRiskProbeCombinedStressTest extends AGenUIBaseTest {
 
                 @Override
                 public void onDeleteSurface(Surface surface) {}
+
+                @Override
+                public void onReceiveActionEvent(String event) {}
+
+                @Override
+                public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+
+                @Override
+                public void onError(Surface surface, int code, String message) {}
+
+                @Override
+                public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+
+                @Override
+                public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+
+                @Override
+                public SurfaceSize surfaceSize(String surfaceId) {
+                    return null;
+                }
             };
 
             sm.addListener(reentrantListener);
@@ -240,6 +282,26 @@ public class SDKRiskProbeCombinedStressTest extends AGenUIBaseTest {
                 }
                 @Override
                 public void onDeleteSurface(Surface surface) {}
+
+                @Override
+                public void onReceiveActionEvent(String event) {}
+
+                @Override
+                public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+
+                @Override
+                public void onError(Surface surface, int code, String message) {}
+
+                @Override
+                public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+
+                @Override
+                public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+
+                @Override
+                public SurfaceSize surfaceSize(String surfaceId) {
+                    return null;
+                }
             };
             sm.addListener(listener);
 
@@ -310,6 +372,26 @@ public class SDKRiskProbeCombinedStressTest extends AGenUIBaseTest {
                         public void onCreateSurface(Surface s) {}
                         @Override
                         public void onDeleteSurface(Surface s) {}
+
+                        @Override
+                        public void onReceiveActionEvent(String event) {}
+
+                        @Override
+                        public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+
+                        @Override
+                        public void onError(Surface surface, int code, String message) {}
+
+                        @Override
+                        public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+
+                        @Override
+                        public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+
+                        @Override
+                        public SurfaceSize surfaceSize(String surfaceId) {
+                            return null;
+                        }
                     };
                     sm.addListener(l);
                     tempListeners.add(l);

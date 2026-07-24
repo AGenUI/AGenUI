@@ -9,6 +9,7 @@ import com.amap.agenui.function.IFunction;
 import com.amap.agenui.function.PlatformFunction;
 import com.amap.agenui.render.component.ComponentRegistry;
 import com.amap.agenui.render.component.IComponentFactory;
+import com.amap.agenui.render.font.FontRegistry;
 import com.amap.agenui.render.image.ImageLoader;
 import com.amap.agenui.render.image.ImageLoaderConfig;
 import com.amap.agenui.render.surface.ThemeException;
@@ -325,6 +326,59 @@ public class AGenUI {
         }
         ImageLoaderConfig.getInstance().setLoader(loader);
         AGenUILogger.i(TAG, "registerImageLoader: success");
+    }
+
+    /**
+     * Registers a custom font from an absolute file path.
+     *
+     * <p>The font becomes available immediately for {@code font-family} CSS
+     * property resolution in Text, RichText and TextField components.
+     *
+     * @param familyName the family name to reference in {@code font-family}
+     * @param filePath   absolute path to a {@code .ttf} or {@code .otf} file
+     * @return true if registration succeeds
+     */
+    public boolean registerFont(String familyName, String filePath) {
+        if (familyName == null || familyName.isEmpty() || filePath == null || filePath.isEmpty()) {
+            AGenUILogger.w(TAG, "registerFont: familyName or filePath is null/empty");
+            return false;
+        }
+        boolean ok = FontRegistry.getInstance().registerFont(familyName, filePath);
+        if (ok) {
+            AGenUILogger.i(TAG, "registerFont: registered '" + familyName + "' from file");
+        } else {
+            AGenUILogger.e(TAG, "registerFont: failed to load font from " + filePath);
+        }
+        return ok;
+    }
+
+    /**
+     * Registers a custom font from the application's assets directory.
+     *
+     * <p>The font becomes available immediately for {@code font-family} CSS
+     * property resolution in Text, RichText and TextField components.
+     *
+     * @param familyName the family name to reference in {@code font-family}
+     * @param assetPath  path relative to the assets directory
+     *                   (e.g. {@code "fonts/MyFont.ttf"})
+     * @return true if registration succeeds
+     */
+    public boolean registerFontFromAsset(String familyName, String assetPath) {
+        if (familyName == null || familyName.isEmpty() || assetPath == null || assetPath.isEmpty()) {
+            AGenUILogger.w(TAG, "registerFontFromAsset: familyName or assetPath is null/empty");
+            return false;
+        }
+        if (appContext == null) {
+            AGenUILogger.e(TAG, "registerFontFromAsset: engine not initialized");
+            return false;
+        }
+        boolean ok = FontRegistry.getInstance().registerFontFromAsset(familyName, assetPath, appContext.getAssets());
+        if (ok) {
+            AGenUILogger.i(TAG, "registerFontFromAsset: registered '" + familyName + "' from assets");
+        } else {
+            AGenUILogger.e(TAG, "registerFontFromAsset: failed to load font from " + assetPath);
+        }
+        return ok;
     }
 
 

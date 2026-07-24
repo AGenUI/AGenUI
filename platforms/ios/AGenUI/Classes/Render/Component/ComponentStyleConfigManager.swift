@@ -281,19 +281,34 @@ internal class ComponentStyleConfigManager {
         return Double(numericString).map { $0 / 1000.0 }
     }
     
-    /// Parses font-weight string to UIFont.Weight
-    /// Supports "bold", "normal", or numeric values (>=500 is bold)
+    /// Parses font-weight into UIFont.Weight: keyword aliases first, then the numeric 100-900 scale.
     static func parseFontWeight(_ value: String) -> UIFont.Weight {
         let trimmed = value.lowercased()
-        if trimmed == "bold" {
-            return .bold
+
+        // Keyword aliases (ascending weight)
+        switch trimmed {
+        case "normal": return .regular
+        case "medium": return .medium
+        case "bold":   return .bold
+        default:       break
         }
-        if trimmed == "normal" {
-            return .regular
+
+        // Numeric scale: one case per weight level
+        if let numeric = Int(trimmed) {
+            switch numeric {
+            case 100: return .ultraLight
+            case 200: return .thin
+            case 300: return .light
+            case 400: return .regular
+            case 500: return .medium
+            case 600: return .semibold
+            case 700: return .bold
+            case 800: return .heavy
+            case 900: return .black
+            default:  return .regular //Fallback to regular (400) if the value is not a valid number
+            }
         }
-        if let numeric = Int(trimmed), numeric >= 500 {
-            return .bold
-        }
+
         return .regular
     }
 

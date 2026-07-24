@@ -5,4 +5,5 @@
     <item name="agenui_shadow_config" type="id" />
     <item name="agenui_shadow_bitmap" type="id" />
     <item name="agenui_overflow_hidden" type="id" />
+    <item name="agenui_surface_root" type="id" />
 </resources>

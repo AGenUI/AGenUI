@@ -77,9 +77,9 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
         "enum": {
           "icon": {"styles": {"width": "48px", "height": "48px", "border-radius": "0px"}},
           "avatar": {"styles": {"width": "88px", "height": "88px", "border-radius": "44px"}},
-          "smallFeature": {"styles": {"max-width": "100", "width": "100%", "aspect-ratio": "4 / 3", "border-radius": "8px"}},
-          "mediumFeature": {"styles": {"max-width": "300", "width": "100%", "aspect-ratio": "3 / 2","border-radius": "16px"}},
-          "largeFeature": {"styles": {"max-width": "400", "width": "100%", "aspect-ratio": "16 / 9","border-radius": "24px"}},
+          "smallFeature": {"styles": {"width": "100%", "aspect-ratio": "4 / 3", "border-radius": "8px"}},
+          "mediumFeature": {"styles": {"width": "100%", "aspect-ratio": "3 / 2","border-radius": "16px"}},
+          "largeFeature": {"styles": {"width": "100%", "aspect-ratio": "16 / 9","border-radius": "24px"}},
           "header": {"styles": {"width": "100%", "aspect-ratio": "16 / 9","border-radius": "0px"}}
         }
       },

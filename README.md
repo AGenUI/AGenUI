@@ -22,15 +22,16 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.2.0
+## What's New in v1.2.1
 
-> Released on 2026-07-08
+> Released on 2026-07-24
 
-- **A2UI Accessibility Support**: Added `accessibility` field and its sub-fields parsing with data binding support across the Core engine, Android, iOS, and HarmonyOS — enabling screen reader compatibility and semantic annotations.
-- **List Item Appear Event & First Render Tracking**: Exposed list item appear event and first-render trackInfo to the integration layer for analytics and performance monitoring.
-- **Padding Parsing API**: Opened the padding parsing interface for external use, allowing integrators to access parsed padding values directly.
-- **linear-gradient Background Support**: Text, Button, List, Checkbox, Divider, and TextField components now support `linear-gradient` backgrounds via a unified base class method.
-- **Dashed Underline Support**: Added custom dashed underline style on iOS, Android, and HarmonyOS via `text-decoration` properties.
+- **Full Font-Weight Support**: All three platforms now support the complete CSS `font-weight` range. iOS and HarmonyOS render true font weights; Android uses real weight on API 28+ with graceful degradation on lower versions.
+- **Custom Font Registration**: Supports custom font registration via raw file path using `OH_Drawing_RegisterFont`, with a shared font parser class extracted for reuse.
+- **`text-decoration` Tri-Platform Alignment**: Unified `text-decoration` parsing and rendering across iOS, Android, and HarmonyOS to conform to the A2UI standard.
+- Changed `getMeasurer` and default interface methods from Java `default` to regular interface methods.
+- Added `gap` property description to the component catalog.
+- Removed ImageLoader fallback to system image loading on failure.
 
 ---
 

@@ -65,8 +65,22 @@ bool ComponentManager::tryApplyTextChunk(const nlohmann::json& json) {
     }
 
     auto& entity = it->second;
-    auto value = std::make_shared<StaticDataValue>(json["textChunk"].dump());
-    entity->setAttribute("textChunk", value);
+    auto chunkValue = std::make_shared<StaticDataValue>(json["textChunk"].dump());
+    entity->setAttribute("textChunk", chunkValue);
+    // Merge inline styles from the textChunk payload into the existing component,
+    // enabling style updates during Text streaming.
+    if (json.contains("styles")) {
+        auto stylesNode = json["styles"];
+        std::shared_ptr<StylesDataValue> styleValue = DataValueParser::parseStylesDataValue(entity.get(), stylesNode.dump());
+        if (styleValue) {
+            const auto& allStyles = styleValue->getAllStyles();
+            for (const auto& pair : allStyles) {
+                entity->setStyleValue(pair.first, pair.second->getValueData().dump());
+            }
+            entity->markDirty("styles", true);
+        }
+    }
+        
 
     if (_dirtyIndex.insert(id).second) {
         _dirtyOrder.emplace_back(id);

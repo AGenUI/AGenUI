@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-07-24
+
+### Features
+
+- **Full Font-Weight Support**: All three platforms now support the complete CSS `font-weight` range. iOS and HarmonyOS render true font weights; Android uses real weight on API 28+ with graceful degradation on lower versions.
+- **Custom Font Registration**: Supports custom font registration via raw file path using `OH_Drawing_RegisterFont`, with a shared font parser class extracted for reuse.
+- **`text-decoration` Tri-Platform Alignment**: Unified `text-decoration` parsing and rendering across iOS, Android, and HarmonyOS to conform to the A2UI standard.
+- Changed `getMeasurer` and default interface methods from Java `default` to regular interface methods.
+- Added `gap` property description to the component catalog.
+- Removed ImageLoader fallback to system image loading on failure.
+
+### Bug Fixes
+
+- Fixed iOS gradient color inserting an extra layer, causing subsequent layer view-order corruption.
+- Fixed Android image crop dimensions not multiplied by screen density.
+- Fixed `styles` being lost during `textChunk` streaming parse — styles are now updated alongside text chunks.
+- Fixed iOS font name matching logic inconsistency.
+- Fixed Android `TextMeasurer` font-weight measurement diverging from the render path — measure and render now share `parseFontWeightValue` + `createWeightedTypeface`.
+- Unified tri-platform `font-weight` parsing order (keyword → numeric); Android switched to `parseInt` for numeric parsing.
+
+---
+
 ## [1.2.0] - 2026-07-08
 
 ### Features
@@ -20,11 +42,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - (iOS) Fixed shadow rendering too light — set `shadowOpacity` to `1.0` to prevent alpha being multiplied twice.
 - (iOS) Fixed `Surface.updateSize()` recursive layout notification causing stack overflow crash.
 - (iOS) Fixed `TabsComponent.addChild` closure strongly referencing child components, causing permanent memory leak.
-- (iOS) Fixed concurrent `ImageLoader` registration causing ARC reference count race crash (#83354930).
-- (iOS) Fixed concurrent Function registration/deregistration causing Swift `Dictionary` race crash (#83354917).
+- (iOS) Fixed concurrent `ImageLoader` registration causing ARC reference count race crash.
+- (iOS) Fixed concurrent Function registration/deregistration causing Swift `Dictionary` race crash.
 - (Android) Fixed Image with explicit `0px` being overridden by intrinsic image size, causing layout jitter.
-- (Android) Fixed strikethrough position error and improved line-height handling logic (#83884229).
-- (HarmonyOS) Fixed Row child element overlap and vertical centering anomaly (#83823723).
+- (Android) Fixed strikethrough position error and improved line-height handling logic.
+- (HarmonyOS) Fixed Row child element overlap and vertical centering anomaly.
 - (HarmonyOS) Fixed API 17 crash by replacing `OH_ArkUI_PostFrameCallback` with `dlsym` wrapper.
 - (All) Optimized large image loading to reduce UI jank.
 - (All) Fixed underline calculation for multi-line text and `thickness` unit conversion.

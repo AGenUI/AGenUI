@@ -1,4 +1,5 @@
 #include "napi_internal.h"
+#include "a2ui/font/a2ui_font_registry.h"
 #include "a2ui/bridge/harmony_platform_function.h"
 #include "a2ui/render/a2ui_component_types.h"
 #include "a2ui/render/a2ui_surface.h"
@@ -20,8 +21,12 @@
 #include "agenui_logger_internal.h"
 
 #include <atomic>
-#include <pthread.h>
+#include <cstdio>
 #include <cstdarg>
+#include <pthread.h>
+#include <vector>
+#include <native_drawing/drawing_register_font.h>
+#include <native_drawing/drawing_font_collection.h>
 
 // ---------------------------------------------------------------------------
 // Global thread-safe function for dispatching worker-thread callbacks onto
@@ -388,6 +393,139 @@ static napi_value InvalidateFunctionCallValues(napi_env env, napi_callback_info 
 }
 
 // ---------------------------------------------------------------------------
+// Font registration
+// ---------------------------------------------------------------------------
+
+// Register font data into the OH_Drawing global FontCollection so that CAPI
+// nodes (which look up OH_Drawing_GetFontCollectionGlobalInstance) can find
+// the custom font. The global instance is managed by the system and must NOT
+// be destroyed. Also registers in a2ui::FontRegistry for CSS font-family
+// resolution.
+static bool RegisterFontData(const std::string& familyName, uint8_t* data, size_t dataLen) {
+    OH_Drawing_FontCollection* fontCollection = OH_Drawing_GetFontCollectionGlobalInstance();
+    if (!fontCollection) {
+        HM_LOGE("RegisterFontData: failed to get global font collection");
+        return false;
+    }
+
+    uint32_t drawingErr = OH_Drawing_RegisterFontBuffer(
+            fontCollection, familyName.c_str(), data, dataLen);
+    if (drawingErr != 0) {
+        HM_LOGE("RegisterFontData: OH_Drawing_RegisterFontBuffer failed (err=%u) for '%s' (%zu bytes)",
+                drawingErr, familyName.c_str(), dataLen);
+        return false;
+    }
+
+    a2ui::FontRegistry::instance().registerFont(familyName, familyName);
+    HM_LOGI("RegisterFontData: OK '%s' (%zu bytes)", familyName.c_str(), dataLen);
+    return true;
+}
+
+static napi_value RegisterFontNative(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value argv[2];
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    if (argc < 2) {
+        HM_LOGE("RegisterFont: expected 2 arguments (familyName, filePath)");
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    char familyBuf[256] = {};
+    size_t familyLen = 0;
+    napi_get_value_string_utf8(env, argv[0], familyBuf, sizeof(familyBuf), &familyLen);
+
+    char pathBuf[1024] = {};
+    size_t pathLen = 0;
+    napi_get_value_string_utf8(env, argv[1], pathBuf, sizeof(pathBuf), &pathLen);
+
+    std::string familyName(familyBuf, familyLen);
+    std::string filePath(pathBuf, pathLen);
+
+    if (familyName.empty() || filePath.empty()) {
+        HM_LOGE("RegisterFont: familyName or filePath is empty");
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    OH_Drawing_FontCollection* fontCollection = OH_Drawing_GetFontCollectionGlobalInstance();
+    if (!fontCollection) {
+        HM_LOGE("RegisterFont: failed to get global font collection");
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    uint32_t drawingErr = OH_Drawing_RegisterFont(fontCollection, familyName.c_str(), filePath.c_str());
+    if (drawingErr != 0) {
+        HM_LOGE("RegisterFont: OH_Drawing_RegisterFont failed (err=%u) for '%s' path='%s'",
+                drawingErr, familyName.c_str(), filePath.c_str());
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    a2ui::FontRegistry::instance().registerFont(familyName, familyName);
+    HM_LOGI("RegisterFont: OK '%s' path='%s'", familyName.c_str(), filePath.c_str());
+    napi_value result;
+    napi_get_boolean(env, true, &result);
+    return result;
+}
+
+static napi_value RegisterFontFromBufferNative(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value argv[2];
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    if (argc < 2) {
+        HM_LOGE("RegisterFontFromBuffer: expected 2 arguments (familyName, arrayBuffer)");
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    char familyBuf[256] = {};
+    size_t familyLen = 0;
+    napi_get_value_string_utf8(env, argv[0], familyBuf, sizeof(familyBuf), &familyLen);
+    std::string familyName(familyBuf, familyLen);
+
+    if (familyName.empty()) {
+        HM_LOGE("RegisterFontFromBuffer: familyName is empty");
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    bool isArrayBuffer = false;
+    napi_is_arraybuffer(env, argv[1], &isArrayBuffer);
+    if (!isArrayBuffer) {
+        HM_LOGE("RegisterFontFromBuffer: second argument is not an ArrayBuffer");
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    void* data = nullptr;
+    size_t dataLen = 0;
+    napi_get_arraybuffer_info(env, argv[1], &data, &dataLen);
+
+    if (!data || dataLen == 0) {
+        HM_LOGE("RegisterFontFromBuffer: buffer is empty");
+        napi_value result;
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    bool ok = RegisterFontData(familyName, static_cast<uint8_t*>(data), dataLen);
+    napi_value result;
+    napi_get_boolean(env, ok, &result);
+    return result;
+}
+
+// ---------------------------------------------------------------------------
 // Module init and registration
 // ---------------------------------------------------------------------------
 
@@ -481,6 +619,8 @@ static napi_value Init(napi_env env, napi_value exports)
         { "onImageLoadFailed", nullptr, OnImageLoadFailed, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "surfaceStartBlankCheck", nullptr, Surface_startBlankCheck, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "surfaceCancelBlankCheck", nullptr, Surface_cancelBlankCheck, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "registerFont", nullptr, RegisterFontNative, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "registerFontFromBuffer", nullptr, RegisterFontFromBufferNative, nullptr, nullptr, nullptr, napi_default, nullptr },
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

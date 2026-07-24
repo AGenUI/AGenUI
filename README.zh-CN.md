@@ -22,15 +22,16 @@
 
 ---
 
-## v1.2.0 新版本亮点
+## v1.2.1 新版本亮点
 
-> 发布于 2026-07-08
+> 发布于 2026-07-24
 
-- **A2UI 无障碍字段支持**：在 Core 引擎、Android、iOS 和鸿蒙端全平台新增 `accessibility` 字段及其二级字段的解析，支持数据绑定，可接入屏幕阅读器和语义标注。
-- **List Item 出现事件 & 首屏渲染埋点**：向集成层透出 list item appear 事件和 first-render trackInfo，用于数据分析和性能监控。
-- **Padding 解析接口开放**：开放 padding 解析接口，集成方可直接获取解析后的 padding 值。
-- **linear-gradient 渐变背景支持**：Text、Button、List、Checkbox、Divider、TextField 组件的 background-color 统一使用基类方法处理，支持 `linear-gradient` 渐变色。
-- **虚线下划线支持**：在 iOS、Android 和鸿蒙端新增自定义虚线下划线样式，通过 `text-decoration` 属性控制。
+- **完整字重支持**：三端支持完整 CSS `font-weight` 范围。iOS 和鸿蒙渲染真实字重；Android API 28+ 使用真实字重，低版本自动降级。
+- **自定义字体注册**：支持通过原始文件路径注册自定义字体，使用 `OH_Drawing_RegisterFont` 实现，并抽取通用字体解析器类以便复用。
+- **`text-decoration` 三端对齐**：统一 iOS、Android、HarmonyOS 三端 `text-decoration` 解析与渲染，符合 A2UI 标准。
+- `getMeasurer` 及 default 接口方法改为普通接口方法。
+- 组件 catalog 增加 `gap` 属性描述。
+- 移除 ImageLoader 加载失败时降级到系统加载图片的逻辑。
 
 ---
 

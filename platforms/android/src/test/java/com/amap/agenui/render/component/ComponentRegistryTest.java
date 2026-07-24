@@ -186,6 +186,11 @@ public class ComponentRegistryTest {
             public String getComponentType() {
                 return "NullFactory";
             }
+
+            @Override
+            public IMeasurer getMeasurer() {
+                return null;
+            }
         };
         ComponentRegistry.registerComponent("NullFactory", nullFactory);
 

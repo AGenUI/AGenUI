@@ -44,9 +44,7 @@ public interface ImageLoader {
      * @param callback Result callback (main thread)
      * @return requestId identifying this load task; pass to {@link #cancel} to abort it
      */
-    default String loadImage(@NonNull String url, @NonNull ImageCallback callback) {
-        return loadImage(url, null, callback);
-    }
+    String loadImage(@NonNull String url, @NonNull ImageCallback callback);
 
     /**
      * Cancels the load task identified by the given requestId.
@@ -60,6 +58,5 @@ public interface ImageLoader {
      * Clears all cached images (memory and disk).
      * Default implementation is a no-op; override if the underlying loader supports cache clearing.
      */
-    default void clearCache() {
-    }
+    void clearCache();
 }

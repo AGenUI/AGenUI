@@ -4,6 +4,7 @@
 #include "a2ui/utils/a2ui_padding_utils.h"
 #include "a2ui/bridge/image_loader_bridge.h"
 #include "a2ui/measure/a2ui_platform_layout_bridge.h"
+#include "a2ui/utils/a2ui_unit_utils.h"
 
 namespace a2ui {
 
@@ -208,8 +209,12 @@ void ImageComponent::onUpdateProperties(const nlohmann::json& properties) {
         m_lastAnimatedUrl.clear();
 
 
-        float hintW = yogaWidth;
-        float hintH = yogaHeight;
+        // Convert A2UI design units to physical pixels before passing the size hint
+        // to the image loader. The loader contract (ImageLoadOptionsKey width/height)
+        // is defined in physical px, matching Android ImageComponent's
+        // StyleHelper.standardUnitToPx (px = a2ui / 2 * density).
+        float hintW = UnitConverter::a2uiToPx(yogaWidth);
+        float hintH = UnitConverter::a2uiToPx(yogaHeight);
 
         auto payloadRef = new std::shared_ptr<ImageCallbackPayload>(m_callbackPayload);
         std::string requestId = ImageLoaderBridge::getInstance().loadImage({
@@ -242,10 +247,9 @@ void ImageComponent::onUpdateProperties(const nlohmann::json& properties) {
                 }
 
                 if (!success) {
-                    HM_LOGW("image_loader callback: failed, fallback to ArkUI native, id=%s url=%s",
+                    HM_LOGW("image_loader callback: failed, keep loader failure state, id=%s url=%s",
                         component->m_id.c_str(), component->m_currentUrl.c_str());
                     component->stopShimmer();
-                    A2UIImageNode(component->m_nodeHandle).setSrc(component->m_currentUrl);
                     return;
                 }
 
@@ -256,8 +260,8 @@ void ImageComponent::onUpdateProperties(const nlohmann::json& properties) {
         });
 
         if (requestId.empty()) {
-            HM_LOGW("image_loader: loadImage returned empty requestId, fallback ArkUI, id=%s", m_id.c_str());
-            A2UIImageNode(m_nodeHandle).setSrc(url);
+            HM_LOGW("image_loader: loadImage returned empty requestId, skip ArkUI fallback, id=%s", m_id.c_str());
+            stopShimmer();
         } else {
             m_currentRequestId = requestId;
         }

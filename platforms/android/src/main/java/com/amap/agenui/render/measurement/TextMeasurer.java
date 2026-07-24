@@ -368,9 +368,8 @@ public final class TextMeasurer {
         Typeface baseTypeface = StyleHelper.parseFontFamily(
                 firstStyleValue(styles, "font-family", "fontFamily"),
                 context);
-        String fontWeightStr = String.valueOf(firstStyleValue(styles, "font-weight", "fontWeight")).trim().toLowerCase();
-        boolean bold = StyleHelper.isBoldWeight(fontWeightStr);
-        return bold ? Typeface.create(baseTypeface, Typeface.BOLD) : baseTypeface;
+        int weight = StyleHelper.parseFontWeightValue(firstStyleValue(styles, "font-weight", "fontWeight"));
+        return StyleHelper.createWeightedTypeface(baseTypeface, weight);
     }
 
     private static float resolveTextSizePx(Context context,

@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'AGenUI'
-  s.version          = '1.2.0'
+  s.version          = '1.2.1'
   s.summary          = 'A Native Renderer for A2UI.'
   s.description      = 'A Native Renderer for A2UI - AGen UI SDK.'
   s.homepage         = 'https://genui.amap.com'

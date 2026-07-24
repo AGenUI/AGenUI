@@ -11,12 +11,14 @@ import com.amap.agenui.AGenUI;
 import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
+import com.amap.agenui.render.surface.SurfaceSize;
 import com.amap.agenuiplayground.A2UIPlaygroundActivity;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -101,6 +103,20 @@ public abstract class AGenUIBaseTest {
 
             @Override
             public void onDeleteSurface(Surface surface) {}
+            @Override
+            public void onReceiveActionEvent(String event) {}
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+            @Override
+            public void onError(Surface surface, int code, String message) {}
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+            @Override
+            public SurfaceSize surfaceSize(String surfaceId) {
+                return null;
+            }
         };
         surfaceManager.addListener(listener);
 
@@ -134,6 +150,20 @@ public abstract class AGenUIBaseTest {
                 if (surfaceId.equals(surface.getSurfaceId())) {
                     latch.countDown();
                 }
+            }
+            @Override
+            public void onReceiveActionEvent(String event) {}
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+            @Override
+            public void onError(Surface surface, int code, String message) {}
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+            @Override
+            public SurfaceSize surfaceSize(String surfaceId) {
+                return null;
             }
         };
         surfaceManager.addListener(listener);
@@ -231,6 +261,20 @@ public abstract class AGenUIBaseTest {
             }
             @Override
             public void onDeleteSurface(Surface surface) {}
+            @Override
+            public void onReceiveActionEvent(String event) {}
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+            @Override
+            public void onError(Surface surface, int code, String message) {}
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+            @Override
+            public SurfaceSize surfaceSize(String surfaceId) {
+                return null;
+            }
         };
         surfaceManager.addListener(listener);
 

@@ -112,12 +112,13 @@ class TextFieldComponent: Component {
         }
 
         // 3. Build font
-        var fontFamily = "PingFang SC"
+        var measFontFamily = "PingFang SC"
         if let config = ComponentStyleConfigManager.shared.getConfig(for: "TextField"),
            let family = config["font-family"] as? String {
-            fontFamily = family
+            measFontFamily = family
         }
-        let font: UIFont = UIFont(name: fontFamily, size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
+        let resolvedName = FontRegistry.shared.resolve(familyName: measFontFamily) ?? measFontFamily
+        let font: UIFont = UIFont(name: resolvedName, size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
 
         // 4. Determine if multi-line (longText variant)
         let variant = (json["variant"] as? String ?? "shortText").lowercased()
@@ -434,25 +435,21 @@ class TextFieldComponent: Component {
                 let sizeValue = CSSPropertyParser.parseOffset(size)
                 if case .number(let value) = sizeValue {
                     // Create placeholder-specific font
-                    if let customFont = UIFont(name: fontFamily, size: value) {
-                        self.placeholderFont = customFont
-                    } else {
-                        self.placeholderFont = UIFont.systemFont(ofSize: value)
-                    }
+                    self.placeholderFont = resolveFont(size: value)
                 }
             }
         }
     }
     
+    private func resolveFont(size: CGFloat) -> UIFont {
+        let resolved = FontRegistry.shared.resolve(familyName: fontFamily) ?? fontFamily
+        return UIFont(name: resolved, size: size) ?? UIFont.systemFont(ofSize: size)
+    }
+
     /// Apply text style to UITextField
     private func applyTextStyle(to textField: UITextField) {
         // Create font
-        let font: UIFont
-        if let customFont = UIFont(name: fontFamily, size: fontSize) {
-            font = customFont
-        } else {
-            font = UIFont.systemFont(ofSize: fontSize)
-        }
+        let font = resolveFont(size: fontSize)
         textField.font = font
         textField.textColor = textColor
         
@@ -490,12 +487,7 @@ class TextFieldComponent: Component {
     /// Apply text style to UITextView
     private func applyTextStyle(to textView: UITextView) {
         // Create font
-        let font: UIFont
-        if let customFont = UIFont(name: fontFamily, size: fontSize) {
-            font = customFont
-        } else {
-            font = UIFont.systemFont(ofSize: fontSize)
-        }
+        let font = resolveFont(size: fontSize)
         textView.font = font
         textView.textColor = textColor
         

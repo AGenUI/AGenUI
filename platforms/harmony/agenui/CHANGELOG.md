@@ -93,16 +93,38 @@
 - (iOS) 修复阴影偏淡问题——设定 `shadowOpacity` 为 `1.0`，防止 alpha 被乘两次。
 - (iOS) 修复 `Surface.updateSize()` 递归布局通知导致栈溢出崩溃。
 - (iOS) 修复 `TabsComponent.addChild` 闭包强引用子组件导致永久内存泄漏。
-- (iOS) 修复并发 `ImageLoader` 注册导致 ARC 引用计数竞争崩溃 (#83354930)。
-- (iOS) 修复并发 Function 注册/注销导致 Swift `Dictionary` 竞争崩溃 (#83354917)。
+- (iOS) 修复并发 `ImageLoader` 注册导致 ARC 引用计数竞争崩溃。
+- (iOS) 修复并发 Function 注册/注销导致 Swift `Dictionary` 竞争崩溃。
 - (Android) 修复 Image 显式 `0px` 被图片固有尺寸覆盖导致的布局抖动。
-- (Android) 修复删除线位置错误问题，改进行高处理逻辑 (#83884229)。
-- (鸿蒙) 修复 Row 子元素重叠、垂直居中对齐异常 (#83823723)。
+- (Android) 修复删除线位置错误问题，改进行高处理逻辑。
+- (鸿蒙) 修复 Row 子元素重叠、垂直居中对齐异常。
 - (鸿蒙) 修复 API 17 崩溃——使用 `dlsym` wrapper 替换 `OH_ArkUI_PostFrameCallback`。
 - (全平台) 优化大图加载卡顿问题。
 - (全平台) 修复下划线多行计算问题和 `thickness` 单位转换。
 - (iOS) 修复删除线简写写法不生效。
 - (全平台) 修复图片裁剪尺寸未乘以屏幕密度。
 - (全平台) 修复横滑 List 无法动态追加 child 的问题。
+
+---
+
+# [v1.2.1] - 2026-07-23
+
+## 新特性
+
+- **完整字重支持**：三端支持完整 CSS `font-weight` 范围。iOS 和鸿蒙渲染真实字重；Android API 28+ 使用真实字重，低版本自动降级。
+- **自定义字体注册**：支持通过原始文件路径注册自定义字体，使用 `OH_Drawing_RegisterFont` 实现，并抽取通用字体解析器类以便复用。
+- **`text-decoration` 三端对齐**：统一 iOS、Android、HarmonyOS 三端 `text-decoration` 解析与渲染，符合 A2UI 标准。
+- `getMeasurer` 及 default 接口方法改为普通接口方法。
+- 组件 catalog 增加 `gap` 属性描述。
+- 移除 ImageLoader 加载失败时降级到系统加载图片的逻辑。
+
+## Bug 修复
+
+- 修复 iOS 渐变色插入多余图层，导致后续图层视图顺序错乱。
+- 修复 Android 图片裁剪尺寸未乘以屏幕密度。
+- 修复 `textChunk` 流式解析时 `styles` 丢失——现在 styles 随 textChunk 同步更新。
+- 修复 iOS 字体名称匹配逻辑不一致。
+- 修复 Android `TextMeasurer` 字重测量与渲染路径不一致——measure 与 render 统一使用 `parseFontWeightValue` + `createWeightedTypeface`。
+- 统一三端 `font-weight` 解析顺序（关键字 → 数值）；Android 改用 `parseInt` 解析数值。
 
 ---

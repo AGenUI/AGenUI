@@ -2014,6 +2014,11 @@
           "pattern": "^(\\d+(\\.\\d+)?(px)?|\\d+(\\.\\d+)?%|auto)$",
           "description": "Specifies the initial main size of a flex item. Accepts a length in px, a percentage, or 'auto', e.g. 200px, 50%, auto."
         },
+        "gap": {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d+)?(px)?$",
+          "description": "Specifies the spacing between flex items in a flex container (Row or Column). Accepts a length in px, e.g. 8px. This is a shorthand for both row-gap and column-gap, applying the same spacing in both directions."
+        },
         "position": {
           "enum": [
             "relative",

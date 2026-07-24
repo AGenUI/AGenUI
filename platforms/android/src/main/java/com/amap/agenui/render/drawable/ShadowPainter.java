@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,8 +37,16 @@ public final class ShadowPainter {
     private static final float BLUR_RECTIFICATION = 0.735f;
     private static final int MAX_BLUR_RADIUS = 128;
 
+    // sPaint: draws the finished shadow bitmap onto the on-screen canvas (drawIfNeeded only).
+    // Kept in its original form — constructed with the two flags, never reset, never given a
+    // maskfilter/xfermode — so a retained hardware display-list op can't turn the blit into an erase.
     private static final Paint sPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
+    // sBuildPaint: draws into the off-screen shadow bitmap (shadow shape + hollow-out) in
+    // createBitmap. Those draws hit a software Canvas and execute immediately, so reset()/CLEAR
+    // here is safe and stays fully isolated from the on-screen blit paint above.
+    private static final Paint sBuildPaint = new Paint();
     private static final RectF sDstRect = new RectF();
+    private static final PorterDuffXfermode CLEAR_XFERMODE = new PorterDuffXfermode(PorterDuff.Mode.CLEAR);
 
     private ShadowPainter() {
     }
@@ -127,6 +137,11 @@ public final class ShadowPainter {
         parentGroup.setClipChildren(false);
         parentGroup.setClipToPadding(false);
 
+        // 不影响surface_root的父容器
+        if (Boolean.TRUE.equals(parentGroup.getTag(R.id.agenui_surface_root))) {
+            return;
+        }
+
         ViewParent grandparent = parentGroup.getParent();
         if (!(grandparent instanceof ViewGroup)) {
             return;
@@ -191,7 +206,13 @@ public final class ShadowPainter {
         int dstBottom = dstTop + (int) (bitmap.getHeight() / SHADOW_SCALE);
 
         sDstRect.set(dstLeft, dstTop, dstRight, dstBottom);
+        // config.shadowColor already has the element's declared opacity folded into its alpha at
+        // build time (see StyleHelper.parseDropShadowConfig). We deliberately do NOT read
+        // child.getAlpha() here: it is a transient value during animation and this pass may not
+        // re-run when it changes.
         sPaint.setColor(config.shadowColor);
+        // The child's own box is already hollowed out of the bitmap (see createBitmap), so the
+        // shadow forms only a halo and never shows through a semi-transparent child.
         canvas.drawBitmap(bitmap, null, sDstRect, sPaint);
     }
 
@@ -240,12 +261,14 @@ public final class ShadowPainter {
         }
 
         Canvas canvas = new Canvas(bitmap);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColor(0xFFFFFFFF);
-        paint.setStyle(Paint.Style.FILL);
+        // ALPHA_8 target: only the paint's alpha is written (RGB is discarded), and reset() already
+        // leaves it fully opaque, so we just need FILL. The shadow color is applied at blit time.
+        sBuildPaint.reset();
+        sBuildPaint.setAntiAlias(true);
+        sBuildPaint.setStyle(Paint.Style.FILL);
         if (clampedBlur > 0) {
             float blur = clampedBlur * SHADOW_SCALE * BLUR_RECTIFICATION;
-            paint.setMaskFilter(new BlurMaskFilter(Math.max(1f, blur), BlurMaskFilter.Blur.NORMAL));
+            sBuildPaint.setMaskFilter(new BlurMaskFilter(Math.max(1f, blur), BlurMaskFilter.Blur.NORMAL));
         }
 
         float contentW = viewWidth * SHADOW_SCALE;
@@ -254,11 +277,28 @@ public final class ShadowPainter {
         float top = paddingY * SHADOW_SCALE;
         RectF rect = new RectF(left, top, left + contentW, top + contentH);
 
-        if (config.cornerRadius > 0) {
-            float radius = config.cornerRadius * SHADOW_SCALE;
-            canvas.drawRoundRect(rect, radius, radius, paint);
+        float radius = config.cornerRadius > 0 ? config.cornerRadius * SHADOW_SCALE : 0f;
+        if (radius > 0f) {
+            canvas.drawRoundRect(rect, radius, radius, sBuildPaint);
         } else {
-            canvas.drawRect(rect, paint);
+            canvas.drawRect(rect, sBuildPaint);
+        }
+
+        // Hollow out the child's own box so the shadow is only a halo around it (CSS clips outer
+        // shadow to outside the border box; opaque content would cover this area anyway). This is
+        // what keeps the shadow from showing through a semi-transparent child. The hole sits at the
+        // child's real position, i.e. the shadow core (rect) shifted back by the drop offset.
+        sBuildPaint.reset();
+        sBuildPaint.setAntiAlias(true);
+        sBuildPaint.setStyle(Paint.Style.FILL);
+        sBuildPaint.setXfermode(CLEAR_XFERMODE);
+        float holeLeft = (paddingX - config.offsetX) * SHADOW_SCALE;
+        float holeTop = (paddingY - config.offsetY) * SHADOW_SCALE;
+        RectF holeRect = new RectF(holeLeft, holeTop, holeLeft + contentW, holeTop + contentH);
+        if (radius > 0f) {
+            canvas.drawRoundRect(holeRect, radius, radius, sBuildPaint);
+        } else {
+            canvas.drawRect(holeRect, sBuildPaint);
         }
 
         return bitmap;

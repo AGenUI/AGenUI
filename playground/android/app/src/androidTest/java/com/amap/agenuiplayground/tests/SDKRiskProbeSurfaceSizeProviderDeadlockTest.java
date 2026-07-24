@@ -16,6 +16,7 @@ import com.amap.agenuiplayground.base.AGenUIBaseTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -112,6 +113,21 @@ public class SDKRiskProbeSurfaceSizeProviderDeadlockTest extends AGenUIBaseTest 
             public void onDeleteSurface(Surface surface) {
                 Log.i(TAG, "[RISK31] onDeleteSurface: " + surface.getSurfaceId());
             }
+
+            @Override
+            public void onReceiveActionEvent(String event) {}
+
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+
+            @Override
+            public void onError(Surface surface, int code, String message) {}
+
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
 
             @Nullable
             @Override
@@ -257,6 +273,21 @@ public class SDKRiskProbeSurfaceSizeProviderDeadlockTest extends AGenUIBaseTest 
 
             @Override
             public void onDeleteSurface(Surface surface) {}
+
+            @Override
+            public void onReceiveActionEvent(String event) {}
+
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+
+            @Override
+            public void onError(Surface surface, int code, String message) {}
+
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
 
             @Nullable
             @Override

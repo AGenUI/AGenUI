@@ -4,6 +4,9 @@ import android.content.Context;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.IComponentFactory;
+import com.amap.agenui.render.measurement.IMeasurer;
+
+import androidx.annotation.Nullable;
 import com.amap.agenuiplayground.component.impl.MarkdownComponent;
 
 import java.util.Map;
@@ -20,4 +23,11 @@ public class MarkdownComponentFactory implements IComponentFactory {
     public String getComponentType() {
         return "Markdown";
     }
+
+    @Override
+    @Nullable
+    public IMeasurer getMeasurer() {
+        return null;
+    }
+
 }

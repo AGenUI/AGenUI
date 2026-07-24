@@ -24,7 +24,9 @@ namespace a2ui {
  *       - border-radius: border corner radius (kebab-case or camelCase borderRadius)
  *       - padding: inner spacing, supports CSS shorthand (e.g. "10px" or "10px 20px")
  *       - background-color: background fill color
- *       - text-decoration-line: underline / overline / line-through
+ *       - text-decoration: shorthand "line style color" (e.g. "underline dashed #FF0000")
+ *       - text-decoration-line: underline / line-through / none
+ *       - text-decoration-style: solid / dashed / dotted / double / wavy
  *       - text-decoration-color: decoration color
  *       - filter: drop-shadow(offsetX offsetY blur color)
  */

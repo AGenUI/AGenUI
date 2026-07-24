@@ -4,6 +4,9 @@ import android.content.Context;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.IComponentFactory;
+import com.amap.agenui.render.measurement.IMeasurer;
+
+import androidx.annotation.Nullable;
 import com.amap.agenui.render.component.impl.CarouselComponent;
 
 import java.util.Map;
@@ -21,4 +24,11 @@ public class CarouselComponentFactory implements IComponentFactory {
     public String getComponentType() {
         return "Carousel";
     }
+
+    @Override
+    @Nullable
+    public IMeasurer getMeasurer() {
+        return null;
+    }
+
 }

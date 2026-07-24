@@ -1,6 +1,6 @@
 {
   "name": "@agenui/agenui",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "AGenUI SDK - A2UI Dynamic UI Rendering Engine",
   "main": "./src/main/ets/Index.ets",
   "author": "harmony",

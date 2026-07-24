@@ -166,7 +166,47 @@ import Foundation
         ImageLoaderConfiguration.shared.loader = loader
         Logger.shared.info("ImageLoader registered: \(type(of: loader))")
     }
-    
+
+    // MARK: - Font Registration
+
+    /// Register a custom font from a file URL.
+    ///
+    /// The font is loaded via `CTFontManager` and becomes available for
+    /// `font-family` CSS property resolution in all text components.
+    ///
+    /// - Parameters:
+    ///   - familyName: the name authors use in `font-family` (case-insensitive)
+    ///   - fileURL: URL pointing to a `.ttf` or `.otf` font file
+    /// - Returns: `true` if registration succeeds
+    @objc(registerFont:fileURL:)
+    public static func registerFont(_ familyName: String, fileURL: URL) -> Bool {
+        let ok = FontRegistry.shared.registerFont(familyName: familyName, fileURL: fileURL)
+        if ok {
+            Logger.shared.info("registerFont: '\(familyName)' from \(fileURL.lastPathComponent)")
+        } else {
+            Logger.shared.error("registerFont: failed for '\(familyName)'")
+        }
+        return ok
+    }
+
+    /// Register a font name already available in the system.
+    ///
+    /// Use this when the font is declared in `Info.plist` under `UIAppFonts`
+    /// and you want to expose it under a custom CSS family name.
+    ///
+    /// - Parameters:
+    ///   - familyName: the name authors use in `font-family` (case-insensitive)
+    ///   - fontName: the actual font name (PostScript name or family name)
+    /// - Returns: `true` on success
+    @objc(registerFont:fontName:)
+    public static func registerFont(_ familyName: String, fontName: String) -> Bool {
+        let ok = FontRegistry.shared.registerFont(familyName: familyName, fontName: fontName)
+        if ok {
+            Logger.shared.info("registerFont: '\(familyName)' -> '\(fontName)'")
+        }
+        return ok
+    }
+
     // MARK: - FunctionCall Management
 
     /// Register a platform function with the engine

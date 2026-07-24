@@ -5,6 +5,9 @@ import android.content.Context;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.IComponentFactory;
+import com.amap.agenui.render.measurement.IMeasurer;
+
+import androidx.annotation.Nullable;
 import com.amap.agenui.render.component.impl.ColumnComponent;
 
 import java.util.Map;
@@ -21,4 +24,11 @@ public class ColumnComponentFactory implements IComponentFactory {
     public String getComponentType() {
         return "Column";
     }
+
+    @Override
+    @Nullable
+    public IMeasurer getMeasurer() {
+        return null;
+    }
+
 }

@@ -31,7 +31,6 @@ private class TextDecorationConfigBox: NSObject {
 enum TextDecorationLine: String {
     case none = "none"
     case underline = "underline"
-    case overline = "overline"
     case lineThrough = "line-through"
 }
 
@@ -106,7 +105,7 @@ struct TextDecorationConfig {
     
     /// Parse text-decoration shorthand property (positional format, aligned with Android)
     /// Format: "line style color" (e.g. "underline dashed #FF0000")
-    /// - parts[0]: line type (underline, line-through, overline, none)
+    /// - parts[0]: line type (underline, line-through, none)
     /// - parts[1]: style (solid, dashed, dotted, double, wavy)
     /// - parts[2]: color (#hex or rgb)
     private static func parseTextDecoration(_ value: String, into config: inout TextDecorationConfig) {
@@ -249,11 +248,6 @@ class TextDecorationLabel: UILabel {
         case .underline:
             attributes[.underlineStyle] = underlineStyle.rawValue
             attributes[.underlineColor] = config.color
-        case .overline:
-            // iOS does not natively support overline, use custom drawing
-            // Use underline as placeholder here, can be implemented with custom drawing later
-            attributes[.underlineStyle] = underlineStyle.rawValue
-            attributes[.underlineColor] = config.color
         case .lineThrough:
             attributes[.strikethroughStyle] = underlineStyle.rawValue
             attributes[.strikethroughColor] = config.color
@@ -345,7 +339,6 @@ class TextDecorationLabel: UILabel {
             // Compute Y offset relative to baseline based on decoration line position:
             //   .underline   — below baseline (default)
             //   .lineThrough — at x-height center (~1/3 of ascender above baseline)
-            //   .overline    — above ascender
             let lineYOffset: CGFloat
             switch config.line {
             case .underline:
@@ -353,9 +346,6 @@ class TextDecorationLabel: UILabel {
             case .lineThrough:
                 // Strikethrough sits at roughly 1/3 of ascender height above baseline
                 lineYOffset = -(font?.ascender ?? lineHeight) * 0.3
-            case .overline:
-                // Above the ascender: move up by ascender height, add strokeHalf to keep stroke within bounds
-                lineYOffset = -(font?.ascender ?? lineHeight * 0.8) + strokeHalf
             case .none:
                 lineYOffset = 0
             }
@@ -462,7 +452,7 @@ extension TextAlignment {
 ///   - line-clamp: Maximum number of lines (Int/String)
 ///   - text-overflow: Overflow behavior (String: ellipsis, clip, head, middle)
 ///   - text-decoration: Text decoration shorthand (String)
-///   - text-decoration-line: Decoration line (String: none, underline, overline, line-through)
+///   - text-decoration-line: Decoration line (String: none, underline, line-through)
 ///   - text-decoration-style: Decoration style (String: solid, double, dotted, dashed, wavy)
 ///   - text-decoration-color: Decoration color (String)
 ///   - text-decoration-thickness: Decoration thickness (String/CGFloat)
@@ -604,6 +594,9 @@ class TextComponent: Component {
         // Parse font-weight
         if let fontWeightValue = styles["font-weight"] as? String {
             parsed.fontWeight = ComponentStyleConfigManager.parseFontWeight(fontWeightValue)
+        }
+        else if let num = styles["font-weight"] as? NSNumber {
+            parsed.fontWeight = ComponentStyleConfigManager.parseFontWeight(num.stringValue)
         }
 
         // Parse font-family
@@ -834,38 +827,76 @@ class TextComponent: Component {
     
     /// Build UIFont with family + weight + size in one pass
     private class func buildFont(family: String, weight: UIFont.Weight, size: CGFloat) -> UIFont {
-        // Use systemFont directly for system font families
-        let normalizedFamily = family.lowercased()
-        
-        switch normalizedFamily {
-        case "monospace", "monospacefont", "menlo", "courier":
-            return UIFont.monospacedSystemFont(ofSize: size, weight: weight)
-        case "sans-serif":
+        // CSS fallback list: "CustomFont, monospace, sans-serif"
+        let candidates = family.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+
+        for candidate in candidates {
+            let name = stripFontQuotes(candidate)
+            if name.isEmpty { continue }
+
+            if let resolved = resolveOneFamily(name, weight: weight, size: size) {
+                return resolved
+            }
+        }
+
+        return UIFont.systemFont(ofSize: size, weight: weight)
+    }
+
+    private class func stripFontQuotes(_ value: String) -> String {
+        if value.count >= 2 {
+            let first = value.first!, last = value.last!
+            if (first == "\"" && last == "\"") || (first == "'" && last == "'") {
+                return String(value.dropFirst().dropLast())
+            }
+        }
+        return value
+    }
+
+    private class func resolveOneFamily(_ name: String, weight: UIFont.Weight, size: CGFloat) -> UIFont? {
+        let lower = name.lowercased()
+
+        // Generic family names
+        switch lower {
+        case "system", "sans-serif":
             return UIFont.systemFont(ofSize: size, weight: weight)
+        case "monospace":
+            return UIFont.monospacedSystemFont(ofSize: size, weight: weight)
+        case "serif":
+            if let serifDesc = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .body).withDesign(.serif) {
+                let weighted = serifDesc.addingAttributes([
+                    .traits: [UIFontDescriptor.TraitKey.weight: weight.rawValue]
+                ])
+                return UIFont(descriptor: weighted, size: size)
+            }
+            return UIFont(name: "Times New Roman", size: size) ?? UIFont.systemFont(ofSize: size, weight: weight)
         default:
             break
         }
-        
-        // Custom font family: specify family and weight via UIFontDescriptor
+
+        // FontRegistry lookup
+        let resolvedName: String
+        if let registered = FontRegistry.shared.resolve(familyName: name) {
+            resolvedName = registered
+        } else {
+            resolvedName = name
+        }
+
+        // Try UIFontDescriptor (matches by family name)
         let descriptor = UIFontDescriptor(fontAttributes: [
-            .family: family,
+            .family: resolvedName,
             .traits: [UIFontDescriptor.TraitKey.weight: weight.rawValue]
         ])
-        
         let font = UIFont(descriptor: descriptor, size: size)
-        
-        // Verify font loaded successfully (family match)
-        // If requested font family does not exist, iOS falls back to system font
-        if font.familyName.lowercased() != family.lowercased() {
-            // Font not found, try exact font name
-            if let exactFont = UIFont(name: family, size: size) {
-                return exactFont
-            }
-            // Fallback to system font, preserve weight
-            return UIFont.systemFont(ofSize: size, weight: weight)
+        if font.familyName.lowercased() == resolvedName.lowercased() {
+            return font
         }
-        
-        return font
+
+        // Try exact font name (PostScript name)
+        if let exactFont = UIFont(name: resolvedName, size: size) {
+            return exactFont
+        }
+
+        return nil
     }
     
     // MARK: - Phase 3 Helpers: NSAttributedString synthesis
@@ -899,7 +930,7 @@ class TextComponent: Component {
         }
         
         switch config.line {
-        case .underline, .overline:
+        case .underline:
             attributes[.underlineStyle] = underlineStyle.rawValue
             attributes[.underlineColor] = config.color
         case .lineThrough:

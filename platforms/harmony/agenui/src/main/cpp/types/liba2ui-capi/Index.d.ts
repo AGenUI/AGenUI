@@ -206,6 +206,12 @@ export const setImagePixelMapNative: (requestId: string, pixelMap: object) => vo
 /** Reports image load failure or cancellation from ETS. */
 export const onImageLoadFailed: (requestId: string, isCancelled: boolean) => void;
 
+/** Registers a custom font from a file path. The familyName becomes available for font-family CSS resolution. */
+export const registerFont: (familyName: string, filePath: string) => boolean;
+
+/** Registers a custom font from a raw buffer. Passes bytes directly to OH_Drawing_RegisterFontBuffer. */
+export const registerFontFromBuffer: (familyName: string, buffer: ArrayBuffer) => boolean;
+
 /** Re-evaluates host-backed function call values for all bound components in the instance. */
 export const invalidateFunctionCallValues: (instanceId: number) => void;
 

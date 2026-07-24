@@ -28,7 +28,5 @@ public interface ImageTransition {
     /**
      * Default animation duration in milliseconds.
      */
-    default long getDefaultDuration() {
-        return 800;
-    }
+    long getDefaultDuration();
 }

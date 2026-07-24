@@ -112,5 +112,10 @@ public class ImageTransitionManagerTest {
         public void animate(android.widget.ImageView imageView, long duration, Runnable completion) {
             // no-op for testing
         }
+
+        @Override
+        public long getDefaultDuration() {
+            return 800;
+        }
     }
 }

@@ -2,6 +2,8 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { buffer } from '@kit.ArkTS';
+import { fileIo } from '@kit.CoreFileKit';
+import { AGenUI } from '@agenui/agenui';
 
 const DOMAIN = 0x0000;
 const TAG = 'AGenUITest';
@@ -54,6 +56,11 @@ export default class EntryAbility extends UIAbility {
     const testBundleData = AppStorage.get<string>('testBundleData');
     const page = (testCase || testDataPath || testBundleData) ? 'pages/UITestPage' : 'pages/AGenUIDemoPage';
 
+    // Register custom fonts BEFORE loading any page content.
+    // ArkUI font registration must happen before text nodes are created.
+    // The SDK uses loadFontSync internally, which does not depend on UIContext.
+    this.registerCustomFonts();
+
     windowStage.loadContent(page, (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
@@ -61,6 +68,47 @@ export default class EntryAbility extends UIAbility {
       }
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading: %{public}s', page);
     });
+  }
+
+  /**
+   * Copy rawfile fonts to the sandbox and register them via AGenUI.registerFont.
+   *
+   * The SDK's registerFont() handles both ArkUI rendering (NODE_FONT_FAMILY) and
+   * OH_Drawing measurement registration internally, so the host only needs to
+   * call it once per font with a sandbox absolute path.
+   *
+   * Must be called before windowStage.loadContent() for ArkUI fonts to take
+   * effect (see onWindowStageCreate above).
+   */
+  private registerCustomFonts(): void {
+    // Register Nunito via file-path API (exercises OH_Drawing_RegisterFont)
+    try {
+      const rawData = this.context.resourceManager.getRawFileContentSync('fonts/Nunito-Regular.ttf');
+      const sandboxPath = this.context.filesDir + '/Nunito-Regular.ttf';
+      const file = fileIo.openSync(sandboxPath, fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY | fileIo.OpenMode.TRUNC);
+      try {
+        fileIo.writeSync(file.fd, rawData.buffer);
+      } finally {
+        fileIo.closeSync(file);
+      }
+      const ok = AGenUI.registerFont('Nunito', sandboxPath);
+      hilog.info(DOMAIN, TAG, 'registerFont (path) %{public}s: %{public}s', ok ? 'OK' : 'FAIL', sandboxPath);
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'registerFont (path) FAIL Nunito: %{public}s', String(e));
+    }
+
+    // Register remaining fonts via rawfile buffer API
+    const names: string[] = ['PlayfairDisplay', 'FiraCode'];
+    const files: string[] = ['fonts/PlayfairDisplay-Regular.ttf', 'fonts/FiraCode-Regular.ttf'];
+
+    for (let i = 0; i < names.length; i++) {
+      try {
+        AGenUI.registerFontFromRawFile(names[i], files[i], this.context);
+        hilog.info(DOMAIN, TAG, 'registerFontFromRawFile OK: %{public}s <- %{public}s', names[i], files[i]);
+      } catch (e) {
+        hilog.error(DOMAIN, TAG, 'registerFontFromRawFile FAIL %{public}s: %{public}s', names[i], String(e));
+      }
+    }
   }
 
   onWindowStageDestroy(): void {

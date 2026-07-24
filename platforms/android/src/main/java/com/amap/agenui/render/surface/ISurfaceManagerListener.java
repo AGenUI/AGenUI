@@ -41,8 +41,7 @@ public interface ISurfaceManagerListener {
      *
      * @param event Event content as a JSON string
      */
-    default void onReceiveActionEvent(String event) {
-    }
+    void onReceiveActionEvent(String event);
 
     /**
      * Callback when the root component of a Surface is created or updated.
@@ -52,8 +51,7 @@ public interface ISurfaceManagerListener {
      * @param surface The Surface whose root component was updated
      * @param props   The root component's properties as String map, may be null
      */
-    default void onRootComponentUpdate(Surface surface, Map<String, String> props) {
-    }
+    void onRootComponentUpdate(Surface surface, Map<String, String> props);
 
     /**
      * Callback when a C++ execution error occurs.
@@ -66,8 +64,7 @@ public interface ISurfaceManagerListener {
      * @param code    Error code
      * @param message Error description
      */
-    default void onError(Surface surface, int code, String message) {
-    }
+    void onError(Surface surface, int code, String message);
 
     /**
      * Callback when a blank-screen check completes for a Surface.
@@ -80,8 +77,7 @@ public interface ISurfaceManagerListener {
      * @param isBlank {@code true} if the screen is detected as blank;
      *                {@code false} if the check passed
      */
-    default void onBlankCheckResult(Surface surface, boolean isBlank) {
-    }
+    void onBlankCheckResult(Surface surface, boolean isBlank);
 
     /**
      * Callback when a component has appeared on screen.
@@ -96,8 +92,7 @@ public interface ISurfaceManagerListener {
      * @param parentType        Component type name of the detector ("List" / "Carousel" / "Tabs" ...)
      * @param properties        Display properties as a key-value map
      */
-    default void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {
-    }
+    void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties);
 
     /**
      * Optional pull callback: return the current size of the given surface in vp units.
@@ -134,7 +129,5 @@ public interface ISurfaceManagerListener {
      */
     @WorkerThread
     @Nullable
-    default SurfaceSize surfaceSize(@NonNull String surfaceId) {
-        return null;
-    }
+    SurfaceSize surfaceSize(@NonNull String surfaceId);
 }

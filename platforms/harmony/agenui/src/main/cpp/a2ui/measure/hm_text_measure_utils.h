@@ -134,20 +134,24 @@ public:
     }
     
     static OH_Drawing_FontWeight convertToHMLayoutFontWeight(int fontWeight) {
+        // Flat switch: the keyword enums and 100-900 are disjoint value ranges, so both case sets coexist. 500 -> medium.
         OH_Drawing_FontWeight fixWeight = FONT_WEIGHT_400;
         switch (fontWeight) {
-        case NODE_PROPERTY_FONT_BOLD:
-            fixWeight = FONT_WEIGHT_700;
-            break;
-        case NODE_PROPERTY_FONT_NORMAL:
-            fixWeight = FONT_WEIGHT_400;
-            break;
-        default:
-            // Raw numeric values (100-900): >= 500 is bold
-            if (fontWeight >= 100 && fontWeight <= 900) {
-                fixWeight = fontWeight >= 500 ? FONT_WEIGHT_700 : FONT_WEIGHT_400;
-            }
-            break;
+        // Keyword aliases (ascending weight)
+        case NODE_PROPERTY_FONT_NORMAL: fixWeight = FONT_WEIGHT_400; break;
+        case NODE_PROPERTY_FONT_MEDIUM: fixWeight = FONT_WEIGHT_500; break;
+        case NODE_PROPERTY_FONT_BOLD:   fixWeight = FONT_WEIGHT_700; break;
+        // Numeric scale, one case per level
+        case 100: fixWeight = FONT_WEIGHT_100; break;
+        case 200: fixWeight = FONT_WEIGHT_200; break;
+        case 300: fixWeight = FONT_WEIGHT_300; break;
+        case 400: fixWeight = FONT_WEIGHT_400; break;
+        case 500: fixWeight = FONT_WEIGHT_500; break;
+        case 600: fixWeight = FONT_WEIGHT_600; break;
+        case 700: fixWeight = FONT_WEIGHT_700; break;
+        case 800: fixWeight = FONT_WEIGHT_800; break;
+        case 900: fixWeight = FONT_WEIGHT_900; break;
+        default:  fixWeight = FONT_WEIGHT_400; break;
         }
         return fixWeight;
     }
@@ -259,8 +263,9 @@ public:
         case css::TextOverflow_undefined:
             break;
         }
-        OH_Drawing_FontCollection *fontCollection = OH_Drawing_CreateSharedFontCollection();
-        FontCollGuard fontCollGuard(fontCollection);
+        // Use the global font collection so that custom fonts registered via
+        // RegisterFontNative are visible. The global instance must NOT be destroyed.
+        OH_Drawing_FontCollection *fontCollection = OH_Drawing_GetFontCollectionGlobalInstance();
         OH_Drawing_TypographyCreate *handler = OH_Drawing_CreateTypographyHandler(typoStyle, fontCollection);
         if (!handler) {
             HM_LOGE("[measure] OH_Drawing_CreateTypographyHandler returned null");

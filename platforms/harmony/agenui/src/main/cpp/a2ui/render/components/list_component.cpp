@@ -66,8 +66,15 @@ ListComponent::ListComponent(const std::string& id, const nlohmann::json& proper
 }
 
 ListComponent::~ListComponent() {
+    // All cleanup is done in onDestroy(), which runs while m_nodeHandle and
+    // all child handles are still valid.  The destructor is intentionally empty.
+}
+
+void ListComponent::onDestroy() {
     // Teardown adapter first (unregisters callbacks, disposes adapter,
     // and cleans up any adapter-managed ListItem wrappers).
+    // This runs inside A2UIComponent::destroy() BEFORE m_nodeHandle and child
+    // handles are disposed, so all C-API calls here operate on valid handles.
     if (m_adapter) {
         teardownNodeAdapter();
     }
@@ -78,7 +85,7 @@ ListComponent::~ListComponent() {
         }
     }
     m_listItemWrappers.clear();
-    HM_LOGI("ListComponent - Destroyed: id=%s", m_id.c_str());
+    HM_LOGI("ListComponent - onDestroy cleanup complete, id=%s", m_id.c_str());
 }
 
 // ---- Child Management ----

@@ -198,15 +198,16 @@ import UIKit
 // CAGradientLayerFactory Tests
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-@Test func gradientLayerFactory_build_lessThanTwoStops_returnsNil() {
+@Test func gradientLayerFactory_configure_lessThanTwoStops_returnsFalse() {
     var info = AGUIGradientInfo()
     info.gradientType = .linear
     info.colorStops = [AGUIColorStop(color: 0xFFFF0000, position: 0, unit: .percent, hasPosition: true, isHint: false)]
-    let layer = CAGradientLayerFactory.build(info, bounds: CGRect(x: 0, y: 0, width: 100, height: 100))
-    #expect(layer == nil)
+    let layer = CAGradientLayer()
+    let result = CAGradientLayerFactory.configure(info, on: layer, bounds: CGRect(x: 0, y: 0, width: 100, height: 100))
+    #expect(result == false)
 }
 
-@Test func gradientLayerFactory_build_twoStopsLinear_returnsLayer() {
+@Test func gradientLayerFactory_configure_twoStopsLinear_returnsTrue() {
     var info = AGUIGradientInfo()
     info.gradientType = .linear
     info.colorStops = [
@@ -214,12 +215,13 @@ import UIKit
         AGUIColorStop(color: 0xFF0000FF, position: 1, unit: .percent, hasPosition: true, isHint: false)
     ]
     info.linear = AGUILinearGradientParams(angle: 180)
-    let layer = CAGradientLayerFactory.build(info, bounds: CGRect(x: 0, y: 0, width: 100, height: 100))
-    #expect(layer != nil)
-    #expect(layer?.type == .axial)
+    let layer = CAGradientLayer()
+    let result = CAGradientLayerFactory.configure(info, on: layer, bounds: CGRect(x: 0, y: 0, width: 100, height: 100))
+    #expect(result == true)
+    #expect(layer.type == .axial)
 }
 
-@Test func gradientLayerFactory_build_zeroBounds_returnsLayer() {
+@Test func gradientLayerFactory_configure_zeroBounds_returnsTrue() {
     var info = AGUIGradientInfo()
     info.gradientType = .linear
     info.colorStops = [
@@ -227,11 +229,12 @@ import UIKit
         AGUIColorStop(color: 0xFF0000FF, position: 1, unit: .percent, hasPosition: true, isHint: false)
     ]
     info.linear = AGUILinearGradientParams(angle: 0)
-    let layer = CAGradientLayerFactory.build(info, bounds: .zero)
-    #expect(layer != nil)
+    let layer = CAGradientLayer()
+    let result = CAGradientLayerFactory.configure(info, on: layer, bounds: .zero)
+    #expect(result == true)
 }
 
-@Test func gradientLayerFactory_build_radialType_returnsRadialLayer() {
+@Test func gradientLayerFactory_configure_radialType_returnsRadialLayer() {
     var info = AGUIGradientInfo()
     info.gradientType = .radial
     info.colorStops = [
@@ -239,12 +242,13 @@ import UIKit
         AGUIColorStop(color: 0xFF00FF00, position: 1, unit: .percent, hasPosition: true, isHint: false)
     ]
     info.radial = AGUIRadialGradientParams()
-    let layer = CAGradientLayerFactory.build(info, bounds: CGRect(x: 0, y: 0, width: 200, height: 200))
-    #expect(layer != nil)
-    #expect(layer?.type == .radial)
+    let layer = CAGradientLayer()
+    let result = CAGradientLayerFactory.configure(info, on: layer, bounds: CGRect(x: 0, y: 0, width: 200, height: 200))
+    #expect(result == true)
+    #expect(layer.type == .radial)
 }
 
-@Test func gradientLayerFactory_build_conicType_returnsConicLayer() {
+@Test func gradientLayerFactory_configure_conicType_returnsConicLayer() {
     var info = AGUIGradientInfo()
     info.gradientType = .conic
     info.colorStops = [
@@ -252,7 +256,8 @@ import UIKit
         AGUIColorStop(color: 0xFF00FF00, position: 1, unit: .percent, hasPosition: true, isHint: false)
     ]
     info.conic = AGUIConicGradientParams()
-    let layer = CAGradientLayerFactory.build(info, bounds: CGRect(x: 0, y: 0, width: 200, height: 200))
-    #expect(layer != nil)
-    #expect(layer?.type == .conic)
+    let layer = CAGradientLayer()
+    let result = CAGradientLayerFactory.configure(info, on: layer, bounds: CGRect(x: 0, y: 0, width: 200, height: 200))
+    #expect(result == true)
+    #expect(layer.type == .conic)
 }

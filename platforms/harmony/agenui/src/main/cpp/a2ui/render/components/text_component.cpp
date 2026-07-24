@@ -258,70 +258,32 @@ void TextComponent::applyTextLayoutStyles(const nlohmann::json& properties, cons
         }
     }
 
-    bool textContainsLineBreak = false;
-    if (properties.find("text") != properties.end()) {
-        const auto& textValue = properties["text"];
-        if (textValue.is_string()) {
-            const std::string text = textValue.get<std::string>();
-            textContainsLineBreak = text.find('\n') != std::string::npos || text.find('\r') != std::string::npos;
-        } else if (textValue.is_object()) {
-            const auto literalIt = textValue.find("literalString");
-            if (literalIt != textValue.end() && literalIt->is_string()) {
-                const std::string text = literalIt->get<std::string>();
-                textContainsLineBreak = text.find('\n') != std::string::npos || text.find('\r') != std::string::npos;
-            }
-        }
-    }
-
     // line-height + padding
     float userPadTop = 0.0f, userPadRight = 0.0f, userPadBottom = 0.0f, userPadLeft = 0.0f;
     ::a2ui::padding_utils::resolveUserPadding(styles, userPadTop, userPadRight, userPadBottom, userPadLeft);
 
-    auto applyPadding = [&](float extraTop, float extraBottom) {
-        const float t = userPadTop + extraTop;
-        const float r = userPadRight;
-        const float b = userPadBottom + extraBottom;
-        const float l = userPadLeft;
-        if (t > 0.0f || r > 0.0f || b > 0.0f || l > 0.0f) {
-            baseNode.setPadding(t, r, b, l);
-        } else {
-            baseNode.resetPadding();
-        }
-    };
+    if (userPadTop > 0.0f || userPadRight > 0.0f || userPadBottom > 0.0f || userPadLeft > 0.0f) {
+        baseNode.setPadding(userPadTop, userPadRight, userPadBottom, userPadLeft);
+    } else {
+        baseNode.resetPadding();
+    }
 
-    float verticalPadding = 0.0f;
+    // Half-leading is always enabled so the difference between the line box and
+    // the glyph ink is split symmetrically and the glyph is vertically centered.
+    // Without it ArkUI top-aligns the glyph against the line-box top, so when a
+    // frame is shrunk below the glyph's natural height (e.g. inside a fixed-height
+    // flex container) the real strokes at the bottom get clipped. This matches
+    // Android/iOS. When a CSS line-height is given we also set it natively.
+    float resolvedLineHeight = 0.0f;
     if (styles.find("line-height") != styles.end()) {
-        const float resolvedLineHeight = resolveLineHeightPx(styles["line-height"], fontSize);
-        if (resolvedLineHeight > 0.0f) {
-            const bool allowsMultipleLines = !hasLineClamp || maxLines != 1;
-            const bool isMultiLineText =
-                renderedLines > 1 ||
-                (renderedLines == 0 && allowsMultipleLines && textContainsLineBreak);
-            if (isMultiLineText) {
-                node.setLineHeight(UnitConverter::a2uiToVp(resolvedLineHeight));
-                node.setHalfLeading(true);
-                applyPadding(0.0f, 0.0f);
-            } else {
-                node.resetLineHeight();
-                node.resetHalfLeading();
-                verticalPadding = (resolvedLineHeight - fontSize) / 2.0f;
-                if (verticalPadding > 0.0f) {
-                    applyPadding(verticalPadding, verticalPadding);
-                } else {
-                    verticalPadding = 0.0f;
-                    applyPadding(0.0f, 0.0f);
-                }
-            }
-        } else {
-            node.resetLineHeight();
-            node.resetHalfLeading();
-            applyPadding(0.0f, 0.0f);
-        }
+        resolvedLineHeight = resolveLineHeightPx(styles["line-height"], fontSize);
+    }
+    if (resolvedLineHeight > 0.0f) {
+        node.setLineHeight(UnitConverter::a2uiToVp(resolvedLineHeight));
     } else {
         node.resetLineHeight();
-        node.resetHalfLeading();
-        applyPadding(0.0f, 0.0f);
     }
+    node.setHalfLeading(true);
 
     // height / max-height -> maxLines + overflow clip
     if (!hasLineClamp) {
@@ -369,12 +331,7 @@ void TextComponent::applyTextLayoutStyles(const nlohmann::json& properties, cons
                 }
             }
 
-            float availH = constraintH - verticalPadding * 2.0f;
-            if (availH <= 0.0f) {
-                availH = constraintH;
-            }
-
-            int32_t computedMaxLines = static_cast<int32_t>(availH / lineH);
+            int32_t computedMaxLines = static_cast<int32_t>(constraintH / lineH);
             if (computedMaxLines < 1) {
                 computedMaxLines = 1;
             }
@@ -468,38 +425,94 @@ void TextComponent::applyBorderDecorationStyles(const nlohmann::json& styles, fl
     }
 
     // text-decoration
-    if (styles.find("text-decoration-line") != styles.end() && styles["text-decoration-line"].is_string()) {
-        std::string decorationLine = styles["text-decoration-line"].get<std::string>();
-
+    // Parsing priority is kept in lockstep with Android (StyleHelper.applyTextDecoration)
+    // and iOS (TextDecorationConfig.from): the shorthand `text-decoration` is parsed first,
+    // then the longhand properties override it.
+    {
+        std::string decorationLine;
+        std::string decorationStyleStr = "solid";
+        bool hasDecorationColor = false;
         uint32_t decorationColor = colors::kColorBlack;
-        if (styles.find("text-decoration-color") != styles.end() && styles["text-decoration-color"].is_string()) {
-            decorationColor = parseColor(styles["text-decoration-color"].get<std::string>());
+
+        // 1. Parse shorthand `text-decoration` (positional: "line style color")
+        if (styles.find("text-decoration") != styles.end() && styles["text-decoration"].is_string()) {
+            std::istringstream iss(styles["text-decoration"].get<std::string>());
+            std::vector<std::string> parts;
+            std::string token;
+            while (iss >> token) {
+                parts.push_back(token);
+            }
+            if (parts.size() >= 1) {
+                decorationLine = parts[0];
+            }
+            if (parts.size() >= 2) {
+                decorationStyleStr = parts[1];
+            }
+            if (parts.size() >= 3) {
+                decorationColor = parseColor(parts[2]);
+                hasDecorationColor = true;
+            }
         }
 
+        // 2. Parse longhand properties (override the shorthand).
+        //    The longhand overrides the shorthand only when it carries a valid value; an
+        //    invalid value (e.g. "xxx") is a parse error and dropped per CSS spec, keeping
+        //    the shorthand's value. Aligned with iOS (TextDecorationConfig.from only overrides
+        //    on a valid enum match).
+        if (styles.find("text-decoration-line") != styles.end() && styles["text-decoration-line"].is_string()) {
+            std::string lineValue = styles["text-decoration-line"].get<std::string>();
+            std::transform(lineValue.begin(), lineValue.end(), lineValue.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (lineValue == "none" || lineValue == "underline" || lineValue == "line-through") {
+                decorationLine = lineValue;
+            }
+        }
+        if (styles.find("text-decoration-style") != styles.end() && styles["text-decoration-style"].is_string()) {
+            std::string styleValue = styles["text-decoration-style"].get<std::string>();
+            std::transform(styleValue.begin(), styleValue.end(), styleValue.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (styleValue == "solid" || styleValue == "double" || styleValue == "dotted" ||
+                styleValue == "dashed" || styleValue == "wavy") {
+                decorationStyleStr = styleValue;
+            }
+        }
+        if (styles.find("text-decoration-color") != styles.end() && styles["text-decoration-color"].is_string()) {
+            decorationColor = parseColor(styles["text-decoration-color"].get<std::string>());
+            hasDecorationColor = true;
+        }
+
+        // 3. Fall back to the text color when no decoration color is specified, so the
+        //    decoration line is always visible (aligned with Android/iOS).
+        if (!hasDecorationColor && styles.find("color") != styles.end() && styles["color"].is_string()) {
+            decorationColor = parseColor(styles["color"].get<std::string>());
+        }
+
+        // Normalize to lower case so value matching is case-insensitive,
+        // aligned with Android (toLowerCase) and iOS (lowercased()).
+        std::transform(decorationLine.begin(), decorationLine.end(), decorationLine.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        std::transform(decorationStyleStr.begin(), decorationStyleStr.end(), decorationStyleStr.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+        // Standard text-decoration-line only supports: underline | line-through | none.
+        // Any other value (e.g. overline) is unsupported and renders no decoration,
+        // consistent with Android and iOS.
         ArkUI_TextDecorationType decorationType = ARKUI_TEXT_DECORATION_TYPE_NONE;
         if (decorationLine == "underline") {
             decorationType = ARKUI_TEXT_DECORATION_TYPE_UNDERLINE;
-        } else if (decorationLine == "overline") {
-            decorationType = ARKUI_TEXT_DECORATION_TYPE_OVERLINE;
         } else if (decorationLine == "line-through") {
             decorationType = ARKUI_TEXT_DECORATION_TYPE_LINE_THROUGH;
         }
 
         if (decorationType != ARKUI_TEXT_DECORATION_TYPE_NONE) {
-            // Parse text-decoration-style
-            std::string styleStr = "solid";
-            if (styles.find("text-decoration-style") != styles.end() && styles["text-decoration-style"].is_string()) {
-                styleStr = styles["text-decoration-style"].get<std::string>();
-            }
-
             ArkUI_TextDecorationStyle decorationStyle = ARKUI_TEXT_DECORATION_STYLE_SOLID;
-            if (styleStr == "dashed") {
+            if (decorationStyleStr == "dashed") {
                 decorationStyle = ARKUI_TEXT_DECORATION_STYLE_DASHED;
-            } else if (styleStr == "dotted") {
+            } else if (decorationStyleStr == "dotted") {
                 decorationStyle = ARKUI_TEXT_DECORATION_STYLE_DOTTED;
-            } else if (styleStr == "double") {
+            } else if (decorationStyleStr == "double") {
                 decorationStyle = ARKUI_TEXT_DECORATION_STYLE_DOUBLE;
-            } else if (styleStr == "wavy") {
+            } else if (decorationStyleStr == "wavy") {
                 decorationStyle = ARKUI_TEXT_DECORATION_STYLE_WAVY;
             }
 

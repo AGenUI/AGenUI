@@ -51,6 +51,17 @@ public:
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
+    /**
+     * Tear down the NodeAdapter and dispose ListItem wrappers while
+     * m_nodeHandle and all child handles are still valid.
+     *
+     * This MUST run in onDestroy() (called at the very beginning of
+     * A2UIComponent::destroy()) rather than in ~ListComponent(), because by
+     * the time the destructor runs, destroy() has already disposed
+     * m_nodeHandle and all child node handles — using them would be UAF.
+     */
+    void onDestroy() override;
+
 private:
     void applyScrollable(const nlohmann::json& properties);
     void applyDirection(const nlohmann::json& properties);

@@ -537,6 +537,53 @@ export class AGenUI {
     return AGenUIEngineBridge.getInstance().setPathConfig(configJson);
   }
 
+  // MARK: - Font Registration
+
+  /**
+   * Register a custom font from a sandbox absolute path.
+   *
+   * The font becomes available immediately for `font-family` CSS property
+   * resolution in Text, RichText and TextField components.
+   *
+   * Internally uses `text.FontCollection.getGlobalInstance().loadFontSync()`,
+   * which is synchronous and does not depend on UIContext. The SDK prepends
+   * `file://` to the path before calling loadFontSync.
+   *
+   * Must be called before `windowStage.loadContent()` — ArkUI's font
+   * registration only takes effect for text nodes created afterwards.
+   *
+   * The host App is responsible for copying rawfile assets to the sandbox
+   * (e.g. via `resourceManager.getRawFileContentSync` + `fs.writeSync`) and
+   * passing the resulting sandbox absolute path here. Rawfile relative paths
+   * (e.g. "fonts/MyFont.ttf") are NOT supported — they cannot be resolved by
+   * the C-side `fopen` or by `loadFontSync`'s string parameter.
+   *
+   * @param familyName - The family name to reference in `font-family`
+   * @param path - Sandbox absolute path (e.g. "/data/.../files/fonts/MyFont.ttf").
+   *               The SDK internally prepends `file://` for loadFontSync.
+   * @returns true if both ArkUI and OH_Drawing registration succeed; false if
+   *          ArkUI registration fails (in which case native registration is
+   *          skipped to keep measurement and rendering consistent)
+   */
+  static registerFont(familyName: string, path: string): boolean {
+    return AGenUIEngineBridge.getInstance().registerFont(familyName, path);
+  }
+
+  /**
+   * Register a custom font directly from a rawfile path without sandbox copy.
+   *
+   * Reads font bytes via ResourceManager#getRawFileContentSync and passes them
+   * directly to OH_Drawing_RegisterFontBuffer. No intermediate file I/O.
+   *
+   * @param familyName - The family name to reference in `font-family`
+   * @param rawfilePath - Relative path under rawfile/, e.g. 'fonts/MyFont.ttf'
+   * @param context - UIAbilityContext providing resourceManager access
+   * @returns true if OH_Drawing buffer registration succeeds
+   */
+  static registerFontFromRawFile(familyName: string, rawfilePath: string, context: common.UIAbilityContext): boolean {
+    return AGenUIEngineBridge.getInstance().registerFontFromRawFile(familyName, rawfilePath, context);
+  }
+
   // MARK: - Skill / FunctionCall
   /**
    * Registers a function backed by IFunctionCall

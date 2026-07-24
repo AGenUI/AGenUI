@@ -15,6 +15,7 @@ import com.amap.agenui.IAGenUILogger;
 import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
+import com.amap.agenui.render.surface.SurfaceSize;
 import com.amap.agenuiplayground.A2UIPlaygroundActivity;
 
 import org.junit.After;
@@ -25,6 +26,7 @@ import org.junit.runner.RunWith;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -190,6 +192,26 @@ public class SDKRiskProbeExtendedLifecycleTest {
                             public void onCreateSurface(Surface surface) { }
                             @Override
                             public void onDeleteSurface(Surface surface) { }
+
+                            @Override
+                            public void onReceiveActionEvent(String event) {}
+
+                            @Override
+                            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {}
+
+                            @Override
+                            public void onError(Surface surface, int code, String message) {}
+
+                            @Override
+                            public void onBlankCheckResult(Surface surface, boolean isBlank) {}
+
+                            @Override
+                            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {}
+
+                            @Override
+                            public SurfaceSize surfaceSize(String surfaceId) {
+                                return null;
+                            }
                         };
                         sm.addListener(listener);
 

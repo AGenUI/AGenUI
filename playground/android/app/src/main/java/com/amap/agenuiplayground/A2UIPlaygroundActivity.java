@@ -64,6 +64,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -726,6 +727,26 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
                 });
             }
 
+            @Override
+            public void onReceiveActionEvent(String event) {
+            }
+
+            @Override
+            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {
+            }
+
+            @Override
+            public void onError(Surface surface, int code, String message) {
+            }
+
+            @Override
+            public void onBlankCheckResult(Surface surface, boolean isBlank) {
+            }
+
+            @Override
+            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {
+            }
+
             // ⚠ Worker thread — see ISurfaceManagerListener#surfaceSize javadoc.
             // Just read the volatile cache that the UI thread keeps up-to-date; no
             // View / Activity / Resources access here.
@@ -741,6 +762,12 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
         AGenUI.getInstance().registerComponent("Markdown", new MarkdownComponentFactory());
         AGenUI.getInstance().registerComponent("Lottie", new LottieComponentFactory());
         AGenUI.getInstance().registerComponent("Chart", new ChartComponentFactory());
+
+        // 6. Register custom fonts from assets
+        AGenUI.getInstance().registerFontFromAsset("Nunito", "fonts/Nunito-Regular.ttf");
+        AGenUI.getInstance().registerFontFromAsset("PlayfairDisplay", "fonts/PlayfairDisplay-Regular.ttf");
+        AGenUI.getInstance().registerFontFromAsset("FiraCode", "fonts/FiraCode-Regular.ttf");
+        addLog("Custom fonts registered: Nunito, PlayfairDisplay, FiraCode");
 
         addLog("A2UI Framework initialized successfully");
     }

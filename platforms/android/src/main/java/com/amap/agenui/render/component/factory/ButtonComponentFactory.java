@@ -5,6 +5,9 @@ import android.content.Context;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.IComponentFactory;
+import com.amap.agenui.render.measurement.IMeasurer;
+
+import androidx.annotation.Nullable;
 import com.amap.agenui.render.component.impl.ButtonComponent;
 
 import java.util.Map;
@@ -21,4 +24,11 @@ public class ButtonComponentFactory implements IComponentFactory {
     public String getComponentType() {
         return "Button";
     }
+
+    @Override
+    @Nullable
+    public IMeasurer getMeasurer() {
+        return null;
+    }
+
 }

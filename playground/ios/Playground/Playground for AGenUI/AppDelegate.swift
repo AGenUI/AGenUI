@@ -17,6 +17,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         setupAppearance()
         // Inject custom runtime logger into AGenUI module
         setupRuntimeLogger()
+        // Register custom fonts from bundle
+        registerCustomFonts()
         return true
     }
 
@@ -53,6 +55,36 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         // Set slider color
         UISlider.appearance().tintColor = magentaColor
+    }
+
+    // MARK: - Custom Font Registration
+
+    private func registerCustomFonts() {
+        // ---- Method 1: registerFont(_:fileURL:) ----
+        // Load .ttf files from the app bundle at runtime.
+        let bundleFonts: [(cssName: String, resource: String)] = [
+            ("Nunito", "Nunito-Regular"),
+            ("PlayfairDisplay", "PlayfairDisplay-Regular"),
+            ("FiraCode", "FiraCode-Regular"),
+        ]
+        // Scan bundle for all ttf files and register by matching name
+        let bundlePath = Bundle.main.bundlePath
+        let allFiles = (try? FileManager.default.contentsOfDirectory(atPath: bundlePath)) ?? []
+        let ttfFiles = allFiles.filter { $0.hasSuffix(".ttf") }
+
+        for entry in bundleFonts {
+            let fileName = entry.resource + ".ttf"
+            if ttfFiles.contains(fileName) {
+                let fileURL = URL(fileURLWithPath: bundlePath).appendingPathComponent(fileName)
+                let ok = AGenUISDK.registerFont(entry.cssName, fileURL: fileURL)
+                if !ok {
+                    NSLog("[AGenUI] registerFont(%@) failed", entry.cssName)
+                }
+            }
+        }
+
+        // Method 2 (registerFont(_:fontName:)) can be used for system-installed
+        // fonts that need a CSS alias. Not currently needed.
     }
 
     // MARK: UISceneSession Lifecycle

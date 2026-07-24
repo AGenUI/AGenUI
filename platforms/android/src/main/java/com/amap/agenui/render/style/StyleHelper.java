@@ -151,6 +151,61 @@ public class StyleHelper {
         }
     }
 
+    /**
+     * Parses font-weight to a numeric CSS weight (100-900), one-to-one with iOS/AJX.
+     * Keywords: "normal"->400, "medium"->500, "bold"->700; numeric 100-900 map to themselves;
+     * anything else -> 400 (regular).
+     *
+     * <p>Accepts a raw value so a Number-boxed weight (e.g. Gson Double 500.0) is handled by parseInteger.
+     *
+     * @param fontWeight raw font-weight value (Number, String, or null)
+     * @return numeric CSS weight (100-900)
+     */
+    public static int parseFontWeightValue(Object fontWeight) {
+        if (fontWeight == null) return 400;
+        String value = String.valueOf(fontWeight).trim().toLowerCase();
+        switch (value) {
+            case "normal": return 400;
+            case "medium": return 500;
+            case "bold":   return 700;
+            default:       break;
+        }
+        switch (parseInteger(fontWeight)) {
+            case 100: return 100;
+            case 200: return 200;
+            case 300: return 300;
+            case 400: return 400;
+            case 500: return 500;
+            case 600: return 600;
+            case 700: return 700;
+            case 800: return 800;
+            case 900: return 900;
+            default:  return 400;
+        }
+    }
+
+    /**
+     * Creates a Typeface for the given numeric CSS weight (100-900).
+     * On API 28+ uses Typeface.create(family, weight, false), which automatically matches the
+     * nearest available weight, so medium/500 renders as true medium when the font provides it.
+     * On older APIs only NORMAL/BOLD exist, so weight >= 600 degrades to bold, otherwise normal
+     * (aligned with AJX TextMeasurement.createWeightedTypeface).
+     *
+     * <p>Italic is not applied: AGenUI has no font-style support and the base is always non-italic.
+     *
+     * @param base   base typeface (usually carries font-family), may be null
+     * @param weight numeric CSS weight (100-900)
+     * @return weighted Typeface
+     */
+    public static Typeface createWeightedTypeface(Typeface base, int weight) {
+        Typeface family = (base != null) ? base : Typeface.DEFAULT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return Typeface.create(family, weight, false);
+        }
+        int style = (weight >= 600) ? Typeface.BOLD : Typeface.NORMAL;
+        return Typeface.create(family, style);
+    }
+
     public static int parseDimension(Object value, Context context) {
         if (value == null) {
             return ViewGroup.LayoutParams.WRAP_CONTENT;
@@ -563,6 +618,17 @@ public class StyleHelper {
                 return null;
             }
             int color = parseColor(colorStr);
+            // Fold the element's declared opacity into the shadow alpha here, at config-build time,
+            // instead of reading View.getAlpha() at draw time. During an opacity animation getAlpha()
+            // is a transient interpolated value, and the shadow's draw pass (parent drawChild) is not
+            // guaranteed to re-run when alpha changes via the RenderNode fast-path — which left the
+            // shadow stuck/invisible. The declared opacity from the style payload is stable.
+            if (styles.containsKey("opacity")) {
+                float opacity = Math.max(0f, Math.min(1f, parseFloat(styles.get("opacity"))));
+                int alpha = Math.round(((color >>> 24) & 0xFF) * opacity);
+                color = (alpha << 24) | (color & 0x00FFFFFF);
+            }
+            // Fully transparent (raw color or after applying opacity) → no shadow.
             if ((color >>> 24) == 0) {
                 return null;
             }
@@ -668,11 +734,13 @@ public class StyleHelper {
             baseTypeface = parseFontFamily(fontFamilyValue, context);
         }
 
-        // font-weight: supports "bold", "normal", or numeric (>=500 is bold)
+        // font-weight: numeric CSS weight (100-900). API 28+ renders the real weight (incl. medium);
+        // older APIs degrade to bold/normal (aligned with AJX TextMeasurement).
         if (styles.containsKey("font-weight")) {
             Object fontWeightValue = styles.get("font-weight");
-            String fontWeight = String.valueOf(fontWeightValue).trim().toLowerCase();
-            textView.setTypeface(baseTypeface, isBoldWeight(fontWeight) ? Typeface.BOLD : Typeface.NORMAL);
+            int weight = parseFontWeightValue(fontWeightValue);
+            textView.setTypeface(createWeightedTypeface(baseTypeface, weight));
+            textView.getPaint().setFakeBoldText(false);
         } else if (styles.containsKey("font-family")) {
             // Only font-family is set, no weight
             textView.setTypeface(baseTypeface);
@@ -1012,11 +1080,22 @@ public class StyleHelper {
         }
 
         // 2. Parse individual properties (higher priority, overrides shorthand)
+        //    The longhand overrides the shorthand only when it carries a valid value; an
+        //    invalid value (e.g. "xxx") is a parse error and dropped per CSS spec, keeping
+        //    the shorthand's value. Aligned with iOS (TextDecorationConfig.from only overrides
+        //    on a valid enum match).
         if (styles.containsKey("text-decoration-line")) {
-            decorationLine = String.valueOf(styles.get("text-decoration-line")).trim().toLowerCase();
+            String lineValue = String.valueOf(styles.get("text-decoration-line")).trim().toLowerCase();
+            if (lineValue.equals("none") || lineValue.equals("underline") || lineValue.equals("line-through")) {
+                decorationLine = lineValue;
+            }
         }
         if (styles.containsKey("text-decoration-style")) {
-            decorationStyle = String.valueOf(styles.get("text-decoration-style")).trim().toLowerCase();
+            String styleValue = String.valueOf(styles.get("text-decoration-style")).trim().toLowerCase();
+            if (styleValue.equals("solid") || styleValue.equals("double") || styleValue.equals("dotted")
+                    || styleValue.equals("dashed") || styleValue.equals("wavy")) {
+                decorationStyle = styleValue;
+            }
         }
         if (styles.containsKey("text-decoration-color")) {
             decorationColor = String.valueOf(styles.get("text-decoration-color")).trim();
@@ -1133,8 +1212,58 @@ public class StyleHelper {
             return Typeface.DEFAULT;
         }
 
-        // Custom font loading is not yet supported
+        String raw = String.valueOf(value).trim();
+        if (raw.isEmpty()) {
+            return Typeface.DEFAULT;
+        }
+
+        // CSS fallback list: "CustomFont, monospace, sans-serif"
+        String[] candidates = raw.split(",");
+        for (String candidate : candidates) {
+            String name = stripFontQuotes(candidate.trim());
+            if (name.isEmpty()) {
+                continue;
+            }
+
+            // Generic family names
+            Typeface generic = resolveGenericFamily(name);
+            if (generic != null) {
+                return generic;
+            }
+
+            // Custom font from FontRegistry
+            Typeface registered = com.amap.agenui.render.font.FontRegistry.getInstance().resolve(name);
+            if (registered != null) {
+                return registered;
+            }
+        }
+
         return Typeface.DEFAULT;
+    }
+
+    private static String stripFontQuotes(String value) {
+        if (value.length() >= 2) {
+            char first = value.charAt(0);
+            char last = value.charAt(value.length() - 1);
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                return value.substring(1, value.length() - 1);
+            }
+        }
+        return value;
+    }
+
+    private static Typeface resolveGenericFamily(String name) {
+        switch (name.toLowerCase(java.util.Locale.ROOT)) {
+            case "system":
+            case "sans-serif":
+                return Typeface.SANS_SERIF;
+            case "serif":
+                return Typeface.SERIF;
+            case "monospace":
+                return Typeface.MONOSPACE;
+            default:
+                return null;
+        }
     }
 
     /**

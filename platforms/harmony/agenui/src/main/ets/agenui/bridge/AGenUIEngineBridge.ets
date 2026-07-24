@@ -17,6 +17,8 @@ import {
   setDesignTokenConfig,
   setDayNightMode,
   registerImageLoader as nativeRegisterImageLoader,
+  registerFont as nativeRegisterFont,
+  registerFontFromBuffer as nativeRegisterFontFromBuffer,
   setImagePixelMap,
   setImagePixelMapNative,
   onImageLoadFailed,
@@ -241,5 +243,99 @@ export class AGenUIEngineBridge {
 
     nativeRegisterImageLoader(wrappedLoader as Object);
     hilog.info(0x0000, 'AGenUIBridge', 'Image loader registered successfully');
+  }
+
+  // MARK: - Custom Font Registration
+  //
+  // Both methods below register a font into the OH_Drawing global
+  // FontCollection via OH_Drawing_RegisterFontBuffer. This is the only
+  // registration AGenUI needs — it covers CAPI text rendering and C++
+  // text measurement.
+  //
+  // OpenHarmony has other FontCollection instances:
+  //   - text.FontCollection (loadFontSync) — for ArkUI declarative Text
+  //   - ArkUI TxtFontCollection (font.registerFont) — for CAPI NODE_FONT_FAMILY
+  // Neither is used here: font.registerFont does not support sandbox paths
+  // (silently fails), and loadFontSync only serves ArkUI declarative Text
+  // components which AGenUI does not use.
+  //
+  // Must be called before windowStage.loadContent() for the font to take
+  // effect on text nodes created afterwards.
+
+  /**
+   * Register a custom font from a sandbox file path.
+   *
+   * The native layer reads the file into memory and calls
+   * OH_Drawing_RegisterFontBuffer.
+   *
+   * @param familyName The CSS font-family name to reference in A2UI payloads
+   * @param path Sandbox absolute path (e.g. "/data/.../files/fonts/MyFont.ttf")
+   * @returns true if registration succeeds
+   */
+  registerFont(familyName: string, path: string): boolean {
+    if (!familyName || familyName.trim().length === 0) {
+      hilog.error(0x0000, 'AGenUI', 'registerFont: familyName cannot be empty');
+      return false;
+    }
+    if (!path || path.trim().length === 0) {
+      hilog.error(0x0000, 'AGenUI', 'registerFont: path cannot be empty');
+      return false;
+    }
+
+    const nativeOk = nativeRegisterFont(familyName, path);
+    if (!nativeOk) {
+      hilog.error(0x0000, 'AGenUIBridge',
+        'registerFont: native registration failed for "%{public}s"', familyName);
+    }
+    return nativeOk;
+  }
+
+  /**
+   * Register a custom font directly from a rawfile path, without copying
+   * to the sandbox.
+   *
+   * Reads font bytes via ResourceManager#getRawFileContentSync and passes
+   * them directly to OH_Drawing_RegisterFontBuffer via NAPI — no
+   * intermediate file I/O.
+   *
+   * @param familyName The CSS font-family name to reference in A2UI payloads
+   * @param rawfilePath Path relative to rawfile/, e.g. 'fonts/MyFont.ttf'
+   * @param context UIAbilityContext for resourceManager access
+   * @returns true if registration succeeds
+   */
+  registerFontFromRawFile(familyName: string, rawfilePath: string, context: common.UIAbilityContext): boolean {
+    if (!familyName || familyName.trim().length === 0) {
+      hilog.error(0x0000, 'AGenUI', 'registerFontFromRawFile: familyName cannot be empty');
+      return false;
+    }
+    if (!rawfilePath || rawfilePath.trim().length === 0) {
+      hilog.error(0x0000, 'AGenUI', 'registerFontFromRawFile: rawfilePath cannot be empty');
+      return false;
+    }
+
+    // Read font bytes from rawfile (zero file-system copy).
+    let data: Uint8Array;
+    try {
+      data = context.resourceManager.getRawFileContentSync(rawfilePath);
+    } catch (e) {
+      hilog.error(0x0000, 'AGenUIBridge',
+        'registerFontFromRawFile: getRawFileContentSync failed for "%{public}s": %{public}s',
+        rawfilePath, String(e));
+      return false;
+    }
+
+    if (data.byteLength === 0) {
+      hilog.error(0x0000, 'AGenUIBridge',
+        'registerFontFromRawFile: rawfile is empty "%{public}s"', rawfilePath);
+      return false;
+    }
+
+    // Register into OH_Drawing global FontCollection via buffer NAPI.
+    const nativeOk = nativeRegisterFontFromBuffer(familyName, data.buffer);
+    if (!nativeOk) {
+      hilog.error(0x0000, 'AGenUIBridge',
+        'registerFontFromRawFile: native buffer registration failed for "%{public}s"', familyName);
+    }
+    return nativeOk;
   }
 }

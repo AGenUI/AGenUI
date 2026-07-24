@@ -8,6 +8,7 @@ import android.util.Log;
 import com.amap.agenui.render.surface.ISurfaceManagerListener;
 import com.amap.agenui.render.surface.Surface;
 import com.amap.agenui.render.surface.SurfaceManager;
+import com.amap.agenui.render.surface.SurfaceSize;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -222,6 +223,31 @@ public class RealisticScenarioEngine implements ISurfaceManagerListener {
         if (listener != null) {
             listener.onSurfaceDeleted(surface);
         }
+    }
+
+    @Override
+    public void onReceiveActionEvent(String event) {
+    }
+
+    @Override
+    public void onRootComponentUpdate(Surface surface, Map<String, String> props) {
+    }
+
+    @Override
+    public void onError(Surface surface, int code, String message) {
+    }
+
+    @Override
+    public void onBlankCheckResult(Surface surface, boolean isBlank) {
+    }
+
+    @Override
+    public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {
+    }
+
+    @Override
+    public SurfaceSize surfaceSize(String surfaceId) {
+        return null;
     }
 
     // MARK: - Finish & Cleanup

@@ -2,30 +2,21 @@
 //  CAGradientLayerFactory.swift
 //  AGenUI
 //
-//  iOS counterpart of Android's GradientDrawableFactory. Takes the cross-platform
-//  AGUIGradientInfo (parsed by the shared C++ ColorParser) and emits a
-//  CAGradientLayer configured to render linear / radial / conic gradients with the
-//  same geometry as the Android Shader and the Harmony ArkUI gradient attributes.
-//
-//  All shader geometry is bounds-dependent, so callers MUST rebuild the layer
-//  whenever the host view's bounds change. `BackgroundGradientHolder` in
-//  CSSPropertyApplier owns that lifecycle.
+//  Configures CAGradientLayer with linear / radial / conic gradient geometry.
+//  Cross-platform counterpart of Android's GradientDrawableFactory.
 //
 
 import UIKit
 
 enum CAGradientLayerFactory {
 
-    /// Build a CAGradientLayer sized to `bounds`. Returns `nil` only when the
-    /// gradient has fewer than two usable color stops.
-    static func build(_ info: AGUIGradientInfo, bounds: CGRect) -> CAGradientLayer? {
+    /// Configure an existing CAGradientLayer. Returns false if < 2 color stops.
+    static func configure(_ info: AGUIGradientInfo, on layer: CAGradientLayer, bounds: CGRect) -> Bool {
         guard let stops = collectStops(info.colorStops,
                                        forSweep: info.gradientType == .conic) else {
-            return nil
+            return false
         }
 
-        let layer = CAGradientLayer()
-        layer.frame = bounds
         layer.colors = stops.colors.map { $0 as Any }
         layer.locations = stops.positions.map { NSNumber(value: Float($0)) }
 
@@ -38,9 +29,7 @@ enum CAGradientLayerFactory {
             configureConic(layer, info: info, bounds: bounds)
         }
 
-        // TODO: CAGradientLayer has no native repeat mode; isRepeating currently
-        // falls back to CLAMP. Mirrors Android's TileMode.CLAMP fallback for px stops.
-        return layer
+        return true
     }
 
     // MARK: - Linear

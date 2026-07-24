@@ -155,6 +155,7 @@ enum Keys {
 
     // font-weight & font-style property value
     NODE_PROPERTY_FONT_NORMAL,           // normal
+    NODE_PROPERTY_FONT_MEDIUM,           // medium
     NODE_PROPERTY_FONT_BOLD,             // bold
     NODE_PROPERTY_FONT_ITALIC,           // italic
 

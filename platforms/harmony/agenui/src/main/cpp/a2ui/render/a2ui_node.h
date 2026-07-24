@@ -531,7 +531,11 @@ public:
 class A2UITextNodeBase : public A2UINode {
 public:
     explicit A2UITextNodeBase(ArkUI_NodeHandle nodeHandle) : A2UINode(nodeHandle) {
-        setFontFamily(harmonyDefaultFontFamily());
+        // Default font family is set by the ArkUI framework itself.
+        // Do NOT call setFontFamily here — it would overwrite custom fonts
+        // set by applyFontStyles, because applyTextLayoutStyles and
+        // applyBorderDecorationStyles each create a new A2UITextNode wrapper
+        // that would reset NODE_FONT_FAMILY to the default.
     }
 
     void setFontSize(float fontSize) {
