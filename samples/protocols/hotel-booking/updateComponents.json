@@ -1,0 +1,555 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "hotel_card",
+    "components": [
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "outer_column",
+        "styles": {
+          "border-radius": "24px",
+          "overflow": "hidden",
+          "box-shadow": "0px 8px 24px rgba(16, 24, 40, 0.10)"
+        }
+      },
+      {
+        "id": "outer_column",
+        "component": "Column",
+        "align": "stretch",
+        "children": [
+          "hero_image",
+          "content_column"
+        ]
+      },
+      {
+        "id": "hero_image",
+        "component": "Image",
+        "url": {
+          "path": "/data/coverUrl"
+        },
+        "fit": "cover",
+        "styles": {
+          "height": "200px",
+          "border-radius": "0px"
+        }
+      },
+      {
+        "id": "content_column",
+        "component": "Column",
+        "align": "stretch",
+        "styles": {
+          "padding": "24px 24px 24px 24px",
+          "background-color": "#FFFFFF"
+        },
+        "children": [
+          "title_row",
+          "price_row",
+          "divider1",
+          "amenities_label",
+          "amenities_list",
+          "divider2",
+          "rooms_label",
+          "rooms_list",
+          "divider3",
+          "stay_row",
+          "cancellation_row",
+          "cta_button"
+        ]
+      },
+      {
+        "id": "title_row",
+        "component": "Row",
+        "justify": "spaceBetween",
+        "align": "start",
+        "styles": {
+          "margin": "0px 0px 16px 0px"
+        },
+        "children": [
+          "name_col",
+          "rating_col"
+        ]
+      },
+      {
+        "id": "name_col",
+        "component": "Column",
+        "children": [
+          "name_text",
+          "location_row"
+        ]
+      },
+      {
+        "id": "name_text",
+        "component": "Text",
+        "text": {
+          "path": "/data/name"
+        },
+        "variant": "h3",
+        "styles": {
+          "font-size": "36px",
+          "font-weight": "bold",
+          "color": "#1B2A4A",
+          "margin": "0px 0px 6px 0px",
+          "line-clamp": 2
+        }
+      },
+      {
+        "id": "location_row",
+        "component": "Row",
+        "align": "center",
+        "children": [
+          "district_text",
+          "dot_text",
+          "address_text"
+        ]
+      },
+      {
+        "id": "district_text",
+        "component": "Text",
+        "text": {
+          "path": "/data/location/district"
+        },
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280"
+        }
+      },
+      {
+        "id": "dot_text",
+        "component": "Text",
+        "text": "·",
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280",
+          "margin": "0px 6px 0px 6px"
+        }
+      },
+      {
+        "id": "address_text",
+        "component": "Text",
+        "text": {
+          "path": "/data/location/address"
+        },
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280",
+          "line-clamp": 1,
+          "text-overflow": "ellipsis"
+        }
+      },
+      {
+        "id": "rating_col",
+        "component": "Column",
+        "align": "end",
+        "children": [
+          "rating_row",
+          "review_row"
+        ]
+      },
+      {
+        "id": "rating_row",
+        "component": "Row",
+        "align": "center",
+        "children": [
+          "star_icon",
+          "rating_value_text"
+        ]
+      },
+      {
+        "id": "star_icon",
+        "component": "Icon",
+        "name": "star"
+      },
+      {
+        "id": "rating_value_text",
+        "component": "Text",
+        "text": {
+          "path": "/data/rating"
+        },
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#C9A227",
+          "margin": "0px 0px 0px 6px"
+        }
+      },
+      {
+        "id": "review_row",
+        "component": "Row",
+        "align": "center",
+        "children": [
+          "review_count_text",
+          "review_suffix_text"
+        ]
+      },
+      {
+        "id": "review_count_text",
+        "component": "Text",
+        "text": {
+          "path": "/data/reviewCount"
+        },
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280"
+        }
+      },
+      {
+        "id": "review_suffix_text",
+        "component": "Text",
+        "text": " reviews",
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280"
+        }
+      },
+      {
+        "id": "price_row",
+        "component": "Row",
+        "align": "center",
+        "justify": "start",
+        "styles": {
+          "margin": "0px 0px 20px 0px"
+        },
+        "children": [
+          "price_label",
+          "price_value"
+        ]
+      },
+      {
+        "id": "price_label",
+        "component": "Text",
+        "text": "Per night",
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280",
+          "margin": "0px 8px 0px 0px"
+        }
+      },
+      {
+        "id": "price_value",
+        "component": "Text",
+        "text": {
+          "path": "/data/pricePerNight"
+        },
+        "styles": {
+          "font-size": "36px",
+          "font-weight": "bold",
+          "color": "#1B2A4A"
+        }
+      },
+      {
+        "id": "divider1",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "0px 0px 20px 0px",
+          "border-color": "#E5E7EB"
+        }
+      },
+      {
+        "id": "amenities_label",
+        "component": "Text",
+        "text": "Amenities",
+        "styles": {
+          "font-size": "28px",
+          "font-weight": "bold",
+          "color": "#1B2A4A",
+          "margin": "0px 0px 10px 0px"
+        }
+      },
+      {
+        "id": "amenities_list",
+        "component": "List",
+        "direction": "horizontal",
+        "align": "start",
+        "styles": {
+          "margin": "0px 0px 20px 0px"
+        },
+        "children": {
+          "path": "/data/amenities",
+          "componentId": "amenity_tag_template"
+        }
+      },
+      {
+        "id": "amenity_tag_template",
+        "component": "Text",
+        "text": {
+          "path": "name"
+        },
+        "styles": {
+          "font-size": "24px",
+          "color": "#1B2A4A",
+          "background-color": "#F3E9D2",
+          "padding": "8px 16px 8px 16px",
+          "border-radius": "20px",
+          "margin": "0px 10px 0px 0px"
+        }
+      },
+      {
+        "id": "divider2",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "0px 0px 20px 0px",
+          "border-color": "#E5E7EB"
+        }
+      },
+      {
+        "id": "rooms_label",
+        "component": "Text",
+        "text": "Available Rooms",
+        "styles": {
+          "font-size": "28px",
+          "font-weight": "bold",
+          "color": "#1B2A4A",
+          "margin": "0px 0px 10px 0px"
+        }
+      },
+      {
+        "id": "rooms_list",
+        "component": "List",
+        "direction": "vertical",
+        "align": "stretch",
+        "styles": {
+          "margin": "0px 0px 20px 0px"
+        },
+        "children": {
+          "path": "/data/rooms",
+          "componentId": "room_item_template"
+        }
+      },
+      {
+        "id": "room_item_template",
+        "component": "Row",
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "background-color": "#F7F8FA",
+          "border-radius": "14px",
+          "padding": "16px 16px 16px 16px",
+          "margin": "0px 0px 12px 0px"
+        },
+        "children": [
+          "room_info_col",
+          "room_price_col"
+        ]
+      },
+      {
+        "id": "room_info_col",
+        "component": "Column",
+        "children": [
+          "room_name_text",
+          "room_bed_text"
+        ]
+      },
+      {
+        "id": "room_name_text",
+        "component": "Text",
+        "text": {
+          "path": "name"
+        },
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#1B2A4A",
+          "margin": "0px 0px 4px 0px"
+        }
+      },
+      {
+        "id": "room_bed_text",
+        "component": "Text",
+        "text": {
+          "path": "bed"
+        },
+        "styles": {
+          "font-size": "28px",
+          "color": "#6B7280"
+        }
+      },
+      {
+        "id": "room_price_col",
+        "component": "Column",
+        "align": "end",
+        "children": [
+          "room_price_text",
+          "room_remaining_text"
+        ]
+      },
+      {
+        "id": "room_price_text",
+        "component": "Text",
+        "text": {
+          "path": "price"
+        },
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#C9A227",
+          "margin": "0px 0px 4px 0px"
+        }
+      },
+      {
+        "id": "room_remaining_text",
+        "component": "Text",
+        "text": {
+          "path": "remaining"
+        },
+        "styles": {
+          "font-size": "24px",
+          "color": "#D97706"
+        }
+      },
+      {
+        "id": "divider3",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "0px 0px 20px 0px",
+          "border-color": "#E5E7EB"
+        }
+      },
+      {
+        "id": "stay_row",
+        "component": "Row",
+        "justify": "spaceAround",
+        "align": "center",
+        "styles": {
+          "margin": "0px 0px 20px 0px",
+          "background-color": "#F7F8FA",
+          "border-radius": "14px",
+          "padding": "16px 16px 16px 16px"
+        },
+        "children": [
+          "checkin_col",
+          "checkout_col"
+        ]
+      },
+      {
+        "id": "checkin_col",
+        "component": "Column",
+        "align": "center",
+        "children": [
+          "checkin_label",
+          "checkin_value"
+        ]
+      },
+      {
+        "id": "checkin_label",
+        "component": "Text",
+        "text": "Check-in",
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280"
+        }
+      },
+      {
+        "id": "checkin_value",
+        "component": "Text",
+        "text": {
+          "path": "/data/checkIn"
+        },
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#1B2A4A",
+          "margin": "4px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "checkout_col",
+        "component": "Column",
+        "align": "center",
+        "children": [
+          "checkout_label",
+          "checkout_value"
+        ]
+      },
+      {
+        "id": "checkout_label",
+        "component": "Text",
+        "text": "Check-out",
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280"
+        }
+      },
+      {
+        "id": "checkout_value",
+        "component": "Text",
+        "text": {
+          "path": "/data/checkOut"
+        },
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#1B2A4A",
+          "margin": "4px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "cancellation_row",
+        "component": "Row",
+        "align": "start",
+        "styles": {
+          "margin": "0px 0px 20px 0px"
+        },
+        "children": [
+          "info_icon",
+          "cancellation_text"
+        ]
+      },
+      {
+        "id": "info_icon",
+        "component": "Icon",
+        "name": "info",
+        "styles": {
+          "margin": "2px 8px 0px 0px"
+        }
+      },
+      {
+        "id": "cancellation_text",
+        "component": "Text",
+        "text": {
+          "path": "/data/cancellationPolicy"
+        },
+        "styles": {
+          "font-size": "24px",
+          "color": "#6B7280",
+          "line-height": 1.4
+        }
+      },
+      {
+        "id": "cta_button",
+        "component": "Button",
+        "variant": "primary",
+        "child": "cta_text",
+        "action": {
+          "functionCall": {
+            "call": "openUrl",
+            "args": {
+              "url": "https://example.com/todo"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#1B2A4A",
+          "border-radius": "16px",
+          "padding": "18px 18px 18px 18px"
+        }
+      },
+      {
+        "id": "cta_text",
+        "component": "Text",
+        "text": {
+          "path": "/data/bookLabel"
+        },
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#FFFFFF",
+          "text-align": "center"
+        }
+      }
+    ]
+  }
+}

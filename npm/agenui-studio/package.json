@@ -1,0 +1,31 @@
+{
+  "name": "agenui-studio",
+  "version": "0.1.4",
+  "description": "Local A2UI protocol generation studio for AGenUI - BYOK multi-model, real streaming, QR-code download to device.",
+  "bin": {
+    "agenui-studio": "./bin/start.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "scripts": {
+    "start": "node ./bin/start.js"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "keywords": [
+    "agenui",
+    "a2ui",
+    "generative-ui",
+    "studio",
+    "llm",
+    "byok"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AGenUI/AGenUI.git"
+  },
+  "homepage": "https://github.com/AGenUI/AGenUI"
+}

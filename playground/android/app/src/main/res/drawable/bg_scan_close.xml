@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Semi-transparent dark circle background for the scanner close (X) button.
+
+ Used instead of ?attr/selectableItemBackgroundBorderless because the scanner
+ runs under zxing_CaptureTheme (Holo-based), which does not define that
+ attribute and would crash during layout inflation.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#66000000" />
+</shape>

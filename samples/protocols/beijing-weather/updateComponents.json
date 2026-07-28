@@ -1,0 +1,703 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "assistant-mru9vz0i-gm5h",
+    "components": [
+      {
+        "id": "root_c0_0_c0_1_c0_2",
+        "component": "Icon",
+        "name": "map-pin",
+        "styles": {
+          "color": "#cfe6f7",
+          "width": "16px",
+          "height": "16px"
+        }
+      },
+      {
+        "id": "root_c0_0_c0_1_c1_3",
+        "component": "Text",
+        "text": "北京",
+        "styles": {
+          "color": "#f2f9ff",
+          "font-size": "34px",
+          "font-weight": "700",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c0_0_c0_1",
+        "component": "Row",
+        "children": [
+          "root_c0_0_c0_1_c0_2",
+          "root_c0_0_c0_1_c1_3"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "6px"
+        }
+      },
+      {
+        "id": "root_c0_0_c1_4",
+        "component": "Text",
+        "text": "今天 14:08 实时",
+        "styles": {
+          "color": "#bcd6ec",
+          "font-size": "24px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c0_0",
+        "component": "Row",
+        "children": [
+          "root_c0_0_c0_1",
+          "root_c0_0_c1_4"
+        ],
+        "align": "center",
+        "justify": "space-between",
+        "styles": {
+          "gap": "8px"
+        }
+      },
+      {
+        "id": "root_c1_5_c0_6_c0_7",
+        "component": "Text",
+        "text": {
+          "path": "/current/temp"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "128px",
+          "font-weight": "800",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c1_5_c0_6_c1_8",
+        "component": "Text",
+        "text": {
+          "path": "/current/cond"
+        },
+        "styles": {
+          "color": "#eaf4ff",
+          "font-size": "36px",
+          "font-weight": "600",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c1_5_c0_6",
+        "component": "Column",
+        "children": [
+          "root_c1_5_c0_6_c0_7",
+          "root_c1_5_c0_6_c1_8"
+        ],
+        "styles": {
+          "gap": "2px",
+          "flex-shrink": 0
+        }
+      },
+      {
+        "id": "root_c1_5_c1_9_c0_10",
+        "component": "Text",
+        "text": "☁️",
+        "styles": {
+          "font-size": "92px",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c1_5_c1_9_c1_11",
+        "component": "Text",
+        "text": {
+          "path": "/current/feelsLike"
+        },
+        "styles": {
+          "color": "#d6e9fa",
+          "font-size": "28px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_5_c1_9_c2_12",
+        "component": "Text",
+        "text": {
+          "path": "/today/tempRange"
+        },
+        "styles": {
+          "color": "#bcd6ec",
+          "font-size": "26px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_5_c1_9",
+        "component": "Column",
+        "children": [
+          "root_c1_5_c1_9_c0_10",
+          "root_c1_5_c1_9_c1_11",
+          "root_c1_5_c1_9_c2_12"
+        ],
+        "align": "trailing",
+        "styles": {
+          "gap": "6px",
+          "flex-shrink": 0
+        }
+      },
+      {
+        "id": "root_c1_5",
+        "component": "Row",
+        "children": [
+          "root_c1_5_c0_6",
+          "root_c1_5_c1_9"
+        ],
+        "align": "center",
+        "justify": "space-between",
+        "styles": {
+          "gap": "12px"
+        }
+      },
+      {
+        "id": "root_c2_13_c0_14_c0_15",
+        "component": "Text",
+        "text": {
+          "path": "/current/humidity"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "38px",
+          "font-weight": "700",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c2_13_c0_14_c1_16",
+        "component": "Text",
+        "text": "湿度",
+        "styles": {
+          "color": "#c4dcf0",
+          "font-size": "22px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c2_13_c0_14_body_17",
+        "component": "Column",
+        "children": [
+          "root_c2_13_c0_14_c0_15",
+          "root_c2_13_c0_14_c1_16"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13_c0_14",
+        "component": "Card",
+        "child": "root_c2_13_c0_14_body_17",
+        "styles": {
+          "background-color": "rgba(255,255,255,0.12)",
+          "border-radius": "14px",
+          "padding": "11px",
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13_c1_18_c0_19",
+        "component": "Text",
+        "text": {
+          "path": "/current/windScale"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "38px",
+          "font-weight": "700",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c2_13_c1_18_c1_20",
+        "component": "Text",
+        "text": {
+          "path": "/current/windDir"
+        },
+        "styles": {
+          "color": "#c4dcf0",
+          "font-size": "22px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c2_13_c1_18_body_21",
+        "component": "Column",
+        "children": [
+          "root_c2_13_c1_18_c0_19",
+          "root_c2_13_c1_18_c1_20"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13_c1_18",
+        "component": "Card",
+        "child": "root_c2_13_c1_18_body_21",
+        "styles": {
+          "background-color": "rgba(255,255,255,0.12)",
+          "border-radius": "14px",
+          "padding": "11px",
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13_c2_22_c0_23",
+        "component": "Text",
+        "text": {
+          "path": "/current/vis"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "38px",
+          "font-weight": "700",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c2_13_c2_22_c1_24",
+        "component": "Text",
+        "text": "能见度",
+        "styles": {
+          "color": "#c4dcf0",
+          "font-size": "22px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c2_13_c2_22_body_25",
+        "component": "Column",
+        "children": [
+          "root_c2_13_c2_22_c0_23",
+          "root_c2_13_c2_22_c1_24"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13_c2_22",
+        "component": "Card",
+        "child": "root_c2_13_c2_22_body_25",
+        "styles": {
+          "background-color": "rgba(255,255,255,0.12)",
+          "border-radius": "14px",
+          "padding": "11px",
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13_c3_26_c0_27",
+        "component": "Text",
+        "text": {
+          "path": "/current/precip"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "38px",
+          "font-weight": "700",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c2_13_c3_26_c1_28",
+        "component": "Text",
+        "text": "降水mm",
+        "styles": {
+          "color": "#c4dcf0",
+          "font-size": "22px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c2_13_c3_26_body_29",
+        "component": "Column",
+        "children": [
+          "root_c2_13_c3_26_c0_27",
+          "root_c2_13_c3_26_c1_28"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13_c3_26",
+        "component": "Card",
+        "child": "root_c2_13_c3_26_body_29",
+        "styles": {
+          "background-color": "rgba(255,255,255,0.12)",
+          "border-radius": "14px",
+          "padding": "11px",
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c2_13",
+        "component": "Row",
+        "children": [
+          "root_c2_13_c0_14",
+          "root_c2_13_c1_18",
+          "root_c2_13_c2_22",
+          "root_c2_13_c3_26"
+        ],
+        "styles": {
+          "gap": "8px"
+        }
+      },
+      {
+        "id": "root_c3_30_c0_31",
+        "component": "Text",
+        "text": "未来三天",
+        "styles": {
+          "color": "#eaf4ff",
+          "font-size": "28px",
+          "font-weight": "700",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c0_33_c0_34",
+        "component": "Text",
+        "text": "今天",
+        "styles": {
+          "color": "#f2f9ff",
+          "min-width": "44px",
+          "font-size": "28px",
+          "font-weight": "600",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c0_33_c1_35",
+        "component": "Text",
+        "text": "⛈️",
+        "styles": {
+          "min-width": "26px",
+          "font-size": "40px",
+          "text-align": "center",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c0_33_c2_36",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/0/cond"
+        },
+        "styles": {
+          "color": "#d6e9fa",
+          "flex-grow": 1,
+          "font-size": "26px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c0_33_c3_37",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/0/precip"
+        },
+        "styles": {
+          "color": "#9fc6e6",
+          "min-width": "52px",
+          "font-size": "24px",
+          "text-align": "trailing",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c0_33_c4_38",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/0/tempRange"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "min-width": "66px",
+          "font-size": "28px",
+          "font-weight": "600",
+          "text-align": "trailing",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c0_33",
+        "component": "Row",
+        "children": [
+          "root_c3_30_c1_32_c0_33_c0_34",
+          "root_c3_30_c1_32_c0_33_c1_35",
+          "root_c3_30_c1_32_c0_33_c2_36",
+          "root_c3_30_c1_32_c0_33_c3_37",
+          "root_c3_30_c1_32_c0_33_c4_38"
+        ],
+        "align": "center",
+        "styles": {
+          "padding": "10px 0",
+          "gap": "10px"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c1_39",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "background-color": "rgba(255,255,255,0.14)"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c2_40_c0_41",
+        "component": "Text",
+        "text": "周三",
+        "styles": {
+          "color": "#f2f9ff",
+          "min-width": "44px",
+          "font-size": "28px",
+          "font-weight": "600",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c2_40_c1_42",
+        "component": "Text",
+        "text": "⛈️",
+        "styles": {
+          "min-width": "26px",
+          "font-size": "40px",
+          "text-align": "center",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c2_40_c2_43",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/1/cond"
+        },
+        "styles": {
+          "color": "#d6e9fa",
+          "flex-grow": 1,
+          "font-size": "26px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c2_40_c3_44",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/1/precip"
+        },
+        "styles": {
+          "color": "#9fc6e6",
+          "min-width": "52px",
+          "font-size": "24px",
+          "text-align": "trailing",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c2_40_c4_45",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/1/tempRange"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "min-width": "66px",
+          "font-size": "28px",
+          "font-weight": "600",
+          "text-align": "trailing",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c2_40",
+        "component": "Row",
+        "children": [
+          "root_c3_30_c1_32_c2_40_c0_41",
+          "root_c3_30_c1_32_c2_40_c1_42",
+          "root_c3_30_c1_32_c2_40_c2_43",
+          "root_c3_30_c1_32_c2_40_c3_44",
+          "root_c3_30_c1_32_c2_40_c4_45"
+        ],
+        "align": "center",
+        "styles": {
+          "padding": "10px 0",
+          "gap": "10px"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c3_46",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "background-color": "rgba(255,255,255,0.14)"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c4_47_c0_48",
+        "component": "Text",
+        "text": "周四",
+        "styles": {
+          "color": "#f2f9ff",
+          "min-width": "44px",
+          "font-size": "28px",
+          "font-weight": "600",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c4_47_c1_49",
+        "component": "Text",
+        "text": "⛈️",
+        "styles": {
+          "min-width": "26px",
+          "font-size": "40px",
+          "text-align": "center",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c4_47_c2_50",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/2/cond"
+        },
+        "styles": {
+          "color": "#d6e9fa",
+          "flex-grow": 1,
+          "font-size": "26px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c4_47_c3_51",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/2/precip"
+        },
+        "styles": {
+          "color": "#9fc6e6",
+          "min-width": "52px",
+          "font-size": "24px",
+          "text-align": "trailing",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c4_47_c4_52",
+        "component": "Text",
+        "text": {
+          "path": "/forecast/2/tempRange"
+        },
+        "styles": {
+          "color": "#ffffff",
+          "min-width": "66px",
+          "font-size": "28px",
+          "font-weight": "600",
+          "text-align": "trailing",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_c4_47",
+        "component": "Row",
+        "children": [
+          "root_c3_30_c1_32_c4_47_c0_48",
+          "root_c3_30_c1_32_c4_47_c1_49",
+          "root_c3_30_c1_32_c4_47_c2_50",
+          "root_c3_30_c1_32_c4_47_c3_51",
+          "root_c3_30_c1_32_c4_47_c4_52"
+        ],
+        "align": "center",
+        "styles": {
+          "padding": "10px 0",
+          "gap": "10px"
+        }
+      },
+      {
+        "id": "root_c3_30_c1_32_body_53",
+        "component": "Column",
+        "children": [
+          "root_c3_30_c1_32_c0_33",
+          "root_c3_30_c1_32_c1_39",
+          "root_c3_30_c1_32_c2_40",
+          "root_c3_30_c1_32_c3_46",
+          "root_c3_30_c1_32_c4_47"
+        ]
+      },
+      {
+        "id": "root_c3_30_c1_32",
+        "component": "Card",
+        "child": "root_c3_30_c1_32_body_53",
+        "styles": {
+          "background-color": "rgba(255,255,255,0.10)",
+          "border-radius": "16px",
+          "padding": "6px 14px"
+        }
+      },
+      {
+        "id": "root_c3_30",
+        "component": "Column",
+        "children": [
+          "root_c3_30_c0_31",
+          "root_c3_30_c1_32"
+        ],
+        "styles": {
+          "gap": "10px"
+        }
+      },
+      {
+        "id": "root_body_54",
+        "component": "Column",
+        "children": [
+          "root_c0_0",
+          "root_c1_5",
+          "root_c2_13",
+          "root_c3_30"
+        ],
+        "styles": {
+          "gap": "18px"
+        }
+      },
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "root_body_54",
+        "styles": {
+          "background-color": "linear-gradient(160deg,#1b3a5c 0%,#2f6690 55%,#4a8fbf 100%)",
+          "border-radius": "22px",
+          "padding": "22px",
+          "gap": "18px"
+        }
+      }
+    ]
+  }
+}

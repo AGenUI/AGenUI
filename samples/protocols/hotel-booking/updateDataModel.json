@@ -1,0 +1,47 @@
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "hotel_card",
+    "path": "/data",
+    "value": {
+      "name": "Grand Hyatt Beijing",
+      "rating": "4.7",
+      "reviewCount": 1283,
+      "pricePerNight": "CNY 1,280",
+      "coverUrl": "http://iph.href.lu/400x200?text=Cover",
+      "location": {
+        "address": "Dongcheng District, Beijing",
+        "district": "Wangfujing"
+      },
+      "amenities": [
+        {
+          "name": "WiFi"
+        },
+        {
+          "name": "Pool"
+        },
+        {
+          "name": "Gym"
+        }
+      ],
+      "checkIn": "15:00",
+      "checkOut": "12:00",
+      "rooms": [
+        {
+          "name": "Deluxe King",
+          "bed": "1 King Bed",
+          "price": "CNY 1,280",
+          "remaining": "3 rooms left"
+        },
+        {
+          "name": "Club Twin",
+          "bed": "2 Twin Beds",
+          "price": "CNY 1,560",
+          "remaining": "2 rooms left"
+        }
+      ],
+      "cancellationPolicy": "Free cancellation before 18:00 one day before check-in",
+      "bookLabel": "Book Now"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "assistant-mrvgwk41-kxga",
+    "path": "/",
+    "value": {
+      "beijing": {
+        "temp": "24",
+        "feelsLike": "体感 23°",
+        "cond": "阴",
+        "humidity": "88%",
+        "wind": "东风 4级",
+        "range": "22°/26°",
+        "vis": "能见 17km"
+      },
+      "guangzhou": {
+        "temp": "30",
+        "feelsLike": "体感 30°",
+        "cond": "多云",
+        "humidity": "75%",
+        "wind": "东南风 4级",
+        "range": "26°/33°",
+        "vis": "能见 30km"
+      }
+    }
+  }
+}

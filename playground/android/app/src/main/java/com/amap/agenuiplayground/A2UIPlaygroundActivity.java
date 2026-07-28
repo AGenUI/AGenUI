@@ -1169,13 +1169,46 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
         try {
             addLog("Starting to process QR code data...");
 
+            // Extract the scanned surfaceId up front so we can clear any
+            // surface that would collide with it before issuing createSurface.
+            String scannedSurfaceId = extractSurfaceIdFromCreateSurface(createSurfaceJson);
+
             surfaceManager.beginTextStream();
+
+            // The engine (both the C++ SurfaceCoordinator and the platform
+            // SurfaceManager) rejects a createSurface whose surfaceId already
+            // exists and does NOT dispatch the creation event, so the scanned
+            // page would silently fail to render. That happens whenever a
+            // surface carrying the same surfaceId is still alive — e.g. the
+            // same QR was scanned before and then another page (a menu pick or
+            // a different QR) was rendered on top without disposing it.
+            // Mirroring the HarmonyOS playground, tear down stale surfaces
+            // first so the scanned createSurface always starts clean.
+
+            // 1) Dispose the currently displayed surface when it differs from
+            //    the scanned one (avoids leaking the previous page).
+            if (currentSurfaceId != null && !currentSurfaceId.isEmpty()
+                    && !currentSurfaceId.equals(scannedSurfaceId)) {
+                sendDeleteSurface(currentSurfaceId);
+            }
+
+            // 2) Always clear any leftover surface that already carries the
+            //    scanned surfaceId (covers re-scanning the same QR after
+            //    another page was rendered on top).
+            if (scannedSurfaceId != null) {
+                sendDeleteSurface(scannedSurfaceId);
+            }
 
             // Process following the same logic as renderComponents
             if (createSurfaceJson != null && !createSurfaceJson.trim().isEmpty()) {
                 surfaceManager.receiveTextChunk(createSurfaceJson);
 
                 addLog("1/3 Sent createSurface");
+
+                // Track the scanned surfaceId so the next render can dispose it.
+                if (scannedSurfaceId != null) {
+                    currentSurfaceId = scannedSurfaceId;
+                }
             }
 
             if (updateComponentsJson != null && !updateComponentsJson.trim().isEmpty()) {
@@ -1204,6 +1237,49 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
             Log.e(TAG, "Failed to process QR code JSON data", e);
             addLog("❌ Render failed: " + e.getMessage());
             Toast.makeText(this, "Render failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Extract surfaceId from a createSurface JSON payload.
+     *
+     * @param createSurfaceJson createSurface JSON string
+     * @return surfaceId, or null when the payload is malformed or the field is missing
+     */
+    private String extractSurfaceIdFromCreateSurface(String createSurfaceJson) {
+        if (createSurfaceJson == null || createSurfaceJson.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            JSONObject obj = new JSONObject(createSurfaceJson);
+            JSONObject createSurface = obj.optJSONObject("createSurface");
+            if (createSurface != null) {
+                String surfaceId = createSurface.optString("surfaceId", "");
+                return surfaceId.isEmpty() ? null : surfaceId;
+            }
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to extract surfaceId from createSurface", e);
+        }
+        return null;
+    }
+
+    /**
+     * Send a deleteSurface chunk for the given surfaceId. Deleting a surfaceId
+     * that does not exist is a safe no-op at the engine layer.
+     *
+     * @param surfaceId surfaceId to delete
+     */
+    private void sendDeleteSurface(String surfaceId) {
+        try {
+            JSONObject deleteSurfaceJson = new JSONObject();
+            deleteSurfaceJson.put("version", "v0.9");
+            JSONObject deleteSurfaceData = new JSONObject();
+            deleteSurfaceData.put("surfaceId", surfaceId);
+            deleteSurfaceJson.put("deleteSurface", deleteSurfaceData);
+            surfaceManager.receiveTextChunk(deleteSurfaceJson.toString());
+            addLog("Sent deleteSurface: " + surfaceId);
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to build deleteSurface JSON", e);
         }
     }
 

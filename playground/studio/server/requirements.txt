@@ -1,0 +1,9 @@
+# AGenUI Studio - local A2UI protocol generation server.
+# Install: pip install -r studio/server/requirements.txt
+#
+# Note: configuration is JSON-based (~/.agenui/config.json), so PyYAML is NOT
+# required. The reused benchmark modules (prompt_builder / extractor / validator)
+# only need the standard library plus the skill's validate_a2ui.py.
+fastapi>=0.110
+uvicorn>=0.29
+openai>=1.0

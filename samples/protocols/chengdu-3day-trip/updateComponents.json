@@ -1,0 +1,541 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "chengdu_trip",
+    "components": [
+      {
+        "id": "root",
+        "component": "Column",
+        "children": [
+          "header_card",
+          "day1_card",
+          "day2_card",
+          "day3_card",
+          "tips_card"
+        ]
+      },
+      {
+        "id": "header_card",
+        "component": "Card",
+        "child": "header_body",
+        "styles": {
+          "background-color": "#0E3A2F",
+          "border-radius": "24px",
+          "padding": "28px 24px 28px 24px",
+          "margin": "0px 0px 16px 0px"
+        }
+      },
+      {
+        "id": "header_body",
+        "component": "Column",
+        "children": [
+          "header_tag",
+          "header_title",
+          "header_sub",
+          "header_meta_row"
+        ]
+      },
+      {
+        "id": "header_tag",
+        "component": "Text",
+        "text": {
+          "path": "/trip/tag"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#8FD9BE",
+          "font-size": "24px",
+          "font-weight": "bold",
+          "margin": "0px 0px 8px 0px"
+        }
+      },
+      {
+        "id": "header_title",
+        "component": "Text",
+        "text": {
+          "path": "/trip/title"
+        },
+        "variant": "h1",
+        "styles": {
+          "color": "#FFFFFF",
+          "font-size": "40px",
+          "font-weight": "bold",
+          "margin": "0px 0px 8px 0px"
+        }
+      },
+      {
+        "id": "header_sub",
+        "component": "Text",
+        "text": {
+          "path": "/trip/subtitle"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#C9E8DC",
+          "font-size": "28px",
+          "line-height": 1.4,
+          "margin": "0px 0px 18px 0px"
+        }
+      },
+      {
+        "id": "header_meta_row",
+        "component": "Row",
+        "children": [
+          "meta_date",
+          "meta_divider",
+          "meta_days"
+        ],
+        "align": "center"
+      },
+      {
+        "id": "meta_date",
+        "component": "Text",
+        "text": {
+          "path": "/trip/dateRange"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#8FD9BE",
+          "font-size": "28px",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "meta_divider",
+        "component": "Text",
+        "text": {
+          "path": "/trip/dot"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#4E7A6C",
+          "font-size": "28px",
+          "margin": "0px 12px 0px 12px"
+        }
+      },
+      {
+        "id": "meta_days",
+        "component": "Text",
+        "text": {
+          "path": "/trip/dayCount"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#8FD9BE",
+          "font-size": "28px",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "day1_card",
+        "component": "Card",
+        "child": "day1_body",
+        "styles": {
+          "background-color": "#FFFFFF",
+          "border-radius": "24px",
+          "padding": "24px 22px 24px 22px",
+          "margin": "0px 0px 16px 0px",
+          "filter": "drop-shadow(0px 4px 16px rgba(0, 0, 0, 0.08))"
+        }
+      },
+      {
+        "id": "day1_body",
+        "component": "Column",
+        "children": [
+          "day1_head_row",
+          "day1_theme",
+          "day1_divider",
+          "day1_list"
+        ]
+      },
+      {
+        "id": "day1_head_row",
+        "component": "Row",
+        "children": [
+          "day1_badge",
+          "day1_route"
+        ],
+        "align": "center",
+        "justify": "spaceBetween"
+      },
+      {
+        "id": "day1_badge",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day1/badge"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#FFFFFF",
+          "background-color": "#E1552E",
+          "font-size": "24px",
+          "font-weight": "bold",
+          "border-radius": "12px",
+          "padding": "6px 14px 6px 14px"
+        }
+      },
+      {
+        "id": "day1_route",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day1/route"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#8A8A8A",
+          "font-size": "24px",
+          "text-align": "right center",
+          "flex-shrink": 1,
+          "line-clamp": 1,
+          "text-overflow": "ellipsis"
+        }
+      },
+      {
+        "id": "day1_theme",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day1/theme"
+        },
+        "variant": "h3",
+        "styles": {
+          "color": "#0E142B",
+          "font-size": "36px",
+          "font-weight": "bold",
+          "margin": "14px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "day1_divider",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "16px 0px 8px 0px",
+          "border-color": "#EEEEEE"
+        }
+      },
+      {
+        "id": "day1_list",
+        "component": "List",
+        "children": {
+          "path": "/trip/day1/items",
+          "componentId": "schedule_tpl"
+        },
+        "direction": "vertical"
+      },
+      {
+        "id": "day2_card",
+        "component": "Card",
+        "child": "day2_body",
+        "styles": {
+          "background-color": "#FFFFFF",
+          "border-radius": "24px",
+          "padding": "24px 22px 24px 22px",
+          "margin": "0px 0px 16px 0px",
+          "filter": "drop-shadow(0px 4px 16px rgba(0, 0, 0, 0.08))"
+        }
+      },
+      {
+        "id": "day2_body",
+        "component": "Column",
+        "children": [
+          "day2_head_row",
+          "day2_theme",
+          "day2_divider",
+          "day2_list"
+        ]
+      },
+      {
+        "id": "day2_head_row",
+        "component": "Row",
+        "children": [
+          "day2_badge",
+          "day2_route"
+        ],
+        "align": "center",
+        "justify": "spaceBetween"
+      },
+      {
+        "id": "day2_badge",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day2/badge"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#FFFFFF",
+          "background-color": "#E1552E",
+          "font-size": "24px",
+          "font-weight": "bold",
+          "border-radius": "12px",
+          "padding": "6px 14px 6px 14px"
+        }
+      },
+      {
+        "id": "day2_route",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day2/route"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#8A8A8A",
+          "font-size": "24px",
+          "text-align": "right center",
+          "flex-shrink": 1,
+          "line-clamp": 1,
+          "text-overflow": "ellipsis"
+        }
+      },
+      {
+        "id": "day2_theme",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day2/theme"
+        },
+        "variant": "h3",
+        "styles": {
+          "color": "#0E142B",
+          "font-size": "36px",
+          "font-weight": "bold",
+          "margin": "14px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "day2_divider",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "16px 0px 8px 0px",
+          "border-color": "#EEEEEE"
+        }
+      },
+      {
+        "id": "day2_list",
+        "component": "List",
+        "children": {
+          "path": "/trip/day2/items",
+          "componentId": "schedule_tpl"
+        },
+        "direction": "vertical"
+      },
+      {
+        "id": "day3_card",
+        "component": "Card",
+        "child": "day3_body",
+        "styles": {
+          "background-color": "#FFFFFF",
+          "border-radius": "24px",
+          "padding": "24px 22px 24px 22px",
+          "margin": "0px 0px 16px 0px",
+          "filter": "drop-shadow(0px 4px 16px rgba(0, 0, 0, 0.08))"
+        }
+      },
+      {
+        "id": "day3_body",
+        "component": "Column",
+        "children": [
+          "day3_head_row",
+          "day3_theme",
+          "day3_divider",
+          "day3_list"
+        ]
+      },
+      {
+        "id": "day3_head_row",
+        "component": "Row",
+        "children": [
+          "day3_badge",
+          "day3_route"
+        ],
+        "align": "center",
+        "justify": "spaceBetween"
+      },
+      {
+        "id": "day3_badge",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day3/badge"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#FFFFFF",
+          "background-color": "#E1552E",
+          "font-size": "24px",
+          "font-weight": "bold",
+          "border-radius": "12px",
+          "padding": "6px 14px 6px 14px"
+        }
+      },
+      {
+        "id": "day3_route",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day3/route"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#8A8A8A",
+          "font-size": "24px",
+          "text-align": "right center",
+          "flex-shrink": 1,
+          "line-clamp": 1,
+          "text-overflow": "ellipsis"
+        }
+      },
+      {
+        "id": "day3_theme",
+        "component": "Text",
+        "text": {
+          "path": "/trip/day3/theme"
+        },
+        "variant": "h3",
+        "styles": {
+          "color": "#0E142B",
+          "font-size": "36px",
+          "font-weight": "bold",
+          "margin": "14px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "day3_divider",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "16px 0px 8px 0px",
+          "border-color": "#EEEEEE"
+        }
+      },
+      {
+        "id": "day3_list",
+        "component": "List",
+        "children": {
+          "path": "/trip/day3/items",
+          "componentId": "schedule_tpl"
+        },
+        "direction": "vertical"
+      },
+      {
+        "id": "schedule_tpl",
+        "component": "Row",
+        "children": [
+          "tpl_time",
+          "tpl_content"
+        ],
+        "align": "start",
+        "styles": {
+          "margin": "0px 0px 14px 0px"
+        }
+      },
+      {
+        "id": "tpl_time",
+        "component": "Text",
+        "text": {
+          "path": "time"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#E1552E",
+          "font-size": "24px",
+          "font-weight": "bold",
+          "width": "120px",
+          "flex-shrink": 0
+        }
+      },
+      {
+        "id": "tpl_content",
+        "component": "Column",
+        "children": [
+          "tpl_place",
+          "tpl_desc"
+        ],
+        "styles": {
+          "flex-grow": 1,
+          "flex-shrink": 1
+        }
+      },
+      {
+        "id": "tpl_place",
+        "component": "Text",
+        "text": {
+          "path": "place"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#0E142B",
+          "font-size": "32px",
+          "font-weight": "bold",
+          "margin": "0px 0px 4px 0px"
+        }
+      },
+      {
+        "id": "tpl_desc",
+        "component": "Text",
+        "text": {
+          "path": "desc"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#6B6B6B",
+          "font-size": "28px",
+          "line-height": 1.4
+        }
+      },
+      {
+        "id": "tips_card",
+        "component": "Card",
+        "child": "tips_body",
+        "styles": {
+          "background-color": "#FBF3E8",
+          "border-radius": "24px",
+          "padding": "22px 22px 22px 22px",
+          "margin": "0px 0px 8px 0px"
+        }
+      },
+      {
+        "id": "tips_body",
+        "component": "Column",
+        "children": [
+          "tips_title",
+          "tips_list"
+        ]
+      },
+      {
+        "id": "tips_title",
+        "component": "Text",
+        "text": {
+          "path": "/trip/tips/title"
+        },
+        "variant": "h4",
+        "styles": {
+          "color": "#8A5A1E",
+          "font-size": "32px",
+          "font-weight": "bold",
+          "margin": "0px 0px 12px 0px"
+        }
+      },
+      {
+        "id": "tips_list",
+        "component": "List",
+        "children": {
+          "path": "/trip/tips/items",
+          "componentId": "tip_tpl"
+        },
+        "direction": "vertical"
+      },
+      {
+        "id": "tip_tpl",
+        "component": "Text",
+        "text": {
+          "path": "text"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#6B5330",
+          "font-size": "28px",
+          "line-height": 1.5,
+          "margin": "0px 0px 8px 0px"
+        }
+      }
+    ]
+  }
+}

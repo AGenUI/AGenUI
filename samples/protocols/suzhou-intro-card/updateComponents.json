@@ -1,0 +1,571 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "assistant-mrvievot-texk",
+    "components": [
+      {
+        "id": "root_c0_0_c0_1",
+        "component": "Text",
+        "text": "江南水城",
+        "styles": {
+          "color": "#d7e6e0",
+          "font-size": "26px",
+          "font-weight": "600",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c0_0_c1_2",
+        "component": "Text",
+        "text": "苏州",
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "76px",
+          "font-weight": "800",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c0_0_c2_3",
+        "component": "Text",
+        "text": "园林之城 · 小桥流水 · 粉墙黛瓦",
+        "styles": {
+          "color": "#e8efe9",
+          "font-size": "26px",
+          "font-weight": "500",
+          "line-height": "1.4",
+          "line-clamp": 0
+        }
+      },
+      {
+        "id": "root_c0_0",
+        "component": "Column",
+        "children": [
+          "root_c0_0_c0_1",
+          "root_c0_0_c1_2",
+          "root_c0_0_c2_3"
+        ],
+        "justify": "end",
+        "styles": {
+          "border-radius": "16px",
+          "padding": "16px",
+          "height": "186px",
+          "background-image": "url(http://store.is.autonavi.com/showpic/04acf9feca084d000308b22a70360dd0)",
+          "background-color": "linear-gradient(to bottom, rgba(0,0,0,0) 45%, rgba(0,0,0,0.85))"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c0_6_c0_7",
+        "component": "Text",
+        "text": {
+          "path": "/stats/gardenCount"
+        },
+        "styles": {
+          "color": "#8fd3c4",
+          "font-size": "44px",
+          "font-weight": "800",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c0_6_c1_8",
+        "component": "Text",
+        "text": "现存古典园林",
+        "styles": {
+          "color": "#cfe0da",
+          "font-size": "22px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c0_6_body_9",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c0_5_c0_6_c0_7",
+          "root_c1_4_c0_5_c0_6_c1_8"
+        ],
+        "styles": {
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c0_6",
+        "component": "Card",
+        "child": "root_c1_4_c0_5_c0_6_body_9",
+        "styles": {
+          "background-color": "#2f4f4b",
+          "border-radius": "12px",
+          "padding": "12px",
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c1_10_c0_11",
+        "component": "Text",
+        "text": {
+          "path": "/stats/heritage"
+        },
+        "styles": {
+          "color": "#3c4a48",
+          "font-size": "30px",
+          "font-weight": "800",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c1_10_c1_12",
+        "component": "Text",
+        "text": "苏州古典园林",
+        "styles": {
+          "color": "#6b7370",
+          "font-size": "22px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c1_10_body_13",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c0_5_c1_10_c0_11",
+          "root_c1_4_c0_5_c1_10_c1_12"
+        ],
+        "styles": {
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c1_10",
+        "component": "Card",
+        "child": "root_c1_4_c0_5_c1_10_body_13",
+        "styles": {
+          "background-color": "#eae4d5",
+          "border-radius": "12px",
+          "padding": "12px",
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c2_14_c0_15",
+        "component": "Text",
+        "text": {
+          "path": "/stats/duration"
+        },
+        "styles": {
+          "color": "#3c4a48",
+          "font-size": "30px",
+          "font-weight": "800",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c2_14_c1_16",
+        "component": "Text",
+        "text": "建议游览",
+        "styles": {
+          "color": "#6b7370",
+          "font-size": "22px",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c2_14_body_17",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c0_5_c2_14_c0_15",
+          "root_c1_4_c0_5_c2_14_c1_16"
+        ],
+        "styles": {
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5_c2_14",
+        "component": "Card",
+        "child": "root_c1_4_c0_5_c2_14_body_17",
+        "styles": {
+          "background-color": "#eae4d5",
+          "border-radius": "12px",
+          "padding": "12px",
+          "gap": "3px",
+          "flex-grow": 1,
+          "flex-basis": "0"
+        }
+      },
+      {
+        "id": "root_c1_4_c0_5",
+        "component": "Row",
+        "children": [
+          "root_c1_4_c0_5_c0_6",
+          "root_c1_4_c0_5_c1_10",
+          "root_c1_4_c0_5_c2_14"
+        ],
+        "styles": {
+          "gap": "10px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c0_19",
+        "component": "Text",
+        "text": "三条主线读懂苏州",
+        "styles": {
+          "color": "#3c4a48",
+          "font-size": "28px",
+          "font-weight": "700",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c1_20_c0_21_c0_22",
+        "component": "Text",
+        "text": "园",
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "36px",
+          "font-weight": "800",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c1_20_c0_21",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c1_18_c1_20_c0_21_c0_22"
+        ],
+        "align": "center",
+        "justify": "center",
+        "styles": {
+          "background-color": "#2f4f4b",
+          "border-radius": "10px",
+          "width": "38px",
+          "height": "38px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c1_20_c1_23_c0_24",
+        "component": "Text",
+        "text": "园林文化",
+        "styles": {
+          "color": "#3c4a48",
+          "font-size": "28px",
+          "font-weight": "700",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c1_20_c1_23_c1_25",
+        "component": "Text",
+        "text": "拙政园、留园、网师园——建筑与山水花木融于一体，造园艺术之巅。",
+        "styles": {
+          "color": "#6b7370",
+          "font-size": "24px",
+          "line-height": "1.5",
+          "line-clamp": 0
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c1_20_c1_23",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c1_18_c1_20_c1_23_c0_24",
+          "root_c1_4_c1_18_c1_20_c1_23_c1_25"
+        ],
+        "styles": {
+          "gap": "2px",
+          "flex-grow": 1
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c1_20_body_26",
+        "component": "Row",
+        "children": [
+          "root_c1_4_c1_18_c1_20_c0_21",
+          "root_c1_4_c1_18_c1_20_c1_23"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "12px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c1_20",
+        "component": "Card",
+        "child": "root_c1_4_c1_18_c1_20_body_26",
+        "styles": {
+          "background-color": "#ffffff",
+          "border": "1px solid #e2dccc",
+          "border-radius": "12px",
+          "padding": "12px",
+          "gap": "12px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c2_27_c0_28_c0_29",
+        "component": "Text",
+        "text": "水",
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "36px",
+          "font-weight": "800",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c2_27_c0_28",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c1_18_c2_27_c0_28_c0_29"
+        ],
+        "align": "center",
+        "justify": "center",
+        "styles": {
+          "background-color": "#4a6b8a",
+          "border-radius": "10px",
+          "width": "38px",
+          "height": "38px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c2_27_c1_30_c0_31",
+        "component": "Text",
+        "text": "水城古街",
+        "styles": {
+          "color": "#3c4a48",
+          "font-size": "28px",
+          "font-weight": "700",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c2_27_c1_30_c1_32",
+        "component": "Text",
+        "text": "平江路、山塘街沿河而建，河道纵横，尽是江南水巷风韵。",
+        "styles": {
+          "color": "#6b7370",
+          "font-size": "24px",
+          "line-height": "1.5",
+          "line-clamp": 0
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c2_27_c1_30",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c1_18_c2_27_c1_30_c0_31",
+          "root_c1_4_c1_18_c2_27_c1_30_c1_32"
+        ],
+        "styles": {
+          "gap": "2px",
+          "flex-grow": 1
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c2_27_body_33",
+        "component": "Row",
+        "children": [
+          "root_c1_4_c1_18_c2_27_c0_28",
+          "root_c1_4_c1_18_c2_27_c1_30"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "12px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c2_27",
+        "component": "Card",
+        "child": "root_c1_4_c1_18_c2_27_body_33",
+        "styles": {
+          "background-color": "#ffffff",
+          "border": "1px solid #e2dccc",
+          "border-radius": "12px",
+          "padding": "12px",
+          "gap": "12px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c3_34_c0_35_c0_36",
+        "component": "Text",
+        "text": "吴",
+        "styles": {
+          "color": "#ffffff",
+          "font-size": "36px",
+          "font-weight": "800",
+          "line-height": "1.3"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c3_34_c0_35",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c1_18_c3_34_c0_35_c0_36"
+        ],
+        "align": "center",
+        "justify": "center",
+        "styles": {
+          "background-color": "#8a6a3c",
+          "border-radius": "10px",
+          "width": "38px",
+          "height": "38px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c3_34_c1_37_c0_38",
+        "component": "Text",
+        "text": "吴文化底蕴",
+        "styles": {
+          "color": "#3c4a48",
+          "font-size": "28px",
+          "font-weight": "700",
+          "line-height": "1.4"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c3_34_c1_37_c1_39",
+        "component": "Text",
+        "text": "昆曲、苏绣、评弹皆源于此，古城处处是文人墨客的足迹。",
+        "styles": {
+          "color": "#6b7370",
+          "font-size": "24px",
+          "line-height": "1.5",
+          "line-clamp": 0
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c3_34_c1_37",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c1_18_c3_34_c1_37_c0_38",
+          "root_c1_4_c1_18_c3_34_c1_37_c1_39"
+        ],
+        "styles": {
+          "gap": "2px",
+          "flex-grow": 1
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c3_34_body_40",
+        "component": "Row",
+        "children": [
+          "root_c1_4_c1_18_c3_34_c0_35",
+          "root_c1_4_c1_18_c3_34_c1_37"
+        ],
+        "align": "center",
+        "styles": {
+          "gap": "12px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18_c3_34",
+        "component": "Card",
+        "child": "root_c1_4_c1_18_c3_34_body_40",
+        "styles": {
+          "background-color": "#ffffff",
+          "border": "1px solid #e2dccc",
+          "border-radius": "12px",
+          "padding": "12px",
+          "gap": "12px"
+        }
+      },
+      {
+        "id": "root_c1_4_c1_18",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c1_18_c0_19",
+          "root_c1_4_c1_18_c1_20",
+          "root_c1_4_c1_18_c2_27",
+          "root_c1_4_c1_18_c3_34"
+        ],
+        "styles": {
+          "gap": "8px"
+        }
+      },
+      {
+        "id": "root_c1_4_c2_41_c0_42",
+        "component": "Icon",
+        "name": "info",
+        "styles": {
+          "color": "#2f4f4b",
+          "width": "18px",
+          "height": "18px"
+        }
+      },
+      {
+        "id": "root_c1_4_c2_41_c1_43",
+        "component": "Text",
+        "text": {
+          "path": "/tips/season"
+        },
+        "styles": {
+          "color": "#3c4a48",
+          "flex-grow": 1,
+          "font-size": "24px",
+          "line-height": "1.5",
+          "line-clamp": 0
+        }
+      },
+      {
+        "id": "root_c1_4_c2_41",
+        "component": "Row",
+        "children": [
+          "root_c1_4_c2_41_c0_42",
+          "root_c1_4_c2_41_c1_43"
+        ],
+        "align": "center",
+        "styles": {
+          "background-color": "#eef2ec",
+          "border": "1px solid #dbe3d8",
+          "border-radius": "12px",
+          "padding": "12px",
+          "gap": "10px"
+        }
+      },
+      {
+        "id": "root_c1_4",
+        "component": "Column",
+        "children": [
+          "root_c1_4_c0_5",
+          "root_c1_4_c1_18",
+          "root_c1_4_c2_41"
+        ],
+        "styles": {
+          "padding": "16px",
+          "gap": "16px"
+        }
+      },
+      {
+        "id": "root_body_44",
+        "component": "Column",
+        "children": [
+          "root_c0_0",
+          "root_c1_4"
+        ],
+        "styles": {
+          "gap": "0px"
+        }
+      },
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "root_body_44",
+        "styles": {
+          "background-color": "#f4f1e9",
+          "border": "1px solid #d9d2c2",
+          "border-radius": "16px",
+          "padding": "0px",
+          "gap": "0px",
+          "filter": "drop-shadow(0 6px 18px rgba(60,74,72,0.12))"
+        }
+      }
+    ]
+  }
+}
