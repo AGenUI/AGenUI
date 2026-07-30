@@ -19,10 +19,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
@@ -63,6 +63,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -124,6 +125,14 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
     // Rendering Framework
     private SurfaceManager surfaceManager;
     private String currentSurfaceId = null;
+    // Listeners are bound to a SurfaceManager instance and destroy() clears them,
+    // so this single instance is re-attached to every replacement manager.
+    private ISurfaceManagerListener surfaceListener;
+
+    // Mount target reserved per surfaceId by screens that host several surfaces at
+    // once. Surfaces cannot be mounted at send time: NativeEventBridge posts creation
+    // to the main looper, which cannot drain while the sender still holds the thread.
+    private final Map<String, FrameLayout> pendingSurfaceHosts = new HashMap<>();
 
     // Surface-size pull cache.
     //
@@ -703,59 +712,8 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
         addLog("SurfaceManager created: " + surfaceManager);
 
         // 4. Register Surface listener
-        surfaceManager.addListener(new ISurfaceManagerListener() {
-            @Override
-            public void onCreateSurface(Surface surface) {
-                runOnUiThread(() -> {
-                    String surfaceId = surface.getSurfaceId();
-                    currentSurfaceId = surfaceId;
-                    addLog("✓ Surface created: " + surfaceId);
-
-                    // Clear previous content
-                    renderContent.removeAllViews();
-
-                    // Add Surface's internal container to our ViewTree
-                    renderContent.addView(surface.getContainer());
-                    addLog("✓ Surface container added to ViewTree");
-                });
-            }
-
-            @Override
-            public void onDeleteSurface(Surface surface) {
-                runOnUiThread(() -> {
-                    addLog("Surface deleted: " + surface.getSurfaceId());
-                });
-            }
-
-            @Override
-            public void onReceiveActionEvent(String event) {
-            }
-
-            @Override
-            public void onRootComponentUpdate(Surface surface, Map<String, String> props) {
-            }
-
-            @Override
-            public void onError(Surface surface, int code, String message) {
-            }
-
-            @Override
-            public void onBlankCheckResult(Surface surface, boolean isBlank) {
-            }
-
-            @Override
-            public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {
-            }
-
-            // ⚠ Worker thread — see ISurfaceManagerListener#surfaceSize javadoc.
-            // Just read the volatile cache that the UI thread keeps up-to-date; no
-            // View / Activity / Resources access here.
-            @Override
-            public SurfaceSize surfaceSize(@NonNull String surfaceId) {
-                return cachedRenderContentSize;
-            }
-        });
-
+        attachSurfaceListener();
+        
         // 5. Register Components and Functions
         AGenUI.getInstance().registerFunction(new ToastFunction(this));
 
@@ -770,6 +728,88 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
         addLog("Custom fonts registered: Nunito, PlayfairDisplay, FiraCode");
 
         addLog("A2UI Framework initialized successfully");
+    }
+
+    /**
+     * Attaches {@link #surfaceListener} to the current {@link #surfaceManager}.
+     *
+     * <p>Must run again after every {@link #resetSurfaceManager()}: listeners live on
+     * the SurfaceManager instance, so a replacement manager starts with none and the
+     * host silently loses both {@code onCreateSurface} (nothing ever reaches the view
+     * tree) and the {@code surfaceSize} pull (engine falls back to a zero width).
+     */
+    private void attachSurfaceListener() {
+        if (surfaceListener == null) {
+            surfaceListener = new ISurfaceManagerListener() {
+                @Override
+                public void onCreateSurface(Surface surface) {
+                    runOnUiThread(() -> {
+                        String surfaceId = surface.getSurfaceId();
+                        currentSurfaceId = surfaceId;
+                        addLog("✓ Surface created: " + surfaceId);
+
+                        FrameLayout host = pendingSurfaceHosts.remove(surfaceId);
+                        if (host != null) {
+                            // Multi-surface screen: mount into the slot the caller reserved.
+                            host.addView(surface.getContainer());
+                        } else {
+                            // Single-surface screen: the surface owns renderContent.
+                            renderContent.removeAllViews();
+                            renderContent.addView(surface.getContainer());
+                        }
+                        addLog("✓ Surface container added to ViewTree");
+                    });
+                }
+
+                @Override
+                public void onDeleteSurface(Surface surface) {
+                    runOnUiThread(() -> {
+                        addLog("Surface deleted: " + surface.getSurfaceId());
+                    });
+                }
+
+                @Override
+                public void onReceiveActionEvent(String event) {
+                }
+
+                @Override
+                public void onRootComponentUpdate(Surface surface, Map<String, String> props) {
+                }
+
+                @Override
+                public void onError(Surface surface, int code, String message) {
+                }
+
+                @Override
+                public void onBlankCheckResult(Surface surface, boolean isBlank) {
+                }
+
+                @Override
+                public void onComponentAppeared(Surface surface, String parentComponentId, String parentType, Map<String, Object> properties) {
+                }
+
+                // ⚠ Worker thread — see ISurfaceManagerListener#surfaceSize javadoc.
+                // Just read the volatile cache that the UI thread keeps up-to-date; no
+                // View / Activity / Resources access here.
+                @Override
+                public SurfaceSize surfaceSize(@NonNull String surfaceId) {
+                    return cachedRenderContentSize;
+                }
+            };
+        }
+        surfaceManager.addListener(surfaceListener);
+    }
+
+    /**
+     * Tears down the current {@link #surfaceManager} and installs a fresh one, so a
+     * new screen starts without the previous screen's surfaces.
+     */
+    private void resetSurfaceManager() {
+        surfaceManager.destroy();
+        surfaceManager = new SurfaceManager(this);
+        attachSurfaceListener();
+        pendingSurfaceHosts.clear();
+        currentSurfaceId = null;
     }
 
     /**
@@ -1385,9 +1425,7 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
             // Clear current content and reset surface
             renderContent.removeAllViews();
             if (currentSurfaceId != null) {
-                surfaceManager.destroy();
-                surfaceManager = new SurfaceManager(this);
-                currentSurfaceId = null;
+                resetSurfaceManager();
             }
 
             // Generate unique surfaceId and replace in JSON
@@ -1447,9 +1485,7 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
 
             // Destroy old surface if exists
             if (currentSurfaceId != null) {
-                surfaceManager.destroy();
-                surfaceManager = new SurfaceManager(this);
-                currentSurfaceId = null;
+                resetSurfaceManager();
             }
 
             // Create a scrollable container
@@ -1525,7 +1561,12 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
     }
 
     /**
-     * Render a single component in the specified container
+     * Render a single component into the specified container.
+     *
+     * <p>The container is reserved in {@link #pendingSurfaceHosts} before the protocol
+     * chunks go out, because the Surface is not reachable via
+     * {@link SurfaceManager#getSurface(String)} while this method runs — creation is
+     * posted to the main looper, which cannot drain until the caller returns.
      */
     private void renderComponentInContainer(SubStory story, FrameLayout container, int index) {
         try {
@@ -1550,6 +1591,9 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
 
             createSurfaceJson.put("createSurface", createSurfaceData);
 
+            // Reserve the mount target before the engine can call back
+            pendingSurfaceHosts.put(surfaceId, container);
+
             // Send messages
             surfaceManager.receiveTextChunk(createSurfaceJson.toString());
             surfaceManager.receiveTextChunk(updatedComponentsJson);
@@ -1558,14 +1602,7 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
                 surfaceManager.receiveTextChunk(updatedDataModelJson);
             }
 
-            // Add Surface's container to the target container
-            Surface surface = surfaceManager.getSurface(surfaceId);
-            if (surface != null) {
-                container.addView(surface.getContainer());
-                addLog("Rendered: " + story.getDisplayName());
-            } else {
-                addLog("Failed to get surface for: " + story.getDisplayName());
-            }
+            addLog("Dispatched: " + story.getDisplayName());
 
         } catch (Exception e) {
             addLog("Failed to render " + story.getDisplayName() + ": " + e.getMessage());
@@ -1605,9 +1642,7 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
 
             // Destroy old surface if exists
             if (currentSurfaceId != null) {
-                surfaceManager.destroy();
-                surfaceManager = new SurfaceManager(this);
-                currentSurfaceId = null;
+                resetSurfaceManager();
             }
 
             // Create a scrollable container
