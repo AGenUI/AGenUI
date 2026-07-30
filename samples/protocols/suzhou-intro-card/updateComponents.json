@@ -50,8 +50,7 @@
           "border-radius": "16px",
           "padding": "16px",
           "height": "186px",
-          "background-image": "url(http://store.is.autonavi.com/showpic/04acf9feca084d000308b22a70360dd0)",
-          "background-color": "linear-gradient(to bottom, rgba(0,0,0,0) 45%, rgba(0,0,0,0.85))"
+          "background-color": "#1E420E"
         }
       },
       {
@@ -228,6 +227,8 @@
         "id": "root_c1_4_c1_18_c1_20_c0_21_c0_22",
         "component": "Text",
         "text": "园",
+        "align": "center",
+        "justify": "center",
         "styles": {
           "color": "#ffffff",
           "font-size": "36px",
@@ -246,8 +247,8 @@
         "styles": {
           "background-color": "#2f4f4b",
           "border-radius": "10px",
-          "width": "38px",
-          "height": "38px"
+          "width": "48px",
+          "height": "48px"
         }
       },
       {
@@ -312,6 +313,8 @@
         "id": "root_c1_4_c1_18_c2_27_c0_28_c0_29",
         "component": "Text",
         "text": "水",
+        "align": "center",
+        "justify": "center",
         "styles": {
           "color": "#ffffff",
           "font-size": "36px",
@@ -330,8 +333,8 @@
         "styles": {
           "background-color": "#4a6b8a",
           "border-radius": "10px",
-          "width": "38px",
-          "height": "38px"
+          "width": "48px",
+          "height": "48px"
         }
       },
       {
@@ -396,6 +399,8 @@
         "id": "root_c1_4_c1_18_c3_34_c0_35_c0_36",
         "component": "Text",
         "text": "吴",
+        "align": "center",
+        "justify": "center",
         "styles": {
           "color": "#ffffff",
           "font-size": "36px",
@@ -414,8 +419,8 @@
         "styles": {
           "background-color": "#8a6a3c",
           "border-radius": "10px",
-          "width": "38px",
-          "height": "38px"
+          "width": "48px",
+          "height": "48px"
         }
       },
       {
