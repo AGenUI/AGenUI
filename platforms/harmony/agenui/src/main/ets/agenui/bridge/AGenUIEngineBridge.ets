@@ -282,7 +282,7 @@ export class AGenUIEngineBridge {
       return false;
     }
 
-    const nativeOk = nativeRegisterFont(familyName, path);
+    let nativeOk:boolean = nativeRegisterFont(familyName, path);
     if (!nativeOk) {
       hilog.error(0x0000, 'AGenUIBridge',
         'registerFont: native registration failed for "%{public}s"', familyName);
@@ -331,7 +331,7 @@ export class AGenUIEngineBridge {
     }
 
     // Register into OH_Drawing global FontCollection via buffer NAPI.
-    const nativeOk = nativeRegisterFontFromBuffer(familyName, data.buffer);
+    let nativeOk:boolean = nativeRegisterFontFromBuffer(familyName, data.buffer);
     if (!nativeOk) {
       hilog.error(0x0000, 'AGenUIBridge',
         'registerFontFromRawFile: native buffer registration failed for "%{public}s"', familyName);
