@@ -1,0 +1,727 @@
+{
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "assistant-ms6xrwmb-wz8j",
+        "components": [
+          {
+            "id": "sec-header_c0_1_c0_2",
+            "component": "Icon",
+            "name": "send",
+            "styles": {
+              "width": "18px",
+              "height": "18px",
+              "color": "#7fd4ff"
+            }
+          },
+          {
+            "id": "sec-header_c0_1_c1_3",
+            "component": "Text",
+            "text": "电子登机牌",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "28px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-header_c0_1",
+            "component": "Row",
+            "children": [
+              "sec-header_c0_1_c0_2",
+              "sec-header_c0_1_c1_3"
+            ],
+            "align": "center",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-header_c1_4_c0_5",
+            "component": "Text",
+            "text": "已出票",
+            "styles": {
+              "color": "#7fd4ff",
+              "font-size": "22px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-header_c1_4",
+            "component": "Row",
+            "children": [
+              "sec-header_c1_4_c0_5"
+            ],
+            "align": "center",
+            "styles": {
+              "background-color": "rgba(127,212,255,0.16)",
+              "border": "1px solid rgba(127,212,255,0.5)",
+              "border-radius": "999px",
+              "padding": "4px 10px"
+            }
+          },
+          {
+            "id": "sec-header",
+            "component": "Row",
+            "children": [
+              "sec-header_c0_1",
+              "sec-header_c1_4"
+            ],
+            "align": "center",
+            "justify": "space-between",
+            "styles": {
+              "padding": "18px 20px 14px 20px"
+            }
+          },
+          {
+            "id": "sec-route_c0_7_c0_8",
+            "component": "Text",
+            "text": "PEK",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "68px",
+              "font-weight": "700",
+              "line-height": "1.3"
+            }
+          },
+          {
+            "id": "sec-route_c0_7_c1_9",
+            "component": "Text",
+            "text": "北京首都",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "24px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-route_c0_7_c2_10",
+            "component": "Text",
+            "text": "08:25",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "30px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-route_c0_7",
+            "component": "Column",
+            "children": [
+              "sec-route_c0_7_c0_8",
+              "sec-route_c0_7_c1_9",
+              "sec-route_c0_7_c2_10"
+            ],
+            "styles": {
+              "gap": "4px"
+            }
+          },
+          {
+            "id": "sec-route_c1_11_c0_12",
+            "component": "Text",
+            "text": "CA1836",
+            "styles": {
+              "color": "#7fd4ff",
+              "font-size": "22px",
+              "font-weight": "600",
+              "text-align": "center",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-route_c1_11_c1_13_c0_14",
+            "component": "Icon",
+            "name": "send",
+            "styles": {
+              "width": "14px",
+              "height": "14px",
+              "color": "#7fd4ff"
+            }
+          },
+          {
+            "id": "sec-route_c1_11_c1_13",
+            "component": "Row",
+            "children": [
+              "sec-route_c1_11_c1_13_c0_14"
+            ],
+            "align": "center",
+            "styles": {
+              "gap": "4px"
+            }
+          },
+          {
+            "id": "sec-route_c1_11_c2_15",
+            "component": "Text",
+            "text": "2h 25m · 直飞",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "22px",
+              "text-align": "center",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-route_c1_11",
+            "component": "Column",
+            "children": [
+              "sec-route_c1_11_c0_12",
+              "sec-route_c1_11_c1_13",
+              "sec-route_c1_11_c2_15"
+            ],
+            "align": "center",
+            "styles": {
+              "gap": "4px",
+              "flex-grow": 1
+            }
+          },
+          {
+            "id": "sec-route_c2_16_c0_17",
+            "component": "Text",
+            "text": "SHA",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "68px",
+              "font-weight": "700",
+              "text-align": "right",
+              "line-height": "1.3"
+            }
+          },
+          {
+            "id": "sec-route_c2_16_c1_18",
+            "component": "Text",
+            "text": "上海虹桥",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "24px",
+              "text-align": "right",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-route_c2_16_c2_19",
+            "component": "Text",
+            "text": "10:50",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "30px",
+              "font-weight": "600",
+              "text-align": "right",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-route_c2_16",
+            "component": "Column",
+            "children": [
+              "sec-route_c2_16_c0_17",
+              "sec-route_c2_16_c1_18",
+              "sec-route_c2_16_c2_19"
+            ],
+            "align": "end",
+            "styles": {
+              "gap": "4px"
+            }
+          },
+          {
+            "id": "sec-route",
+            "component": "Row",
+            "children": [
+              "sec-route_c0_7",
+              "sec-route_c1_11",
+              "sec-route_c2_16"
+            ],
+            "align": "center",
+            "justify": "space-between",
+            "styles": {
+              "padding": "6px 20px 18px 20px"
+            }
+          },
+          {
+            "id": "sec-meta_c0_21_c0_22",
+            "component": "Text",
+            "text": "日期",
+            "styles": {
+              "color": "#8ea8c9",
+              "font-size": "20px",
+              "font-weight": "500",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c0_21_c1_23",
+            "component": "Text",
+            "text": "08月14日",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "28px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c0_21_c2_24",
+            "component": "Text",
+            "text": "周四",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "22px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c0_21",
+            "component": "Column",
+            "children": [
+              "sec-meta_c0_21_c0_22",
+              "sec-meta_c0_21_c1_23",
+              "sec-meta_c0_21_c2_24"
+            ],
+            "styles": {
+              "gap": "3px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-meta_c1_25_c0_26",
+            "component": "Text",
+            "text": "舱位",
+            "styles": {
+              "color": "#8ea8c9",
+              "font-size": "20px",
+              "font-weight": "500",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c1_25_c1_27",
+            "component": "Text",
+            "text": "经济舱",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "28px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c1_25_c2_28",
+            "component": "Text",
+            "text": "Y / 全价",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "22px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c1_25",
+            "component": "Column",
+            "children": [
+              "sec-meta_c1_25_c0_26",
+              "sec-meta_c1_25_c1_27",
+              "sec-meta_c1_25_c2_28"
+            ],
+            "styles": {
+              "gap": "3px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-meta_c2_29_c0_30",
+            "component": "Text",
+            "text": "座位",
+            "styles": {
+              "color": "#8ea8c9",
+              "font-size": "20px",
+              "font-weight": "500",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c2_29_c1_31",
+            "component": "Text",
+            "text": "14A",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "28px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c2_29_c2_32",
+            "component": "Text",
+            "text": "靠窗",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "22px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c2_29",
+            "component": "Column",
+            "children": [
+              "sec-meta_c2_29_c0_30",
+              "sec-meta_c2_29_c1_31",
+              "sec-meta_c2_29_c2_32"
+            ],
+            "styles": {
+              "gap": "3px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-meta_c3_33_c0_34",
+            "component": "Text",
+            "text": "登机口",
+            "styles": {
+              "color": "#8ea8c9",
+              "font-size": "20px",
+              "font-weight": "500",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c3_33_c1_35",
+            "component": "Text",
+            "text": "C23",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "28px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c3_33_c2_36",
+            "component": "Text",
+            "text": "07:55 登机",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "22px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c3_33",
+            "component": "Column",
+            "children": [
+              "sec-meta_c3_33_c0_34",
+              "sec-meta_c3_33_c1_35",
+              "sec-meta_c3_33_c2_36"
+            ],
+            "styles": {
+              "gap": "3px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-meta",
+            "component": "Row",
+            "children": [
+              "sec-meta_c0_21",
+              "sec-meta_c1_25",
+              "sec-meta_c2_29",
+              "sec-meta_c3_33"
+            ],
+            "styles": {
+              "padding": "16px 20px 16px 20px",
+              "gap": "10px"
+            }
+          },
+          {
+            "id": "sec-passenger_c0_38_c0_39",
+            "component": "Icon",
+            "name": "user",
+            "styles": {
+              "width": "14px",
+              "height": "14px",
+              "color": "#7fd4ff"
+            }
+          },
+          {
+            "id": "sec-passenger_c0_38_c1_40",
+            "component": "Text",
+            "text": "乘机人",
+            "styles": {
+              "color": "#8ea8c9",
+              "font-size": "22px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-passenger_c0_38",
+            "component": "Row",
+            "children": [
+              "sec-passenger_c0_38_c0_39",
+              "sec-passenger_c0_38_c1_40"
+            ],
+            "align": "center",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-passenger_c1_41_c0_42_c0_43",
+            "component": "Text",
+            "text": "张 明",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "30px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-passenger_c1_41_c0_42_c1_44",
+            "component": "Text",
+            "text": "身份证 3301**********1234",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "22px",
+              "line-height": "1.4",
+              "line-clamp": 0
+            }
+          },
+          {
+            "id": "sec-passenger_c1_41_c0_42",
+            "component": "Column",
+            "children": [
+              "sec-passenger_c1_41_c0_42_c0_43",
+              "sec-passenger_c1_41_c0_42_c1_44"
+            ],
+            "styles": {
+              "gap": "3px"
+            }
+          },
+          {
+            "id": "sec-passenger_c1_41_c1_45_c0_46",
+            "component": "Text",
+            "text": "成人",
+            "styles": {
+              "color": "#7fd4ff",
+              "font-size": "22px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-passenger_c1_41_c1_45",
+            "component": "Column",
+            "children": [
+              "sec-passenger_c1_41_c1_45_c0_46"
+            ],
+            "styles": {
+              "background-color": "rgba(127,212,255,0.16)",
+              "border-radius": "6px",
+              "padding": "4px 8px"
+            }
+          },
+          {
+            "id": "sec-passenger_c1_41",
+            "component": "Row",
+            "children": [
+              "sec-passenger_c1_41_c0_42",
+              "sec-passenger_c1_41_c1_45"
+            ],
+            "align": "center",
+            "justify": "space-between",
+            "styles": {
+              "background-color": "rgba(255,255,255,0.06)",
+              "border": "1px solid rgba(127,212,255,0.2)",
+              "border-radius": "12px",
+              "padding": "12px 14px"
+            }
+          },
+          {
+            "id": "sec-passenger",
+            "component": "Column",
+            "children": [
+              "sec-passenger_c0_38",
+              "sec-passenger_c1_41"
+            ],
+            "styles": {
+              "padding": "0 20px 14px 20px",
+              "gap": "10px"
+            }
+          },
+          {
+            "id": "sec-price_c0_48_c0_49",
+            "component": "Text",
+            "text": "票面价",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "24px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-price_c0_48_c1_50",
+            "component": "Text",
+            "text": "¥ 1,180",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "26px",
+              "font-weight": "500",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-price_c0_48",
+            "component": "Row",
+            "children": [
+              "sec-price_c0_48_c0_49",
+              "sec-price_c0_48_c1_50"
+            ],
+            "align": "center",
+            "justify": "space-between"
+          },
+          {
+            "id": "sec-price_c1_51_c0_52",
+            "component": "Text",
+            "text": "机建 + 燃油",
+            "styles": {
+              "color": "#b9d4f2",
+              "font-size": "24px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-price_c1_51_c1_53",
+            "component": "Text",
+            "text": "¥ 120",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "26px",
+              "font-weight": "500",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-price_c1_51",
+            "component": "Row",
+            "children": [
+              "sec-price_c1_51_c0_52",
+              "sec-price_c1_51_c1_53"
+            ],
+            "align": "center",
+            "justify": "space-between"
+          },
+          {
+            "id": "sec-price_c2_54_c0_55",
+            "component": "Text",
+            "text": "实付总额",
+            "styles": {
+              "color": "#ffffff",
+              "font-size": "26px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-price_c2_54_c1_56",
+            "component": "Text",
+            "text": "¥ 1,300",
+            "styles": {
+              "color": "#7fd4ff",
+              "font-size": "44px",
+              "font-weight": "700",
+              "line-height": "1.3"
+            }
+          },
+          {
+            "id": "sec-price_c2_54",
+            "component": "Row",
+            "children": [
+              "sec-price_c2_54_c0_55",
+              "sec-price_c2_54_c1_56"
+            ],
+            "align": "center",
+            "justify": "space-between"
+          },
+          {
+            "id": "sec-price_c3_57_c0_58",
+            "component": "Icon",
+            "name": "check",
+            "styles": {
+              "width": "12px",
+              "height": "12px",
+              "color": "#7fd4ff"
+            }
+          },
+          {
+            "id": "sec-price_c3_57_c1_59",
+            "component": "Text",
+            "text": "订单号 E8K2X9 · 已支付",
+            "styles": {
+              "color": "#8ea8c9",
+              "font-size": "22px",
+              "line-height": "1.4",
+              "line-clamp": 0
+            }
+          },
+          {
+            "id": "sec-price_c3_57",
+            "component": "Row",
+            "children": [
+              "sec-price_c3_57_c0_58",
+              "sec-price_c3_57_c1_59"
+            ],
+            "align": "center",
+            "styles": {
+              "margin": "2px 0 0 0",
+              "gap": "6px"
+            }
+          },
+          {
+            "id": "sec-price",
+            "component": "Column",
+            "children": [
+              "sec-price_c0_48",
+              "sec-price_c1_51",
+              "sec-price_c2_54",
+              "sec-price_c3_57"
+            ],
+            "styles": {
+              "background-color": "rgba(0,0,0,0.22)",
+              "padding": "14px 20px 16px 20px",
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "root_body",
+            "component": "Column",
+            "children": [
+              "sec-header",
+              "sec-route",
+              "sec-meta",
+              "sec-passenger",
+              "sec-price"
+            ],
+            "styles": {
+              "gap": "0"
+            }
+          },
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "root_body",
+            "styles": {
+              "background-color": "#363196",
+              "border-radius": "20px",
+              "padding": "0",
+              "gap": "0",
+              "background-image": "url(\"linear-gradient(160deg,#EB1e3f 0%,#813a6e 55%,#7D5aa8 100%)\")"
+            }
+          }
+        ]
+      }
+    }

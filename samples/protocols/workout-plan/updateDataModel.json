@@ -1,0 +1,62 @@
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "fitness_app_part2",
+    "path": "/fitness_app_part2",
+    "value": {
+      "today_goals": {
+        "title": "🎯 Today's Goals",
+        "items": [
+          {
+            "icon": "🏃",
+            "name": "Running Training",
+            "desc": "Completed 3.5km / 5km",
+            "progress": "70%"
+          },
+          {
+            "icon": "💪",
+            "name": "Strength Training",
+            "desc": "Completed 25 min / 40 min",
+            "progress": "62%"
+          },
+          {
+            "icon": "🧘",
+            "name": "Meditation",
+            "desc": "Completed 15 min / 20 min",
+            "progress": "75%"
+          }
+        ],
+        "add_button_text": "+ Add New Goal"
+      },
+      "quick_actions": {
+        "title": "⚡ Quick Actions",
+        "items": [
+          {
+            "icon": "🏋️",
+            "label": "Start Workout"
+          },
+          {
+            "icon": "🥗",
+            "label": "Diet Log"
+          },
+          {
+            "icon": "📊",
+            "label": "Data Report"
+          },
+          {
+            "icon": "👥",
+            "label": "Community"
+          }
+        ]
+      },
+      "water_reminder": {
+        "title": "💧 Water Reminder",
+        "count": "0 / 2000 ml",
+        "actions": {
+          "add_250_text": "+ 250ml",
+          "add_500_text": "+ 500ml"
+        }
+      }
+    }
+  }
+}

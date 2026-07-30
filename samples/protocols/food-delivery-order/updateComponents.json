@@ -1,0 +1,439 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "takeout_order_card",
+    "components": [
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "card_container",
+        "styles": {
+          "padding": "32px 32px 32px 32px",
+          "background-color": "#FFFFFF",
+          "border-radius": "32px",
+          "filter": "drop-shadow(0px 8px 24px rgba(0, 0, 0, 0.04))"
+        }
+      },
+      {
+        "id": "card_container",
+        "component": "Column",
+        "children": [
+          "header_row",
+          "eta_section",
+          "divider_1",
+          "goods_list",
+          "divider_2",
+          "summary_section",
+          "action_row"
+        ]
+      },
+      {
+        "id": "header_row",
+        "component": "Row",
+        "children": [
+          "order_status",
+          "rider_info"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin": "0px 0px 24px 0px"
+        }
+      },
+      {
+        "id": "order_status",
+        "component": "Text",
+        "text": {
+          "path": "/order/status"
+        },
+        "variant": "h2",
+        "styles": {
+          "color": "#10B981",
+          "font-weight": "bold",
+          "font-size": "36px"
+        }
+      },
+      {
+        "id": "rider_info",
+        "component": "Row",
+        "children": [
+          "rider_avatar",
+          "rider_name"
+        ],
+        "justify": "end",
+        "align": "center"
+      },
+      {
+        "id": "rider_avatar",
+        "component": "Image",
+        "url": {
+          "path": "/order/rider/avatar"
+        },
+        "fit": "cover",
+        "styles": {
+          "width": "64px",
+          "height": "64px",
+          "border-radius": "32px",
+          "margin": "0px 12px 0px 0px"
+        }
+      },
+      {
+        "id": "rider_name",
+        "component": "Text",
+        "text": {
+          "path": "/order/rider/name"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#4B5563",
+          "font-size": "28px"
+        }
+      },
+      {
+        "id": "eta_section",
+        "component": "Column",
+        "children": [
+          "eta_label",
+          "eta_time"
+        ],
+        "styles": {
+          "margin": "0px 0px 24px 0px"
+        }
+      },
+      {
+        "id": "eta_label",
+        "component": "Text",
+        "text": {
+          "path": "/order/etaLabel"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#9CA3AF",
+          "font-size": "24px",
+          "margin": "0px 0px 8px 0px"
+        }
+      },
+      {
+        "id": "eta_time",
+        "component": "Text",
+        "text": {
+          "path": "/order/etaTime"
+        },
+        "variant": "h1",
+        "styles": {
+          "color": "#1F2937",
+          "font-weight": "bold",
+          "font-size": "40px"
+        }
+      },
+      {
+        "id": "divider_1",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "0px 0px 24px 0px"
+        }
+      },
+      {
+        "id": "goods_list",
+        "component": "List",
+        "children": {
+          "path": "/order/goods",
+          "componentId": "goods_item_template"
+        },
+        "direction": "vertical",
+        "styles": {
+          "margin": "0px 0px 24px 0px"
+        }
+      },
+      {
+        "id": "goods_item_template",
+        "component": "Row",
+        "children": [
+          "goods_img",
+          "goods_details_col",
+          "goods_price"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin": "0px 0px 16px 0px"
+        }
+      },
+      {
+        "id": "goods_img",
+        "component": "Image",
+        "url": {
+          "path": "imageUrl"
+        },
+        "fit": "cover",
+        "styles": {
+          "width": "80px",
+          "height": "80px",
+          "border-radius": "12px",
+          "margin": "0px 16px 0px 0px"
+        }
+      },
+      {
+        "id": "goods_details_col",
+        "component": "Column",
+        "children": [
+          "goods_name",
+          "goods_count"
+        ],
+        "styles": {
+          "flex-grow": 1
+        }
+      },
+      {
+        "id": "goods_name",
+        "component": "Text",
+        "text": {
+          "path": "name"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#1F2937",
+          "font-size": "32px",
+          "font-weight": "bold",
+          "margin": "0px 0px 4px 0px"
+        }
+      },
+      {
+        "id": "goods_count",
+        "component": "Text",
+        "text": {
+          "path": "countText"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#9CA3AF",
+          "font-size": "24px"
+        }
+      },
+      {
+        "id": "goods_price",
+        "component": "Text",
+        "text": {
+          "path": "price"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#1F2937",
+          "font-size": "32px",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "divider_2",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "0px 0px 24px 0px"
+        }
+      },
+      {
+        "id": "summary_section",
+        "component": "Column",
+        "children": [
+          "delivery_fee_row",
+          "packing_fee_row",
+          "total_row"
+        ],
+        "styles": {
+          "margin": "0px 0px 32px 0px"
+        }
+      },
+      {
+        "id": "delivery_fee_row",
+        "component": "Row",
+        "children": [
+          "delivery_fee_label",
+          "delivery_fee_val"
+        ],
+        "justify": "spaceBetween",
+        "styles": {
+          "margin": "0px 0px 12px 0px"
+        }
+      },
+      {
+        "id": "delivery_fee_label",
+        "component": "Text",
+        "text": {
+          "path": "/order/summary/deliveryFeeLabel"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#6B7280",
+          "font-size": "28px"
+        }
+      },
+      {
+        "id": "delivery_fee_val",
+        "component": "Text",
+        "text": {
+          "path": "/order/summary/deliveryFee"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#1F2937",
+          "font-size": "28px"
+        }
+      },
+      {
+        "id": "packing_fee_row",
+        "component": "Row",
+        "children": [
+          "packing_fee_label",
+          "packing_fee_val"
+        ],
+        "justify": "spaceBetween",
+        "styles": {
+          "margin": "0px 0px 16px 0px"
+        }
+      },
+      {
+        "id": "packing_fee_label",
+        "component": "Text",
+        "text": {
+          "path": "/order/summary/packingFeeLabel"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#6B7280",
+          "font-size": "28px"
+        }
+      },
+      {
+        "id": "packing_fee_val",
+        "component": "Text",
+        "text": {
+          "path": "/order/summary/packingFee"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#1F2937",
+          "font-size": "28px"
+        }
+      },
+      {
+        "id": "total_row",
+        "component": "Row",
+        "children": [
+          "total_label",
+          "total_val"
+        ],
+        "justify": "spaceBetween"
+      },
+      {
+        "id": "total_label",
+        "component": "Text",
+        "text": {
+          "path": "/order/summary/totalLabel"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#1F2937",
+          "font-size": "32px",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "total_val",
+        "component": "Text",
+        "text": {
+          "path": "/order/summary/total"
+        },
+        "variant": "h2",
+        "styles": {
+          "color": "#EF4444",
+          "font-size": "36px",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "action_row",
+        "component": "Row",
+        "children": [
+          "btn_contact_rider",
+          "btn_order_again"
+        ],
+        "justify": "spaceBetween",
+        "styles": {
+          "margin": "0px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "btn_contact_rider",
+        "component": "Button",
+        "child": "btn_contact_text",
+        "variant": "borderless",
+        "action": {
+          "functionCall": {
+            "call": "callRider",
+            "args": {
+              "riderId": "10086"
+            }
+          }
+        },
+        "styles": {
+          "flex-grow": 1,
+          "flex-shrink": 1,
+          "margin": "0px 16px 0px 0px",
+          "padding": "16px 24px 16px 24px",
+          "background-color": "#F3F4F6",
+          "border-radius": "16px"
+        }
+      },
+      {
+        "id": "btn_contact_text",
+        "component": "Text",
+        "text": {
+          "path": "/order/actions/contactText"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#374151",
+          "font-weight": "bold",
+          "font-size": "28px",
+          "text-align": "center center"
+        }
+      },
+      {
+        "id": "btn_order_again",
+        "component": "Button",
+        "child": "btn_again_text",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "orderAgain",
+            "args": {
+              "orderId": "9981"
+            }
+          }
+        },
+        "styles": {
+          "flex-grow": 1,
+          "flex-shrink": 1,
+          "padding": "16px 24px 16px 24px",
+          "background-color": "#10B981",
+          "border-radius": "16px"
+        }
+      },
+      {
+        "id": "btn_again_text",
+        "component": "Text",
+        "text": {
+          "path": "/order/actions/againText"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#FFFFFF",
+          "font-weight": "bold",
+          "font-size": "28px",
+          "text-align": "center center"
+        }
+      }
+    ]
+  }
+}
