@@ -107,13 +107,16 @@
 
 ---
 
-# [v1.2.1] - 2026-07-23
+# [v1.3.0] - 2026-07-30
 
 ## 新特性
 
 - **完整字重支持**：三端支持完整 CSS `font-weight` 范围。iOS 和鸿蒙渲染真实字重；Android API 28+ 使用真实字重，低版本自动降级。
 - **自定义字体注册**：支持通过原始文件路径注册自定义字体，使用 `OH_Drawing_RegisterFont` 实现，并抽取通用字体解析器类以便复用。
 - **`text-decoration` 三端对齐**：统一 iOS、Android、HarmonyOS 三端 `text-decoration` 解析与渲染，符合 A2UI 标准。
+- **AGenUI Studio**：新增本地 BYOK（自带密钥）工作台，支持自然语言实时流式生成 A2UI协议。 查看 [playground/studio/README.md](playground/studio/README.md)
+- **npm 启动器**：新增 `agenui-studio` npm 包，一条 `npx agenui-studio` 命令即可自动下载安装并启动 Studio，支持版本跟踪与增量更新。
+- **预设协议预览图**：新增预设协议和效果图，支持在 Studio 预设列表中可视化浏览。
 - `getMeasurer` 及 default 接口方法改为普通接口方法。
 - 组件 catalog 增加 `gap` 属性描述。
 - 移除 ImageLoader 加载失败时降级到系统加载图片的逻辑。
