@@ -10,6 +10,7 @@
     
     <!-- Toolbar actions -->
     <string name="action_scan">Scan QR</string>
+    <string name="action_close_scan">Close scanner</string>
     <string name="action_toggle_theme">Toggle Theme</string>
     <string name="action_edit">Edit</string>
     <string name="action_edit_json">Edit JSON</string>

@@ -15,7 +15,7 @@ class PerformanceDisplayView: UIView {
     private let containerStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 8
+        stack.spacing = 4
         stack.alignment = .center
         stack.distribution = .equalSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -75,14 +75,15 @@ private class MetricView: UIView {
     
     private let iconLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14)
+        label.font = .systemFont(ofSize: 11, weight: .semibold)
+        label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
     private let valueLabel: UILabel = {
         let label = UILabel()
-        label.font = .monospacedSystemFont(ofSize: 11, weight: .medium)
+        label.font = .monospacedSystemFont(ofSize: 13, weight: .medium)
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -90,7 +91,7 @@ private class MetricView: UIView {
     
     private let containerView: UIView = {
         let view = UIView()
-        view.layer.cornerRadius = 8
+        view.layer.cornerRadius = 10
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -119,21 +120,21 @@ private class MetricView: UIView {
         
         translatesAutoresizingMaskIntoConstraints = false
         
+        // Two-line capsule: ICON on top, VALUE below, fixed height ~40.
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: topAnchor),
             containerView.leadingAnchor.constraint(equalTo: leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            containerView.heightAnchor.constraint(equalToConstant: 40),
+            containerView.widthAnchor.constraint(greaterThanOrEqualToConstant: 48),
             
-            iconLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 4),
             iconLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            iconLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor, constant: -8),
             
-            valueLabel.topAnchor.constraint(equalTo: iconLabel.bottomAnchor, constant: 2),
             valueLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 6),
             valueLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -6),
-            valueLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -4),
-            
-            containerView.widthAnchor.constraint(greaterThanOrEqualToConstant: 50)
+            valueLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor, constant: 9)
         ])
     }
     

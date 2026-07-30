@@ -1,0 +1,39 @@
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "assistant-mru9vz0i-gm5h",
+    "path": "/",
+    "value": {
+      "current": {
+        "temp": "30°",
+        "cond": "多云",
+        "feelsLike": "体感 31°",
+        "humidity": "61%",
+        "windScale": "3级",
+        "windDir": "西南风",
+        "vis": "22km",
+        "precip": "0.0"
+      },
+      "today": {
+        "tempRange": "24° / 30°"
+      },
+      "forecast": [
+        {
+          "cond": "多云转雷阵雨",
+          "precip": "💧2.5",
+          "tempRange": "24° / 30°"
+        },
+        {
+          "cond": "雷阵雨",
+          "precip": "💧5.7",
+          "tempRange": "23° / 30°"
+        },
+        {
+          "cond": "雷阵雨转多云",
+          "precip": "💧0.0",
+          "tempRange": "22° / 30°"
+        }
+      ]
+    }
+  }
+}

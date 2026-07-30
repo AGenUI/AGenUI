@@ -2,7 +2,10 @@ import { resourceManager } from '@kit.LocalizationKit';
 import { JSON } from '@kit.ArkTS';
 import util from '@ohos.util';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
-import { UIContext } from '@kit.ArkUI';
+import { UIContext, promptAction } from '@kit.ArkUI';
+import { scanBarcode, scanCore } from '@kit.ScanKit';
+import { http } from '@kit.NetworkKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AGenUIContainer, SurfaceManager, ISurfaceManagerListener, Surface, AGenUI, MeasurementManager, A2UIComponent } from '@agenui/agenui';
@@ -676,6 +679,128 @@ struct Index {
     hilog.info(DOMAIN, TAG, 'updateComponents streamed in %{public}d chunks', chunkIndex);
   }
 
+  /**
+   * Launches the system QR scanner via Scan Kit and renders the scanned
+   * AGenUI Studio protocol.
+   *
+   * `startScanForResult` brings up the system scanning UI, which owns the
+   * camera session; the app therefore does not need to request camera
+   * permission itself. A user cancellation (error code 1000500002) is treated
+   * as a no-op rather than an error.
+   */
+  private startQrScan(): void {
+    const context = getContext(this) as common.UIAbilityContext;
+    const options: scanBarcode.ScanOptions = {
+      scanTypes: [scanCore.ScanType.QR_CODE],
+      enableMultiMode: false,
+      enableAlbum: true
+    };
+    scanBarcode.startScanForResult(context, options)
+      .then((result: scanBarcode.ScanResult) => {
+        hilog.info(DOMAIN, TAG, 'QR scan result: %{public}s', result.originalValue);
+        this.downloadAndRenderQrCode(result.originalValue);
+      })
+      .catch((err: BusinessError) => {
+        if (err.code === 1000500002) {
+          hilog.info(DOMAIN, TAG, 'QR scan canceled by user');
+          return;
+        }
+        hilog.error(DOMAIN, TAG, 'QR scan failed: %{public}s', JSON.stringify(err));
+        this.showErrorBanner(`QR scan failed: ${err.message}`);
+      });
+  }
+
+  /**
+   * Downloads the protocol referenced by a scanned QR URL and renders it.
+   *
+   * The AGenUI Studio `/raw` endpoint returns a single-line JSON array of
+   * exactly three A2UI events: `[createSurface, updateComponents,
+   * updateDataModel]`. The array is parsed and handed to `renderQrSequence`.
+   *
+   * @param url - Absolute URL encoded in the scanned QR code.
+   */
+  private async downloadAndRenderQrCode(url: string): Promise<void> {
+    const httpRequest = http.createHttp();
+    try {
+      hilog.info(DOMAIN, TAG, 'Downloading QR protocol: %{public}s', url);
+      const response = await httpRequest.request(url, {
+        method: http.RequestMethod.GET,
+        expectDataType: http.HttpDataType.STRING,
+        readTimeout: 10000,
+        connectTimeout: 10000
+      });
+      if (response.responseCode < 200 || response.responseCode >= 300) {
+        this.showErrorBanner(`QR download failed: HTTP ${response.responseCode}`);
+        return;
+      }
+      const body = response.result as string;
+      const sequence = JSON.parse(body) as Array<Record<string, ESObject>>;
+      if (sequence.length < 3) {
+        this.showErrorBanner('Invalid QR protocol: expected a 3-element render sequence');
+        return;
+      }
+      this.renderQrSequence(sequence[0], sequence[1], sequence[2]);
+      promptAction.showToast({ message: 'QR code content rendered successfully', duration: 2000 });
+    } catch (e) {
+      hilog.error(DOMAIN, TAG, 'QR download/parse failed: %{public}s', JSON.stringify(e));
+      this.showErrorBanner('Failed to download or parse QR code content');
+    } finally {
+      httpRequest.destroy();
+    }
+  }
+
+  /**
+   * Feeds a scanned three-event render sequence to the active SurfaceManager.
+   *
+   * Mirrors `selectSecondLevel`: any previously rendered surface is torn down
+   * first so the scanned protocol starts from a clean state. The editor model
+   * is updated so a subsequent `Edit` reflects the scanned payloads.
+   *
+   * @param createSurface    - The createSurface event.
+   * @param updateComponents - The updateComponents event.
+   * @param updateDataModel  - The updateDataModel event (may be an empty object).
+   */
+  private renderQrSequence(
+    createSurface: Record<string, ESObject>,
+    updateComponents: Record<string, ESObject>,
+    updateDataModel: Record<string, ESObject>
+  ): void {
+    if (this.surfaceManager === null) {
+      this.showErrorBanner('surfaceManager is null, cannot render QR code');
+      return;
+    }
+
+    this.surfaceManager.beginTextStream();
+
+    if (this.currentSurfaceId) {
+      const deleteSurfaceJsonStr =
+        `{"version":"${API_VERSION}","deleteSurface":{"surfaceId":"${this.currentSurfaceId}"}}`;
+      this.surfaceManager.receiveTextChunk(deleteSurfaceJsonStr);
+      hilog.info(DOMAIN, TAG, 'deleteSurface sent (dispose previous surface): %{public}s', this.currentSurfaceId);
+    }
+
+    this.surfaceManager.receiveTextChunk(JSON.stringify(createSurface));
+    hilog.info(DOMAIN, TAG, '1/3 createSurface sent (from QR)');
+
+    this.surfaceManager.receiveTextChunk(JSON.stringify(updateComponents));
+    hilog.info(DOMAIN, TAG, '2/3 updateComponents sent (from QR)');
+
+    const dataModelStr = JSON.stringify(updateDataModel);
+    if (dataModelStr !== '{}') {
+      this.surfaceManager.receiveTextChunk(dataModelStr);
+      hilog.info(DOMAIN, TAG, '3/3 updateDataModel sent (from QR)');
+    } else {
+      hilog.info(DOMAIN, TAG, '3/3 updateDataModel empty, skipped (from QR)');
+    }
+
+    this.surfaceManager.endTextStream();
+
+    // Keep the editor model in sync so Edit shows the scanned payloads.
+    this.componentsJson = JSON.stringify(updateComponents, null, 2);
+    this.dataModelJson = JSON.stringify(updateDataModel, null, 2);
+    this.currentTitle = 'QR Scan';
+  }
+
   /** Toggles the left navigation drawer open or closed. */
   private toggleDrawer() {
     this.isDrawerOpen = !this.isDrawerOpen;
@@ -805,6 +930,14 @@ struct Index {
             .fontColor(Color.White)
             .margin({ left: 16 })
             .layoutWeight(1)
+
+          Image($r('app.media.ic_scan'))
+            .width(24)
+            .height(24)
+            .margin({ right: 16 })
+            .onClick(() => {
+              this.startQrScan();
+            })
 
           Row() {
             Text(this.isDarkMode ? '🌙' : '☀️')

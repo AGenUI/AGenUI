@@ -1,0 +1,30 @@
+name: Studio Release
+
+on:
+  push:
+    tags:
+      - "AGenUI-*"
+
+permissions:
+  contents: write
+
+jobs:
+  pack-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Pack AGenUI Studio
+        run: |
+          chmod +x scripts/pack-studio.sh
+          ./scripts/pack-studio.sh dist
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/agenui-studio.zip
+          generate_release_notes: true

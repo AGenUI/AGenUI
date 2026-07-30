@@ -1,0 +1,270 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "flight_status_card",
+    "components": [
+      {
+        "id": "root",
+        "component": "Card",
+        "child": "card_body"
+      },
+      {
+        "id": "card_body",
+        "component": "Column",
+        "children": [
+          "flight_summary",
+          "flight_details",
+          "refresh_button",
+          "full_itinerary_button"
+        ],
+        "align": "stretch",
+        "styles": {
+          "padding": "28px 28px 28px 28px"
+        }
+      },
+      {
+        "id": "flight_summary",
+        "component": "Column",
+        "children": [
+          "header_row",
+          "route_text",
+          "time_text"
+        ],
+        "align": "stretch"
+      },
+      {
+        "id": "header_row",
+        "component": "Row",
+        "children": [
+          "flight_number",
+          "status_text"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin": "0px 0px 18px 0px"
+        }
+      },
+      {
+        "id": "flight_number",
+        "component": "Text",
+        "text": {
+          "path": "/flight/flightNumber"
+        },
+        "variant": "h3",
+        "styles": {
+          "font-size": "36px",
+          "font-weight": "bold",
+          "color": "#17212B"
+        }
+      },
+      {
+        "id": "status_text",
+        "component": "Text",
+        "text": {
+          "path": "/flight/status"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#F28C28"
+        }
+      },
+      {
+        "id": "route_text",
+        "component": "Text",
+        "text": {
+          "path": "/flight/route"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px",
+          "color": "#4C5967",
+          "line-height": 1.3,
+          "margin": "0px 0px 18px 0px"
+        }
+      },
+      {
+        "id": "time_text",
+        "component": "Text",
+        "text": {
+          "path": "/flight/timeRange"
+        },
+        "variant": "h1",
+        "styles": {
+          "font-size": "40px",
+          "font-weight": "bold",
+          "color": "#111827",
+          "line-height": 1.2,
+          "margin": "0px 0px 24px 0px"
+        }
+      },
+      {
+        "id": "flight_details",
+        "component": "Column",
+        "children": [
+          "summary_divider",
+          "counter_row",
+          "delay_reason_row"
+        ],
+        "align": "stretch",
+        "styles": {
+          "margin": "0px 0px 24px 0px"
+        }
+      },
+      {
+        "id": "summary_divider",
+        "component": "Divider",
+        "axis": "horizontal",
+        "styles": {
+          "margin": "0px 0px 22px 0px",
+          "border-color": "#D9E1E8"
+        }
+      },
+      {
+        "id": "counter_row",
+        "component": "Row",
+        "children": [
+          "counter_label",
+          "counter_value"
+        ],
+        "justify": "spaceBetween",
+        "align": "center"
+      },
+      {
+        "id": "counter_label",
+        "component": "Text",
+        "text": {
+          "path": "/flight/checkInCounterLabel"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "28px",
+          "color": "#667381"
+        }
+      },
+      {
+        "id": "counter_value",
+        "component": "Text",
+        "text": {
+          "path": "/flight/checkInCounter"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#17212B"
+        }
+      },
+      {
+        "id": "delay_reason_row",
+        "component": "Row",
+        "children": [
+          "delay_reason_label",
+          "delay_reason_value"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin": "16px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "delay_reason_label",
+        "component": "Text",
+        "text": {
+          "path": "/flight/delayReasonLabel"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "28px",
+          "color": "#667381"
+        }
+      },
+      {
+        "id": "delay_reason_value",
+        "component": "Text",
+        "text": {
+          "path": "/flight/delayReason"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "28px",
+          "font-weight": "bold",
+          "color": "#F28C28"
+        }
+      },
+      {
+        "id": "refresh_button",
+        "component": "Button",
+        "child": "refresh_button_label",
+        "variant": "primary",
+        "action": {
+          "event": {
+            "name": "refreshFlightStatus",
+            "context": {
+              "flightNumber": "CA4113"
+            }
+          }
+        },
+        "styles": {
+          "padding": "18px 28px 18px 28px",
+          "background-color": "#176B4D",
+          "border-radius": "18px"
+        }
+      },
+      {
+        "id": "refresh_button_label",
+        "component": "Text",
+        "text": {
+          "path": "/flight/refreshLabel"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#FFFFFF",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "full_itinerary_button",
+        "component": "Button",
+        "child": "full_itinerary_button_label",
+        "variant": "borderless",
+        "action": {
+          "event": {
+            "name": "viewFullItinerary",
+            "context": {
+              "flightNumber": "CA4113"
+            }
+          }
+        },
+        "styles": {
+          "padding": "18px 28px 18px 28px",
+          "background-color": "#FFF4E8",
+          "border-radius": "18px",
+          "border-color": "#F28C28",
+          "border-style": "solid",
+          "border-width": "1px",
+          "margin": "16px 0px 0px 0px"
+        }
+      },
+      {
+        "id": "full_itinerary_button_label",
+        "component": "Text",
+        "text": {
+          "path": "/flight/fullItineraryLabel"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px",
+          "font-weight": "bold",
+          "color": "#B85F0A",
+          "text-align": "center"
+        }
+      }
+    ]
+  }
+}

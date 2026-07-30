@@ -188,6 +188,16 @@ After installation, describe the UI you want through a query in your agent. The 
 
 Different LLMs may produce somewhat different results when generating A2UI output. We recommend trying a few models against your own scenarios and picking the one that fits best.
 
+## AGenUI Studio
+
+AGenUI Studio is a local, **bring-your-own-key** workbench that turns natural-language descriptions into renderable A2UI protocol — with a browser UI for streaming generation, live protocol preview, validation, and one-tap push to the AGenUI Playground on a real device via QR code. It builds on the open-source [A2UI generation Skill](skills/a2ui-generation) (reusing its design rules and validator) and supports multiple LLM providers (DeepSeek, Qwen, GLM, OpenAI, Gemini, and more) and runs entirely on your machine.
+
+```bash
+npx agenui-studio
+```
+
+👉 See [playground/studio/README.md](playground/studio/README.md) for installation, configuration, and architecture details.
+
 ---
 
 ## Quick Start

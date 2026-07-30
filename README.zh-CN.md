@@ -187,6 +187,16 @@ cp -r AGenUI/skills/a2ui-generation ~/.claude/skills/
 
 不同 LLM 生成的 A2UI 结果会有一定差异。建议在实际接入时试用多个模型，选择最贴合你业务场景的那一个。
 
+## AGenUI Studio
+
+AGenUI Studio 是一个本地化、**自带密钥（BYOK）** 的 A2UI 生成工作台：用自然语言描述需求，即可生成可渲染的 A2UI 协议，并提供浏览器界面实现流式生成、实时协议预览、协议校验，以及通过二维码一键推送到真机上的 AGenUI Playground 预览。它基于开源的 [A2UI 生成 Skill](skills/a2ui-generation)（复用其设计规则与校验器），支持 DeepSeek、通义千问、智谱 GLM、OpenAI、Gemini 等多家大模型，且完全在本地运行。
+
+```bash
+npx agenui-studio
+```
+
+👉 完整的安装、配置与架构说明请参阅 [playground/studio/README.md](playground/studio/README.md)。
+
 ---
 
 ## 快速上手

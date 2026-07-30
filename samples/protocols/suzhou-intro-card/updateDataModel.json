@@ -1,0 +1,17 @@
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "assistant-mrvievot-texk",
+    "path": "/",
+    "value": {
+      "stats": {
+        "gardenCount": "60+",
+        "heritage": "世界遗产",
+        "duration": "2-3天"
+      },
+      "tips": {
+        "season": "最佳游览季：春(3-5月)、秋(9-11月)，古城步行慢逛，避开盛夏闷热与人流。"
+      }
+    }
+  }
+}
