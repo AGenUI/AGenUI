@@ -1,0 +1,599 @@
+{
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "assistant-ms6y156h-p278",
+        "components": [
+          {
+            "id": "sec-hero_c0_1",
+            "component": "Text",
+            "text": "明代传奇 · 传世名剧",
+            "styles": {
+              "color": "#e8c88a",
+              "font-size": "22px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-hero_c1_2_c0_3",
+            "component": "Text",
+            "text": "牡丹亭",
+            "styles": {
+              "color": "#fbeecd",
+              "font-size": "68px",
+              "font-weight": "800",
+              "line-height": "1.3"
+            }
+          },
+          {
+            "id": "sec-hero_c1_2_c1_4",
+            "component": "Text",
+            "text": "还魂记",
+            "styles": {
+              "color": "#e8c88a",
+              "font-size": "26px",
+              "font-weight": "500",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-hero_c1_2",
+            "component": "Row",
+            "children": [
+              "sec-hero_c1_2_c0_3",
+              "sec-hero_c1_2_c1_4"
+            ],
+            "align": "end",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-hero_c2_5",
+            "component": "Text",
+            "text": "以浪漫主义精神书写生死之爱，明代戏曲高峰之作",
+            "styles": {
+              "color": "#e8c88a",
+              "font-size": "24px",
+              "line-height": "1.5",
+              "line-clamp": 2
+            }
+          },
+          {
+            "id": "sec-hero",
+            "component": "Column",
+            "children": [
+              "sec-hero_c0_1",
+              "sec-hero_c1_2",
+              "sec-hero_c2_5"
+            ],
+            "styles": {
+              "background-color": "linear-gradient(135deg,#7a1f2b 0%,#4a1219 100%)",
+              "padding": "22px 20px 20px 20px",
+              "gap": "6px"
+            }
+          },
+          {
+            "id": "sec-meta_c0_7_c0_8",
+            "component": "Text",
+            "text": "作者",
+            "styles": {
+              "color": "#8a6b3a",
+              "font-size": "20px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c0_7_c1_9",
+            "component": "Text",
+            "text": "汤显祖",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "28px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c0_7_c2_10",
+            "component": "Text",
+            "text": "1550–1616",
+            "styles": {
+              "color": "#8a6b3a",
+              "font-size": "20px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c0_7",
+            "component": "Column",
+            "children": [
+              "sec-meta_c0_7_c0_8",
+              "sec-meta_c0_7_c1_9",
+              "sec-meta_c0_7_c2_10"
+            ],
+            "styles": {
+              "gap": "2px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-meta_c1_11",
+            "component": "Divider",
+            "axis": "vertical",
+            "styles": {
+              "color": "#d9c7a7"
+            }
+          },
+          {
+            "id": "sec-meta_c2_12_c0_13",
+            "component": "Text",
+            "text": "成书",
+            "styles": {
+              "color": "#8a6b3a",
+              "font-size": "20px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c2_12_c1_14",
+            "component": "Text",
+            "text": "约1598",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "28px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c2_12_c2_15",
+            "component": "Text",
+            "text": "晚年之作",
+            "styles": {
+              "color": "#8a6b3a",
+              "font-size": "20px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c2_12",
+            "component": "Column",
+            "children": [
+              "sec-meta_c2_12_c0_13",
+              "sec-meta_c2_12_c1_14",
+              "sec-meta_c2_12_c2_15"
+            ],
+            "styles": {
+              "gap": "2px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-meta_c3_16",
+            "component": "Divider",
+            "axis": "vertical",
+            "styles": {
+              "color": "#d9c7a7"
+            }
+          },
+          {
+            "id": "sec-meta_c4_17_c0_18",
+            "component": "Text",
+            "text": "体量",
+            "styles": {
+              "color": "#8a6b3a",
+              "font-size": "20px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c4_17_c1_19",
+            "component": "Text",
+            "text": "55出",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "28px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c4_17_c2_20",
+            "component": "Text",
+            "text": "传奇剧本",
+            "styles": {
+              "color": "#8a6b3a",
+              "font-size": "20px",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-meta_c4_17",
+            "component": "Column",
+            "children": [
+              "sec-meta_c4_17_c0_18",
+              "sec-meta_c4_17_c1_19",
+              "sec-meta_c4_17_c2_20"
+            ],
+            "styles": {
+              "gap": "2px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-meta",
+            "component": "Row",
+            "children": [
+              "sec-meta_c0_7",
+              "sec-meta_c1_11",
+              "sec-meta_c2_12",
+              "sec-meta_c3_16",
+              "sec-meta_c4_17"
+            ],
+            "styles": {
+              "background-color": "#efe1cb",
+              "padding": "14px 16px",
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-plot_c0_22_c0_23",
+            "component": "Text",
+            "text": "故事梗概",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "28px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-plot_c0_22",
+            "component": "Row",
+            "children": [
+              "sec-plot_c0_22_c0_23"
+            ],
+            "align": "center",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-plot_c1_24",
+            "component": "Text",
+            "text": "南安太守之女杜丽娘，因梦中与书生柳梦梅相遇而相思成疾，郁郁而亡。魂魄不散，后与真实的柳梦梅相识相爱，最终在众人帮助下起死回生，终成眷属。",
+            "styles": {
+              "color": "#4a3520",
+              "font-size": "24px",
+              "line-height": "1.65",
+              "line-clamp": 0
+            }
+          },
+          {
+            "id": "sec-plot",
+            "component": "Column",
+            "children": [
+              "sec-plot_c0_22",
+              "sec-plot_c1_24"
+            ],
+            "styles": {
+              "padding": "16px 20px 4px 20px",
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-cast_c0_26_c0_27",
+            "component": "Text",
+            "text": "女主",
+            "styles": {
+              "color": "#a67428",
+              "font-size": "18px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-cast_c0_26_c1_28",
+            "component": "Text",
+            "text": "杜丽娘",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "24px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-cast_c0_26",
+            "component": "Column",
+            "children": [
+              "sec-cast_c0_26_c0_27",
+              "sec-cast_c0_26_c1_28"
+            ],
+            "styles": {
+              "background-color": "#fff5e3",
+              "border": "1px solid #e8d4a8",
+              "border-radius": "10px",
+              "padding": "8px 10px",
+              "gap": "2px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-cast_c1_29_c0_30",
+            "component": "Text",
+            "text": "男主",
+            "styles": {
+              "color": "#a67428",
+              "font-size": "18px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-cast_c1_29_c1_31",
+            "component": "Text",
+            "text": "柳梦梅",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "24px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-cast_c1_29",
+            "component": "Column",
+            "children": [
+              "sec-cast_c1_29_c0_30",
+              "sec-cast_c1_29_c1_31"
+            ],
+            "styles": {
+              "background-color": "#fff5e3",
+              "border": "1px solid #e8d4a8",
+              "border-radius": "10px",
+              "padding": "8px 10px",
+              "gap": "2px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-cast_c2_32_c0_33",
+            "component": "Text",
+            "text": "配角",
+            "styles": {
+              "color": "#a67428",
+              "font-size": "18px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-cast_c2_32_c1_34",
+            "component": "Text",
+            "text": "春香",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "24px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-cast_c2_32",
+            "component": "Column",
+            "children": [
+              "sec-cast_c2_32_c0_33",
+              "sec-cast_c2_32_c1_34"
+            ],
+            "styles": {
+              "background-color": "#fff5e3",
+              "border": "1px solid #e8d4a8",
+              "border-radius": "10px",
+              "padding": "8px 10px",
+              "gap": "2px",
+              "flex-grow": 1,
+              "flex-basis": "0"
+            }
+          },
+          {
+            "id": "sec-cast",
+            "component": "Row",
+            "children": [
+              "sec-cast_c0_26",
+              "sec-cast_c1_29",
+              "sec-cast_c2_32"
+            ],
+            "styles": {
+              "padding": "4px 20px",
+              "gap": "6px"
+            }
+          },
+          {
+            "id": "sec-theme_c0_36_c0_37",
+            "component": "Text",
+            "text": "文学特色与主题",
+            "styles": {
+              "color": "#3a1a10",
+              "font-size": "28px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-theme_c0_36",
+            "component": "Row",
+            "children": [
+              "sec-theme_c0_36_c0_37"
+            ],
+            "align": "center",
+            "styles": {
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-theme_c1_38_c0_39",
+            "component": "Text",
+            "text": "至情至性",
+            "styles": {
+              "background-color": "#f0dcc2",
+              "color": "#7a1f2b",
+              "border-radius": "12px",
+              "padding": "4px 10px",
+              "font-size": "22px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-theme_c1_38_c1_40",
+            "component": "Text",
+            "text": "个性解放",
+            "styles": {
+              "background-color": "#f0dcc2",
+              "color": "#7a1f2b",
+              "border-radius": "12px",
+              "padding": "4px 10px",
+              "font-size": "22px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-theme_c1_38_c2_41",
+            "component": "Text",
+            "text": "人文精神",
+            "styles": {
+              "background-color": "#f0dcc2",
+              "color": "#7a1f2b",
+              "border-radius": "12px",
+              "padding": "4px 10px",
+              "font-size": "22px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-theme_c1_38",
+            "component": "Row",
+            "children": [
+              "sec-theme_c1_38_c0_39",
+              "sec-theme_c1_38_c1_40",
+              "sec-theme_c1_38_c2_41"
+            ],
+            "styles": {
+              "gap": "6px"
+            }
+          },
+          {
+            "id": "sec-theme_c2_42",
+            "component": "Text",
+            "text": "突破传统礼教束缚，将爱情置于至高地位。诗词优美，结构精妙，是明代人文主义精神的高峰体现。",
+            "styles": {
+              "color": "#4a3520",
+              "font-size": "24px",
+              "line-height": "1.65",
+              "line-clamp": 0
+            }
+          },
+          {
+            "id": "sec-theme",
+            "component": "Column",
+            "children": [
+              "sec-theme_c0_36",
+              "sec-theme_c1_38",
+              "sec-theme_c2_42"
+            ],
+            "styles": {
+              "padding": "16px 20px 4px 20px",
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "sec-status_c0_44",
+            "component": "Text",
+            "text": "文学地位",
+            "styles": {
+              "color": "#e8c88a",
+              "font-size": "20px",
+              "font-weight": "600",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-status_c1_45",
+            "component": "Text",
+            "text": "与《西厢记》《长生殿》并称",
+            "styles": {
+              "color": "#fbeecd",
+              "font-size": "26px",
+              "font-weight": "700",
+              "line-height": "1.4"
+            }
+          },
+          {
+            "id": "sec-status_c2_46",
+            "component": "Text",
+            "text": "中国古代戏曲三大经典之一，深远影响后世戏曲创作，被广泛改编为舞蹈、电影、电视剧等艺术形式。",
+            "styles": {
+              "color": "#d9b877",
+              "font-size": "22px",
+              "line-height": "1.6",
+              "line-clamp": 0
+            }
+          },
+          {
+            "id": "sec-status",
+            "component": "Column",
+            "children": [
+              "sec-status_c0_44",
+              "sec-status_c1_45",
+              "sec-status_c2_46"
+            ],
+            "styles": {
+              "background-color": "#3a1a10",
+              "border-radius": "12px",
+              "padding": "14px 16px",
+              "margin": "16px 20px 20px 20px",
+              "gap": "8px"
+            }
+          },
+          {
+            "id": "root_body",
+            "component": "Column",
+            "children": [
+              "sec-hero",
+              "sec-meta",
+              "sec-plot",
+              "sec-cast",
+              "sec-theme",
+              "sec-status"
+            ],
+            "styles": {
+              "gap": "0"
+            }
+          },
+          {
+            "id": "root",
+            "component": "Card",
+            "child": "root_body",
+            "styles": {
+              "background-color": "#f4ebe0",
+              "border": "1px solid #d9c7a7",
+              "border-radius": "20px",
+              "padding": "0",
+              "gap": "0"
+            }
+          }
+        ]
+      }
+    }

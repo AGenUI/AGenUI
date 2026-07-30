@@ -1,0 +1,498 @@
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "parking_select_card",
+    "path": "/parking_select_card/list",
+    "value": [
+      {
+        "name": "Wutong Underground",
+        "schema": "amapuri://poi/detail?poiid=P001XYZ123&poiname=Wutong Underground&lat=30.12345&lon=120.56789&page_state=half",
+        "imgList": [],
+        "category": [
+          "Underground"
+        ],
+        "img_info": {
+          "img_src": "http://store.is.autonavi.com/query_pic?id=ste4c96eec-ad77-4c82-a046-6e3d6638512a&user=search&operate=original",
+          "video_src": "",
+          "ad_text_loc": 1,
+          "iconPosition": "left-top"
+        },
+        "liveness": "300+ navigated",
+        "location": {
+          "ccode": "330000",
+          "adCode": "330102",
+          "address": "Wutong Ave, Future Tech Park",
+          "distance": [
+            "250m"
+          ],
+          "latitude": 30.12345,
+          "pcdrInfo": {
+            "ccode": "330000",
+            "cname": "",
+            "dname": "Xihu District",
+            "pname": "",
+            "rname": "Wutong Ave",
+            "nationName": "China"
+          },
+          "land_mark": "Future Tech Park",
+          "longitude": 120.56789,
+          "addressNew": "Future Tech City",
+          "addressPure": "Wutong Ave, Future Tech Park",
+          "distanceNew": "250m",
+          "business_area": "Future Tech City",
+          "landMarkWithDistance": "250m·Future Tech City"
+        },
+        "mainName": "",
+        "openTime": "24/7",
+        "userTips": "Frequent",
+        "vip_tags": [],
+        "cardIndex": "1",
+        "is_delete": false,
+        "log_param": {},
+        "name_tags": [],
+        "open_tags": [],
+        "scoreType": "1",
+        "buttonInfo": {
+          "text": "View"
+        },
+        "name_style": {
+          "max_line_nums": 1
+        },
+        "openStatus": "Open",
+        "price_info": {
+          "price_desc": "[Plenty] 180/600",
+          "orignal_price_with_desc": ""
+        },
+        "arrive_info": "450 visited",
+        "bizIndustry": "parking",
+        "creatUIInfo": {
+          "uiStyleValue": "1"
+        },
+        "notice_info": [],
+        "__chooseCard": "ChooseParkingCard",
+        "address_line": 1,
+        "product_info": [
+          {
+            "icon_text": "P",
+            "icon_type": "blue",
+            "price_desc": "Day: Small 3 CNY/15min, Large 4 CNY/15min; Free 30min; Night: Small 2 CNY/15min, Large 3 CNY/15min; Free 15min"
+          }
+        ],
+        "__trackInfo__": {},
+        "bottomTagList": [],
+        "passedBizData": {
+          "voId": "P001XYZ123",
+          "voType": "POI",
+          "extInfo": {
+            "poi_id": "P001XYZ123",
+            "poi_name": "Wutong Underground",
+            "is_ainative_search_poi_card": "1",
+            "ainative_select_poi_card_query": "No. 1"
+          },
+          "mockQuery": "No. 1"
+        },
+        "open_time_tags": [],
+        "parkingInfoTags": {
+          "type": "info",
+          "firstTagText": "Plenty",
+          "secondTagText": "180 left",
+          "secondTagSubText": "600 total"
+        },
+        "parkingTagsList": [
+          "Underground"
+        ],
+        "routePlanSchema": "amapuri://route/plan/?did=P001XYZ123&dlat=30.12345&dlon=120.56789&dname=Wutong Underground&dev=0&t=0",
+        "intenseScoreText": "",
+        "name_tags_origin": [],
+        "parking_lot_info": {
+          "grade": 1,
+          "free_num": 180,
+          "total_num": 600,
+          "grade_name": "Plenty",
+          "charge_info": "Day: Small 3 CNY/15min, Large 4 CNY/15min; Free 30min; Night: Small 2 CNY/15min, Large 3 CNY/15min; Free 15min"
+        },
+        "hot_info_recommend": [
+          "Plenty｜180/600"
+        ],
+        "poi_interests_tags": [],
+        "merchant_service_tags": []
+      },
+      {
+        "name": "Sunny Garden Parking",
+        "schema": "amapuri://poi/detail?poiid=P002XYZ456&poiname=Sunny Garden Parking&lat=30.23456&lon=120.67890&page_state=half",
+        "imgList": [],
+        "category": [
+          "Attached"
+        ],
+        "img_info": {
+          "img_src": "",
+          "video_src": "",
+          "ad_text_loc": 1,
+          "iconPosition": "left-top"
+        },
+        "liveness": "200+ navigated",
+        "location": {
+          "ccode": "330000",
+          "adCode": "330103",
+          "address": "No. 8 Huayuan Road, Sunny Garden Restaurant",
+          "distance": [
+            "80m"
+          ],
+          "latitude": 30.23456,
+          "pcdrInfo": {
+            "ccode": "330000",
+            "cname": "",
+            "dname": "Gongshu District",
+            "pname": "",
+            "rname": "Huayuan Road",
+            "nationName": "China"
+          },
+          "land_mark": "Sunny Garden Restaurant",
+          "longitude": 120.67890,
+          "addressNew": "Huayuan Road",
+          "addressPure": "No. 8 Huayuan Road, Sunny Garden Restaurant",
+          "distanceNew": "80m",
+          "business_area": "Huayuan Road",
+          "landMarkWithDistance": "80m·Huayuan Road"
+        },
+        "mainName": "",
+        "openTime": "24/7",
+        "userTips": "Recently parked",
+        "vip_tags": [],
+        "cardIndex": "2",
+        "is_delete": false,
+        "log_param": {},
+        "name_tags": [],
+        "open_tags": [],
+        "scoreType": "1",
+        "buttonInfo": {
+          "text": "View"
+        },
+        "name_style": {
+          "max_line_nums": 1
+        },
+        "openStatus": "Open",
+        "price_info": {
+          "price_desc": "[Plenty] 45/50",
+          "orignal_price_with_desc": ""
+        },
+        "arrive_info": "Recently parked",
+        "bizIndustry": "parking",
+        "creatUIInfo": {
+          "uiStyleValue": "1"
+        },
+        "notice_info": [],
+        "__chooseCard": "ChooseParkingCard",
+        "address_line": 1,
+        "product_info": [
+          {
+            "icon_text": "P",
+            "icon_type": "blue",
+            "price_desc": "6 CNY/hour"
+          }
+        ],
+        "__trackInfo__": {},
+        "bottomTagList": [],
+        "passedBizData": {
+          "voId": "P002XYZ456",
+          "voType": "POI",
+          "extInfo": {
+            "poi_id": "P002XYZ456",
+            "poi_name": "Sunny Garden Parking",
+            "is_ainative_search_poi_card": "1",
+            "ainative_select_poi_card_query": "No. 2"
+          },
+          "mockQuery": "No. 2"
+        },
+        "open_time_tags": [],
+        "parkingInfoTags": {
+          "type": "info",
+          "firstTagText": "Plenty",
+          "secondTagText": "45 left",
+          "secondTagSubText": "50 total"
+        },
+        "parkingTagsList": [
+          "Attached"
+        ],
+        "routePlanSchema": "amapuri://route/plan/?did=P002XYZ456&dlat=30.23456&dlon=120.67890&dname=Sunny Garden Parking&dev=0&t=0",
+        "intenseScoreText": "",
+        "name_tags_origin": [],
+        "parking_lot_info": {
+          "grade": 1,
+          "free_num": 45,
+          "total_num": 50,
+          "grade_name": "Plenty",
+          "charge_info": "6 CNY/hour"
+        },
+        "hot_info_recommend": [
+          "Plenty｜45/50"
+        ],
+        "poi_interests_tags": [],
+        "merchant_service_tags": []
+      },
+      {
+        "name": "Starlight Underground",
+        "schema": "amapuri://poi/detail?poiid=P003XYZ789&poiname=Starlight Underground&lat=30.34567&lon=120.78901&page_state=half",
+        "imgList": [],
+        "category": [
+          "Underground"
+        ],
+        "img_info": {
+          "img_src": "",
+          "video_src": "",
+          "ad_text_loc": 1,
+          "iconPosition": "left-top"
+        },
+        "liveness": "500+ navigated",
+        "location": {
+          "ccode": "330000",
+          "adCode": "330104",
+          "address": "No. 20 Starlight Ave, Starlight Building",
+          "distance": [
+            "750m"
+          ],
+          "latitude": 30.34567,
+          "pcdrInfo": {
+            "ccode": "330000",
+            "cname": "",
+            "dname": "Jianggan District",
+            "pname": "",
+            "rname": "Starlight Ave",
+            "nationName": "China"
+          },
+          "land_mark": "Starlight Building",
+          "longitude": 120.78901,
+          "addressNew": "Starlight Ave",
+          "addressPure": "No. 20 Starlight Ave, Starlight Building",
+          "distanceNew": "750m",
+          "business_area": "Starlight Ave",
+          "landMarkWithDistance": "750m·Starlight Ave"
+        },
+        "mainName": "",
+        "openTime": "24/7",
+        "userTips": "Searched",
+        "vip_tags": [],
+        "cardIndex": "3",
+        "is_delete": false,
+        "log_param": {},
+        "name_tags": [],
+        "open_tags": [],
+        "scoreType": "1",
+        "buttonInfo": {
+          "text": "View"
+        },
+        "name_style": {
+          "max_line_nums": 1
+        },
+        "openStatus": "Open",
+        "price_info": {
+          "price_desc": "[Limited] 8/300",
+          "orignal_price_with_desc": ""
+        },
+        "arrive_info": "800 visited",
+        "bizIndustry": "parking",
+        "creatUIInfo": {
+          "uiStyleValue": "1"
+        },
+        "notice_info": [],
+        "__chooseCard": "ChooseParkingCard",
+        "address_line": 1,
+        "product_info": [
+          {
+            "icon_text": "P",
+            "icon_type": "blue",
+            "price_desc": "8 CNY/hour"
+          }
+        ],
+        "__trackInfo__": {},
+        "bottomTagList": [],
+        "passedBizData": {
+          "voId": "P003XYZ789",
+          "voType": "POI",
+          "extInfo": {
+            "poi_id": "P003XYZ789",
+            "poi_name": "Starlight Underground",
+            "is_ainative_search_poi_card": "1",
+            "ainative_select_poi_card_query": "No. 3"
+          },
+          "mockQuery": "No. 3"
+        },
+        "open_time_tags": [],
+        "parkingInfoTags": {
+          "type": "warning",
+          "firstTagText": "Limited",
+          "secondTagText": "8 left",
+          "secondTagSubText": "300 total"
+        },
+        "parkingTagsList": [
+          "Underground"
+        ],
+        "routePlanSchema": "amapuri://route/plan/?did=P003XYZ789&dlat=30.34567&dlon=120.78901&dname=Starlight Underground&dev=0&t=0",
+        "intenseScoreText": "",
+        "name_tags_origin": [],
+        "parking_lot_info": {
+          "grade": 3,
+          "free_num": 8,
+          "total_num": 300,
+          "grade_name": "Limited",
+          "charge_info": "8 CNY/hour"
+        },
+        "hot_info_recommend": [
+          "Limited｜8/300"
+        ],
+        "poi_interests_tags": [],
+        "merchant_service_tags": []
+      },
+      {
+        "name": "Oasis Plaza Parking",
+        "schema": "amapuri://poi/detail?poiid=P004XYZ012&poiname=Oasis Plaza Parking&lat=30.45678&lon=120.89012&page_state=half",
+        "imgList": [],
+        "category": [
+          "Outdoor"
+        ],
+        "img_info": {
+          "img_src": "",
+          "video_src": "",
+          "ad_text_loc": 1,
+          "iconPosition": "left-top"
+        },
+        "liveness": "400+ navigated",
+        "location": {
+          "ccode": "330000",
+          "adCode": "330105",
+          "address": "No. 66 Oasis Road, Oasis Plaza",
+          "distance": [
+            "1.5km"
+          ],
+          "latitude": 30.45678,
+          "pcdrInfo": {
+            "ccode": "330000",
+            "cname": "",
+            "dname": "Binjiang District",
+            "pname": "",
+            "rname": "Oasis Road",
+            "nationName": "China"
+          },
+          "land_mark": "Oasis Plaza",
+          "longitude": 120.89012,
+          "addressNew": "Oasis Road",
+          "addressPure": "No. 66 Oasis Road, Oasis Plaza",
+          "distanceNew": "1.5km",
+          "business_area": "Oasis Road",
+          "landMarkWithDistance": "1.5km·Oasis Road"
+        },
+        "mainName": "",
+        "openTime": "24/7",
+        "userTips": "Frequent",
+        "vip_tags": [],
+        "cardIndex": "4",
+        "is_delete": false,
+        "log_param": {},
+        "name_tags": [],
+        "open_tags": [],
+        "scoreType": "1",
+        "buttonInfo": {
+          "text": "View"
+        },
+        "name_style": {
+          "max_line_nums": 1
+        },
+        "openStatus": "Open",
+        "price_info": {
+          "price_desc": "[Moderate] 65/150",
+          "orignal_price_with_desc": ""
+        },
+        "arrive_info": "320 visited",
+        "bizIndustry": "parking",
+        "creatUIInfo": {
+          "uiStyleValue": "1"
+        },
+        "notice_info": [],
+        "__chooseCard": "ChooseParkingCard",
+        "address_line": 1,
+        "product_info": [
+          {
+            "icon_text": "P",
+            "icon_type": "blue",
+            "price_desc": "5 CNY/hour"
+          }
+        ],
+        "__trackInfo__": {},
+        "bottomTagList": [],
+        "passedBizData": {
+          "voId": "P004XYZ012",
+          "voType": "POI",
+          "extInfo": {
+            "poi_id": "P004XYZ012",
+            "poi_name": "Oasis Plaza Parking",
+            "is_ainative_search_poi_card": "1",
+            "ainative_select_poi_card_query": "No. 4"
+          },
+          "mockQuery": "No. 4"
+        },
+        "open_time_tags": [],
+        "parkingInfoTags": {
+          "type": "info",
+          "firstTagText": "Moderate",
+          "secondTagText": "65 left",
+          "secondTagSubText": "150 total"
+        },
+        "parkingTagsList": [
+          "Outdoor"
+        ],
+        "routePlanSchema": "amapuri://route/plan/?did=P004XYZ012&dlat=30.45678&dlon=120.89012&dname=Oasis Plaza Parking&dev=0&t=0",
+        "intenseScoreText": "",
+        "name_tags_origin": [],
+        "parking_lot_info": {
+          "grade": 2,
+          "free_num": 65,
+          "total_num": 150,
+          "grade_name": "Moderate",
+          "charge_info": "5 CNY/hour"
+        },
+        "hot_info_recommend": [
+          "Moderate｜65/150"
+        ],
+        "poi_interests_tags": [],
+        "merchant_service_tags": []
+      }
+    ],
+    "markerInfo": [
+      {
+        "card_id": "C3MapStyleCard",
+        "data": {
+          "priority": 1000,
+          "coordinate": {
+            "lon": 120.56789,
+            "lat": 30.12345
+          },
+          "mainKey": 12028,
+          "subKey": 25,
+          "styleParams": {
+            "name": "Wutong Ave Underground Parking",
+            "desc": "250m",
+            "desc1": "1"
+          }
+        },
+        "isStyleOverlay": true,
+        "id": "P001XYZ123",
+        "title": "Wutong Ave Underground Parking",
+        "latitude": 30.12345,
+        "longitude": 120.56789,
+        "passedBizData": {
+          "mockQuery": "No. 1",
+          "isHistoryClick": false,
+          "isOnlyLastClick": true,
+          "markerInfoId": "P001XYZ123",
+          "extInfo": {
+            "poi_id": "P001XYZ123",
+            "poi_name": "Wutong Ave Underground Parking",
+            "is_ainative_search_poi_card": "1",
+            "ainative_select_poi_card_query": "No. 1",
+            "from": "AiBeforeChoosePoint"
+          }
+        }
+      }
+    ]
+  }
+}

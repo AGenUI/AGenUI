@@ -1,0 +1,786 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "fitness_app_part2",
+    "components": [
+      {
+        "id": "root",
+        "component": "Column",
+        "children": [
+          "goals-card",
+          "quick-actions",
+          "water-tracker"
+        ],
+        "styles": {
+          "background-color": "#F5F5F5",
+          "padding": "200px 24px"
+        }
+      },
+      {
+        "id": "goals-card",
+        "component": "Card",
+        "child": "goals-content",
+        "styles": {
+          "background-color": "#FFFFFF",
+          "border-radius": "20px",
+          "filter": "drop-shadow(0px 6px 24px 0px rgba(0, 0, 0, 0.08))",
+          "margin-bottom": "24px",
+          "padding": "28px"
+        }
+      },
+      {
+        "id": "goals-content",
+        "component": "Column",
+        "children": [
+          "goals-title",
+          "goal-item-1",
+          "goal-item-2",
+          "goal-item-3",
+          "add-goal-btn"
+        ],
+        "styles": {}
+      },
+      {
+        "id": "goals-title",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/title"
+        },
+        "variant": "h3",
+        "styles": {
+          "font-weight": "bold",
+          "margin-bottom": "16px"
+        }
+      },
+      {
+        "id": "goal-item-1",
+        "component": "Row",
+        "children": [
+          "goal-icon-1",
+          "goal-info-1",
+          "goal-progress-1"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "goal-icon-1",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/0/icon"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px"
+        }
+      },
+      {
+        "id": "goal-info-1",
+        "component": "Column",
+        "children": [
+          "goal-name-1",
+          "goal-desc-1"
+        ],
+        "align": "start",
+        "styles": {
+          "flex": "1"
+        }
+      },
+      {
+        "id": "goal-name-1",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/0/name"
+        },
+        "variant": "body",
+        "styles": {
+          "font-weight": "bold",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "goal-desc-1",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/0/desc"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#8E8E93",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "goal-progress-1",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/0/progress"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#34C759",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "goal-item-2",
+        "component": "Row",
+        "children": [
+          "goal-icon-2",
+          "goal-info-2",
+          "goal-progress-2"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "goal-icon-2",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/1/icon"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px"
+        }
+      },
+      {
+        "id": "goal-info-2",
+        "component": "Column",
+        "children": [
+          "goal-name-2",
+          "goal-desc-2"
+        ],
+        "align": "start",
+        "styles": {
+          "flex": "1"
+        }
+      },
+      {
+        "id": "goal-name-2",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/1/name"
+        },
+        "variant": "body",
+        "styles": {
+          "font-weight": "bold",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "goal-desc-2",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/1/desc"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#8E8E93",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "goal-progress-2",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/1/progress"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#FF9500",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "goal-item-3",
+        "component": "Row",
+        "children": [
+          "goal-icon-3",
+          "goal-info-3",
+          "goal-progress-3"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "goal-icon-3",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/2/icon"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "32px"
+        }
+      },
+      {
+        "id": "goal-info-3",
+        "component": "Column",
+        "children": [
+          "goal-name-3",
+          "goal-desc-3"
+        ],
+        "align": "start",
+        "styles": {
+          "flex": "1",
+          "margin-bottom": "4px"
+        }
+      },
+      {
+        "id": "goal-name-3",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/2/name"
+        },
+        "variant": "body",
+        "styles": {
+          "font-weight": "bold",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "goal-desc-3",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/2/desc"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#8E8E93",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "goal-progress-3",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/items/2/progress"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#007AFF",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "add-goal-btn",
+        "component": "Button",
+        "child": "add-goal-text",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "toast",
+            "args": {
+              "value": "New goal will be added soon"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#F5F5F5",
+          "border-color": "#007AFF",
+          "border-radius": "16px",
+          "border-width": "1px",
+          "height": "60px",
+          "width": "100%"
+        }
+      },
+      {
+        "id": "add-goal-text",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/today_goals/add_button_text"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#007AFF",
+          "font-weight": "bold",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "quick-actions",
+        "component": "Card",
+        "child": "actions-content",
+        "styles": {
+          "background-color": "#FFFFFF",
+          "border-radius": "20px",
+          "filter": "drop-shadow(0px 6px 24px 0px rgba(0, 0, 0, 0.08))",
+          "margin-bottom": "24px",
+          "padding": "28px"
+        }
+      },
+      {
+        "id": "actions-content",
+        "component": "Column",
+        "children": [
+          "actions-title",
+          "actions-grid"
+        ],
+        "align": "stretch",
+        "styles": {
+          "margin-bottom": "20px"
+        }
+      },
+      {
+        "id": "actions-title",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/title"
+        },
+        "variant": "h3",
+        "styles": {
+          "font-weight": "bold",
+          "margin-bottom": "16px"
+        }
+      },
+      {
+        "id": "actions-grid",
+        "component": "Row",
+        "children": [
+          "action-btn-1",
+          "action-btn-2",
+          "action-btn-3",
+          "action-btn-4"
+        ],
+        "justify": "spaceBetween",
+        "align": "stretch",
+        "styles": {
+          "width": "100%",
+          "flex-wrap": "wrap"
+        }
+      },
+      {
+        "id": "action-btn-1",
+        "component": "Button",
+        "child": "action-content-1",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "navigate",
+            "args": {
+              "page": "workout"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#FFF5F5",
+          "border-radius": "16px",
+          "flex-basis": "23%",
+          "flex-grow": 1,
+          "height": "130px",
+          "margin": "2px",
+          "padding": "16px"
+        }
+      },
+      {
+        "id": "action-content-1",
+        "component": "Column",
+        "children": [
+          "action-icon-1",
+          "action-label-1"
+        ],
+        "align": "center",
+        "styles": {
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-icon-1",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/0/icon"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "36px",
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-label-1",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/0/label"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#FF6B6B",
+          "font-weight": "bold",
+          "text-align": "center",
+          "font-size": "20px",
+          "line-height": 1,
+          "margin-bottom": "16px"
+        }
+      },
+      {
+        "id": "action-btn-2",
+        "component": "Button",
+        "child": "action-content-2",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "navigate",
+            "args": {
+              "page": "diet"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#F0FFF4",
+          "border-radius": "16px",
+          "flex-basis": "23%",
+          "flex-grow": 1,
+          "height": "100px",
+          "margin": "2px",
+          "padding": "16px"
+        }
+      },
+      {
+        "id": "action-content-2",
+        "component": "Column",
+        "children": [
+          "action-icon-2",
+          "action-label-2"
+        ],
+        "align": "center",
+        "styles": {
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-icon-2",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/1/icon"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "36px",
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-label-2",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/1/label"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#34C759",
+          "font-weight": "bold",
+          "text-align": "center",
+          "font-size": "20px",
+          "line-height": 1,
+          "margin-bottom": "16px"
+        }
+      },
+      {
+        "id": "action-btn-3",
+        "component": "Button",
+        "child": "action-content-3",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "navigate",
+            "args": {
+              "page": "report"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#F0F9FF",
+          "border-radius": "16px",
+          "flex-basis": "23%",
+          "flex-grow": 1,
+          "height": "100px",
+          "margin": "2px",
+          "padding": "16px"
+        }
+      },
+      {
+        "id": "action-content-3",
+        "component": "Column",
+        "children": [
+          "action-icon-3",
+          "action-label-3"
+        ],
+        "align": "center",
+        "styles": {
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-icon-3",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/2/icon"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "36px",
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-label-3",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/2/label"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#007AFF",
+          "font-weight": "bold",
+          "text-align": "center",
+          "font-size": "20px",
+          "line-height": 1
+        }
+      },
+      {
+        "id": "action-btn-4",
+        "component": "Button",
+        "child": "action-content-4",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "navigate",
+            "args": {
+              "page": "community"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#FFF9F0",
+          "border-radius": "16px",
+          "flex-basis": "23%",
+          "flex-grow": 1,
+          "height": "100px",
+          "margin": "2px",
+          "padding": "16px"
+        }
+      },
+      {
+        "id": "action-content-4",
+        "component": "Column",
+        "children": [
+          "action-icon-4",
+          "action-label-4"
+        ],
+        "align": "center",
+        "styles": {
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-icon-4",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/3/icon"
+        },
+        "variant": "body",
+        "styles": {
+          "font-size": "36px",
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "action-label-4",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/quick_actions/items/3/label"
+        },
+        "variant": "caption",
+        "styles": {
+          "color": "#FF9500",
+          "font-weight": "bold",
+          "text-align": "center",
+          "font-size": "20px",
+          "line-height": 1
+        }
+      },
+      {
+        "id": "water-tracker",
+        "component": "Card",
+        "child": "water-content",
+        "styles": {
+          "background-color": "#FFFFFF",
+          "border-radius": "20px",
+          "filter": "drop-shadow(0px 6px 24px 0px rgba(0, 0, 0, 0.08))",
+          "margin-bottom": "24px",
+          "padding": "28px"
+        }
+      },
+      {
+        "id": "water-content",
+        "component": "Column",
+        "children": [
+          "water-header",
+          "water-bar-bg",
+          "water-actions"
+        ],
+        "align": "stretch",
+        "styles": {
+          "margin-bottom": "20px"
+        }
+      },
+      {
+        "id": "water-header",
+        "component": "Row",
+        "children": [
+          "water-title",
+          "water-count"
+        ],
+        "justify": "spaceBetween",
+        "align": "center",
+        "styles": {
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "water-title",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/water_reminder/title"
+        },
+        "variant": "h3",
+        "styles": {
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "water-count",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/water_reminder/count"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#007AFF",
+          "font-weight": "bold"
+        }
+      },
+      {
+        "id": "water-bar-bg",
+        "component": "Row",
+        "children": [
+          "water-bar-fill"
+        ],
+        "styles": {
+          "background-color": "#F5F5F5",
+          "border-radius": "100px",
+          "height": "12px",
+          "width": "100%",
+          "overflow": "hidden",
+          "margin-bottom": "16px",
+          "position": "relative"
+        }
+      },
+      {
+        "id": "water-bar-fill",
+        "component": "Row",
+        "styles": {
+          "background-color": "#007AFF",
+          "height": "12px",
+          "width": "0%",
+          "border-radius": "100px",
+          "position": "absolute",
+          "left": "0",
+          "top": "0"
+        }
+      },
+      {
+        "id": "water-actions",
+        "component": "Row",
+        "children": [
+          "water-add-250",
+          "water-add-500"
+        ],
+        "justify": "spaceBetween",
+        "align": "stretch"
+      },
+      {
+        "id": "water-add-250",
+        "component": "Button",
+        "child": "water-text-250",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "toast",
+            "args": {
+              "value": "Added 250ml water"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#F0F9FF",
+          "border-color": "#007AFF",
+          "border-radius": "16px",
+          "border-width": "1px",
+          "flex": "1",
+          "height": "56px",
+          "padding": "0 8px"
+        }
+      },
+      {
+        "id": "water-text-250",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/water_reminder/actions/add_250_text"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#007AFF",
+          "font-weight": "bold",
+          "text-align": "center"
+        }
+      },
+      {
+        "id": "water-add-500",
+        "component": "Button",
+        "child": "water-text-500",
+        "variant": "primary",
+        "action": {
+          "functionCall": {
+            "call": "toast",
+            "args": {
+              "value": "Added 500ml water"
+            }
+          }
+        },
+        "styles": {
+          "background-color": "#007AFF",
+          "border-color": "#007AFF",
+          "border-radius": "16px",
+          "border-width": "1px",
+          "flex": "1",
+          "height": "56px",
+          "padding": "0 8px"
+        }
+      },
+      {
+        "id": "water-text-500",
+        "component": "Text",
+        "text": {
+          "path": "/fitness_app_part2/water_reminder/actions/add_500_text"
+        },
+        "variant": "body",
+        "styles": {
+          "color": "#FFFFFF",
+          "font-weight": "bold",
+          "text-align": "center"
+        }
+      }
+    ]
+  }
+}

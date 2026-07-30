@@ -1,0 +1,42 @@
+{
+  "version": "v0.9",
+  "updateDataModel": {
+    "surfaceId": "takeout_order_card",
+    "path": "/order",
+    "value": {
+      "status": "配送中",
+      "rider": {
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+        "name": "李师傅 (专业送餐)"
+      },
+      "etaLabel": "预计送达时间",
+      "etaTime": "12:35",
+      "goods": [
+        {
+          "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80",
+          "name": "经典牛肉沙拉",
+          "countText": "x1",
+          "price": "¥38.00"
+        },
+        {
+          "imageUrl": "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=100&q=80",
+          "name": "鲜榨香橙汁",
+          "countText": "x2",
+          "price": "¥24.00"
+        }
+      ],
+      "summary": {
+        "deliveryFeeLabel": "配送费",
+        "deliveryFee": "¥5.00",
+        "packingFeeLabel": "包装费",
+        "packingFee": "¥2.00",
+        "totalLabel": "总计",
+        "total": "¥69.00"
+      },
+      "actions": {
+        "contactText": "联系骑手",
+        "againText": "再来一单"
+      }
+    }
+  }
+}

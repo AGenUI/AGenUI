@@ -1,0 +1,230 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "parking_select_card",
+    "components": [
+      {
+      "id": "root",
+      "component": "Column",
+      "children": {
+        "componentId": "card_container",
+        "path": "/parking_select_card/list"
+      },
+      "styles": {
+        "padding": "10px 10px 10px 10px"
+      }
+    },
+    {
+      "id": "card_container",
+      "component": "Card",
+      "styles": {
+        "width": "100%",
+        "margin": "8px",
+        "padding": "8px 12px"
+      },
+      "children": [
+        "list_item_template"
+      ]
+    },
+    {
+      "id": "list_item_template",
+      "component": "Row",
+      "styles": {
+        "padding": "12px 16px 12px 16px",
+        "position": "relative"
+      },
+      "justify": "spaceBetween",
+      "align": "center",
+      "children": [
+        "item_content_column",
+        "distance_text"
+      ]
+    },
+    {
+      "id": "item_content_column",
+      "component": "Column",
+      "styles": {
+        "flex-grow": 1,
+        "flex-shrink": 1
+      },
+      "children": [
+        "title_row",
+        "charge_info_text",
+        "tags_row",
+        "parking_info_row"
+      ]
+    },
+    {
+      "id": "title_row",
+      "component": "Row",
+      "align": "center",
+      "children": [
+        "card_index_badge",
+        "title_text",
+        "user_tips_text"
+      ]
+    },
+    {
+      "id": "card_index_badge",
+      "component": "Text",
+      "text": {
+          "path": "cardIndex"
+        },
+      "variant": "body",
+      "styles": {
+        "background-color": "#4A90E2",
+        "color": "#FFFFFF",
+        "font-weight": "bold",
+        "font-size": "14px",
+        "border-radius": "4px",
+        "padding": "3px 8px",
+        "min-width": "24px",
+        "text-align": "center",
+        "margin-inline-end": "8px",
+        "flex-shrink": 0
+      }
+    },
+    {
+      "id": "title_text",
+      "component": "Text",
+      "text": {
+          "path": "name"
+        },
+      "variant": "body",
+      "styles": {
+        "font-weight": "bold",
+        "flex-shrink": 1
+      }
+    },
+    {
+      "id": "user_tips_text",
+      "component": "Text",
+      "text": {
+          "path": "userTips"
+        },
+      "variant": "caption",
+      "styles": {
+        "color": "#1E90FF",
+        "margin-inline-start": "8px",
+        "border-width": "1px",
+        "border-style": "solid",
+        "border-color": "#1E90FF",
+        "border-radius": "4px",
+        "padding": "2px 6px",
+        "flex-shrink": 0
+      }
+    },
+    {
+      "id": "charge_info_text",
+      "component": "Text",
+      "text": {
+          "path": "parking_lot_info/charge_info"
+        },
+      "variant": "caption",
+      "styles": {
+        "color": "#888888",
+        "line-clamp": 1,
+        "text-overflow": "ellipsis"
+      }
+    },
+    {
+      "id": "tags_row",
+      "component": "Row",
+      "styles": {
+        "margin-top": "8px",
+        "flex-wrap": "wrap"
+      },
+      "align": "center",
+      "children": {
+        "componentId": "parking_tag_item",
+        "path": "parkingTagsList"
+      }
+    },
+    {
+      "id": "parking_tag_item",
+      "component": "Text",
+      "text": {
+        "path": "."
+      },
+      "variant": "caption",
+      "styles": {
+        "color": "#1E90FF",
+        "background-color": "#E3F2FD",
+        "border-radius": "4px",
+        "padding": "4px 8px"
+      }
+    },
+    {
+      "id": "parking_info_row",
+      "component": "Row",
+      "styles": {
+        "margin-top": "8px",
+        "align-self": "flex-start",
+        "border-width": "1px",
+        "border-style": "solid",
+        "border-color": "#E8F5E9",
+        "border-radius": "8px",
+        "padding-inline-end": "8px"
+      },
+      "align": "center",
+      "children": [
+        "parking_status_text",
+        "parking_detail_text",
+        "parking_total_text"
+      ]
+    },
+    {
+      "id": "parking_status_text",
+      "component": "Text",
+      "text": {
+          "path": "parkingInfoTags/firstTagText"
+        },
+      "variant": "caption",
+      "styles": {
+        "color": "#2E7D32",
+        "font-weight": "bold",
+        "background-color": "#E8F5E9",
+        "border-radius": "4px",
+        "padding": "4px 8px",
+        "margin-inline-end": "4px"
+      }
+    },
+    {
+      "id": "parking_detail_text",
+      "component": "Text",
+      "text": {
+          "path": "parkingInfoTags/secondTagText"
+        },
+      "variant": "caption",
+      "styles": {
+        "color": "#2E7D32",
+        "margin-inline-end": "4px"
+      }
+    },
+    {
+      "id": "parking_total_text",
+      "component": "Text",
+      "text": {
+          "path": "parkingInfoTags/secondTagSubText"
+        },
+      "variant": "caption",
+      "styles": {
+        "color": "#2E7D32"
+      }
+    },
+    {
+      "id": "distance_text",
+      "component": "Text",
+      "text": {
+          "path": "location/distanceNew"
+        },
+      "variant": "body",
+      "styles": {
+        "color": "#000000",
+        "flex-shrink": 0,
+        "margin-inline-start": "12px"
+      }
+    }
+    ]
+  }
+}
