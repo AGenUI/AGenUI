@@ -1,6 +1,6 @@
 {
   "name": "agenui-studio",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Local A2UI protocol generation studio for AGenUI - BYOK multi-model, real streaming, QR-code download to device.",
   "bin": {
     "agenui-studio": "./bin/start.js"

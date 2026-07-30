@@ -26,6 +26,9 @@ const GITHUB_OWNER = "AGenUI";
 const GITHUB_REPO = "AGenUI";
 const ASSET_NAME = "agenui-studio.zip";
 const API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+// Direct latest-release asset URL. Unlike API_URL this is NOT subject to the
+// GitHub API rate limit, so it is used for the actual download.
+const DOWNLOAD_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest/download/${ASSET_NAME}`;
 
 const BASE_DIR = path.join(os.homedir(), ".agenui");
 const APP_DIR = path.join(BASE_DIR, "app");
@@ -157,35 +160,28 @@ async function ensureApp() {
     return;
   }
 
-  // Fetch latest release info
-  log("Fetching latest release info...");
-  let release;
+  // Best-effort release lookup for version tracking. The GitHub API
+  // (api.github.com) is rate-limited for anonymous requests (HTTP 403 once the
+  // quota is exhausted), so this must never block installation — on failure we
+  // fall back to downloading the latest release asset directly below.
+  let tag = null;
   try {
-    release = await fetchJson(API_URL);
-  } catch (e) {
-    if (fs.existsSync(VERSION_FILE)) {
-      log(`Warning: could not check for updates (${e.message}), using cached version`);
+    log("Fetching latest release info...");
+    const release = await fetchJson(API_URL);
+    tag = release.tag_name;
+    // Skip if already at this version
+    if (fs.existsSync(VERSION_FILE) && fs.readFileSync(VERSION_FILE, "utf8").trim() === tag) {
+      log(`Already at latest version ${tag}`);
       return;
     }
-    fail(`Cannot fetch release info: ${e.message}`);
+  } catch (e) {
+    log(`Warning: release lookup failed (${e.message}); falling back to direct download.`);
   }
 
-  const tag = release.tag_name;
-  const asset = (release.assets || []).find((a) => a.name === ASSET_NAME);
-  if (!asset) {
-    fail(`Release ${tag} does not contain ${ASSET_NAME}. Available: ${(release.assets || []).map((a) => a.name).join(", ") || "none"}`);
-  }
-
-  // Skip if already at this version
-  if (fs.existsSync(VERSION_FILE) && fs.readFileSync(VERSION_FILE, "utf8").trim() === tag) {
-    log(`Already at latest version ${tag}`);
-    return;
-  }
-
-  // Download
+  // Download the latest release asset directly (stable URL, not rate-limited).
   const zipPath = path.join(BASE_DIR, ASSET_NAME);
-  log(`Downloading ${ASSET_NAME} (${tag}, ${(asset.size / 1024 / 1024).toFixed(1)} MB)...`);
-  await download(asset.browser_download_url, zipPath);
+  log(`Downloading ${ASSET_NAME}${tag ? ` (${tag})` : " (latest)"}...`);
+  await download(DOWNLOAD_URL, zipPath);
 
   // Extract
   log("Extracting...");
@@ -213,8 +209,8 @@ async function ensureApp() {
     fs.rmdirSync(inner);
   }
 
-  // Write version marker
-  fs.writeFileSync(VERSION_FILE, tag + "\n");
+  // Write version marker (tag may be unknown if the API lookup was rate-limited)
+  fs.writeFileSync(VERSION_FILE, (tag || "unknown") + "\n");
   fs.unlinkSync(zipPath);
 
   // Remove cached presets so they get re-seeded from the fresh app bundle
@@ -224,7 +220,7 @@ async function ensureApp() {
     log("Cleared cached presets (will re-seed on next start)");
   }
 
-  log(`Installed version ${tag}`);
+  log(`Installed version ${tag || "latest"}`);
 }
 
 function ensureVenv() {
