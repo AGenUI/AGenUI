@@ -4,13 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.2.1] - 2026-07-24
+## [1.3.0] - 2026-07-30
 
 ### Features
 
 - **Full Font-Weight Support**: All three platforms now support the complete CSS `font-weight` range. iOS and HarmonyOS render true font weights; Android uses real weight on API 28+ with graceful degradation on lower versions.
 - **Custom Font Registration**: Supports custom font registration via raw file path using `OH_Drawing_RegisterFont`, with a shared font parser class extracted for reuse.
 - **`text-decoration` Tri-Platform Alignment**: Unified `text-decoration` parsing and rendering across iOS, Android, and HarmonyOS to conform to the A2UI standard.
+- **AGenUI Studio**: Added a local bring-your-own-key workbench that turns natural language into renderable A2UI protocol with real-time SSE streaming, reasoning-mode toggle, multi-turn refinement, protocol validation, and one-tap QR-code push to a device running AGenUI Playground.
+- **npm Launcher**: Added `agenui-studio` npm package enabling one-command `npx agenui-studio` installation and launch, with automatic GitHub Release download and version tracking.
+- **Preset Preview Images**: Added protocol presets and preview images for visual browsing in the Studio preset list.
 - Changed `getMeasurer` and default interface methods from Java `default` to regular interface methods.
 - Added `gap` property description to the component catalog.
 - Removed ImageLoader fallback to system image loading on failure.
