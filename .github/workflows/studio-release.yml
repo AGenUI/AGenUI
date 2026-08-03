@@ -24,7 +24,7 @@ jobs:
           ./scripts/pack-studio.sh dist
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/agenui-studio.zip
           generate_release_notes: true
