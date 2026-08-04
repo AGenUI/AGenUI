@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "articles": [
+    {
+      "slug": "a2ui-elemental-format",
+      "title": "更「LLM 友好」的 A2UI 生成格式:Elemental 的功能特性",
+      "excerpt": "A2UI Elemental 是官方 7 月初引入的实验性特性,采用类 HTML 的自定义标签协议描述 UI 布局,以降低协议生成门槛。本文解读其核心特征、使用方式与启示。",
+      "author": "AGenUI Team",
+      "date": "2026-07-27",
+      "category": "技术解读",
+      "tags": ["A2UI", "Elemental", "生成格式"]
+    },
+    {
+      "slug": "a2ui-express-dsl",
+      "title": "更低成本地生成 A2UI 协议:Express DSL 的功能特性",
+      "excerpt": "如何让 LLM 高效、低成本、稳定地生成高质量 A2UI 协议?本文探索官方实验特性 Express DSL 的规则、使用方法与优化效果。",
+      "author": "AGenUI Team",
+      "date": "2026-07-13",
+      "category": "技术解读",
+      "tags": ["A2UI", "Express DSL", "协议生成"]
+    },
+    {
+      "slug": "a2ui-over-mcp",
+      "title": "当 A2UI 遇上 MCP:生成式 UI 的一种新模式?",
+      "excerpt": "A2UI 团队发起 Discussion 讨论 A2UI 结合 MCP 进行协议扩展的可行性。作为 A2UI 协议的深度参与者,我们对 A2UI over MCP 这一新模式进行了调研与思考。",
+      "author": "AGenUI Team",
+      "date": "2026-06-30",
+      "category": "技术解读",
+      "tags": ["A2UI", "MCP", "协议扩展"]
+    }
+  ]
+}
