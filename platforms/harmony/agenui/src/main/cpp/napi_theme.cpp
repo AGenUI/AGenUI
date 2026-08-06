@@ -84,6 +84,44 @@ napi_value SetDayNightMode(napi_env env, napi_callback_info info) {
     NAPI_RETURN_UNDEFINED(env);
 }
 
+napi_value SetDebug(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+    if (argc < 1) {
+        HM_LOGE("SetDebug: Expected 1 argument, got %zu", argc);
+        NAPI_RETURN_UNDEFINED(env);
+    }
+
+    bool isDebug = false;
+    napi_get_value_bool(env, args[0], &isDebug);
+
+    auto* engine = agenui::getAGenUIEngine();
+    if (engine) {
+        engine->setDebug(isDebug);
+        HM_LOGI("SetDebug: success, isDebug=%d", isDebug ? 1 : 0);
+    } else {
+        HM_LOGE("SetDebug: engine is null");
+    }
+
+    NAPI_RETURN_UNDEFINED(env);
+}
+
+napi_value IsDebug(napi_env env, napi_callback_info info) {
+    bool isDebug = false;
+    auto* engine = agenui::getAGenUIEngine();
+    if (engine) {
+        isDebug = engine->isDebug();
+    } else {
+        HM_LOGE("IsDebug: engine is null, returning default");
+    }
+
+    napi_value result;
+    napi_get_boolean(env, isDebug, &result);
+    return result;
+}
+
 napi_value RegisterDefaultTheme(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value args[2];

@@ -65,6 +65,11 @@ public class ButtonComponent extends A2UILayoutComponent {
                 }
             }
         };
+        // A container that declares no overflow must pass descendant content through untouched,
+        // including a shadow halo painted beyond a child's own box. Only overflow clips -- see
+        // StyleHelper.applyOverflow. Matches YogaAbsoluteLayout (Row / Column), which opts out too.
+        buttonContainer.setClipChildren(false);
+        buttonContainer.setClipToPadding(false);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT

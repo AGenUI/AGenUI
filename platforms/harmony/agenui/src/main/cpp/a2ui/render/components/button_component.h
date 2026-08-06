@@ -12,11 +12,13 @@ namespace a2ui {
  *   - variant: borderless or primary
  *   - action: click action definition, including functionCall
  *   - disable: disabled state
- *   - styles:
- *       - background-color: #RRGGBB / #RRGGBBAA / rgba(r,g,b,a)
- *       - border-radius: "16px" or a plain numeric string
- *       - border-width: "1px" or a plain numeric string, applied to all sides
- *       - border-color: #RRGGBB / #RRGGBBAA / rgba(r,g,b,a)
+ *   - styles: background / border / drop-shadow are delegated to the base class
+ *       (applyBackgroundColor, applyBorderStyles, applyFilter), so Button supports
+ *       the same value forms as the other containers:
+ *       - background-color (incl. gradients), plus background-color-disabled while disabled
+ *       - border-radius / border-width / border-color
+ *       - overflow: clipping is resolved together with border-radius into NODE_CLIP
+ *       - filter: drop-shadow(...)
  *   - checks: condition checks that control clickability
  */
 class ButtonComponent final : public A2UIComponent {
@@ -45,7 +47,7 @@ private:
     /** Apply the disabled state. */
     void applyDisable(const nlohmann::json& properties);
 
-    /** Apply custom styles. */
+    /** Apply custom styles by delegating to the shared base-class style pipeline. */
     void applyStyles(const nlohmann::json& properties);
 
     /** Apply click checks. */

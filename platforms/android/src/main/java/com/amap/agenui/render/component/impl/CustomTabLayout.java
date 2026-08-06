@@ -53,6 +53,7 @@ public class CustomTabLayout extends FrameLayout {
     private ValueAnimator indicatorAnimator;
 
     private OnTabSelectedListener listener;
+    private OnTabClickListener tabClickListener;
 
     public CustomTabLayout(Context context) {
         super(context);
@@ -180,6 +181,10 @@ public class CustomTabLayout extends FrameLayout {
         this.listener = listener;
     }
 
+    public void setOnTabClickListener(OnTabClickListener listener) {
+        this.tabClickListener = listener;
+    }
+
     // ==================== Tab Selection ====================
 
     private void selectTab(Tab tab) {
@@ -221,7 +226,14 @@ public class CustomTabLayout extends FrameLayout {
 
         textView.setBackground(null);
 
-        textView.setOnClickListener(v -> selectTab(tab));
+        // Only entry point reachable by user interaction. selectTab() is also called
+        // programmatically via Tab.select(), so tabClickListener must not move in there.
+        textView.setOnClickListener(v -> {
+            selectTab(tab);
+            if (tabClickListener != null) {
+                tabClickListener.onTabClick(tab);
+            }
+        });
         tab.view = textView;
 
         LinearLayout.LayoutParams params;
@@ -424,5 +436,13 @@ public class CustomTabLayout extends FrameLayout {
         void onTabSelected(Tab tab);
         void onTabUnselected(Tab tab);
         void onTabReselected(Tab tab);
+    }
+
+    /**
+     * Fires only for user taps, including taps on the already selected tab.
+     * Programmatic selection through Tab.select() does not fire it.
+     */
+    public interface OnTabClickListener {
+        void onTabClick(Tab tab);
     }
 }

@@ -1,13 +1,8 @@
 #include "card_component.h"
 #include "../a2ui_node.h"
 #include "a2ui/utils/a2ui_color_palette.h"
-#include "a2ui/utils/a2ui_parse_utils.h"
-#include "a2ui/utils/a2ui_shadow_utils.h"
 #include "log/a2ui_capi_log.h"
-#include <cstdio>
-#include <cstring>
 #include <string>
-#include <cctype>
 
 #undef LOG_DOMAIN
 #undef LOG_TAG
@@ -16,9 +11,6 @@
 
 namespace a2ui {
 
-using colors::kColorWhite;
-using colors::kColorBorderGray;
-using colors::kColorTransparent;
 using colors::kColorShadow20;
 
 CardComponent::CardComponent(const std::string& id, const nlohmann::json& properties)
@@ -27,14 +19,15 @@ CardComponent::CardComponent(const std::string& id, const nlohmann::json& proper
     // Use a COLUMN node as the card container.
     m_nodeHandle = g_nodeAPI->createNode(ARKUI_NODE_COLUMN);
 
-    // Apply the default card chrome.
-    {
-        A2UINode node(m_nodeHandle);
-        node.setBackgroundColor(kColorWhite);
-        node.setBorderRadius(16.0f);
-        node.setBorderWidth(1.0f, 1.0f, 1.0f, 1.0f);
-        node.setBorderColor(kColorBorderGray);
-    }
+    // No default chrome is applied here on purpose. Card's defaults live in core's
+    // per-component spec (kBaseComponentSpecConfig, "Card" -> border-radius: 16px)
+    // and reach this node through onUpdateProperties, which the creation path always
+    // runs before a frame can render (addChild -> createView ->
+    // updateProperties(m_properties), all in one call stack). Anything set here would
+    // be overwritten a moment later anyway: core's baseline injects
+    // background-color: transparent and border-width: 0px into every snapshot, which
+    // is exactly how the white background and 1px border this constructor used to set
+    // ended up invisible on device. Add component defaults to the core spec, not here.
 
     // Merge initial properties.
     if (!properties.is_null() && properties.is_object()) {
@@ -58,89 +51,19 @@ void CardComponent::onUpdateProperties(const nlohmann::json& properties) {
         return;
     }
 
-    // W3C properties live under styles; legacy ones stay at the top level.
-    const nlohmann::json& styles = properties.contains("styles") && properties["styles"].is_object()
-                                   ? properties["styles"]
-                                   : properties;
-
-    applyRadius(styles);
+    // Every snapshot reaching the platform layer carries a non-empty styles object:
+    // core merges kStyleDefaultsConfig into it unconditionally, so border-radius /
+    // border-width / border-color / filter are always present. That is why there is
+    // no "no styles, read the top level instead" fallback here -- it would be dead
+    // code, and it used to make Card fork its own radius parser that set
+    // NODE_BORDER_RADIUS without the matching NODE_CLIP, rendering the injected
+    // default border-radius: 16px as square corners while Android and iOS rounded.
+    applyBorderStyles(properties);
     applyBackgroundColor(properties);
-    applyBorderWidth(styles);
-    applyBorderColor(styles);
-    applyFilter(styles);
-    applyElevation(properties);  // Legacy elevation remains a top-level property.
+    applyFilter(properties);
+    applyElevation(properties);  // Legacy elevation is read from the top level.
 
     HM_LOGI("Applied properties, id=%s", m_id.c_str());
-}
-
-// ---- CSS Length Parsing ----
-
-float CardComponent::parseCssLength(const nlohmann::json& val, float fallback) {
-    return a2ui::parseCssLength(val, fallback);
-}
-
-// ---- Radius ----
-
-void CardComponent::applyRadius(const nlohmann::json& properties) {
-    // Prefer border-radius, with radius kept for legacy input.
-    if (properties.contains("border-radius")) {
-        float r = parseCssLength(properties["border-radius"], -1.0f);
-        if (r >= 0.0f) A2UINode(m_nodeHandle).setBorderRadius(r);
-    } else if (properties.contains("radius") && properties["radius"].is_number()) {
-        float r = properties["radius"].get<float>();
-        A2UINode(m_nodeHandle).setBorderRadius(r);
-    }
-}
-
-// ---- Border Width ----
-
-void CardComponent::applyBorderWidth(const nlohmann::json& properties) {
-    float bw = -1.0f;
-    if (properties.contains("border-width")) {
-        bw = parseCssLength(properties["border-width"], -1.0f);
-    } else if (properties.contains("borderWidth")) {
-        bw = parseCssLength(properties["borderWidth"], -1.0f);
-    }
-    if (bw >= 0.0f) {
-        A2UINode node(m_nodeHandle);
-        node.setBorderWidth(bw, bw, bw, bw);
-        node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
-    }
-}
-
-// ---- Border Color ----
-
-void CardComponent::applyBorderColor(const nlohmann::json& properties) {
-    std::string colorStr;
-    if (properties.contains("border-color") && properties["border-color"].is_string()) {
-        colorStr = properties["border-color"].get<std::string>();
-    } else if (properties.contains("borderColor") && properties["borderColor"].is_string()) {
-        colorStr = properties["borderColor"].get<std::string>();
-    }
-    if (!colorStr.empty()) {
-        A2UINode(m_nodeHandle).setBorderColor(parseColor(colorStr));
-    }
-}
-
-// ---- Filter: drop-shadow ----
-
-void CardComponent::applyFilter(const nlohmann::json& properties) {
-    if (!properties.contains("filter") || !properties["filter"].is_string()) return;
-
-    std::string filterVal = properties["filter"].get<std::string>();
-
-    auto params = parseDropShadow(filterVal);
-    if (!params.valid) return;
-
-    // Parse the shadow color.
-    uint32_t color = parseColor(params.colorStr);
-    if (color == kColorTransparent && params.colorStr != "#00000000" && params.colorStr != "rgba(0, 0, 0, 0)" &&
-        params.colorStr != "rgba(0,0,0,0)" && params.colorStr != "rgb(0, 0, 0)") {
-        return;
-    }
-
-    // Apply the shadow.
-    A2UINode(m_nodeHandle).setCustomShadow(params.blurRadius, params.offsetX, params.offsetY, color);
 }
 
 // ---- Elevation ----

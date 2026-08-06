@@ -283,20 +283,11 @@ public enum MeasureMode: Int {
         // Per-key compare against stored values; only truly changed keys are marked dirty.
         state!.updateProperties(properties)
 
-        // Flatten supported CSS keys out of the styles sub-object and merge into stored properties.
+        // Flatten styles to the top level for CSSPropertyApplier, which skips keys it does not recognise.
         var allProperties = properties
-        if let styles = allProperties["styles"] as? [String: Any] {
-            let supportedStyles = filterSupportedProperties(styles)
-            allProperties.merge(supportedStyles) { _, new in new }
-            // Keep the latest Yoga frame for later lazy createView() replays.
-            var storedStyles = self.properties["styles"] as? [String: Any] ?? [:]
-            for key in ["x", "y", "width", "height"] {
-                if let value = styles[key] {
-                    storedStyles[key] = value
-                }
-            }
-            self.properties["styles"] = storedStyles
-            allProperties.removeValue(forKey: "styles")
+        if var styles = allProperties["styles"] as? [String: Any] {
+            styles = styles.filter { !($0.value is NSNull) }
+            allProperties.merge(styles) { _, new in new }
         }
         self.properties.merge(allProperties) { _, new in new }
 
@@ -377,16 +368,6 @@ public enum MeasureMode: Int {
     /// - Parameter radius: Corner radius in points
     @MainActor open func setBorderRadius(_ radius: CGFloat) {
         layer.cornerRadius = radius
-    }
-    
-    /// Filter supported CSS properties
-    /// - Parameter properties: Original properties dictionary
-    /// - Returns: Dictionary containing only supported properties
-    private func filterSupportedProperties(_ properties: [String: Any]) -> [String: Any] {
-        let supportedKeys = CSSPropertyRegistry.shared.getAllPropertyNames()
-        return properties.filter { key, _ in
-            supportedKeys.contains(key)
-        }
     }
     
     /// Base point scale factor: converts a2ui units to pt (a2ui / 2 = pt)

@@ -189,7 +189,7 @@ void ImageComponent::onUpdateProperties(const nlohmann::json& properties) {
         A2UIImageNode node(m_nodeHandle);
         node.resetBackgroundColor();
         node.resetOpacityTransition();
-        node.setOpacity(1.0f);
+        node.setOpacity(declaredOpacity());
         node.setScale(1.0f, 1.0f);
         HM_LOGW( "url is empty, id=%s", m_id.c_str());
         return;
@@ -437,7 +437,7 @@ void ImageComponent::onImageCompleteCallback(ArkUI_NodeEvent* event) {
         HM_LOGW("loadingStatus=%d (non-zero), id=%s, imageWidth=%f, imageHeight=%f",
             loadingStatus, component->m_id.c_str(), data[1].f32, data[2].f32);
         component->stopShimmer();
-        A2UIImageNode(component->m_nodeHandle).setOpacity(1.0f);
+        A2UIImageNode(component->m_nodeHandle).setOpacity(component->declaredOpacity());
         A2UIImageNode(component->m_nodeHandle).setScale(1.0f, 1.0f);
 
         if (data[1].f32 > 0.0f && data[2].f32 > 0.0f) {

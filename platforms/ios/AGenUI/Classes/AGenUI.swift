@@ -86,6 +86,24 @@ import Foundation
         Logger.shared.info("Day/Night mode set to: \(mode)")
     }
 
+    /// Set whether the host app is a debug build so the SDK can adjust its internal behavior
+    ///
+    /// Should be called right after initialize(). Defaults to false if never called.
+    ///
+    /// - Parameter isDebug: true for debug builds, false for release
+    @objc public static func setDebug(_ isDebug: Bool) {
+        Logger.shared.debug("setDebug: \(isDebug)")
+        engineBridge.setDebug(isDebug)
+        Logger.shared.info("Build type set to: \(isDebug ? "debug" : "release")")
+    }
+
+    /// Get whether the host app is a debug build, previously set via setDebug
+    ///
+    /// - Returns: true for debug builds. Returns false if never set.
+    @objc public static func isDebug() -> Bool {
+        return engineBridge.isDebug()
+    }
+
     // MARK: - Path Configuration
 
     /// Set path configuration

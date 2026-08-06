@@ -54,6 +54,10 @@ bool ComponentManager::tryApplyTextChunk(const nlohmann::json& json) {
         return false;
     }
 
+    if (!json["id"].is_string()) {
+        return false;
+    }
+
     std::string id = json["id"].get<std::string>();
     auto it = _components.find(id);
     if (it == _components.end() || !it->second) {
@@ -352,13 +356,17 @@ std::shared_ptr<ComponentModel> ComponentManager::parseComponent(const nlohmann:
     if (!json.contains("id") || !json.contains("component")) {
         return nullptr;
     }
+
+    if (!json["id"].is_string() || !json["component"].is_string()) {
+        return nullptr;
+    }
     
     std::string id = json["id"].get<std::string>();
     std::string component = json["component"].get<std::string>();
     
     // Use rawId from JSON if present, otherwise fall back to id
     std::string rawId = id;
-    if (json.contains("rawId")) {
+    if (json.contains("rawId") && json["rawId"].is_string()) {
         rawId = json["rawId"].get<std::string>();
     }
 
@@ -422,10 +430,10 @@ void ComponentManager::parseChildren(const nlohmann::json& json, const std::stri
     std::vector<std::string> children;
     // Parse trigger and content children for Modal components
     if (componentType == "Modal") {
-        if (json.contains("trigger")) {
+        if (json.contains("trigger") && json["trigger"].is_string()) {
             children.emplace_back(json["trigger"].get<std::string>());
         }
-        if (json.contains("content")) {
+        if (json.contains("content") && json["content"].is_string()) {
             children.emplace_back(json["content"].get<std::string>());
         }
     }

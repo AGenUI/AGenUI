@@ -60,8 +60,13 @@ void DataModel::updateData(const std::string& path, const std::string& jsonValue
         if (!_impl->root.is_object()) {
             _impl->root = nlohmann::json::object();
         }
-        json::json_pointer ptr(path);
-        _impl->root[ptr] = newValue;
+        try {
+            json::json_pointer ptr(path);
+            _impl->root[ptr] = newValue;
+        } catch (const nlohmann::json::exception& e) {
+            AGENUI_LOG("updateData failed: invalid path '%s', error: %s", path.c_str(), e.what());
+            return;
+        }
     }
     notifyAffectedObservers(path);
 }
@@ -85,11 +90,16 @@ void DataModel::appendData(const std::string& path, const std::string& jsonValue
         if (!_impl->root.is_object()) {
             _impl->root = nlohmann::json::object();
         }
-        json::json_pointer ptr(path);
-        if (_impl->root.contains(ptr)) {
-            _impl->recursiveMergeAppend(_impl->root[ptr], patchValue);
-        } else {
-            _impl->root[ptr] = patchValue;
+        try {
+            json::json_pointer ptr(path);
+            if (_impl->root.contains(ptr)) {
+                _impl->recursiveMergeAppend(_impl->root[ptr], patchValue);
+            } else {
+                _impl->root[ptr] = patchValue;
+            }
+        } catch (const nlohmann::json::exception& e) {
+            AGENUI_LOG("appendData failed: invalid path '%s', error: %s", path.c_str(), e.what());
+            return;
         }
     }
     notifyAffectedObservers(path, true);
@@ -111,10 +121,14 @@ SerializableData DataModel::getValue(const std::string& path) {
         return SerializableData(SerializableData::Impl::create(std::move(rootCopy)));
     }
 
-    json::json_pointer ptr(path);
-    if (_impl->root.contains(ptr)) {
-        nlohmann::json childCopy = _impl->root[ptr];
-        return SerializableData(SerializableData::Impl::create(std::move(childCopy)));
+    try {
+        json::json_pointer ptr(path);
+        if (_impl->root.contains(ptr)) {
+            nlohmann::json childCopy = _impl->root[ptr];
+            return SerializableData(SerializableData::Impl::create(std::move(childCopy)));
+        }
+    } catch (const nlohmann::json::exception& e) {
+        AGENUI_LOG("getValue failed: invalid path '%s', error: %s", path.c_str(), e.what());
     }
     return SerializableData();
 }

@@ -328,7 +328,32 @@ protected:
      * @param styles Style JSON object
      */
     void applyVisibility(const nlohmann::json& styles);
-    
+
+    /**
+     * Apply the opacity style.
+     * Clamps to [0, 1] and forwards to NODE_OPACITY.
+     * Mirrors Android StyleHelper.applyDisplay's opacity branch and iOS
+     * CSSPropertyApplier.applyOpacity, so the same payload dims identically on
+     * all three platforms.
+     *
+     * Two guards keep this from fighting the component-local opacity users:
+     *   - Skipped while an appear animation is pending, whose start value is 0
+     *     and whose target already is the declared opacity.
+     *   - Only re-applied when the declared value changes. The engine injects a
+     *     default "opacity": 1 into every snapshot, so without this a
+     *     layout-only update would reset state-driven dimming (disabled
+     *     buttons, image fade-in) back to fully opaque.
+     * @param styles Style JSON object
+     */
+    void applyOpacity(const nlohmann::json& styles);
+
+    /**
+     * The opacity declared by the styles payload, i.e. what the node must return
+     * to once a transient animation (appear fade, image fade-in/reveal) ends.
+     * Defaults to 1.0 when the payload never declared one.
+     */
+    float declaredOpacity() const { return m_appliedOpacity; }
+
     /**
      * Apply background-color style
      * Parse and apply background color from styles
@@ -390,6 +415,7 @@ protected:
     bool m_pendingAppearAnimation = false;
     bool m_hasPlayedAppearAnimation = false;
     float m_appearTargetOpacity = 1.0f;
+    float m_appliedOpacity = 1.0f;  // Last opacity applied from styles; matches the ArkUI node default
     bool m_surfaceAnimated = true;  // Animation flag of the owning surface (injected by A2UISurface)
     agenui::IComponentRenderObservable* m_componentRenderObservable = nullptr;  // Component render completion observer (injected by A2UISurface, non-owning)
     bool m_viewCreated = false;  // Whether createView() has executed (mirrors iOS Component.isViewCreated)

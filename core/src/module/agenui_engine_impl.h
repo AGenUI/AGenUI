@@ -55,6 +55,8 @@ public:
     bool loadThemeConfig(const std::string &themeConfig, std::string &result) override;
     bool loadDesignTokenConfig(const std::string &designTokenConfig, std::string &result) override;
     void setDayNightMode(const std::string &mode) override;
+    void setDebug(bool isDebug) override;
+    bool isDebug() override;
     IMeasurementManager* getMeasurementManager() override;
 
     FunctionCallManager* getFunctionCallManager() override { return _functionCallManager; }

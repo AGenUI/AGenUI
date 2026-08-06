@@ -16,6 +16,8 @@ import {
   setThemeConfig,
   setDesignTokenConfig,
   setDayNightMode,
+  setDebug,
+  isDebug,
   registerImageLoader as nativeRegisterImageLoader,
   registerFont as nativeRegisterFont,
   registerFontFromBuffer as nativeRegisterFontFromBuffer,
@@ -169,6 +171,20 @@ export class AGenUIEngineBridge {
    */
   setDayNightMode(mode: string): void {
     setDayNightMode(mode);
+  }
+
+  /**
+   * Sets whether the host app is a debug build
+   */
+  setDebug(isDebug: boolean): void {
+    setDebug(isDebug);
+  }
+
+  /**
+   * Gets whether the host app is a debug build, previously set via setDebug
+   */
+  isDebug(): boolean {
+    return isDebug();
   }
 
   /**

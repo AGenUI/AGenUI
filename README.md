@@ -22,19 +22,24 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.3.0
+## What's New in v1.3.1
 
-> Released on 2026-07-30
+> Released on 2026-08-06
 
-- **Full Font-Weight Support**: All three platforms now support the complete CSS `font-weight` range. iOS and HarmonyOS render true font weights; Android uses real weight on API 28+ with graceful degradation on lower versions.
-- **Custom Font Registration**: Supports custom font registration via raw file path using `OH_Drawing_RegisterFont`, with a shared font parser class extracted for reuse.
-- **`text-decoration` Tri-Platform Alignment**: Unified `text-decoration` parsing and rendering across iOS, Android, and HarmonyOS to conform to the A2UI standard.
-- **AGenUI Studio**: Added a local bring-your-own-key workbench that turns natural language into renderable A2UI protocol with real-time SSE streaming, reasoning-mode toggle, multi-turn refinement, protocol validation, and one-tap QR-code push to a device running AGenUI Playground. See [playground/studio/README.md](playground/studio/README.md)
-- **npm Launcher**: Added `agenui-studio` npm package enabling one-command `npx agenui-studio` installation and launch, with automatic GitHub Release download and version tracking.
-- **Preset Preview Images**: Added protocol presets and preview images for visual browsing in the Studio preset list.
-- Changed `getMeasurer` and default interface methods from Java `default` to regular interface methods.
-- Added `gap` property description to the component catalog.
-- Removed ImageLoader fallback to system image loading on failure.
+- **Package Type API**: Added package type set/get APIs to the engine, exposed through the Core engine and the Android, iOS, and HarmonyOS integration layers.
+- **Unified Text Rendering Pipeline**: Merged Text and RichText into a single rendering pipeline reusing the shared label implementation, improving rendering consistency and maintainability.
+- Hardened JSON parsing with stricter type checks and exception handling.
+- Moved Button styling onto the shared base-class styling pipeline.
+- Moved Card rounded corners onto the shared clip decision.
+
+- Fixed `overflow: hidden` not taking effect, fixed opacity not taking effect.
+- (Android) Unified `border-radius` and `overflow` into a single clip decision.
+- (Android) Restored rounded corner rendering on software canvases.
+- (Android) Fixed built-in containers unexpectedly clipping their children.
+- (Android) Fixed misalignment between the border stroke center (`border-width`) and the rounded-clip center (`border-radius`).
+- (iOS) Fixed a UIKit assertion crash caused by `layoutIfNeeded` re-entry in horizontal List, and fixed off-screen update timing of horizontal List.
+- (iOS) Fixed a crash by filtering empty values in properties.
+- (Android) Fixed the Tab component incorrectly triggering `onTabClick` on first display.
 
 ---
 

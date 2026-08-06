@@ -136,20 +136,20 @@ public enum CSSPropertyValue: Equatable {
 /// Used for filter (drop-shadow) and box-shadow properties
 public struct CSSShadow: Equatable {
     /// Horizontal offset (positive = right, negative = left)
-    let offsetX: CGFloat
-    
+    public let offsetX: CGFloat
+
     /// Vertical offset (positive = down, negative = up)
-    let offsetY: CGFloat
-    
+    public let offsetY: CGFloat
+
     /// Blur radius (larger value = more blur)
-    let blur: CGFloat
-    
+    public let blur: CGFloat
+
     /// Spread radius (optional, only used by box-shadow)
     /// Positive value expands shadow, negative value shrinks shadow
-    let spread: CGFloat?
-    
+    public let spread: CGFloat?
+
     /// Shadow color
-    let color: UIColor
+    public let color: UIColor
     
     /// Creates from filter drop-shadow
     /// - Parameters:

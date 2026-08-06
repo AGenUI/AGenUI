@@ -447,11 +447,18 @@ public class StyleHelper {
      * rounded shape. Resets to the default provider when {@code radiusPx <= 0}, which is
      * required when an update removes a previous border-radius — otherwise stale rounding
      * persists.
+     *
+     * <p>Also publishes the radius via the {@code agenui_corner_radius} tag: clipToOutline is a
+     * RenderNode-only property that silently does nothing on software canvases (screenshots via
+     * {@code view.draw(bitmapCanvas)}), so parent containers read this tag in their
+     * {@code drawChild} to apply an equivalent clipPath — see
+     * {@link com.amap.agenui.render.drawable.SoftwareCornerClip}.
      */
     private static void applyOutlineRadiusClip(View view, int radiusPx) {
         if (radiusPx <= 0) {
             view.setClipToOutline(false);
             view.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
+            view.setTag(R.id.agenui_corner_radius, null);
             return;
         }
         final float r = radiusPx;
@@ -462,6 +469,7 @@ public class StyleHelper {
             }
         });
         view.setClipToOutline(true);
+        view.setTag(R.id.agenui_corner_radius, radiusPx);
     }
 
     /**
@@ -494,7 +502,19 @@ public class StyleHelper {
         stroke.setColor(Color.TRANSPARENT);
         stroke.setStroke(borderWidth, effectiveColor);
         if (radiusPx > 0) {
-            stroke.setCornerRadius(radiusPx);
+            // GradientDrawable applies the corner radius to the stroke's CENTRE line, not to its
+            // outer edge: draw() insets the rect by strokeWidth/2 and then passes the radius
+            // through unchanged (AOSP GradientDrawable.draw, "inset = strokeWidth * 0.5f" then
+            // drawRoundRect(mRect, rad, rad, mStrokePaint)). So a raw radius R renders an outer
+            // edge of R + W/2 and an inner edge of R - W/2, while applyOutlineRadiusClip applies
+            // R to the OUTER edge. On a straight edge the two agree; at the corners they differ
+            // by W/2, which shows up as the clip shaving the border's outer arc and the fill
+            // bulging into the border band.
+            //
+            // Subtracting W/2 lines them up: outer edge lands on R (matching the clip) and the
+            // inner edge on R - W, which is the concentric inner radius CSS specifies. Clamped at
+            // 0 for the W/2 > R case, where the corner degenerates to square anyway.
+            stroke.setCornerRadius(Math.max(0f, radiusPx - borderWidth / 2f));
         }
         stroke.setBounds(0, 0, view.getWidth(), view.getHeight());
         view.getOverlay().add(stroke);
@@ -579,7 +599,7 @@ public class StyleHelper {
      *
      * @return config or {@code null} if no drop-shadow filter is present.
      */
-    static ShadowPainter.ShadowConfig parseDropShadowConfig(Context context,
+    public static ShadowPainter.ShadowConfig parseDropShadowConfig(Context context,
                                                              Map<String, Object> styles) {
         if (!styles.containsKey("filter")) {
             return null;
@@ -669,44 +689,167 @@ public class StyleHelper {
 
 
     /**
-     * Applies overflow styles.
-     * Supports: overflow.
+     * Applies overflow styles. Supports: overflow.
+     *
+     * <p>Mechanism: {@link View#setClipBounds} self-clip on the DECLARING view. This is the only
+     * primitive whose flag lives on the declarer itself — {@code setClipChildren} on self is
+     * off-by-one-level (a parent's flag clips each child to its own rect, AOSP
+     * ViewGroup.setClipChildren → child.renderNode.setClipToBounds), and setting it on the
+     * parent leaks a shared flag onto siblings. {@code setClipBounds} is orthogonal to
+     * {@code setClipToOutline}: rect ∩ rounded outline = rounded clip, so border-radius handled
+     * by {@link #applyBorder} needs no coordination.
+     *
+     * <p>The clip box is the BORDER box (the view's own bounds), chosen deliberately for
+     * cross-platform consistency: iOS clips with {@code UIView.clipsToBounds} and HarmonyOS with
+     * ArkUI {@code NODE_CLIP}, both of which clip at the node's own boundary, and neither
+     * platform ever applies the CSS padding to its platform view (padding is consumed by Yoga to
+     * offset child frames). Clipping at the padding box here would leave Android as the only
+     * platform that cuts a padding's width earlier than the other two for the same payload.
+     *
+     * <p>This is a KNOWN, DELIBERATE DEVIATION from CSS Overflow L3, which specifies the padding
+     * box. It was verified on device that iOS and HarmonyOS both let content bleed into the
+     * padding area on the right/bottom edges; aligning all three on the border box was preferred
+     * over one platform being correct and two being wrong. If CSS conformance is prioritised
+     * later, all three platforms have to change together — on Android that means taking the
+     * insets from the styles map ({@code View.getPadding*()} is always 0 on Yoga-driven
+     * containers, since Yoga consumes the padding) and skipping the clip when the padding
+     * exceeds the view size, which would otherwise produce an inverted, content-erasing rect.
+     *
+     * <p>{@code border-radius} and {@code overflow} are two inputs to ONE clip decision, and a
+     * positive radius is a peer of the clipping keywords rather than a fallback consulted only when
+     * {@code overflow} is absent. See {@link #resolveClipDecision} for the exact table; the
+     * authority is HarmonyOS {@code a2ui_component.cpp}, which drives its single {@code NODE_CLIP}
+     * flag from both keys in the same block.
+     *
+     * <p>Because the caller passes the component's full accumulated styles, whichever branch wins
+     * must also maintain the {@code agenui_overflow_hidden} tag: a stale tag permanently
+     * short-circuits ShadowPainter's clip-guard. The tag therefore tracks the resolved decision,
+     * not the literal {@code overflow} keyword — a container clipped only because it is rounded
+     * counts as clipping, which is what that guard needs to know.
      */
-    public static void applyOverflow(ViewGroup viewGroup, Map<String, Object> properties) {
-        if (viewGroup == null || properties == null) return;
+    public static void applyOverflow(ViewGroup viewGroup, Map<String, Object> styles) {
+        if (viewGroup == null || styles == null) return;
 
-        if (properties.containsKey("overflow")) {
-            String overflow = String.valueOf(properties.get("overflow")).toLowerCase();
-            switch (overflow) {
-                case "hidden":
-                    viewGroup.setClipChildren(true);
-                    viewGroup.setClipToPadding(true);
-                    viewGroup.setTag(R.id.agenui_overflow_hidden, Boolean.TRUE);
-                    if (properties.containsKey("border-radius")) {
-                        final int radiusPx = parseDimension(properties.get("border-radius"),
-                                viewGroup.getContext());
-                        if (radiusPx > 0) {
-                            viewGroup.setOutlineProvider(new ViewOutlineProvider() {
-                                @Override
-                                public void getOutline(View v, Outline outline) {
-                                    outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(), radiusPx);
-                                }
-                            });
-                            viewGroup.setClipToOutline(true);
-                        }
-                    }
-                    break;
-                case "visible":
-                    viewGroup.setClipChildren(false);
-                    viewGroup.setClipToPadding(false);
-                    viewGroup.setTag(R.id.agenui_overflow_hidden, null);
-                    break;
-                case "scroll":
-                case "auto":
-                    // Requires wrapping in a ScrollView; not yet implemented
-                    break;
-            }
+        switch (resolveClipDecision(styles, viewGroup.getContext())) {
+            case CLIP_ON:
+                enableSelfClip(viewGroup);
+                viewGroup.setTag(R.id.agenui_overflow_hidden, Boolean.TRUE);
+                break;
+            case CLIP_OFF:
+                disableSelfClip(viewGroup);
+                viewGroup.setTag(R.id.agenui_overflow_hidden, null);
+                break;
+            default:
+                // CLIP_UNSPECIFIED: keep the clip state that is already in effect.
+                break;
         }
+    }
+
+    /** Leave the current clip state alone. */
+    private static final int CLIP_UNSPECIFIED = 0;
+    /** Establish a clipping viewport. */
+    private static final int CLIP_ON = 1;
+    /** Explicitly remove any clip. */
+    private static final int CLIP_OFF = 2;
+
+    /**
+     * Resolves {@code border-radius} + {@code overflow} into one of three outcomes, mirroring the
+     * {@code NODE_CLIP} block in HarmonyOS {@code a2ui_component.cpp} condition for condition:
+     *
+     * <pre>
+     *   radius &gt; 0 || overflow == hidden || overflow == scroll   -&gt; CLIP_ON
+     *   hasRadiusKey || overflow == visible                       -&gt; CLIP_OFF
+     *   otherwise                                                 -&gt; CLIP_UNSPECIFIED
+     * </pre>
+     *
+     * <p>Three things about this table are easy to get wrong:
+     *
+     * <ul>
+     *   <li><b>A positive radius is a peer of the clipping keywords, not a fallback.</b> It is
+     *       OR-ed with them, so it clips even against an explicit {@code overflow: visible} — the
+     *       same precedence Android already had via {@code setClipToOutline}, which stays on
+     *       regardless of {@code overflow}. Reading the radius only when {@code overflow} is absent
+     *       would let {@code visible} silently un-round a rounded container's clip.</li>
+     *   <li><b>{@code scroll} clips like {@code hidden}</b>, and {@code visible} is the only
+     *       keyword that turns the clip off.</li>
+     *   <li><b>{@code auto}, and any unknown keyword, is CLIP_UNSPECIFIED</b> — a no-op that
+     *       preserves the current state, not a reset to {@code visible}. Both other platforms
+     *       leave such values unhandled (iOS only logs in its {@code default} branch), so resetting
+     *       here would un-clip a container that was already clipping.</li>
+     * </ul>
+     *
+     * <p>A {@code border-radius} key that is present but resolves to zero falls into CLIP_OFF: that
+     * is the reset path for a radius being removed or zeroed. A present-but-null {@code overflow}
+     * counts as absent.
+     */
+    private static int resolveClipDecision(Map<String, Object> styles, Context ctx) {
+        String overflow = "";
+        Object declared = styles.get("overflow");
+        if (declared != null) {
+            overflow = String.valueOf(declared).trim().toLowerCase();
+        }
+
+        boolean hasRadiusKey = styles.containsKey("border-radius");
+        int radiusPx = hasRadiusKey ? parseDimensionOrZero(styles.get("border-radius"), ctx) : 0;
+
+        if (radiusPx > 0 || "hidden".equals(overflow) || "scroll".equals(overflow)) {
+            return CLIP_ON;
+        }
+        if (hasRadiusKey || "visible".equals(overflow)) {
+            return CLIP_OFF;
+        }
+        return CLIP_UNSPECIFIED;
+    }
+
+    /**
+     * Turns on border-box self-clipping. The clip rect must track the view's size, so an
+     * {@link View.OnLayoutChangeListener} re-applies it on every layout. The listener is
+     * installed only once (idempotence guard via {@code agenui_overflow_clip_listener}) and is
+     * removed again by {@link #disableSelfClip}, so no separate "clip enabled" marker is needed:
+     * nothing calls {@link #applySelfClipRect} once the clip has been turned off.
+     */
+    private static void enableSelfClip(View view) {
+        applySelfClipRect(view);
+        if (view.getTag(R.id.agenui_overflow_clip_listener) == null) {
+            View.OnLayoutChangeListener listener = new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int l, int t, int r, int b,
+                                           int ol, int ot, int or, int ob) {
+                    applySelfClipRect(v);
+                }
+            };
+            view.addOnLayoutChangeListener(listener);
+            view.setTag(R.id.agenui_overflow_clip_listener, listener);
+        }
+    }
+
+    private static void disableSelfClip(View view) {
+        view.setClipBounds(null);
+        Object listener = view.getTag(R.id.agenui_overflow_clip_listener);
+        if (listener instanceof View.OnLayoutChangeListener) {
+            view.removeOnLayoutChangeListener((View.OnLayoutChangeListener) listener);
+        }
+        view.setTag(R.id.agenui_overflow_clip_listener, null);
+    }
+
+    /**
+     * Applies the border-box clip rect for the current size. Skips when the view has no size yet
+     * (creation time, before the first layout) — an empty clip rect would blank the first frame;
+     * the layout listener installed by {@link #enableSelfClip} applies it right after the first
+     * layout pass. {@code setClipBounds} is idempotent (AOSP early-returns on equal rects), so
+     * re-applying on every layout is cheap.
+     *
+     * <p>Clipping to the full bounds is not a no-op: without an explicit clip rect a child can
+     * still paint outside this view when an ancestor does not clip (YogaAbsoluteLayout sets
+     * {@code clipChildren=false}), which is exactly the overflow this method exists to cut.
+     */
+    private static void applySelfClipRect(View view) {
+        int w = view.getWidth();
+        int h = view.getHeight();
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        view.setClipBounds(new Rect(0, 0, w, h));
     }
 
 

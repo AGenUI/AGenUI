@@ -145,6 +145,12 @@ export function registerDefaultTheme(theme: string, designToken: string): boolea
 
 export function setDayNightMode(mode: string): void {}
 
+export function setDebug(isDebug: boolean): void {}
+
+export function isDebug(): boolean {
+  return false;
+}
+
 export function registerComponent(type: string, creator: Function): void {}
 
 export function getVersion(): string {
@@ -277,7 +283,19 @@ export function setImagePixelMap(
   pixelFormat: number, alphaType: number
 ): void {}
 
+export function setImagePixelMapNative(requestId: string, pixelMap: object): void {}
+
 export function onImageLoadFailed(requestId: string, isCancelled: boolean): void {}
+
+// Custom font registration (added by the font-registration feature). Stubbed
+// as no-ops so the @agenui bridge module can instantiate under ohosTest.
+export function registerFont(familyName: string, filePath: string): boolean {
+  return true;
+}
+
+export function registerFontFromBuffer(familyName: string, buffer: ArrayBuffer): boolean {
+  return true;
+}
 
 interface MeasureResult {
   width: number;
@@ -298,6 +316,8 @@ const NativeMock: Record<string, Object> = {
   'setPathConfig': setPathConfig as Object,
   'registerDefaultTheme': registerDefaultTheme as Object,
   'setDayNightMode': setDayNightMode as Object,
+  'setDebug': setDebug as Object,
+  'isDebug': isDebug as Object,
   'registerComponent': registerComponent as Object,
   'getVersion': getVersion as Object,
   'createSurfaceManager': createSurfaceManager as Object,
@@ -331,7 +351,10 @@ const NativeMock: Record<string, Object> = {
   'beginTextStream': beginTextStream as Object,
   'endTextStream': endTextStream as Object,
   'registerImageLoader': registerImageLoader as Object,
+  'registerFont': registerFont as Object,
+  'registerFontFromBuffer': registerFontFromBuffer as Object,
   'setImagePixelMap': setImagePixelMap as Object,
+  'setImagePixelMapNative': setImagePixelMapNative as Object,
   'onImageLoadFailed': onImageLoadFailed as Object,
   'reportComponentRenderSize': reportComponentRenderSize as Object,
   'registerMeasurement': registerMeasurement as Object,

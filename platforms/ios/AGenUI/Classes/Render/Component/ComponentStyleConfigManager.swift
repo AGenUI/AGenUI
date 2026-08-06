@@ -282,34 +282,11 @@ internal class ComponentStyleConfigManager {
     }
     
     /// Parses font-weight into UIFont.Weight: keyword aliases first, then the numeric 100-900 scale.
+    ///
+    /// Delegates to `CSSPropertyParser.parseFontWeight` so this and the A2UI render
+    /// layer share one mapping.
     static func parseFontWeight(_ value: String) -> UIFont.Weight {
-        let trimmed = value.lowercased()
-
-        // Keyword aliases (ascending weight)
-        switch trimmed {
-        case "normal": return .regular
-        case "medium": return .medium
-        case "bold":   return .bold
-        default:       break
-        }
-
-        // Numeric scale: one case per weight level
-        if let numeric = Int(trimmed) {
-            switch numeric {
-            case 100: return .ultraLight
-            case 200: return .thin
-            case 300: return .light
-            case 400: return .regular
-            case 500: return .medium
-            case 600: return .semibold
-            case 700: return .bold
-            case 800: return .heavy
-            case 900: return .black
-            default:  return .regular //Fallback to regular (400) if the value is not a valid number
-            }
-        }
-
-        return .regular
+        return CSSPropertyParser.parseFontWeight(value)
     }
 
     /// Parses content mode (e.g., "fill" -> .scaleAspectFill)

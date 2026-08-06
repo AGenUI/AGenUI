@@ -73,6 +73,12 @@ export const registerDefaultTheme: (theme: string, designToken: string) => boole
 /** Sets the day/night mode. */
 export const setDayNightMode: (mode: string) => void;
 
+/** Sets whether the host app is a debug build. Defaults to false. */
+export const setDebug: (isDebug: boolean) => void;
+
+/** Gets whether the host app is a debug build. Returns false if never set. */
+export const isDebug: () => boolean;
+
 /** Registers a custom component factory. */
 export const registerComponent: (type: string, creator: (nodeId: string, props: object) => object) => void;
 

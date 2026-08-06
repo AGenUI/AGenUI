@@ -15,51 +15,47 @@ float clampOpacity(float value) {
     return value;
 }
 
-/// Wrapper used by animateNodeOpacityAfterMount to pass the outPayload pointer
-/// through the C-style post-frame callback.
-struct AppearPostFrameData {
-    ArkUI_NodeHandle     nodeHandle;
-    float                targetOpacity;
-    int32_t              durationMs;
-    OpacityAnimatePayload** outPayload;
-};
+/// Free a payload that never got a running animator: null the caller's
+/// tracking pointer first so it never dangles, then delete.
+void releasePayload(OpacityAnimatePayload* payload) {
+    if (payload->backPtr != nullptr) {
+        *(payload->backPtr) = nullptr;
+    }
+    delete payload;
+}
 
+void startOpacityAnimator(OpacityAnimatePayload* payload);
+
+/// Post-frame trampoline used by animateNodeOpacityAfterMount.  The payload is
+/// created *before* the frame callback is posted so the owning component can
+/// mark it destroyed (via cancelOpacityAnimator) during the one-frame window
+/// between scheduling and this callback firing.  Without that, a component
+/// destroyed within that window would leave us holding a dangling node handle
+/// and animate a freed node (SIGSEGV in setOpacity).
 void onAppearAnimatePostFrame(uint64_t /*nanoTimestamp*/, uint32_t /*frameCount*/, void* userData) {
-    auto* data = static_cast<AppearPostFrameData*>(userData);
-    if (data == nullptr) {
+    auto* payload = static_cast<OpacityAnimatePayload*>(userData);
+    if (payload == nullptr) {
         return;
     }
-    animateNodeOpacityNow(data->nodeHandle, data->targetOpacity, data->durationMs, data->outPayload);
-    delete data;
-}
-
-} // namespace
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-ArkUI_NativeAnimateAPI_1* getAnimateApi() {
-    static ArkUI_NativeAnimateAPI_1* animateApi = [] {
-        ArkUI_NativeAnimateAPI_1* api = nullptr;
-        OH_ArkUI_GetModuleInterface(ARKUI_NATIVE_ANIMATE, ArkUI_NativeAnimateAPI_1, api);
-        if (api == nullptr) {
-            HM_LOGE("Fatal: Failed to get ArkUI NativeAnimateAPI_1");
-        }
-        return api;
-    }();
-    return animateApi;
-}
-
-void animateNodeOpacityNow(ArkUI_NodeHandle nodeHandle, float targetOpacity, int32_t durationMs,
-                           OpacityAnimatePayload** outPayload) {
-    if (nodeHandle == nullptr) {
+    if (payload->destroyed || payload->nodeHandle == nullptr) {
+        // Component was destroyed while waiting for this frame — the node is
+        // gone and backPtr was already nulled by cancelOpacityAnimator.
+        delete payload;
         return;
     }
+    startOpacityAnimator(payload);
+}
 
-    targetOpacity = clampOpacity(targetOpacity);
-    if (durationMs <= 0) {
+/// Create and play the opacity animator for an already-allocated payload.
+/// On every failure/instant path the payload is released (backPtr nulled,
+/// payload deleted); on success ownership passes to the finish/cancel callback.
+void startOpacityAnimator(OpacityAnimatePayload* payload) {
+    ArkUI_NodeHandle nodeHandle = payload->nodeHandle;
+    float targetOpacity = payload->targetOpacity;
+
+    if (payload->durationMs <= 0) {
         A2UINode(nodeHandle).setOpacity(targetOpacity);
+        releasePayload(payload);
         return;
     }
 
@@ -67,23 +63,19 @@ void animateNodeOpacityNow(ArkUI_NodeHandle nodeHandle, float targetOpacity, int
     ArkUI_NativeAnimateAPI_1* animateApi = getAnimateApi();
     if (context == nullptr || animateApi == nullptr) {
         A2UINode(nodeHandle).setOpacity(targetOpacity);
+        releasePayload(payload);
         return;
     }
 
     ArkUI_AnimatorOption* option = OH_ArkUI_AnimatorOption_Create(0);
     if (option == nullptr) {
         A2UINode(nodeHandle).setOpacity(targetOpacity);
+        releasePayload(payload);
         return;
     }
 
-    auto* payload = new OpacityAnimatePayload();
-    payload->nodeHandle     = nodeHandle;
-    payload->targetOpacity  = targetOpacity;
-    payload->durationMs     = durationMs;
-    payload->backPtr        = outPayload;
-
     ArkUI_CurveHandle curve = OH_ArkUI_Curve_CreateCubicBezierCurve(0.42f, 0.0f, 0.58f, 1.0f);
-    OH_ArkUI_AnimatorOption_SetDuration(option, durationMs);
+    OH_ArkUI_AnimatorOption_SetDuration(option, payload->durationMs);
     OH_ArkUI_AnimatorOption_SetBegin(option, 0.0f);
     OH_ArkUI_AnimatorOption_SetEnd(option, targetOpacity);
     OH_ArkUI_AnimatorOption_SetIterations(option, 1);
@@ -132,21 +124,52 @@ void animateNodeOpacityNow(ArkUI_NodeHandle nodeHandle, float targetOpacity, int
     payload->animatorHandle = animatorHandle;
     if (animatorHandle == nullptr) {
         A2UINode(nodeHandle).setOpacity(targetOpacity);
-        delete payload;
-        if (outPayload) *outPayload = nullptr;
+        releasePayload(payload);
     } else if (OH_ArkUI_Animator_Play(animatorHandle) != ARKUI_ERROR_CODE_NO_ERROR) {
         animateApi->disposeAnimator(animatorHandle);
         A2UINode(nodeHandle).setOpacity(targetOpacity);
-        delete payload;
-        if (outPayload) *outPayload = nullptr;
-    } else {
-        if (outPayload) *outPayload = payload;
+        releasePayload(payload);
     }
 
     if (curve != nullptr) {
         OH_ArkUI_Curve_DisposeCurve(curve);
     }
     OH_ArkUI_AnimatorOption_Dispose(option);
+}
+
+} // namespace
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+ArkUI_NativeAnimateAPI_1* getAnimateApi() {
+    static ArkUI_NativeAnimateAPI_1* animateApi = [] {
+        ArkUI_NativeAnimateAPI_1* api = nullptr;
+        OH_ArkUI_GetModuleInterface(ARKUI_NATIVE_ANIMATE, ArkUI_NativeAnimateAPI_1, api);
+        if (api == nullptr) {
+            HM_LOGE("Fatal: Failed to get ArkUI NativeAnimateAPI_1");
+        }
+        return api;
+    }();
+    return animateApi;
+}
+
+void animateNodeOpacityNow(ArkUI_NodeHandle nodeHandle, float targetOpacity, int32_t durationMs,
+                           OpacityAnimatePayload** outPayload) {
+    if (outPayload) *outPayload = nullptr;
+    if (nodeHandle == nullptr) {
+        return;
+    }
+
+    auto* payload = new OpacityAnimatePayload();
+    payload->nodeHandle     = nodeHandle;
+    payload->targetOpacity  = clampOpacity(targetOpacity);
+    payload->durationMs     = durationMs;
+    payload->backPtr        = outPayload;
+    if (outPayload) *outPayload = payload;
+
+    startOpacityAnimator(payload);
 }
 
 void animateNodeOpacityAfterMount(ArkUI_NodeHandle nodeHandle, float targetOpacity, int32_t durationMs,
@@ -161,13 +184,21 @@ void animateNodeOpacityAfterMount(ArkUI_NodeHandle nodeHandle, float targetOpaci
         return;
     }
 
-    auto* data = new AppearPostFrameData();
-    data->nodeHandle    = nodeHandle;
-    data->targetOpacity = clampOpacity(targetOpacity);
-    data->durationMs    = durationMs;
-    data->outPayload    = outPayload;
-    if (postFrameCallbackCompat(context, data, onAppearAnimatePostFrame) != ARKUI_ERROR_CODE_NO_ERROR) {
-        delete data;
+    // Create the payload BEFORE posting the frame callback and hand it to the
+    // caller immediately.  If the owning component is destroyed during the
+    // one-frame wait, cancelOpacityAnimator() marks it destroyed and
+    // onAppearAnimatePostFrame drops the animation instead of touching the
+    // freed node (previously this window caused a use-after-free crash in
+    // A2UINode::setOpacity on the vsync thread).
+    auto* payload = new OpacityAnimatePayload();
+    payload->nodeHandle     = nodeHandle;
+    payload->targetOpacity  = clampOpacity(targetOpacity);
+    payload->durationMs     = durationMs;
+    payload->backPtr        = outPayload;
+    if (outPayload) *outPayload = payload;
+
+    if (postFrameCallbackCompat(context, payload, onAppearAnimatePostFrame) != ARKUI_ERROR_CODE_NO_ERROR) {
+        releasePayload(payload);
         animateNodeOpacityNow(nodeHandle, targetOpacity, durationMs, outPayload);
     }
 }
@@ -179,11 +210,14 @@ void cancelOpacityAnimator(OpacityAnimatePayload*& payload) {
     // Mark as destroyed so onFrame callbacks bail out immediately.
     payload->destroyed  = true;
     payload->nodeHandle = nullptr;
+    // Detach the back-pointer: it targets a member of the component being
+    // destroyed, so a late onFinish/onCancel callback must not write through it.
+    payload->backPtr    = nullptr;
     ArkUI_AnimatorHandle handle = payload->animatorHandle;
     payload->animatorHandle = nullptr;
 
-    // Null the caller's pointer now — the onCancel callback (fired by Cancel)
-    // will also try to null it via backPtr, which is a safe no-op.
+    // Null the caller's pointer now — the onCancel callback would otherwise
+    // have done it via backPtr, which has just been detached above.
     payload = nullptr;
 
     if (handle != nullptr) {
@@ -199,6 +233,10 @@ void cancelOpacityAnimator(OpacityAnimatePayload*& payload) {
     //   3. disposeAnimator   → no-op (already disposed)
     //   4. delete p          → frees the payload
     // So we do NOT delete the payload here — the callback owns deletion.
+    //
+    // If handle == nullptr the animator has not started yet (the payload is
+    // waiting in the post-frame queue).  onAppearAnimatePostFrame will see
+    // destroyed=true and delete the payload itself.
 }
 
 } // namespace a2ui

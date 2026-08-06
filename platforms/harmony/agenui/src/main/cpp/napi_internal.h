@@ -83,6 +83,8 @@ napi_value OnImageLoadFailed(napi_env env, napi_callback_info info);
 napi_value SetThemeConfig(napi_env env, napi_callback_info info);
 napi_value SetDesignTokenConfig(napi_env env, napi_callback_info info);
 napi_value SetDayNightMode(napi_env env, napi_callback_info info);
+napi_value SetDebug(napi_env env, napi_callback_info info);
+napi_value IsDebug(napi_env env, napi_callback_info info);
 napi_value RegisterDefaultTheme(napi_env env, napi_callback_info info);
 
 // napi_function.cpp

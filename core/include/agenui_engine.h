@@ -92,6 +92,18 @@ public:
     virtual void setDayNightMode(const std::string &mode) = 0;
 
     /**
+     * @brief Sets whether the host app is a debug build at runtime
+     * @param isDebug true for debug builds, false for release. Defaults to false if never called.
+     */
+    virtual void setDebug(bool isDebug) = 0;
+
+    /**
+     * @brief Gets whether the host app is a debug build, previously set via setDebug
+     * @return true for debug builds. Returns false if setDebug was never called.
+     */
+    virtual bool isDebug() = 0;
+
+    /**
      * @brief Get MeasurementManager
      * @return MeasurementManager pointer, returns nullptr if uninitialized
      */
