@@ -233,6 +233,35 @@ public class AGenUI {
     }
 
     /**
+     * Sets whether the host app is a debug build so the SDK can adjust its internal behavior.
+     *
+     * Should be called right after initialize().
+     *
+     * @param isDebug true for debug builds, false for release.
+     *                Defaults to false if never called.
+     */
+    public void setDebug(boolean isDebug) {
+        if (!isInitialized()) {
+            AGenUILogger.e(TAG, "setDebug: Engine not initialized");
+            return;
+        }
+        nativeSetDebug(isDebug);
+    }
+
+    /**
+     * Gets whether the host app is a debug build, previously set via {@link #setDebug(boolean)}.
+     *
+     * @return true for debug builds. Returns false if never set or engine not initialized.
+     */
+    public boolean isDebug() {
+        if (!isInitialized()) {
+            AGenUILogger.w(TAG, "isDebug: Engine not initialized, returning default");
+            return false;
+        }
+        return nativeIsDebug();
+    }
+
+    /**
      * Sets path configuration for the engine
      *
      * @param configJson Path configuration JSON string
@@ -443,6 +472,8 @@ public class AGenUI {
     private static native boolean nativeLoadThemeConfig(String themeConfig);
     private static native boolean nativeLoadDesignTokenConfig(String designTokenConfig);
     private static native void nativeSetDayNightMode(String mode);
+    private static native void nativeSetDebug(boolean isDebug);
+    private static native boolean nativeIsDebug();
 
     public static native void nativeRegisterFunction(String name, String config, Object function);
     public static native void nativeUnregisterFunction(String name);

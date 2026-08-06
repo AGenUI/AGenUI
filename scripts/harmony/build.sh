@@ -164,82 +164,7 @@ prepare_release_env() {
     fi
 }
 
-# -------------------- Resolve git commit short SHA --------------------
-# Echoes the 7-char short SHA of HEAD (matches the convention in _common.sh's
-# generate_run_key / collect_git_metadata). Echoes nothing and warns when the
-# value cannot be resolved (no git, no commits, etc.), letting callers decide
-# how to degrade. Also warns once when the working tree is dirty so the user
-# knows the commit no longer uniquely identifies the artifact.
-resolve_commit_short_sha() {
-    if ! git -C "$AGENUI_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        warn "Not a git repository; commit-id suffix will be skipped"
-        return 0
-    fi
 
-    local commit
-    commit=$(git -C "$AGENUI_ROOT" rev-parse --short=7 HEAD 2>/dev/null || true)
-    if [[ -z "$commit" ]]; then
-        warn "Failed to resolve git commit short SHA; commit-id suffix will be skipped"
-        return 0
-    fi
-
-    if [[ -n "$(git -C "$AGENUI_ROOT" status --porcelain 2>/dev/null)" ]]; then
-        warn "Working tree is dirty; lite HAR version will reference commit ${commit} but may include uncommitted changes"
-    fi
-
-    echo "$commit"
-}
-
-# Rewrites the "version" field in the given oh-package.json5 to "<current>.<commit>".
-# No-ops (with a warn) when the file or the version field cannot be read.
-stamp_commit_into_oh_package() {
-    local file="$1"
-    local commit="$2"
-
-    if [[ ! -f "$file" ]]; then
-        warn "oh-package.json5 not found in extracted HAR (${file}); leaving version untouched"
-        return 0
-    fi
-
-    local current
-    current=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$file" \
-        | sed 's/.*"version"[[:space:]]*:[[:space:]]*"//;s/"//' || true)
-    if [[ -z "$current" ]]; then
-        warn "Failed to read existing version from ${file}; leaving version untouched"
-        return 0
-    fi
-
-    # Use SemVer 2.0.0 build-metadata syntax ("+<identifier>"). Build metadata
-    # MUST be ignored when determining version precedence (semver §10), which
-    # matches the intent here: tag the artifact with its source commit without
-    # affecting dependency resolution. A "." separator would yield a 4-segment
-    # version that ohpm's validator rejects as non-semver.
-    local new_version="${current}+${commit}"
-    if [[ "$(uname)" == "Darwin" ]]; then
-        sed -i '' "s/\(\"version\"[[:space:]]*:[[:space:]]*\"\)[^\"]*\"/\1${new_version}\"/" "$file"
-    else
-        sed -i "s/\(\"version\"[[:space:]]*:[[:space:]]*\"\)[^\"]*\"/\1${new_version}\"/" "$file"
-    fi
-    info "Stamped lite HAR version with commit short SHA: ${current} -> ${new_version}"
-}
-
-# -------------------- Pre-stamp version with commit SHA --------------------
-# For byteCodeHar, the version is baked into abc record names at compile time.
-# We MUST stamp oh-package.json5 BEFORE compilation so the abc records include
-# the "+<commit>" suffix. Stamping after compilation causes a mismatch between
-# the abc records (version "1.0.0") and the consumer's import references
-# (version "1.0.0+91084fe"), leading to runtime "cannot find record" crashes.
-MODULE_OH_PACKAGE="${HARMONY_PROJECT_ROOT}/${HARMONY_MODULE}/oh-package.json5"
-
-pre_stamp_version() {
-    local commit
-    commit="$(resolve_commit_short_sha)"
-    if [[ -z "$commit" ]]; then
-        return
-    fi
-    backup_file "$MODULE_OH_PACKAGE"
-    stamp_commit_into_oh_package "$MODULE_OH_PACKAGE" "$commit"
-}
 
 # -------------------- Build the HAR --------------------
 build_har() {
@@ -261,9 +186,7 @@ build_har() {
 }
 
 # -------------------- Generate the lite HAR (third-party .so stripped) --------------------
-# The version is already stamped into oh-package.json5 before compilation
-# (via pre_stamp_version), so the HAR artifact's version and abc record names
-# are consistent. The lite HAR only strips third-party .so files.
+# The lite HAR only strips third-party .so files.
 create_lite_har() {
     local target_dir="$1"
     local work_dir
@@ -332,7 +255,6 @@ package_output() {
 
 # -------------------- Main --------------------
 prepare_release_env
-pre_stamp_version
 build_har
 if [[ "$DO_PACKAGE" == true ]]; then
     package_output

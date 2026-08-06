@@ -99,7 +99,7 @@ public enum CSSPaddingResolver {
     /// CSS length unit, parsed via the canonical C++ parser), NSNumber, Int,
     /// Double, CGFloat. Numeric tokens are treated as raw px and scaled by
     /// `pointScale`. Returns nil for unparseable input.
-    static func parseLengthPt(_ value: Any?) -> CGFloat? {
+    public static func parseLengthPt(_ value: Any?) -> CGFloat? {
         guard let value = value else { return nil }
         if let s = value as? String {
             let trimmed = s.trimmingCharacters(in: .whitespaces)

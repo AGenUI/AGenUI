@@ -146,6 +146,24 @@ static void jni_setDayNightMode(JNIEnv* env, jclass clazz, jstring jMode) {
     engine->setDayNightMode(mode);
 }
 
+static void jni_setDebug(JNIEnv* env, jclass clazz, jboolean jIsDebug) {
+    IAGenUIEngine *engine = getAGenUIEngine();
+    if (!engine) {
+        AGENUI_LOG("[JNI] setDebug: engine is null");
+        return;
+    }
+    engine->setDebug(jIsDebug == JNI_TRUE);
+}
+
+static jboolean jni_isDebug(JNIEnv* env, jclass clazz) {
+    IAGenUIEngine *engine = getAGenUIEngine();
+    if (!engine) {
+        AGENUI_LOG("[JNI] isDebug: engine is null, returning default");
+        return JNI_FALSE;
+    }
+    return engine->isDebug() ? JNI_TRUE : JNI_FALSE;
+}
+
 static void jni_registerFunction(JNIEnv* env, jclass clazz, jstring jName, jstring jConfig, jobject javaFunction) {
     if (jName == nullptr || jConfig == nullptr || javaFunction == nullptr) {
         AGENUI_LOG("[JNI] registerFunction: invalid params");
@@ -244,6 +262,8 @@ jint register_jni_AGenUIEngine(JNIEnv* env) {
         {"nativeLoadThemeConfig", "(Ljava/lang/String;)Z", (void*)jni_loadThemeConfig},
         {"nativeLoadDesignTokenConfig", "(Ljava/lang/String;)Z", (void*)jni_loadDesignTokenConfig},
         {"nativeSetDayNightMode", "(Ljava/lang/String;)V", (void*)jni_setDayNightMode},
+        {"nativeSetDebug", "(Z)V", (void*)jni_setDebug},
+        {"nativeIsDebug", "()Z", (void*)jni_isDebug},
         // Function registration
         {"nativeRegisterFunction", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V", (void*)jni_registerFunction},
         {"nativeUnregisterFunction", "(Ljava/lang/String;)V", (void*)jni_unregisterFunction},

@@ -63,6 +63,14 @@ typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(int instanceId, NSStri
 /// @param mode Mode configuration, "light" or "dark"
 - (void)setDayNightMode:(NSString *)mode;
 
+/// Set whether the host app is a debug build
+/// @param isDebug YES for debug builds, NO for release. Defaults to NO.
+- (void)setDebug:(BOOL)isDebug;
+
+/// Get whether the host app is a debug build, previously set via setDebug
+/// @return YES for debug builds. Returns NO if never set.
+- (BOOL)isDebug;
+
 // MARK: - FunctionCall / Skill Management
 
 /// Register FunctionCall (Skill)

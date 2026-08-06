@@ -16,6 +16,7 @@ import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.A2UILayoutComponent;
 import com.amap.agenui.render.component.ComponentEventDispatcher;
 import com.amap.agenui.render.drawable.ShadowPainter;
+import com.amap.agenui.render.drawable.SoftwareCornerClip;
 import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.ArrayList;
@@ -92,7 +93,14 @@ public class Surface {
             @Override
             protected boolean drawChild(@NonNull Canvas canvas, View child, long drawingTime) {
                 ShadowPainter.drawIfNeeded(canvas, child);
-                return super.drawChild(canvas, child, drawingTime);
+                // Software-canvas rounded-corner fallback (screenshots): clipToOutline is
+                // RenderNode-only and never fires on bitmap-backed canvases.
+                int cornerSave = SoftwareCornerClip.clipIfNeeded(canvas, child);
+                boolean more = super.drawChild(canvas, child, drawingTime);
+                if (cornerSave >= 0) {
+                    canvas.restoreToCount(cornerSave);
+                }
+                return more;
             }
         };
         // Marks AGenUI's outermost view. ShadowPainter uses this to stop clip-disabling here so a

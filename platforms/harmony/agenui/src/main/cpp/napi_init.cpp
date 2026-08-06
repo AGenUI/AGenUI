@@ -283,6 +283,7 @@ static napi_value Start(napi_env env, napi_callback_info info) {
         mm->registerMeasurement("Icon",         std::make_shared<a2ui::ImageComponentMeasurement>());
         mm->registerMeasurement("Slider",       std::make_shared<a2ui::SliderComponentMeasurement>());
         mm->registerMeasurement("Text",         std::make_shared<a2ui::TextComponentMeasurement>());
+        mm->registerMeasurement("AmapText",     std::make_shared<a2ui::TextComponentMeasurement>());
         mm->registerMeasurement("RichText",     std::make_shared<a2ui::TextComponentMeasurement>());
         mm->registerMeasurement("CheckBox",     std::make_shared<a2ui::CheckBoxComponentMeasurement>());
         mm->registerMeasurement("ChoicePicker", std::make_shared<a2ui::ChoicePickerComponentMeasurement>());
@@ -609,6 +610,8 @@ static napi_value Init(napi_env env, napi_value exports)
         { "receiveTextChunk", nullptr, ReceiveTextChunk, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "registerDefaultTheme", nullptr, RegisterDefaultTheme, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "setDayNightMode", nullptr, SetDayNightMode, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "setDebug", nullptr, SetDebug, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "isDebug", nullptr, IsDebug, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "beginTextStream", nullptr, BeginTextStream, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "endTextStream", nullptr, EndTextStream, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "invalidateFunctionCallValues", nullptr, InvalidateFunctionCallValues, nullptr, nullptr, nullptr, napi_default, nullptr },

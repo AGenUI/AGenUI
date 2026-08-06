@@ -294,10 +294,10 @@ bool MarkdownStreamPlugin::continueDataModelStreaming(
                 nlohmann::json fullEvent = nlohmann::json::parse(eventJsonStr, nullptr, false);
                 if (!fullEvent.is_discarded() && fullEvent.contains("updateDataModel")) {
                     auto& udm = fullEvent["updateDataModel"];
-                    if (udm.contains("value") && udm.contains("surfaceId")) {
+                    if (udm.contains("value") && udm.contains("surfaceId") && udm["surfaceId"].is_string()) {
                         nlohmann::json value = udm["value"];
                         std::string surfaceId = udm["surfaceId"].get<std::string>();
-                        std::string eventPath = udm.contains("path")
+                        std::string eventPath = (udm.contains("path") && udm["path"].is_string())
                             ? udm["path"].get<std::string>() : "/";
                         std::string basePath = (eventPath == "/") ? "" : eventPath;
 

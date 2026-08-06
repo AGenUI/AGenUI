@@ -662,7 +662,7 @@ std::shared_ptr<DataBindingDataValue> DataValueParser::parseDataBindingDataValue
         return nullptr;
     }
 
-    if (json.is_object() && json.contains("path")) {
+    if (json.is_object() && json.contains("path") && json["path"].is_string()) {
         AGENUI_LOG("%s", valueJson.c_str());
         std::string path = json["path"].get<std::string>();
         return std::make_shared<DataBindingDataValue>(context, path);

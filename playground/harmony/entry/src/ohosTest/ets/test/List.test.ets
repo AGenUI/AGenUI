@@ -16,6 +16,7 @@ import modalDestructorUafTest from './tests/ModalDestructorUafTest';
 import textChunkTypeMismatchTest from './tests/TextChunkTypeMismatchTest';
 import rawIdTypeMismatchTest from './tests/RawIdTypeMismatchTest';
 import streamPluginSurfaceIdCrashTest from './tests/StreamPluginSurfaceIdCrashTest';
+import textChunkStylesPathTypeMismatchTest from './tests/TextChunkStylesPathTypeMismatchTest';
 
 export default function testsuite() {
   abilityTest();
@@ -36,4 +37,5 @@ export default function testsuite() {
   textChunkTypeMismatchTest();
   rawIdTypeMismatchTest();
   streamPluginSurfaceIdCrashTest();
+  textChunkStylesPathTypeMismatchTest();
 }

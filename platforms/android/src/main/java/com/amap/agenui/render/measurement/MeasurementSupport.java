@@ -17,11 +17,11 @@ import java.util.Map;
  * centralizing JSON parsing, A2UI dimension extraction, style lookup and Yoga constraint
  * resolution semantics.
  */
-final class MeasurementSupport {
+public final class MeasurementSupport {
 
-    static final int MODE_UNDEFINED = 0;
-    static final int MODE_EXACTLY = 1;
-    static final int MODE_AT_MOST = 2;
+    public static final int MODE_UNDEFINED = 0;
+    public static final int MODE_EXACTLY = 1;
+    public static final int MODE_AT_MOST = 2;
 
     private MeasurementSupport() {
     }

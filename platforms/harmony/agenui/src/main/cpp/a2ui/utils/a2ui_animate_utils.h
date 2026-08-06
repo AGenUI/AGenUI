@@ -82,6 +82,10 @@ void animateNodeOpacityNow(ArkUI_NodeHandle nodeHandle, float targetOpacity, int
  * to animateNodeOpacityNow() when the context is unavailable or the callback
  * registration fails.
  *
+ * The payload is allocated and written to @p outPayload immediately (before
+ * the frame callback fires), so the caller can cancel via
+ * cancelOpacityAnimator() even during the one-frame scheduling window.
+ *
  * @param nodeHandle    Target ArkUI node; silently ignored when null.
  * @param targetOpacity Destination opacity value, clamped to [0, 1].
  * @param durationMs    Animation duration in milliseconds.
@@ -92,10 +96,13 @@ void animateNodeOpacityAfterMount(ArkUI_NodeHandle nodeHandle, float targetOpaci
                                   OpacityAnimatePayload** outPayload = nullptr);
 
 /**
- * Cancel a running opacity animator and free its payload.
+ * Cancel a running (or still pending) opacity animator.
  *
- * Sets the destroyed flag (so pending onFrame callbacks bail out), cancels
- * the animator, disposes it, deletes the payload, and sets @p payload to null.
+ * Sets the destroyed flag and detaches the node handle / back-pointer so any
+ * in-flight callbacks skip node access, cancels and disposes the animator if
+ * it already started, and sets @p payload to null.  The payload itself is
+ * freed by the animator's onCancel/onFinish callback, or by the post-frame
+ * callback when the animation had not started yet.
  * Safe to call with a null payload (no-op).
  *
  * @param payload  Reference to the payload pointer; set to nullptr on return.

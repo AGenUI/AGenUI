@@ -5,16 +5,23 @@
 namespace a2ui {
 
 /**
- * Card container with a white background, rounded corners, and shadow.
+ * Card container: a COLUMN node whose looks come entirely from styles.
  *
- * Supported properties:
- *   - radius / border-radius: numeric a2ui value or a string such as "16px"
- *   - backgroundColor / background-color: hex color string
- *   - border-width / borderWidth: border width (e.g. "3px")
- *   - border-color / borderColor: border color (e.g. "#1565C0")
- *   - padding: numeric value or a string such as "24px", applied to all sides
- *   - filter: CSS filter, currently supporting "drop-shadow(offsetX offsetY blur color)"
- *   - elevation: reserved legacy field, replaced by filter
+ * The constructor deliberately applies no default chrome -- Card's defaults live in
+ * core's per-component spec (border-radius: 16px) and arrive as ordinary styles.
+ * Styling then goes through the shared A2UIComponent helpers, so Card behaves exactly
+ * like Column / Row for every CSS key they support:
+ *   - border-radius + overflow: resolved into the single NODE_CLIP decision by
+ *     A2UIComponent::applyBorderStyles. Clipping is what makes the corners visible at
+ *     all -- a radius on its own only rounds this node's background and leaves square
+ *     children covering the corners.
+ *   - border-width / border-color, background-color (incl. gradients), filter:
+ *     drop-shadow(...) -- all read from styles by the shared helpers.
+ *
+ * Only "elevation" is still read from the top level, as a legacy alias for a vertical
+ * drop shadow. Note that a top-level "radius" is NOT honoured (styles["border-radius"]
+ * is the only radius input, and core always injects one); Android's CardComponent does
+ * honour it, which is a known cross-platform divergence tracked separately.
  */
 class CardComponent final : public A2UIComponent {
 public:
@@ -25,23 +32,8 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
-    /** Parse radius / border-radius and apply NODE_BORDER_RADIUS. */
-    void applyRadius(const nlohmann::json& properties);
-
-    /** Parse border-width / borderWidth and apply NODE_BORDER_WIDTH. */
-    void applyBorderWidth(const nlohmann::json& properties);
-
-    /** Parse border-color / borderColor and apply NODE_BORDER_COLOR. */
-    void applyBorderColor(const nlohmann::json& properties);
-
-    /** Parse filter: drop-shadow(...) and apply NODE_CUSTOM_SHADOW. */
-    void applyFilter(const nlohmann::json& properties);
-
     /** Parse the legacy elevation property and map it to NODE_CUSTOM_SHADOW. */
     void applyElevation(const nlohmann::json& properties);
-
-    /** Parse a CSS length from JSON and return an a2ui value. */
-    static float parseCssLength(const nlohmann::json& val, float fallback);
 };
 
 } // namespace a2ui

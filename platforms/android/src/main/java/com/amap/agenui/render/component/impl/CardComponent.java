@@ -40,6 +40,12 @@ public class CardComponent extends A2UILayoutComponent {
         cardView.setCardElevation(0f);
         cardView.setMaxCardElevation(0f);
         cardView.setElevation(0f);
+        // Pass descendant content through untouched unless overflow says otherwise -- see
+        // StyleHelper.applyOverflow. NOTE: CardView's constructor also turns on setClipToOutline,
+        // which clipChildren cannot override, so a Card still masks its subtree to the rounded
+        // outline.
+        cardView.setClipChildren(false);
+        cardView.setClipToPadding(false);
 
         contentContainer = new YogaAbsoluteLayout(context);
         cardView.addView(contentContainer, new CardView.LayoutParams(

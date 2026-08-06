@@ -137,7 +137,7 @@ void ImageComponent::playMagicReveal(int32_t durationMs, float hintW, float hint
     }
 
     A2UIImageNode node(m_nodeHandle);
-    node.setOpacity(1.0f);
+    node.setOpacity(declaredOpacity());
     node.setScale(kImageFadeInStartScale, kImageFadeInStartScale);
 
     RevealPayload* rp = new RevealPayload();

@@ -713,7 +713,7 @@ public class A2UIPlaygroundActivity extends AppCompatActivity {
 
         // 4. Register Surface listener
         attachSurfaceListener();
-        
+
         // 5. Register Components and Functions
         AGenUI.getInstance().registerFunction(new ToastFunction(this));
 

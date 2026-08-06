@@ -159,6 +159,20 @@ static std::mutex sFunctionMutex;
     _engine->setDayNightMode(modeStr);
 }
 
+- (void)setDebug:(BOOL)isDebug {
+    if (_engine == nullptr) {
+        return;
+    }
+    _engine->setDebug(isDebug == YES);
+}
+
+- (BOOL)isDebug {
+    if (_engine == nullptr) {
+        return NO;
+    }
+    return _engine->isDebug() ? YES : NO;
+}
+
 // MARK: - FunctionCall Management
 
 - (BOOL)registerFunction:(NSString *)functionCallName

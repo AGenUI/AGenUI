@@ -131,3 +131,27 @@
 - 统一三端 `font-weight` 解析顺序（关键字 → 数值）；Android 改用 `parseInt` 解析数值。
 
 ---
+
+# [v1.3.1] - 2026-08-06
+
+## 新特性
+
+- **包类型 API**：引擎新增包类型设置与获取接口，贯穿 Core 引擎及 Android、iOS、鸿蒙集成层。
+- **文本渲染链路统一**：Text 与 RichText 合并为一条渲染链路，复用共享 Label 实现，提升渲染一致性与可维护性。
+- 完善 JSON 解析时的类型判断与异常捕获，避免异常协议数据引发稳定性问题。
+- Button 样式接入基类共享样式管道。
+- Card 圆角接入共享裁剪决策。
+
+## Bug 修复
+
+- 修复 `overflow: hidden` 不生效的问题。
+- 修复透明度（opacity）不生效的问题。
+- (Android) 将 `border-radius` 与 `overflow` 收敛为统一的裁剪决策，消除裁剪行为不一致问题。
+- (Android) 修复软件画布（software canvas）上圆角丢失的问题。
+- (Android) 修复内置容器意外裁剪子元素的问题。
+- (Android) 修复描边圆心（`border-width`）与圆角裁剪圆心（`border-radius`）错位的问题。
+- (iOS) 修复横向 List 因 `layoutIfNeeded` 重入触发的 UIKit 断言崩溃，以及横向 List 离屏更新时效问题。
+- (iOS) 过滤 properties 中的空值，防止崩溃。
+- (Android) 修复 Tab 组件第一次展示时误触发 `onTabClick` 的问题。
+
+---

@@ -102,6 +102,11 @@ public class TabsComponent extends A2UILayoutComponent {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
+        // Pass descendant content through untouched unless overflow says otherwise -- see
+        // StyleHelper.applyOverflow. The tab-title viewport inside CustomTabLayout is a scrolling
+        // viewport and keeps clipping; only this container and the content container opt out.
+        container.setClipChildren(false);
+        container.setClipToPadding(false);
         return container;
     }
 
@@ -252,6 +257,8 @@ public class TabsComponent extends A2UILayoutComponent {
                 ViewGroup.LayoutParams.WRAP_CONTENT
         );
         container.setLayoutParams(params);
+        container.setClipChildren(false);
+        container.setClipToPadding(false);
         return container;
     }
 
@@ -259,12 +266,11 @@ public class TabsComponent extends A2UILayoutComponent {
      * Set up tab selection listener
      */
     private void setupTabSelectionListener() {
+        tabLayout.setOnTabClickListener(tab -> onTabClicked(tab.getPosition()));
         tabLayout.addOnTabSelectedListener(new CustomTabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(CustomTabLayout.Tab tab) {
-                int position = tab.getPosition();
-                showTabContent(position);
-                onTabClicked(position);
+                showTabContent(tab.getPosition());
             }
 
             @Override
@@ -277,6 +283,12 @@ public class TabsComponent extends A2UILayoutComponent {
         });
     }
 
+    /**
+     * Called when a tab is selected by user interaction.
+     *
+     * Subclasses can override this to respond to tab switch events. Programmatic
+     * selection (initial render, tabs property updates) does not reach here.
+     */
     protected void onTabClicked(int index) {
     }
 

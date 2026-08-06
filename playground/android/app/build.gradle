@@ -16,16 +16,80 @@ if (asanEnabled) {
     logger.lifecycle("[ASan] AddressSanitizer build ENABLED for playground app")
 }
 
+def playgroundVersionName = System.getenv('ANDROID_PLAYGROUND_VERSION_NAME') ?: '1.0'
+if (playgroundVersionName.trim().isEmpty()) {
+    throw new GradleException('ANDROID_PLAYGROUND_VERSION_NAME must not be empty')
+}
+
+def playgroundVersionCodeValue = System.getenv('ANDROID_PLAYGROUND_VERSION_CODE') ?: '1'
+def playgroundVersionCode
+try {
+    playgroundVersionCode = Integer.parseInt(playgroundVersionCodeValue)
+} catch (NumberFormatException ignored) {
+    throw new GradleException('ANDROID_PLAYGROUND_VERSION_CODE must be a positive integer')
+}
+if (playgroundVersionCode <= 0) {
+    throw new GradleException('ANDROID_PLAYGROUND_VERSION_CODE must be a positive integer')
+}
+
+def signingEnvironment = [
+    keystorePath: System.getenv('ANDROID_PLAYGROUND_KEYSTORE_PATH'),
+    storePassword: System.getenv('ANDROID_PLAYGROUND_KEYSTORE_PASSWORD'),
+    keyAlias: System.getenv('ANDROID_PLAYGROUND_KEY_ALIAS'),
+    keyPassword: System.getenv('ANDROID_PLAYGROUND_KEY_PASSWORD'),
+]
+def requirePlaygroundSigning =
+    (System.getenv('ANDROID_PLAYGROUND_REQUIRE_SIGNING') ?: 'false').toBoolean()
+def configuredSigningValues = signingEnvironment.findAll { _, value ->
+    value != null && !value.isEmpty()
+}
+def playgroundSigningConfigured =
+    configuredSigningValues.size() == signingEnvironment.size()
+
+if ((requirePlaygroundSigning || !configuredSigningValues.isEmpty()) &&
+    !playgroundSigningConfigured) {
+    def missingVariables = signingEnvironment.findAll { _, value ->
+        value == null || value.isEmpty()
+    }.keySet().join(', ')
+    throw new GradleException(
+        "Incomplete Android Playground signing configuration; missing: ${missingVariables}"
+    )
+}
+
+def playgroundKeystoreFile = null
+if (playgroundSigningConfigured) {
+    playgroundKeystoreFile = new File(signingEnvironment.keystorePath)
+    if (!playgroundKeystoreFile.isAbsolute()) {
+        playgroundKeystoreFile = rootProject.file(signingEnvironment.keystorePath)
+    }
+    if (!playgroundKeystoreFile.isFile()) {
+        throw new GradleException(
+            "Android Playground keystore does not exist: ${playgroundKeystoreFile}"
+        )
+    }
+}
+
 android {
     namespace 'com.amap.agenuiplayground'
     compileSdk 35
+
+    signingConfigs {
+        if (playgroundSigningConfigured) {
+            playgroundRelease {
+                storeFile playgroundKeystoreFile
+                storePassword signingEnvironment.storePassword
+                keyAlias signingEnvironment.keyAlias
+                keyPassword signingEnvironment.keyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId "com.amap.agenuiplayground"
         minSdk 21
         targetSdk 35
-        versionCode 1
-        versionName "1.0"
+        versionCode playgroundVersionCode
+        versionName playgroundVersionName
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -62,6 +126,9 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (playgroundSigningConfigured) {
+                signingConfig signingConfigs.playgroundRelease
+            }
         }
     }
     compileOptions {

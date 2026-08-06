@@ -1,10 +1,7 @@
 #include "button_component.h"
 #include "../a2ui_node.h"
-#include "../gradient_applier.h"
 #include "../../utils/a2ui_color_palette.h"
-#include "style_parser/agenui_color_parser.h"
 #include "log/a2ui_capi_log.h"
-#include <cstdlib>
 #include <cstdio>
 
 #undef LOG_DOMAIN
@@ -156,55 +153,29 @@ void ButtonComponent::applyStyles(const nlohmann::json& properties) {
         return;
     }
 
-    const auto& styles = properties["styles"];
-    A2UINode node(m_nodeHandle);
+    // Background, border and drop-shadow all go through the shared base-class
+    // pipeline, so Button behaves like the other containers: gradients, numeric
+    // or string values, and the border-radius / overflow -> NODE_CLIP decision.
+    // Only two things are Button specific, and both are normalised onto the
+    // standard background-color key first:
+    //   - the disabled state prefers the dedicated disabled background keys
+    //   - no declared background means transparent, which keeps tap feedback visible
+    nlohmann::json normalized = properties;
+    nlohmann::json& styles = normalized["styles"];
 
-    // Disabled buttons prefer the dedicated disabled background keys.
-    std::string bgColorKey = m_disabled ? "background-color-disabled" : "background-color";
-    std::string bgCamelKey = m_disabled ? "backgroundColorDisabled" : "backgroundColor";
-    std::string bgColorStr;
+    const std::string bgColorKey = m_disabled ? "background-color-disabled" : "background-color";
+    const std::string bgCamelKey = m_disabled ? "backgroundColorDisabled" : "backgroundColor";
+    std::string bgColorStr = "transparent";
     if (styles.contains(bgCamelKey) && styles[bgCamelKey].is_string()) {
         bgColorStr = styles[bgCamelKey].get<std::string>();
     } else if (styles.contains(bgColorKey) && styles[bgColorKey].is_string()) {
         bgColorStr = styles[bgColorKey].get<std::string>();
     }
-    if (!bgColorStr.empty()) {
-        agenui::ColorValue cv;
-        if (agenui::ColorParser::parse(bgColorStr, cv)) {
-            if (cv.type == agenui::ColorValueType::Gradient) {
-                node.setBackgroundColor(colors::kColorTransparent);
-                GradientApplier::apply(m_nodeHandle, cv.gradient, getWidth(), getHeight());
-            } else {
-                GradientApplier::reset(m_nodeHandle);
-                node.setBackgroundColor(cv.solidColor);
-            }
-        }
-    } else {
-        GradientApplier::reset(m_nodeHandle);
-        node.setBackgroundColor(colors::kColorTransparent);
-    }
+    styles["background-color"] = bgColorStr;
 
-    // Border radius.
-    if (styles.contains("border-radius") && styles["border-radius"].is_string()) {
-        float radius = static_cast<float>(std::atof(styles["border-radius"].get<std::string>().c_str()));
-        node.setBorderRadius(radius);
-    }
-
-    // Uniform border width.
-    if (styles.contains("border-width") && styles["border-width"].is_string()) {
-        float bw = static_cast<float>(std::atof(styles["border-width"].get<std::string>().c_str()));
-        node.setBorderWidth(bw, bw, bw, bw);
-        // Enable a solid border when width is non-zero.
-        if (bw > 0.0f) {
-            node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
-        }
-    }
-
-    // Border color.
-    if (styles.contains("border-color") && styles["border-color"].is_string()) {
-        node.setBorderColor(parseColor(styles["border-color"].get<std::string>()));
-    }
-
+    applyBackgroundColor(normalized);
+    applyBorderStyles(normalized);
+    applyFilter(normalized);
 }
 
 // ---- Checks ----

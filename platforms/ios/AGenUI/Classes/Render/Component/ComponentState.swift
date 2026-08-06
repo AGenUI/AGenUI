@@ -51,6 +51,10 @@ class ComponentState {
         case let (a as Bool, b as Bool):
             return a == b
         default:
+            // Non-container types like NSNull would make dataWithJSONObject throw an uncatchable NSException, so validate first.
+            guard JSONSerialization.isValidJSONObject(a!), JSONSerialization.isValidJSONObject(b!) else {
+                return "\(a!)" == "\(b!)"
+            }
             // Fall back to JSON serialization for dictionaries, arrays, etc.
             guard let dataA = try? JSONSerialization.data(withJSONObject: a!, options: [.sortedKeys]),
                   let dataB = try? JSONSerialization.data(withJSONObject: b!, options: [.sortedKeys]) else {

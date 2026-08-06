@@ -503,6 +503,21 @@ export class AGenUI {
     AGenUIEngineBridge.getInstance().setDayNightMode(mode);
   }
 
+  /**
+   * Sets whether the host app is a debug build. Defaults to false (release).
+   */
+  static setDebug(isDebug: boolean): void {
+    AGenUIEngineBridge.getInstance().setDebug(isDebug);
+  }
+
+  /**
+   * Gets whether the host app is a debug build, previously set via setDebug.
+   * Returns false if never set.
+   */
+  static isDebug(): boolean {
+    return AGenUIEngineBridge.getInstance().isDebug();
+  }
+
   // MARK: - Component Registration
 
   /**

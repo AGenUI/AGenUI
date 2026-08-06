@@ -285,7 +285,6 @@ private  class HorizontalCollectionView: UICollectionView, UICollectionViewDeleg
             child.frame = CGRect(origin: .zero, size: newFrame.size)
             self.isResettingChildOrigins = false
             collectionViewLayout.invalidateLayout()
-            layoutIfNeeded()
         }
         refreshHorizontalLayout()
     }

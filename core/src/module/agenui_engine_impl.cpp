@@ -12,6 +12,7 @@
 #include "surface/token_parser/agenui_token_parser.h"
 #include "surface/component_property_spec/agenui_component_property_spec_manager.h"
 #include "surface/yoga_node/agenui_measurement_manager.h"
+#include "agenui_build_type.h"
 #include <vector>
 
 namespace agenui {
@@ -247,6 +248,15 @@ void AGenUIEngine::setDayNightMode(const std::string &mode) {
     for (auto& sm : snapshot) {
         sm->invalidateFunctionCallValues();
     }
+}
+
+void AGenUIEngine::setDebug(bool isDebug) {
+    setBuildTypeInternal(isDebug ? BuildType::Debug : BuildType::Release);
+    AGENUI_LOG("build type set to %s", isDebug ? "debug" : "release");
+}
+
+bool AGenUIEngine::isDebug() {
+    return isDebugBuild();
 }
 
 ISurfaceManager* AGenUIEngine::findSurfaceManager(int instanceId) {

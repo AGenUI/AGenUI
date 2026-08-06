@@ -2,6 +2,7 @@
 #include <arkui/native_animate.h>
 #include <arkui/native_node_napi.h>
 #include <atomic>
+#include <cmath>
 #include <cstdlib>
 #include <mutex>
 #include <sstream>
@@ -193,6 +194,9 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
 
             // Apply the visibility style
             applyVisibility(stylesJson);
+
+            // Apply the opacity style
+            applyOpacity(stylesJson);
         }
     }
 }
@@ -390,6 +394,9 @@ void A2UIComponent::prepareAppearAnimation(const nlohmann::json& properties) {
         return;
     }
 
+    // The animation lands on the declared opacity, so record it as already
+    // applied and let applyOpacity stay out of the way until it finishes.
+    m_appliedOpacity = m_appearTargetOpacity;
     m_pendingAppearAnimation = true;
     A2UINode(m_nodeHandle).setOpacity(0.0f);
 }
@@ -713,6 +720,27 @@ void A2UIComponent::applyVisibility(const nlohmann::json& styles) {
     HM_LOGI("Set visibility=%s for component %s", value.c_str(), m_id.c_str());
 }
 
+void A2UIComponent::applyOpacity(const nlohmann::json& styles) {
+    if (!m_nodeHandle || !styles.contains("opacity")) {
+        return;
+    }
+    // The appear animation owns the node opacity until it finishes: it starts at
+    // 0 and lands exactly on the declared value, so writing the final value here
+    // would skip the fade-in.
+    if (m_pendingAppearAnimation) {
+        return;
+    }
+
+    const float opacity = clampOpacity(parseOpacityValue(styles["opacity"]));
+    if (std::fabs(opacity - m_appliedOpacity) < 0.0001f) {
+        return;
+    }
+
+    m_appliedOpacity = opacity;
+    A2UINode(m_nodeHandle).setOpacity(opacity);
+    HM_LOGI("Set opacity=%.3f for component %s", opacity, m_id.c_str());
+}
+
 /**
  * Parse and apply border styles from properties.styles
  * Supported properties:
@@ -781,17 +809,24 @@ void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
     const auto& styles = properties["styles"];
     A2UINode node(m_nodeHandle);
     
-    // border-radius
+    // border-radius / overflow (both drive the single NODE_CLIP flag)
     {
-        std::string radiusKey;
-        if (styles.contains("border-radius")) {
-            radiusKey = "border-radius";
-        } else if (styles.contains("borderRadius")) {
-            radiusKey = "borderRadius";
+        // Aligned with Android / iOS:
+        // - overflow "hidden" / "scroll" clips (Android StyleHelper.enableSelfClip,
+        //   i.e. View.setClipBounds on the declaring view -- deliberately NOT
+        //   setClipChildren, which is off by one level and leaks onto siblings;
+        //   iOS clipsToBounds = true for hidden + scroll)
+        // - overflow "visible" explicitly disables clipping (both ends do)
+        // - border-radius > 0 clips regardless of overflow, matching Android's
+        //   clipToOutline which stays on even with overflow: visible
+        std::string overflow;
+        if (styles.contains("overflow") && styles["overflow"].is_string()) {
+            overflow = styles["overflow"].get<std::string>();
         }
-        if (!radiusKey.empty()) {
-            float radius = 0.0f;
-            const auto& radiusVal = styles[radiusKey];
+        const bool hasRadiusKey = styles.contains("border-radius");
+        float radius = 0.0f;
+        if (hasRadiusKey) {
+            const auto& radiusVal = styles["border-radius"];
             if (radiusVal.is_number()) {
                 radius = radiusVal.get<float>();
             } else if (radiusVal.is_string()) {
@@ -799,11 +834,14 @@ void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
             }
             if (radius > 0.0f) {
                 node.setBorderRadius(radius);
-                node.setClip(true);
             } else {
                 node.resetBorderRadius();
-                node.resetClip();
             }
+        }
+        if (radius > 0.0f || overflow == "hidden" || overflow == "scroll") {
+            node.setClip(true);
+        } else if (hasRadiusKey || overflow == "visible") {
+            node.resetClip();
         }
     }
     

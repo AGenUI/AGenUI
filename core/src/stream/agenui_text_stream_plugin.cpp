@@ -301,10 +301,10 @@ bool TextStreamPlugin::continueDataModelStreaming(
                 nlohmann::json fullEvent = nlohmann::json::parse(eventJsonStr, nullptr, false);
                 if (!fullEvent.is_discarded() && fullEvent.contains("updateDataModel")) {
                     auto& udm = fullEvent["updateDataModel"];
-                    if (udm.contains("value") && udm.contains("surfaceId")) {
+                    if (udm.contains("value") && udm.contains("surfaceId") && udm["surfaceId"].is_string()) {
                         nlohmann::json value = udm["value"];
                         std::string sid = udm["surfaceId"].get<std::string>();
-                        std::string ePath = udm.contains("path")
+                        std::string ePath = (udm.contains("path") && udm["path"].is_string())
                             ? udm["path"].get<std::string>() : "/";
                         std::string basePath = (ePath == "/") ? "" : ePath;
 

@@ -19,6 +19,7 @@ ComponentRegistry& getDefaultFactoryRegistry() {
 
         // Base components
         r->registerFactory(ComponentType::kText,         makeCreator(ComponentType::kText));
+        r->registerFactory("AmapText",                   makeCreator(ComponentType::kText));
         r->registerFactory(ComponentType::kButton,       makeCreator(ComponentType::kButton));
         r->registerFactory(ComponentType::kImage,        makeCreator(ComponentType::kImage));
         r->registerFactory(ComponentType::kIcon,         makeCreator(ComponentType::kIcon));

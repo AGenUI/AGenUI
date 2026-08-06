@@ -193,7 +193,11 @@ public class CSSPropertyParser {
     /// Example: "drop-shadow(0 2 4 rgba(0,0,0,0.1))" or "drop-shadow(0px 4px 16px rgba(0, 0, 0, 0.08))"
     /// - Parameter value: Filter value string
     /// - Returns: Parsed property value
-    static func parseFilter(_ value: String) -> CSSPropertyValue {
+    ///
+    /// Output carries the raw CSS numbers — no px -> pt scaling is applied here,
+    /// since `CSSPropertyApplier` consumes them as points directly. Callers that
+    /// work in A2UI standard units must scale the result themselves.
+    public static func parseFilter(_ value: String) -> CSSPropertyValue {
         // Use precompiled regex to match drop-shadow function
         guard let regex = dropShadowRegex,
               let match = regex.firstMatch(in: value, range: NSRange(value.startIndex..., in: value)) else {
@@ -290,6 +294,42 @@ public class CSSPropertyParser {
         return .shadow(shadow)
     }
     
+    /// Parses font-weight into UIFont.Weight: keyword aliases first, then the numeric 100-900 scale.
+    ///
+    /// Matches on the value as given — callers are responsible for trimming.
+    /// Shared by every component that renders text, plus the A2UI render layer.
+    /// - Parameter value: Raw `font-weight` value
+    /// - Returns: Matching `UIFont.Weight`
+    public static func parseFontWeight(_ value: String) -> UIFont.Weight {
+        let trimmed = value.lowercased()
+
+        // Keyword aliases (ascending weight)
+        switch trimmed {
+        case "normal": return .regular
+        case "medium": return .medium
+        case "bold":   return .bold
+        default:       break
+        }
+
+        // Numeric scale: one case per weight level
+        if let numeric = Int(trimmed) {
+            switch numeric {
+            case 100: return .ultraLight
+            case 200: return .thin
+            case 300: return .light
+            case 400: return .regular
+            case 500: return .medium
+            case 600: return .semibold
+            case 700: return .bold
+            case 800: return .heavy
+            case 900: return .black
+            default:  return .regular //Fallback to regular (400) if the value is not a valid number
+            }
+        }
+
+        return .regular
+    }
+
     /// Parses keywords (used for border-style, overflow, display, visibility)
     /// - Parameters:
     ///   - value: Keyword string
