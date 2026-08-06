@@ -132,6 +132,10 @@ public class TextComponent extends A2UIComponent {
             }
         }
 
+        if(textValue instanceof Double && (Double) textValue % 1.0 == 0.0) {
+            return String.valueOf(((Double) textValue).intValue());
+        }
+
         // Direct string
         return String.valueOf(textValue);
     }
