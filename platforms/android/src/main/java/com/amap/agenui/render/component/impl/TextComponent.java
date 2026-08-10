@@ -79,6 +79,8 @@ public class TextComponent extends A2UIComponent {
             return;
         }
 
+        boolean textChanged = false;
+
         // Handle text append
         if (changedProps.containsKey("textChunk")) {
             Object textValue = changedProps.get("textChunk");
@@ -87,6 +89,7 @@ public class TextComponent extends A2UIComponent {
                 // Incrementally append text
                 currentText.append(textChunk);
                 textView.setText(currentText.toString());
+                textChanged = true;
             }
         }
         // Handle text update (overwrite existing content)
@@ -95,15 +98,16 @@ public class TextComponent extends A2UIComponent {
             String text = extractTextValue(textValue);
             currentText = new StringBuilder(text);
             textView.setText(currentText.toString());
+            textChanged = true;
         }
 
-        // Apply custom styles (override variant preset styles)
-        if (changedProps.containsKey("styles")) {
+        // setText replaces the Spannable that carries metric-affecting styles such as
+        // CenteredLineHeightSpan. Reapply the full resolved style map after every text
+        // update so TextView's line boxes stay consistent with TextMeasurer/Yoga.
+        if (textChanged || changedProps.containsKey("styles")) {
             try {
-                Object stylesValue = changedProps.get("styles");
-                if (stylesValue instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> styles = (Map<String, Object>) stylesValue;
+                Map<String, Object> styles = extractStyles(this.properties);
+                if (styles != null && !styles.isEmpty()) {
                     applyStyles(styles);
                 }
             } catch (Exception e) {
