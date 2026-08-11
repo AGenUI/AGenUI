@@ -73,6 +73,11 @@ PRESET_TEMPLATE: dict[str, dict[str, Any]] = {
         "model": "anthropic/claude-sonnet-4",
         "max_tokens": 8192,
     },
+    "orcarouter": {
+        "base_url": "https://api.orcarouter.ai/v1",
+        "model": "openai/gpt-5.5",
+        "max_tokens": 8192,
+    },
 }
 
 
