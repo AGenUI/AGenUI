@@ -684,6 +684,54 @@ std::shared_ptr<StaticDataValue> DataValueParser::parseStaticDataValue(const std
     return std::make_shared<StaticDataValue>(jsonObj.dump());
 }
 
+std::shared_ptr<DataValue> DataValueParser::buildStructuredNode(IDataValueContext* context, const nlohmann::json& node) {
+    if (node.is_object()) {
+        // Dynamic forms are recognized by the same rules at every depth, so a nested
+        // object means what it would mean as a whole property value. A dynamic form
+        // terminates the descent: FunctionCallDataValue already resolves its own
+        // `args` recursively, and a binding path is a leaf.
+        // Serialized once here because those two entry points take the JSON text.
+        const std::string nodeJson = node.dump();
+        if (auto functionCall = parseFunctionCallDataValue(context, nodeJson)) {
+            return functionCall;
+        }
+        if (auto dataBinding = parseDataBindingDataValue(context, nodeJson)) {
+            return dataBinding;
+        }
+
+        std::map<std::string, std::shared_ptr<DataValue>> fields;
+        for (auto it = node.begin(); it != node.end(); ++it) {
+            fields[it.key()] = buildStructuredNode(context, it.value());
+        }
+        return std::make_shared<StructuredDataValue>(context, fields);
+    }
+
+    if (node.is_array()) {
+        std::vector<std::shared_ptr<DataValue>> elements;
+        elements.reserve(node.size());
+        for (const auto& item : node) {
+            elements.emplace_back(buildStructuredNode(context, item));
+        }
+        return std::make_shared<StructuredDataValue>(context, elements);
+    }
+
+    // Scalars go through the generic entry point so that `${...}` templates still
+    // become InterpolationExpressionDataValue.
+    return parseDataValue(context, node.dump());
+}
+
+std::shared_ptr<DataValue> DataValueParser::parseStructuredDataValue(IDataValueContext* context, const std::string& valueJson) {
+    auto json = nlohmann::json::parse(valueJson, nullptr, false);
+
+    // Unparseable text is not a container, and a discarded node cannot be serialized;
+    // let the generic entry point keep it verbatim.
+    if (json.is_discarded()) {
+        return parseDataValue(context, valueJson);
+    }
+
+    return buildStructuredNode(context, json);
+}
+
 std::shared_ptr<CheckRuleDataValue> DataValueParser::parseCheckRule(IDataValueContext* context, const std::string& itemJson) {
     auto item = nlohmann::json::parse(itemJson, nullptr, false);
 

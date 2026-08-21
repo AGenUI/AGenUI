@@ -117,7 +117,6 @@ import UIKit
         super.init()
         
         _ = ComponentRegister.shared
-        _ = CSSPropertyRegistry.shared
         // Register for notifications from this instance's surfaceBridge
         setupNotificationObservers()
 

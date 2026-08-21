@@ -55,7 +55,7 @@ private class InnerTableView: UIView {
     
     /// Border radius - synced from TableComponent when border-radius is applied.
     /// Enables clipsToBounds to clip inner subviews (header/rows) to rounded corners,
-    /// while keeping TableComponent itself unclipped so box-shadow remains visible.
+    /// while keeping TableComponent itself unclipped so the drop-shadow remains visible.
     var borderRadius: CGFloat = 0 {
         didSet {
             layer.cornerRadius = borderRadius
@@ -485,7 +485,7 @@ class TableComponent: Component {
         loadLocalStyleConfig()
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
 
     required init?(coder: NSCoder) {
@@ -624,12 +624,12 @@ class TableComponent: Component {
         }
     }
 
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
 
         // Skip table rebuild when no table-relevant keys changed
-        guard properties["columns"] != nil || properties["rows"] != nil else {
+        guard diff["columns"] != nil || diff["rows"] != nil else {
             return
         }
 
@@ -648,13 +648,6 @@ class TableComponent: Component {
             // reloadData sets data and immediately builds if width is already known
             innerTableView?.reloadData(columns: columnsArray, rows: rowsArray, styleConfig: styleConfig)
         }
-    }
-    
-    override func setBorderRadius(_ radius: CGFloat) {
-        super.setBorderRadius(radius)
-        // Mirror corner radius to innerTableView so inner subviews (header/rows with background
-        // colors) are clipped to rounded corners. clipsToBounds is managed by innerTableView.borderRadius didSet.
-        innerTableView?.borderRadius = radius
     }
     
     // MARK: - Configuration Methods

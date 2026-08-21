@@ -173,6 +173,38 @@ import Foundation
         Logger.shared.info("Custom component unregistered: \(type)")
     }
 
+    /// Declare a component property as a container of dynamic values
+    ///
+    /// By default a property value is parsed but not descended into, so a nested object
+    /// or array is stored verbatim and any `{"path":...}` binding or `{"call":...}`
+    /// function call inside it never resolves. Registering the property makes the engine
+    /// walk its whole subtree, resolving nested dynamic values at any depth — including
+    /// bindings inside a function call's arguments, and relative paths inside a List
+    /// item template.
+    ///
+    /// Example — AmapText carries its rich-text runs in a `spans` array:
+    /// `AGenUI.registerDeepParseProperty("AmapText", propertyName: "spans")`
+    ///
+    /// Must be called before the first render; a declaration made later has no effect on
+    /// components that have already been parsed.
+    ///
+    /// - Parameters:
+    ///   - componentType: Component type, i.e. the JSON `component` field
+    ///   - propertyName: Property name
+    /// - Returns: true on success, false when either name is empty
+    @discardableResult
+    @objc(registerDeepParseProperty:propertyName:)
+    public static func registerDeepParseProperty(_ componentType: String, propertyName: String) -> Bool {
+        Logger.shared.debug("registerDeepParseProperty: \(componentType).\(propertyName)")
+        let result = engineBridge.registerDeepParseProperty(forComponentType: componentType, propertyName: propertyName)
+        if result {
+            Logger.shared.info("Deep parse property registered: \(componentType).\(propertyName)")
+        } else {
+            Logger.shared.error("Failed to register deep parse property: \(componentType).\(propertyName)")
+        }
+        return result
+    }
+
     // MARK: - Image Loader Registration
 
     /// Register a global image loader

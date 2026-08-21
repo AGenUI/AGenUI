@@ -62,7 +62,12 @@ void ComponentState::updateProperty(const std::string& key, const nlohmann::json
         return;  // The value did not change, so do not mark it dirty
     }
     
-    m_properties[key] = value;
+    // null (delete signal) → erase key, don't store JSON null (align base class)
+    if (value.is_null()) {
+        m_properties.erase(key);
+    } else {
+        m_properties[key] = value;
+    }
     m_dirtyProperties.insert(key);
     
     HM_LOGD("[%s] property '%s' updated and marked dirty", m_id.c_str(), key.c_str());

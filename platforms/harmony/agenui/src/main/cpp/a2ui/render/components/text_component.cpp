@@ -136,23 +136,29 @@ void TextComponent::applyTextContent(const nlohmann::json& properties) {
     }
     // text: full overwrite
     else if (properties.find("text") != properties.end()) {
-        std::string textContent;
         const auto& textValue = properties["text"];
 
-        // Format 1: {"text": {"literalString": "Hello"}}
-        if (textValue.is_object()) {
-            if (textValue.find("literalString") != textValue.end() && textValue["literalString"].is_string()) {
-                textContent = textValue["literalString"].get<std::string>();
-            }
-        }
-        // Format 2: {"text": "Hello"}
-        else if (textValue.is_string()) {
-            textContent = textValue.get<std::string>();
-        }
-
-        if (!textContent.empty()) {
+        // null (delete signal) → clear text (align iOS text→"")
+        if (textValue.is_null()) {
             A2UITextNode node(m_nodeHandle);
-            node.setTextContent(textContent);
+            node.setTextContent("");
+        } else {
+            std::string textContent;
+            // Format 1: {"text": {"literalString": "Hello"}}
+            if (textValue.is_object()) {
+                if (textValue.find("literalString") != textValue.end() && textValue["literalString"].is_string()) {
+                    textContent = textValue["literalString"].get<std::string>();
+                }
+            }
+            // Format 2: {"text": "Hello"}
+            else if (textValue.is_string()) {
+                textContent = textValue.get<std::string>();
+            }
+
+            if (!textContent.empty()) {
+                A2UITextNode node(m_nodeHandle);
+                node.setTextContent(textContent);
+            }
         }
     }
 }
@@ -173,12 +179,18 @@ void TextComponent::applyStyles(const nlohmann::json& properties) {
 float TextComponent::applyFontStyles(const nlohmann::json& styles) {
     A2UITextNode node(m_nodeHandle);
 
+    // Aligned with iOS ParsedTextStyles / Android ParsedTextStyles: fields carry
+    // their default values and are only overwritten when the key is present and
+    // parsing succeeds — absent or parse-fail keeps the default.
+    // color default: BLACK (iOS .black / Android Color.BLACK)
+    uint32_t color = colors::kColorBlack;
     if (styles.find("color") != styles.end() && styles["color"].is_string()) {
-        uint32_t color = parseColor(styles["color"].get<std::string>());
-        node.setFontColor(color);
+        color = parseColor(styles["color"].get<std::string>());
     }
+    node.setFontColor(color);
 
-    float size = 14.0f;
+    // font-size default: 32 a2ui -> 16vp (iOS 16pt / Android FONT_SIZE_A2UI=32f)
+    float size = 32.0f;
     if (styles.find("font-size") != styles.end()) {
         const auto& fontSizeVal = styles["font-size"];
         if (fontSizeVal.is_number()) {
@@ -186,14 +198,18 @@ float TextComponent::applyFontStyles(const nlohmann::json& styles) {
         } else if (fontSizeVal.is_string()) {
             size = static_cast<float>(std::atof(fontSizeVal.get<std::string>().c_str()));
         }
-        node.setFontSize(size);
     }
+    node.setFontSize(size);
 
+    // font-weight default: normal/400 (iOS .regular / Android FONT_WEIGHT=400).
+    // mapFontWeight returns ARKUI_FONT_WEIGHT_NORMAL for unrecognised input.
+    ArkUI_FontWeight weight = ARKUI_FONT_WEIGHT_NORMAL;
     if (styles.find("font-weight") != styles.end()) {
-        ArkUI_FontWeight weight = static_cast<ArkUI_FontWeight>(mapFontWeight(styles["font-weight"]));
-        node.setFontWeight(weight);
+        weight = static_cast<ArkUI_FontWeight>(mapFontWeight(styles["font-weight"]));
     }
+    node.setFontWeight(weight);
 
+    // font-family: absent leaves ArkUI native default, matching iOS "system".
     {
         std::string fontFamily;
         if (styles.find("font-family") != styles.end() && styles["font-family"].is_string()) {
@@ -226,8 +242,12 @@ void TextComponent::applyTextLayoutStyles(const nlohmann::json& properties, cons
         if (m_parent && m_parent->getComponentType() == "Tabs") {
             node.setTextAlign(ARKUI_TEXT_ALIGNMENT_START);
             HM_LOGI("Parent is Tabs, forcing text-align to START, id=%s", m_id.c_str());
-        } else if (!alignStr.empty()) {
-            ArkUI_TextAlignment align = static_cast<ArkUI_TextAlignment>(mapTextAlign(alignStr));
+        } else {
+            // Aligned with iOS (.left) / Android (TEXT_ALIGN="left").
+            // mapTextAlign defaults to START for unrecognised input.
+            ArkUI_TextAlignment align = alignStr.empty()
+                ? ARKUI_TEXT_ALIGNMENT_START
+                : static_cast<ArkUI_TextAlignment>(mapTextAlign(alignStr));
             node.setTextAlign(align);
         }
     }
@@ -245,7 +265,13 @@ void TextComponent::applyTextLayoutStyles(const nlohmann::json& properties, cons
         if (maxLines > 0) {
             hasLineClamp = true;
             node.setTextMaxLines(maxLines);
+        } else {
+            // Aligned with iOS (lineClamp=0 -> unlimited) / Android (MAX_VALUE).
+            node.setTextMaxLines(0);
         }
+    } else {
+        // Aligned with iOS (absent -> defaultValue 0 -> unlimited).
+        node.setTextMaxLines(0);
     }
 
     int renderedLines = 0;
@@ -342,8 +368,12 @@ void TextComponent::applyTextLayoutStyles(const nlohmann::json& properties, cons
     }
 
     // text-overflow
-    if (styles.find("text-overflow") != styles.end() && styles["text-overflow"].is_string()) {
-        std::string overflow = styles["text-overflow"].get<std::string>();
+    // Aligned with iOS (absent -> defaultValue "ellipsis") / Android (TEXT_OVERFLOW="ellipsis").
+    {
+        std::string overflow = "ellipsis";
+        if (styles.find("text-overflow") != styles.end() && styles["text-overflow"].is_string()) {
+            overflow = styles["text-overflow"].get<std::string>();
+        }
         if (overflow == "ellipsis") {
             node.setTextOverflowEllipsis();
         } else {

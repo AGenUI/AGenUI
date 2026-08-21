@@ -70,7 +70,18 @@ float ButtonComponent::resolveAppearTargetOpacity(const nlohmann::json& properti
 // ---- Property Updates ----
 
 void ButtonComponent::applyChild(const nlohmann::json& properties) {
-    if (!properties.contains("child") || !properties["child"].is_string()) {
+    if (!properties.contains("child")) {
+        return;
+    }
+    // null (delete signal) → clear child (align iOS child→"")
+    if (properties["child"].is_null()) {
+        if (!m_children.empty()) {
+            HM_LOGI("Clearing child (delete signal): id=%s", m_id.c_str());
+            removeChild(m_children[0]);
+        }
+        return;
+    }
+    if (!properties["child"].is_string()) {
         return;
     }
 

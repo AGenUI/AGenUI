@@ -101,10 +101,15 @@ void AudioPlayerComponent::onUpdateProperties(const nlohmann::json& properties) 
         m_description = properties["description"].get<std::string>();
     }
 
-    if (properties.contains("url") && properties["url"].is_string()) {
-        std::string newUrl = properties["url"].get<std::string>();
-        if (!newUrl.empty()) {
-            setAudioUrl(newUrl);
+    if (properties.contains("url")) {
+        // null (delete signal) → clear url (align iOS url→"")
+        if (properties["url"].is_null()) {
+            setAudioUrl("");
+        } else if (properties["url"].is_string()) {
+            std::string newUrl = properties["url"].get<std::string>();
+            if (!newUrl.empty()) {
+                setAudioUrl(newUrl);
+            }
         }
     }
 

@@ -28,8 +28,9 @@ class A2UISurface;
  * 3. Manage the ISurfaceListener list and dispatch surface/component lifecycle events
  * 4. Forward Harmony-internal observable events (from C++ render-layer components such as
  *    Tabs/Video/Image) to the cross-platform agenui::ISurfaceManager via onRenderFinish /
- *    onSurfaceSizeChanged. This is the only listener registered on the internal observables;
- *    other platforms (iOS/Android) call ISurfaceManager directly without an observable layer.
+ *    onSurfaceSizeChanged. The target is resolved per event through
+ *    IAGenUIEngine::findSurfaceManagerShared(instanceId_), so forwarding is safe against
+ *    concurrent destruction of the core SurfaceManager.
  */
 class A2UISurfaceManager : public agenui::ComponentRenderListener,
                            public agenui::SurfaceLayoutListener {
@@ -42,15 +43,6 @@ public:
      */
     explicit A2UISurfaceManager(ComponentRegistry* globalRegistry, int instanceId = 0);
     ~A2UISurfaceManager() override;
-
-    /**
-     * Bind the cross-platform ISurfaceManager that receives forwarded callbacks.
-     *
-     * Must be called once after construction (before any render-finish / surface-size events
-     * are fired) and again with nullptr before the cross-platform SurfaceManager is destroyed,
-     * to break the back-reference safely.
-     */
-    void setCoreSurfaceManager(agenui::ISurfaceManager* coreSurfaceManager);
 
     // agenui::ComponentRenderListener
     void onRenderFinish(const agenui::ComponentRenderInfo& info) override;
@@ -147,8 +139,6 @@ private:
     agenui::A2UIComponentRenderObservable componentRenderObservable_;  // Component render completion observer (instance)
     agenui::A2UISurfaceLayoutObservable surfaceLayoutObservable_;       // Surface layout observer (instance)
 
-    // Forwarding target. Owned by AGenUIEngine; lifetime managed by napi layer.
-    agenui::ISurfaceManager* coreSurfaceManager_ = nullptr;
     std::function<void(const std::string&, uint64_t, int32_t)> blankCheckExecutor_;
     std::function<void(const agenui::ErrorMessage&)> errorReporter_;
     std::function<void(const std::string&, float, float)> contentSizeChangedCallback_;

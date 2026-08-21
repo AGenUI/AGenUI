@@ -142,7 +142,7 @@ class CarouselComponent: Component {
         self.pageControl = pageControl
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -156,31 +156,41 @@ class CarouselComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Update autoplay
-        if let autoplayValue = properties["autoplay"] as? Bool {
+        if case .value(let v) = diff["autoplay"], let autoplayValue = v as? Bool {
             self.autoplay = autoplayValue
+        } else if case .deleted = diff["autoplay"] {
+            self.autoplay = false
         }
         
         // Update autoplaySpeed (milliseconds to seconds)
-        if let speed = properties["autoplaySpeed"] as? Double {
+        if case .value(let v) = diff["autoplaySpeed"], let speed = v as? Double {
             self.autoplaySpeed = speed / 1000.0
-        } else if let speed = properties["autoplaySpeed"] as? Int {
+        } else if case .value(let v) = diff["autoplaySpeed"], let speed = v as? Int {
             self.autoplaySpeed = Double(speed) / 1000.0
+        } else if case .deleted = diff["autoplaySpeed"] {
+            self.autoplaySpeed = 3.0
         }
         
         // Update draggable
-        if let draggableValue = properties["draggable"] as? Bool {
+        if case .value(let v) = diff["draggable"], let draggableValue = v as? Bool {
             self.draggable = draggableValue
             scrollView?.isScrollEnabled = draggableValue
+        } else if case .deleted = diff["draggable"] {
+            self.draggable = false
+            scrollView?.isScrollEnabled = false
         }
         
         // Update content (image URL array)
-        if let content = properties["content"] as? [String] {
+        if case .value(let v) = diff["content"], let content = v as? [String] {
             self.imageUrls = content
+            setupImages()
+        } else if case .deleted = diff["content"] {
+            self.imageUrls = []
             setupImages()
         }
         
@@ -193,13 +203,6 @@ class CarouselComponent: Component {
         
         // Layout image views
         layoutImageViews()
-    }
-    
-    override func setBorderRadius(_ radius: CGFloat) {
-        super.setBorderRadius(radius)
-        // Mirror corner radius to scrollView so image content is clipped to rounded corners.
-        scrollView?.layer.cornerRadius = radius
-        scrollView?.clipsToBounds = radius > 0
     }
     
     // MARK: - Configuration Methods

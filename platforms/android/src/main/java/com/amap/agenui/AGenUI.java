@@ -308,6 +308,39 @@ public class AGenUI {
         nativeUnregisterFunction(name);
     }
 
+    /**
+     * Declares a component property as a container of dynamic values.
+     * <p>
+     * By default a property value is parsed but not descended into, so a nested object
+     * or array is stored verbatim and any {@code {"path":...}} binding or
+     * {@code {"call":...}} function call inside it never resolves. Registering the
+     * property makes the engine walk its entire subtree instead, resolving nested
+     * dynamic values at any depth — including bindings inside a function call's
+     * arguments, and relative paths inside a List item template.
+     * <p>
+     * Example — {@code AmapText} carries its rich-text runs in a {@code spans} array,
+     * where each run has its own bound text and token-resolved colors:
+     * <pre>{@code
+     * AGenUI.getInstance().registerComponent("AmapText", new AmapA2UITextComponentFactory());
+     * AGenUI.getInstance().registerDeepParseProperty("AmapText", "spans");
+     * }</pre>
+     *
+     * @param componentType Component type, i.e. the JSON {@code component} field
+     *                      (e.g. "AmapText") — applies to every instance of that type
+     * @param propertyName  Property name (e.g. "spans")
+     * @return true on success, false when either name is empty
+     * @implNote Must be called before the first render. A declaration made afterwards
+     *         does not affect components that have already been parsed.
+     */
+    public boolean registerDeepParseProperty(String componentType, String propertyName) {
+        if (!isConfigValid("registerDeepParseProperty", componentType)
+                || !isConfigValid("registerDeepParseProperty", propertyName)) {
+            return false;
+        }
+        return nativeRegisterDeepParseProperty(componentType, propertyName);
+    }
+
+
 
     /**
      * Registers a custom component factory
@@ -477,6 +510,7 @@ public class AGenUI {
 
     public static native void nativeRegisterFunction(String name, String config, Object function);
     public static native void nativeUnregisterFunction(String name);
+    private static native boolean nativeRegisterDeepParseProperty(String componentType, String propertyName);
     public static native void nativeOnAsyncCallbackResult(long callbackPtr, int status, String data, String error);
 
     /**

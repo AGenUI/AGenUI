@@ -28,6 +28,15 @@ public:
     virtual TemplateRegistry* getTemplateRegistry() = 0;
     virtual IComponentPropertySpecManager* getComponentPropertySpecManager() = 0;
     virtual PathConfig* getPathConfig() = 0;
+
+    /**
+     * @brief Whether a property was declared a container of dynamic values
+     * @remark Declared by the host via IAGenUIEngine::registerDeepParseProperty.
+     *         Tells the parser to walk the property's whole subtree instead of storing
+     *         a nested object or array verbatim.
+     */
+    virtual bool isDeepParseProperty(const std::string& componentType,
+                                     const std::string& propertyName) = 0;
 };
 
 /**

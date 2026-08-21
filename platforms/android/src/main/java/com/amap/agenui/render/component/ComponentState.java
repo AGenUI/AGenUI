@@ -35,7 +35,13 @@ public class ComponentState {
         for (Map.Entry<String, Object> entry : diff.entrySet()) {
             String key = entry.getKey();
             Object newValue = entry.getValue();
-            if (Objects.equals(lastValues.get(key), newValue)) {
+            // A key seen for the first time is always a change — even when the
+            // value is null, because null is the delete signal (PRD
+            // agenui-null-handling-alignment.md) and must reach onUpdateProperties.
+            // Only skip when the key already existed and the value is genuinely
+            // equal, so "from-absent to null" is not swallowed as a no-op.
+            boolean hadKey = lastValues.containsKey(key);
+            if (hadKey && Objects.equals(lastValues.get(key), newValue)) {
                 continue;
             }
             lastValues.put(key, newValue);

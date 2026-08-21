@@ -179,7 +179,6 @@ import UIKit
     ///   - componentType: Component type
     ///   - properties: Component properties
     @MainActor func addComponent(componentId: String, componentType: String, properties: [String: Any], parentId: String?) {
-        let properties = properties.filter { !($0.value is NSNull) }
         Logger.shared.debug("[Surface] Adding component: \(componentId) (\(componentType))")
         
         // Check if component already exists
@@ -268,14 +267,18 @@ import UIKit
     ///   - componentId: Component ID
     ///   - properties: New properties
     @MainActor func updateComponent(componentId: String, properties: [String: Any]) {
-        let properties = properties.filter { !($0.value is NSNull) }
         guard let component = componentTree[componentId] else {
             Logger.shared.debug("Component not found: \(componentId)")
             return
         }
         
+        // Convert raw [String: Any] (may contain NSNull) to [String: DiffValue]
+        // at the Surface boundary — NSNull → .deleted, others → .value(v).
+        // This eliminates NSNull from the type system downstream.
+        let diff = DiffValue.from(properties)
+        
         // Update properties (component.properties["children"] is now updated)
-        component.updateProperties(properties)
+        component.updateProperties(diff)
         
         // Notify layout change
         notifyLayoutChangedInternal()

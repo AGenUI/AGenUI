@@ -25,11 +25,6 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 
 // ==================== Internal types ====================
 
-/** Default context used by Component.triggerAction(). */
-interface DefaultActionContext {
-  action: string;
-}
-
 // ==================== ISurfaceManagerListener ====================
 
 /**
@@ -110,10 +105,30 @@ export class Component {
 
   /**
    * Dispatches a UI action to report user interaction with the component.
+   *
+   * Sends an empty context, which tells the native layer to use this component's own
+   * `action` attribute. Kept identical across iOS / Android / HarmonyOS.
    */
   triggerAction(): void {
-    const ctx: DefaultActionContext = { action: 'default' };
-    this._surface.triggerAction(this.componentId, ctx);
+    // ArkTS forbids bare object literals (arkts-no-untyped-obj-literals); Record is allowed.
+    const emptyContext: Record<string, Object> = {};
+    this._surface.triggerAction(this.componentId, emptyContext);
+  }
+
+  /**
+   * Dispatches a UI action with a caller-supplied context.
+   *
+   * Use this when the action to execute is not the component's own top-level `action` —
+   * e.g. a custom component whose sub-regions carry their own actions (SpanText).
+   *
+   * The native layer resolves `context.action` as a standard A2UI action definition
+   * (`{"functionCall": ...}` or `{"event": ...}`); if it is absent or unparsable, the
+   * component's own `action` attribute is used instead.
+   *
+   * @param context Context payload. Put the action definition under the `action` key.
+   */
+  triggerActionWithContext(context: object): void {
+    this._surface.triggerAction(this.componentId, context);
   }
 
   /**
@@ -532,6 +547,30 @@ export class AGenUI {
    */
   static unRegisterComponent(type: string): void {
     HybridViewManager.getInstance().unregisterViewCreator(type);
+  }
+
+  /**
+   * Declares a component property as a container of dynamic values.
+   *
+   * By default a property value is parsed but not descended into, so a nested object
+   * or array is stored verbatim and any `{"path":...}` binding or `{"call":...}`
+   * function call inside it never resolves. Registering the property makes the engine
+   * walk its whole subtree, resolving nested dynamic values at any depth — including
+   * bindings inside a function call's arguments, and relative paths inside a List
+   * item template.
+   *
+   * Example — AmapText carries its rich-text runs in a `spans` array:
+   * `AGenUI.registerDeepParseProperty('AmapText', 'spans')`
+   *
+   * Must be called before the first render; a declaration made later has no effect on
+   * components that have already been parsed.
+   *
+   * @param componentType Component type, i.e. the JSON `component` field
+   * @param propertyName Property name
+   * @returns true on success, false when either name is empty
+   */
+  static registerDeepParseProperty(componentType: string, propertyName: string): boolean {
+    return AGenUIEngineBridge.getInstance().registerDeepParseProperty(componentType, propertyName);
   }
 
   // MARK: - Image Loader

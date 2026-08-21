@@ -22,24 +22,20 @@
 
 ---
 
-## v1.3.1 新版本亮点
+## v1.4.0 新版本亮点
 
-> 发布于 2026-08-06
+> 发布于 2026-08-21
 
-- **包类型 API**：引擎新增包类型设置与获取接口，贯穿 Core 引擎及 Android、iOS、鸿蒙集成层。
-- **文本渲染链路统一**：Text 与 RichText 合并为一条渲染链路，复用共享 Label 实现，提升渲染一致性与可维护性。
-- 完善 JSON 解析时的类型判断与异常捕获，避免异常协议数据引发稳定性问题。
-- Button 样式接入基类共享样式管道。
-- Card 圆角接入共享裁剪决策。
-- 修复 `overflow: hidden` 不生效、透明度（opacity）不生效问题
-- (Android) 将 `border-radius` 与 `overflow` 收敛为统一的裁剪决策，消除裁剪行为不一致问题。
-- (Android) 修复软件画布（software canvas）上圆角丢失的问题。
-- (Android) 修复内置容器意外裁剪子元素的问题。
-- (Android) 修复描边圆心（`border-width`）与圆角裁剪圆心（`border-radius`）错位的问题。
-- (iOS) 修复横向 List 因 `layoutIfNeeded` 重入触发的 UIKit 断言崩溃，以及横向 List 离屏更新时效问题。
-- (iOS) 过滤 properties 中的空值，防止崩溃。
-- (Android) 修复 Tab 组件第一次展示时误触发 `onTabClick` 的问题。
-
+- **阴影与圆角渲染重构**：圆角默认开启裁剪；阴影图层独立于组件内容渲染，不再被组件裁剪。组件 `addChild` 逻辑不再依赖 index 计算。
+- **样式默认值拉齐**：统一 Android、iOS、鸿蒙三端的样式默认值（含字体样式与默认文字大小）；Android 文字测量与样式解析与其他端拉齐。重构 styles 解析使其更内聚，为默认值拉齐做准备。
+- **增量更新 `null` 行为统一**：Android 与鸿蒙端组件数据不再保留 `null` 值，所有内置组件的一级属性 `null` 行为拉齐。iOS 端属性值为 `NSNull` 时不再被丢弃，而是作为删除属性处理；渲染层新增 `removeProperties` 接口，styles 内容不再平铺到一级属性。
+- **自定义组件数据绑定深度解析**：自定义组件支持嵌套属性中数据绑定的深度解析。
+- **(iOS) 部署版本**：最低部署版本从 15.0 恢复为 13.0。
+- (Core) `findSurfaceManager` 返回值改为 `shared_ptr`，修复低概率稳定性问题（鸿蒙端用法同步更新）。
+- (iOS) 修复 `display` 样式错误覆盖 `visibility` 样式的问题。修复阴影联动渲染问题。
+- (Android) 修复字符串值 `font-weight` 回退至二值 Typeface 路径的问题。修复 AudioPlayer 与 ChoicePicker 组件问题。移除组件上不必要的点击和焦点设置。
+- (鸿蒙) 修复特殊机型右边框消失问题。复 `Component.triggerAction` 的 ArkTS 编译错误。
+- (全平台) 修复三端默认文字大小不一致问题。
 ---
 
 ## 什么是 AGenUI？

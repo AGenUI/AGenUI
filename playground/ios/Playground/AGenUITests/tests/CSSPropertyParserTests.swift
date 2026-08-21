@@ -8,9 +8,10 @@ import Testing
 // parseDimension — Normal Path
 // ============================================================================
 
-@Test func parseDimension_unitlessNumber_returnsNumber() {
+@Test func parseDimension_unitlessNumber_appliesScale() {
+    // A2UI standard unit, same as px: 100 * BS_POINT_SCALE(0.5) = 50.0
     let result = CSSPropertyParser.parseDimension("100")
-    #expect(result == .number(100.0))
+    #expect(result == .number(50.0))
 }
 
 @Test func parseDimension_pxUnit_appliesScale() {
@@ -46,14 +47,16 @@ import Testing
     #expect(result == .number(0.0))
 }
 
-@Test func parseDimension_decimalValue_returnsNumber() {
+@Test func parseDimension_decimalValue_appliesScale() {
+    // 3.14 * 0.5 = 1.57
     let result = CSSPropertyParser.parseDimension("3.14")
-    #expect(result == .number(3.14))
+    #expect(result == .number(1.57))
 }
 
-@Test func parseDimension_negativeValue_returnsNumber() {
+@Test func parseDimension_negativeValue_appliesScale() {
+    // -10 * 0.5 = -5.0
     let result = CSSPropertyParser.parseDimension("-10")
-    #expect(result == .number(-10.0))
+    #expect(result == .number(-5.0))
 }
 
 // ============================================================================
@@ -247,46 +250,6 @@ import Testing
 }
 
 // ============================================================================
-// CSSPropertyValue — Computed Properties
-// ============================================================================
-
-@Test func cssPropertyValue_numberValue_returnsCorrectly() {
-    let value = CSSPropertyValue.number(42.0)
-    #expect(value.numberValue == 42.0)
-    #expect(value.percentageValue == nil)
-    #expect(value.keywordValue == nil)
-    #expect(value.isValid == true)
-}
-
-@Test func cssPropertyValue_percentageValue_returnsCorrectly() {
-    let value = CSSPropertyValue.percentage(0.5)
-    #expect(value.percentageValue == 0.5)
-    #expect(value.numberValue == nil)
-    #expect(value.isValid == true)
-}
-
-@Test func cssPropertyValue_keywordValue_returnsCorrectly() {
-    let value = CSSPropertyValue.keyword("auto")
-    #expect(value.keywordValue == "auto")
-    #expect(value.numberValue == nil)
-    #expect(value.isValid == true)
-}
-
-@Test func cssPropertyValue_invalidValue_isNotValid() {
-    let value = CSSPropertyValue.invalid
-    #expect(value.isValid == false)
-    #expect(value.numberValue == nil)
-    #expect(value.percentageValue == nil)
-    #expect(value.keywordValue == nil)
-}
-
-@Test func cssPropertyValue_urlValue_returnsCorrectly() {
-    let value = CSSPropertyValue.url("https://example.com/img.png")
-    #expect(value.urlValue == "https://example.com/img.png")
-    #expect(value.isValid == true)
-}
-
-// ============================================================================
 // CSSPropertyValue — Equality
 // ============================================================================
 
@@ -312,4 +275,24 @@ import Testing
 
 @Test func cssPropertyValue_differentKeywords_areNotEqual() {
     #expect(CSSPropertyValue.keyword("auto") != CSSPropertyValue.keyword("hidden"))
+}
+
+// ============================================================================
+// parseFilter — unit scaling contract (A2UI units -> pt, same as parseDimension)
+// ============================================================================
+
+@Test func parseFilter_dropShadow_scalesToPoints() {
+    // 4px * BS_POINT_SCALE(0.5) = 2.0, 8px * 0.5 = 4.0 — the parsed shadow
+    // must be pt-ready so consumers apply it without further scaling.
+    let result = CSSPropertyParser.parseFilter("drop-shadow(0px 4px 8px rgba(0,0,0,0.5))")
+    guard case .shadow(let shadow) = result else {
+        #expect(Bool(false), "expected .shadow, got \(result)"); return
+    }
+    #expect(shadow.offsetX == 0.0)
+    #expect(shadow.offsetY == 2.0)
+    #expect(shadow.blur == 4.0)
+}
+
+@Test func parseFilter_invalidFormat_returnsInvalid() {
+    #expect(CSSPropertyParser.parseFilter("blur(5px)") == .invalid)
 }

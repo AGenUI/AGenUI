@@ -179,7 +179,7 @@ TEST_F(MultiSMTest, MSM005_MassCreate_MassDestroy) {
     }
     // All N must have unique IDs and be findable.
     for (auto* sm : sms) {
-        EXPECT_EQ(engine_->findSurfaceManager(sm->getInstanceId()), sm);
+        EXPECT_EQ(engine_->findSurfaceManagerShared(sm->getInstanceId()).get(), sm);
     }
     for (auto* sm : sms) engine_->destroySurfaceManager(sm);
     ::agenui::testing::WaitForWorkerIdle(15000);

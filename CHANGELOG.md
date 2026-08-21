@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-08-21
+
+### Features
+
+- **Shadow & Border-Radius Rendering Rework**: Border radius now applies clipping by default; the shadow layer is rendered independently of component content so it is no longer clipped by the component. The `addChild` logic no longer relies on index computation. Note: `filter: drop-shadow` is unified as box shadow, and glyph-level text shadows are no longer supported.
+- **Style Default Alignment**: Unified default style values across Android, iOS, and HarmonyOS (including font styles and default text size); aligned Android text measurement and style parsing with the other platforms. Styles parsing was refactored to be more cohesive in preparation for this alignment.
+- **Unified `null` Handling in Incremental Updates**: Component data no longer retains `null` values on Android and HarmonyOS, and first-level property `null` behavior is aligned across all built-in components. On iOS, properties with `NSNull` values are now treated as property removal instead of being silently dropped; a `removeProperties` API was added to the render layer, and styles are no longer flattened into first-level properties.
+- **Deep Data Binding for Custom Components**: Custom components now support deep resolution of data bindings within nested properties.
+- **(iOS) Deployment Target**: Restored the minimum deployment target from 15.0 back to 13.0.
+
+### Bug Fixes
+
+- (Core) Fixed a low-probability stability issue by returning the surface manager from `findSurfaceManager` as a `shared_ptr` (HarmonyOS usage updated accordingly).
+- (iOS) Fixed the `display` style incorrectly overriding the `visibility` style.
+- (iOS) Fixed shadow rendering linkage issues.
+- (Android) Fixed string-valued `font-weight` falling back to the binary Typeface path.
+- (Android) Fixed AudioPlayer and ChoicePicker component issues.
+- (Android) Removed unnecessary click and focus configuration on components.
+- (HarmonyOS) Fixed the right border disappearing on certain device models.
+- (HarmonyOS) Fixed an ArkTS compilation error in `Component.triggerAction`.
+- (All) Restored the reset behavior when `action` is empty.
+- (All) Fixed the default text size across the three platforms.
+
+### Testing & Quality
+
+- Added rendering test cases for null-diff incremental updates, and filled coverage gaps for previously uncovered style properties and enum values in the catalog.
+- Added stability stress test cases and scripts.
+
+---
+
 ## [1.3.1] - 2026-08-06
 
 ### Features

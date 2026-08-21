@@ -126,22 +126,6 @@ public class NoneTransitionTest {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // ImageTransition default method — exercised via anonymous impl
-    // ──────────────────────────────────────────────────────────────
-
-    @Test
-    public void interfaceDefault_returns800() {
-        // Bare-bones implementation that does NOT override getDefaultDuration().
-        ImageTransition bare = (view, dur, done) -> {
-            if (done != null) {
-                done.run();
-            }
-        };
-
-        assertEquals(800L, bare.getDefaultDuration());
-    }
-
-    // ──────────────────────────────────────────────────────────────
     // animate — does not query ImageView for unrelated state
     // ──────────────────────────────────────────────────────────────
 

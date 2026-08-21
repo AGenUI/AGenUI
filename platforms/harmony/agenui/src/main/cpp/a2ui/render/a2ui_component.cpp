@@ -91,9 +91,15 @@ void A2UIComponent::updateProperties(const nlohmann::json& newProps) {
         HM_LOGD(" using incremental update (with State)", m_id.c_str());
         
         m_state->updateProperties(newProps);
-        
+
+        // null (delete signal) → erase key; don't store JSON null (align iOS .deleted).
+        // newProps itself is unchanged, so null still propagates to onUpdateProperties.
         for (auto it = newProps.begin(); it != newProps.end(); ++it) {
-            m_properties[it.key()] = it.value();
+            if (it.value().is_null()) {
+                m_properties.erase(it.key());
+            } else {
+                m_properties[it.key()] = it.value();
+            }
         }
         
         updateLayoutProperties(newProps);
@@ -110,8 +116,13 @@ void A2UIComponent::updateProperties(const nlohmann::json& newProps) {
     } else {
         HM_LOGD(" using full update (no State)", m_id.c_str());
         
+        // null (delete signal) → erase key; don't store JSON null (align iOS .deleted).
         for (auto it = newProps.begin(); it != newProps.end(); ++it) {
-            m_properties[it.key()] = it.value();
+            if (it.value().is_null()) {
+                m_properties.erase(it.key());
+            } else {
+                m_properties[it.key()] = it.value();
+            }
         }
         
         updateLayoutProperties(newProps);
@@ -496,7 +507,7 @@ void A2UIComponent::dispatchAction(const nlohmann::json& actionDef) {
     }
     auto* engine = agenui::getAGenUIEngine();
     if (engine) {
-        auto* sm = engine->findSurfaceManager(m_instanceId);
+        auto sm = engine->findSurfaceManagerShared(m_instanceId);
         if (sm) {
             sm->submitUIAction(actionMessage);
         } else {
@@ -553,7 +564,7 @@ void A2UIComponent::syncState(const nlohmann::json& changeJson) {
     }
     auto* engine = agenui::getAGenUIEngine();
     if (engine) {
-        auto* sm = engine->findSurfaceManager(m_instanceId);
+        auto sm = engine->findSurfaceManagerShared(m_instanceId);
         if (sm) {
             sm->submitUIDataModel(syncMessage);
         } else {
@@ -708,20 +719,45 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
 }
 
 void A2UIComponent::applyVisibility(const nlohmann::json& styles) {
-    if (!m_nodeHandle || !styles.contains("visibility") || !styles["visibility"].is_string()) {
+    if (!m_nodeHandle) {
         return;
     }
-
-    const std::string value = styles["visibility"].get<std::string>();
-    ArkUI_Visibility visibility = (value == "hidden")
-        ? ARKUI_VISIBILITY_HIDDEN
-        : ARKUI_VISIBILITY_VISIBLE;
+    // Aligned with iOS CSSPropertyApplier (absent -> defaultValue "visible") and
+    // Android StyleHelper (resolveString default VISIBILITY="visible").
+    ArkUI_Visibility visibility = ARKUI_VISIBILITY_VISIBLE;
+    std::string value;
+    if (styles.contains("visibility") && styles["visibility"].is_string()) {
+        value = styles["visibility"].get<std::string>();
+        if (value == "hidden") {
+            visibility = ARKUI_VISIBILITY_HIDDEN;
+        }
+    }
     A2UINode(m_nodeHandle).setVisibility(visibility);
     HM_LOGI("Set visibility=%s for component %s", value.c_str(), m_id.c_str());
 }
 
+void A2UIComponent::applyDisplay(const nlohmann::json& styles) {
+    if (!m_nodeHandle) {
+        return;
+    }
+    // Aligned with iOS CSSPropertyApplier (absent -> defaultValue "flex") and
+    // Android StyleHelper (resolveString default DISPLAY="flex").
+    // display:none hides, everything else shows.  Runs after applyVisibility
+    // so display can override it, matching iOS apply order.
+    ArkUI_Visibility visibility = ARKUI_VISIBILITY_VISIBLE;
+    std::string value;
+    if (styles.contains("display") && styles["display"].is_string()) {
+        value = styles["display"].get<std::string>();
+        if (value == "none") {
+            visibility = ARKUI_VISIBILITY_HIDDEN;
+        }
+    }
+    A2UINode(m_nodeHandle).setVisibility(visibility);
+    HM_LOGI("Set display=%s for component %s", value.c_str(), m_id.c_str());
+}
+
 void A2UIComponent::applyOpacity(const nlohmann::json& styles) {
-    if (!m_nodeHandle || !styles.contains("opacity")) {
+    if (!m_nodeHandle) {
         return;
     }
     // The appear animation owns the node opacity until it finishes: it starts at
@@ -730,8 +766,12 @@ void A2UIComponent::applyOpacity(const nlohmann::json& styles) {
     if (m_pendingAppearAnimation) {
         return;
     }
-
-    const float opacity = clampOpacity(parseOpacityValue(styles["opacity"]));
+    // Aligned with iOS CSSPropertyApplier (absent -> defaultValue 1.0) and
+    // Android StyleHelper (resolveFloat default OPACITY=1.0f).  parseOpacityValue
+    // also returns 1.0 on parse failure, so absent and invalid both land on 1.0.
+    const float opacity = styles.contains("opacity")
+        ? clampOpacity(parseOpacityValue(styles["opacity"]))
+        : 1.0f;
     if (std::fabs(opacity - m_appliedOpacity) < 0.0001f) {
         return;
     }
@@ -771,7 +811,11 @@ void A2UIComponent::applyBackgroundColor(const nlohmann::json& properties) {
     } else if (styles.contains("background")) {
         bgColorKey = "background";
     }
+    // Aligned with iOS CSSPropertyApplier (absent -> defaultValue .clear) and
+    // Android StyleHelper (absent -> StyleDefaults.BACKGROUND_COLOR=TRANSPARENT).
     if (bgColorKey.empty() || !styles[bgColorKey].is_string()) {
+        GradientApplier::reset(m_nodeHandle);
+        node.setBackgroundColor(kColorTransparent);
         return;
     }
 
@@ -832,11 +876,14 @@ void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
             } else if (radiusVal.is_string()) {
                 radius = static_cast<float>(std::atof(radiusVal.get<std::string>().c_str()));
             }
-            if (radius > 0.0f) {
-                node.setBorderRadius(radius);
-            } else {
-                node.resetBorderRadius();
-            }
+        }
+        // Aligned with iOS (absent -> defaultValue 0) / Android (BORDER_RADIUS=0):
+        // an absent or zero radius still resets the corner so a previous value
+        // does not linger.
+        if (radius > 0.0f) {
+            node.setBorderRadius(radius);
+        } else {
+            node.resetBorderRadius();
         }
         if (radius > 0.0f || overflow == "hidden" || overflow == "scroll") {
             node.setClip(true);
@@ -853,21 +900,22 @@ void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
         } else if (styles.contains("borderWidth")) {
             bwKey = "borderWidth";
         }
+        float bw = 0.0f;
         if (!bwKey.empty()) {
-            float bw = 0.0f;
             const auto& bwVal = styles[bwKey];
             if (bwVal.is_number()) {
                 bw = bwVal.get<float>();
             } else if (bwVal.is_string()) {
                 bw = static_cast<float>(std::atof(bwVal.get<std::string>().c_str()));
             }
-            if (bw > 0.0f) {
-                node.setBorderWidth(bw, bw, bw, bw);
-                node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
-            } else {
-                node.resetBorderWidth();
-                node.resetBorderStyle();
-            }
+        }
+        // Aligned with iOS (absent -> defaultValue 0) / Android (BORDER_WIDTH=0).
+        if (bw > 0.0f) {
+            node.setBorderWidth(bw, bw, bw, bw);
+            node.setBorderStyle(ARKUI_BORDER_STYLE_SOLID);
+        } else {
+            node.resetBorderWidth();
+            node.resetBorderStyle();
         }
     }
     
@@ -879,10 +927,12 @@ void A2UIComponent::applyBorderStyles(const nlohmann::json& properties) {
         } else if (styles.contains("borderColor")) {
             bcKey = "borderColor";
         }
+        // Aligned with iOS (absent -> defaultValue .clear) / Android (BORDER_COLOR=TRANSPARENT).
+        uint32_t borderColor = kColorTransparent;
         if (!bcKey.empty() && styles[bcKey].is_string()) {
-            uint32_t color = parseColor(styles[bcKey].get<std::string>());
-            node.setBorderColor(color);
+            borderColor = parseColor(styles[bcKey].get<std::string>());
         }
+        node.setBorderColor(borderColor);
     }
 }
 
@@ -896,18 +946,23 @@ void A2UIComponent::applyFilter(const nlohmann::json& properties) {
     }
 
     const auto& styles = properties["styles"];
+    // Aligned with iOS CSSPropertyApplier (absent -> defaultValue .invalid -> clear)
+    // and Android StyleHelper (absent/invalid -> clear shadow).
     if (!styles.contains("filter") || !styles["filter"].is_string()) {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_CUSTOM_SHADOW);
         return;
     }
 
     DropShadowParams params = parseDropShadow(styles["filter"].get<std::string>());
     if (!params.valid) {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_CUSTOM_SHADOW);
         return;
     }
 
     uint32_t color = parseColor(params.colorStr);
     if (color == kColorTransparent && params.colorStr != "#00000000" && params.colorStr != "rgba(0, 0, 0, 0)" &&
         params.colorStr != "rgba(0,0,0,0)" && params.colorStr != "rgb(0, 0, 0)") {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_CUSTOM_SHADOW);
         return;
     }
     A2UINode(m_nodeHandle).setCustomShadow(params.blurRadius, params.offsetX, params.offsetY, color);

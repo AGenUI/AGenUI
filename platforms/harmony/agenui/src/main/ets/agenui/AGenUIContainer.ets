@@ -55,8 +55,8 @@ export struct AGenUIContainer {
     }
     .width('100%')
     .onSizeChange((oldValue: SizeOptions, newValue: SizeOptions) => {
-      const newWidth = Math.round(newValue.width as number);
-      const oldWidth = Math.round(oldValue.width as number);
+      const newWidth = newValue.width as number;
+      const oldWidth = oldValue.width as number;
 
       // Notify the native layer only once after the first valid width is available.
       if ((this.widthNotified && newWidth === oldWidth) || newWidth <= 0) {
@@ -66,7 +66,7 @@ export struct AGenUIContainer {
       this.widthNotified = true;
       // Pass height 0 so the native side can resolve it with wrap_content semantics.
       internal_a2ui.onSurfaceSizeChanged(this.resolvedInstanceId, this.surfaceId, newWidth, 0);
-      hilog.info(0x0000, 'agenui-ets', 'onSizeChange notified native - instanceId: %{public}d, width: %{public}d', this.resolvedInstanceId, newWidth);
+      hilog.info(0x0000, 'agenui-ets', 'onSizeChange notified native - instanceId: %{public}d, width: %{public}s', this.resolvedInstanceId, newWidth.toString());
     })
   }
 }

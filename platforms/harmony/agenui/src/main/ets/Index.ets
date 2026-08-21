@@ -38,6 +38,8 @@ export { AGenUIContainer } from './agenui/AGenUIContainer';
 export { A2UIComponent } from './agenui/custom/A2UIComponent';
 export type { A2UIComponentProps, CustomView, IComponentFactory } from './agenui/custom/A2UIComponent';
 export { StyleHelper } from './agenui/custom/StyleHelper';
+// 四边 vp。padding/margin 简写解析（native EdgeInsetsParser）的返回类型
+export type { EdgeInsetsVp } from './agenui/custom/StyleHelper';
 
 // ============ Logger Interfaces ============
 export type { IAGenUILogger } from './agenui/logger/IAGenUILogger';

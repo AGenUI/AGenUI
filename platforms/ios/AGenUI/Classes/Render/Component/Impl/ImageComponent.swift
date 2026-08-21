@@ -101,8 +101,8 @@ class ImageComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
         
         if !self.isViewCreated {
             return
@@ -115,19 +115,24 @@ class ImageComponent: Component {
         var yogaWidth: Float = 0
         var yogaHeight: Float = 0
         
-        if let urlValue = properties["url"] {
+        if case .value(let urlValue) = diff["url"] {
             let url = urlValue as? String ?? ""
             urlChanged = (url != currentUrl)
             currentUrl = url
+        } else if case .deleted = diff["url"] {
+            currentUrl = ""
+            urlChanged = true
         }
         
         // Update scale mode (A2UI v0.9 protocol: fit)
-        if let fit = properties["fit"] as? String {
+        if case .value(let v) = diff["fit"], let fit = v as? String {
             imageView?.contentMode = parseFit(fit)
+        } else if case .deleted = diff["fit"] {
+            imageView?.contentMode = .scaleAspectFit
         }
 
         // Apply CSS padding to the inner imageView.
-        if let styles = properties["styles"] as? [String: Any] {
+        if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {
             applyImagePadding(styles)
             
             let newWidth = styles["width"]
@@ -174,13 +179,6 @@ class ImageComponent: Component {
         leadingC.constant = p.left
         trailingC.constant = -p.right
         bottomC.constant = -p.bottom
-    }
-    
-    override func setBorderRadius(_ radius: CGFloat) {
-        super.setBorderRadius(radius)
-        // Mirror corner radius to imageView so the image content is clipped to rounded corners.
-        // imageView.clipsToBounds is already true (set in init).
-        imageView?.layer.cornerRadius = radius
     }
     
     /// Parse scale mode

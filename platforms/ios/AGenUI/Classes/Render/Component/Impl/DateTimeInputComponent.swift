@@ -102,7 +102,7 @@ class DateTimeInputComponent: Component {
         createCompactButton()
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -228,20 +228,25 @@ class DateTimeInputComponent: Component {
         compactButton?.frame = CGRect(x: 0, y: 0, width: bounds.width, height: compactHeight)
     }
     
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
         
         // Re-parse properties
         parseProperties()
         
         // Update value
-        if let value = properties["value"] {
+        if case .value(let value) = diff["value"] {
             isUpdatingFromNative = true
             let dateString = extractTextValue(value)
             if let date = parseISO8601Date(from: dateString) {
                 currentDate = date
                 updateDisplayValue()
             }
+            isUpdatingFromNative = false
+        } else if case .deleted = diff["value"] {
+            isUpdatingFromNative = true
+            currentDate = Date()
+            updateDisplayValue()
             isUpdatingFromNative = false
         }
     }

@@ -147,20 +147,20 @@ void ComponentManager::setComponentsDisplayRule(const std::map<std::string, Disp
     _displayRules = displayRules;
 }
 
-void ComponentManager::executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher) {
+void ComponentManager::executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher, const std::string& contextJson) {
     auto it = _components.find(componentId);
     if (it == _components.end()) {
         AGENUI_LOG("ComponentManager::executeComponentAction: component not found, id=%s", componentId.c_str());
         return;
     }
-    
+
     auto component = it->second;
     if (component == nullptr) {
         AGENUI_LOG("ComponentManager::executeComponentAction: component is null, id=%s", componentId.c_str());
         return;
     }
-    
-    component->executeAction(surfaceId, static_cast<agenui::EventDispatcher*>(dispatcher));
+
+    component->executeAction(surfaceId, static_cast<agenui::EventDispatcher*>(dispatcher), contextJson);
 }
 
 void ComponentManager::onComponentChanged(const std::string& componentId) {
@@ -379,13 +379,16 @@ std::shared_ptr<ComponentModel> ComponentManager::parseComponent(const nlohmann:
 
     parseChildren(json, component, entity);
 
+    auto* engineContext = getEngineContext();
+
     // All fields except id/component/children/child/rawId are treated as attributes
     for (auto it = json.begin(); it != json.end(); ++it) {
         std::string key = it.key();
         if (key != "id" && key != "component" && key != "children" && key != "child" && key != "rawId") {
             std::shared_ptr<DataValue> value;
 
-            // Special handling for action, checks, styles, and tabs
+            // Special handling for action, checks, styles, tabs, and host-declared
+            // containers of dynamic values
             if (key == "action") {
                 std::string actionJson = it.value().dump();
                 value = DataValueParser::parseFunctionCallActionDataValue(entity.get(), actionJson);
@@ -403,6 +406,10 @@ std::shared_ptr<ComponentModel> ComponentManager::parseComponent(const nlohmann:
                 value = DataValueParser::parseAccessibilityDataValue(entity.get(), it.value().dump());
             } else if (key == "tabs" && component == "Tabs") {
                 value = DataValueParser::parseTabsDataValue(entity.get(), it.value().dump());
+            } else if (engineContext != nullptr && engineContext->isDeepParseProperty(component, key)) {
+                // Descend into the property so nested bindings / function calls resolve
+                // instead of being frozen into one StaticDataValue.
+                value = DataValueParser::parseStructuredDataValue(entity.get(), it.value().dump());
             } else {
                 value = DataValueParser::parseDataValue(entity.get(), it.value().dump());
             }

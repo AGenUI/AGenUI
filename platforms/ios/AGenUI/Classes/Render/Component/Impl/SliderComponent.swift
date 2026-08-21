@@ -64,7 +64,7 @@ class SliderComponent: Component {
         createSlider()
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -110,23 +110,29 @@ class SliderComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
         
         // Update minimum value
-        if let min = properties["min"] {
+        if case .value(let min) = diff["min"] {
             minValue = Float(CSSPropertyParser.extractNumberValue(min) ?? 0)
+            slider?.minimumValue = minValue
+        } else if case .deleted = diff["min"] {
+            minValue = 0
             slider?.minimumValue = minValue
         }
         
         // Update maximum value
-        if let max = properties["max"] {
+        if case .value(let max) = diff["max"] {
             maxValue = Float(CSSPropertyParser.extractNumberValue(max) ?? 0)
+            slider?.maximumValue = maxValue
+        } else if case .deleted = diff["max"] {
+            maxValue = 0
             slider?.maximumValue = maxValue
         }
         
         // Update current value (data update from C++)
-        if let value = properties["value"] {
+        if case .value(let value) = diff["value"] {
             // Extract data binding path
             if let valueDict = value as? [String: Any], let path = valueDict["path"] as? String {
                 dataBindingPath = path
@@ -141,6 +147,11 @@ class SliderComponent: Component {
             if let slider = slider, slider.value != clampedValue {
                 slider.value = clampedValue
             }
+            isUpdatingFromNative = false
+        } else if case .deleted = diff["value"] {
+            dataBindingPath = nil
+            isUpdatingFromNative = true
+            if let slider = slider { slider.value = minValue }
             isUpdatingFromNative = false
         }
     }

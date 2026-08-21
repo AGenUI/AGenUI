@@ -28,7 +28,8 @@ enum class DataType {
     TabsData,                      // Tabs data
     EventActionData,               // Event action data
     FunctionCallActionData,        // Function-call action data
-    AccessibilityData              // Accessibility data
+    AccessibilityData,             // Accessibility data
+    StructuredData                 // JSON object/array skeleton whose leaves are DataValues
 };
 
 /**

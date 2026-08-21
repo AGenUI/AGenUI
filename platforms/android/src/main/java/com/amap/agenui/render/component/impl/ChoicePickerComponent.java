@@ -114,6 +114,7 @@ public class ChoicePickerComponent extends A2UIComponent {
     @Override
     public void onUpdateProperties(Map<String, Object> changedProps) {
         if (containerLayout == null) return;
+
         Context context = containerLayout.getContext();
         containerLayout.removeAllViews();
         errorTextView = null;
@@ -149,7 +150,12 @@ public class ChoicePickerComponent extends A2UIComponent {
         applyChecksProperty();
     }
 
-    private void parseProperties() {
+    /**
+     * Parse component-level properties from the merged map. When a property is absent
+     * (null delete-signal erased by the base class, or never set), clear it to the
+     * type-empty value (align iOS .deleted). Package-private for direct unit testing.
+     */
+    void parseProperties() {
         if (properties.containsKey("variant")) {
             Object v = properties.get("variant");
             if (v instanceof String) variant = (String) v;
@@ -159,7 +165,11 @@ public class ChoicePickerComponent extends A2UIComponent {
             Object optionsObj = properties.get("options");
             if (optionsObj instanceof List) {
                 options = (List<Map<String, Object>>) optionsObj;
+            } else {
+                options = new ArrayList<>();
             }
+        } else {
+            options = new ArrayList<>();
         }
 
         if (properties.containsKey("styles")) {
@@ -175,11 +185,15 @@ public class ChoicePickerComponent extends A2UIComponent {
         if (properties.containsKey("displayStyle")) {
             Object ds = properties.get("displayStyle");
             if (ds instanceof String) displayStyle = (String) ds;
+        } else {
+            displayStyle = "";
         }
 
         if (properties.containsKey("filterable")) {
             Object f = properties.get("filterable");
             if (f instanceof Boolean) filterable = (Boolean) f;
+        } else {
+            filterable = false;
         }
 
         if ("multipleSelection".equals(variant)) {
@@ -190,7 +204,7 @@ public class ChoicePickerComponent extends A2UIComponent {
                 for (Object item : rawList) {
                     selectedChipValues.add(item != null ? item.toString() : "");
                 }
-            } else if (selectedChipValues == null) {
+            } else {
                 selectedChipValues = new ArrayList<>();
             }
         } else {

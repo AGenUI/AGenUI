@@ -125,7 +125,7 @@ class MarkdownComponent: Component {
         self.markdownParser = createMarkdownParser()
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -164,21 +164,24 @@ class MarkdownComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Handle content field (full replacement)
-        if properties.keys.contains("content") {
-            let contentString = extractTextValue(from: properties["content"])
+        if case .value(let contentValue) = diff["content"] {
+            let contentString = extractTextValue(from: contentValue)
             // Full replace current text
             currentText = contentString
             // Async parse Markdown
             scheduleParseAndRender()
+        } else if case .deleted = diff["content"] {
+            currentText = ""
+            scheduleParseAndRender()
         }
         // Handle appendContent field (content append)
-        else if properties.keys.contains("appendContent") {
-            let appendString = extractTextValue(from: properties["appendContent"])
+        else if case .value(let appendValue) = diff["appendContent"] {
+            let appendString = extractTextValue(from: appendValue)
             
             if !appendString.isEmpty {
                 // Append text to current content

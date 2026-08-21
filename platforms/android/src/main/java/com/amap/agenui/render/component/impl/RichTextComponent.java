@@ -125,7 +125,9 @@ public class RichTextComponent extends A2UIComponent {
         // Handle link click setting (must be set before setting content)
         boolean linksEnable = true;
         if (changedProps.containsKey("linksEnable")) {
-            linksEnable = Boolean.parseBoolean(String.valueOf(changedProps.get("linksEnable")));
+            Object leObj = changedProps.get("linksEnable");
+            // null (delete signal) clears to the type-empty value (false).
+            linksEnable = leObj != null && Boolean.parseBoolean(String.valueOf(leObj));
         }
 
         if (linksEnable) {
@@ -137,13 +139,18 @@ public class RichTextComponent extends A2UIComponent {
         // Handle HTML content update (placed last to ensure styles are applied first)
         if (changedProps.containsKey("text")) {
             Object textValue = changedProps.get("text");
-            String htmlContent = extractTextValue(textValue);
+            if (textValue == null) {
+                // Delete signal: clear to empty content (not the literal "null").
+                textView.setText("");
+            } else {
+                String htmlContent = extractTextValue(textValue);
 
-            if (htmlContent != null && !htmlContent.isEmpty()) {
-                setHtmlContent(htmlContent);
-                if (AGenUILogger.isLoggingEnabled()) {
-                    AGenUILogger.d(TAG, "📝 [CONTENT_SET] RichText " + getId() +
-                            " content set, length: " + htmlContent.length());
+                if (htmlContent != null && !htmlContent.isEmpty()) {
+                    setHtmlContent(htmlContent);
+                    if (AGenUILogger.isLoggingEnabled()) {
+                        AGenUILogger.d(TAG, "📝 [CONTENT_SET] RichText " + getId() +
+                                " content set, length: " + htmlContent.length());
+                    }
                 }
             }
         }

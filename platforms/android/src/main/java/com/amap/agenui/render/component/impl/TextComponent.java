@@ -1,6 +1,7 @@
 package com.amap.agenui.render.component.impl;
 
 import android.content.Context;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -67,6 +68,11 @@ public class TextComponent extends A2UIComponent {
         textView = new TextView(context);
         textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        // Default font size when no styles are provided: 16dp == FONT_SIZE_A2UI (32 a2ui),
+        // keeping the no-styles render path aligned with the measure default and Harmony/iOS.
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                StyleHelper.standardUnitToPx(context, StyleHelper.StyleDefaults.FONT_SIZE_A2UI));
+
         // ⚠️ Important: apply initial properties
         onUpdateProperties(this.properties);
 
@@ -79,35 +85,41 @@ public class TextComponent extends A2UIComponent {
             return;
         }
 
-        boolean textChanged = false;
-
         // Handle text append
         if (changedProps.containsKey("textChunk")) {
             Object textValue = changedProps.get("textChunk");
-            String textChunk = extractTextValue(textValue);
-            if (textChunk != null) {
-                // Incrementally append text
-                currentText.append(textChunk);
-                textView.setText(currentText.toString());
-                textChanged = true;
+            if (textValue != null) {
+                String textChunk = extractTextValue(textValue);
+                if (textChunk != null) {
+                    // Incrementally append text
+                    currentText.append(textChunk);
+                    textView.setText(currentText.toString());
+                }
             }
         }
         // Handle text update (overwrite existing content)
         else if (changedProps.containsKey("text")) {
             Object textValue = changedProps.get("text");
-            String text = extractTextValue(textValue);
-            currentText = new StringBuilder(text);
-            textView.setText(currentText.toString());
-            textChanged = true;
+            if (textValue == null) {
+                // Delete signal (PRD agenui-null-handling-alignment.md): clear to the
+                // type-empty value (empty string), not the literal "null" that
+                // String.valueOf((Object) null) would produce.
+                currentText = new StringBuilder();
+                textView.setText("");
+            } else {
+                String text = extractTextValue(textValue);
+                currentText = new StringBuilder(text);
+                textView.setText(currentText.toString());
+            }
         }
 
-        // setText replaces the Spannable that carries metric-affecting styles such as
-        // CenteredLineHeightSpan. Reapply the full resolved style map after every text
-        // update so TextView's line boxes stay consistent with TextMeasurer/Yoga.
-        if (textChanged || changedProps.containsKey("styles")) {
+        // Apply custom styles (override variant preset styles)
+        if (changedProps.containsKey("styles")) {
             try {
-                Map<String, Object> styles = extractStyles(this.properties);
-                if (styles != null && !styles.isEmpty()) {
+                Object stylesValue = changedProps.get("styles");
+                if (stylesValue instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> styles = (Map<String, Object>) stylesValue;
                     applyStyles(styles);
                 }
             } catch (Exception e) {

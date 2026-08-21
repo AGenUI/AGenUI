@@ -1,6 +1,7 @@
 #pragma once
 
 #include "agenui_ithread.h"
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 
@@ -44,9 +45,11 @@ public:
     /**
      * @brief Returns the message thread for the given threadId.
      * @param threadId
-     * @return Thread pointer, or nullptr if not started
+     * @return Shared ownership of the thread, or nullptr if not started.
+     *         The shared_ptr keeps the thread object alive while posting,
+     *         even if destroyThread() runs concurrently.
      */
-    IThread* getMessageThread(int threadId);
+    std::shared_ptr<IThread> getMessageThread(int threadId);
 
 private:
     ThreadManager() = default;
@@ -54,7 +57,7 @@ private:
     ThreadManager(const ThreadManager&) = delete;
     ThreadManager& operator=(const ThreadManager&) = delete;
 
-    std::unordered_map<int, IThread*> _threads;
+    std::unordered_map<int, std::shared_ptr<IThread>> _threads;
     std::mutex _mutex;
 };
 

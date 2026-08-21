@@ -93,6 +93,9 @@ static std::mutex sFunctionMutex;
         [_functionCallCallbacks removeAllObjects];
     }
 
+    // Unbind the runtime logger (if bound) before engine destruction.
+    [self setRuntimeLogEnabled:NO];
+
     // Destroy engine
     if (_engine != nullptr) {
         agenui::destroyAGenUIEngine();
@@ -129,6 +132,24 @@ static std::mutex sFunctionMutex;
     std::string errorResult;
     bool success = _engine->loadThemeConfig(themeConfigStr, errorResult);
     return success;
+}
+
+// MARK: - Component Parse Declarations
+
+- (BOOL)registerDeepParsePropertyForComponentType:(NSString *)componentType
+                                     propertyName:(NSString *)propertyName {
+    if (!componentType || componentType.length == 0) {
+        return NO;
+    }
+    if (!propertyName || propertyName.length == 0) {
+        return NO;
+    }
+    if (_engine == nullptr) {
+        return NO;
+    }
+    std::string componentTypeStr = [componentType UTF8String];
+    std::string propertyNameStr = [propertyName UTF8String];
+    return _engine->registerDeepParseProperty(componentTypeStr, propertyNameStr);
 }
 
 // MARK: - DesignToken Configuration

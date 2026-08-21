@@ -68,9 +68,9 @@ class ListComponent: Component {
         super.createView()
     }
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Parse properties
         let oldDirection = direction

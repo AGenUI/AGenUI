@@ -295,8 +295,14 @@ public:
      * @brief Execute the component action
      * @param surfaceId Surface ID
      * @param dispatcher Event dispatcher
+     * @param contextJson Optional caller-supplied context. When it carries a parsable
+     *        "action" definition, that action is executed instead of this component's own
+     *        "action" attribute — used by custom components whose sub-regions carry their
+     *        own actions (e.g. SpanText spans). Empty or unparsable falls back to the
+     *        component's own action, so existing callers are unaffected.
      */
-    void executeAction(const std::string& surfaceId, agenui::EventDispatcher* dispatcher);
+    void executeAction(const std::string& surfaceId, agenui::EventDispatcher* dispatcher,
+                       const std::string& contextJson = "");
 
     // IDataValueContext implementation
     int getInstanceId() const override;
@@ -304,6 +310,16 @@ public:
     IDataModel* getDataModel() const override;
 
 private:
+    /**
+     * @brief Execute one already-parsed action DataValue
+     * @return true if the value was a recognised action type and got executed
+     * @remark Shared by the context-supplied action path and the component's own
+     *         "action" attribute path, so both dispatch identically.
+     */
+    bool executeActionValue(const std::shared_ptr<DataValue>& actionDataValue,
+                            const std::string& surfaceId,
+                            agenui::EventDispatcher* dispatcher);
+
     /**
      * @brief Attribute data binder
      * @remark Listens for data changes on a bound attribute

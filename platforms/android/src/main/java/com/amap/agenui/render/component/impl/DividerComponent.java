@@ -79,7 +79,8 @@ public class DividerComponent extends A2UIComponent {
 
         // Update axis from diff
         if (changedProps.containsKey("axis")) {
-            String axis = String.valueOf(changedProps.get("axis"));
+            Object axisObj = changedProps.get("axis");
+            String axis = axisObj == null ? "" : String.valueOf(axisObj);
             if (!axis.equals(currentAxis)) {
                 currentAxis = axis;
                 needsUpdate = true;

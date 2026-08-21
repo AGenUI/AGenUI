@@ -137,7 +137,7 @@ public:
     StreamingContentParser* getStreamingContentParser();
     SurfaceCoordinator* getSurfaceCoordinator();
 
-    IThread* getMessageThread();
+    std::shared_ptr<IThread> getMessageThread();
 
     bool isRunning() const { return _isRunning.load(); }
 

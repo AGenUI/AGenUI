@@ -55,7 +55,10 @@ bool WebComponent::applySource(const nlohmann::json& properties) {
     }
     const auto& val = properties[kPropSource];
     std::string newSource;
-    if (val.is_string()) {
+    // null (delete signal) → clear source (align iOS source/url/html→"")
+    if (val.is_null()) {
+        newSource = "";
+    } else if (val.is_string()) {
         newSource = val.get<std::string>();
     } else {
         return false;

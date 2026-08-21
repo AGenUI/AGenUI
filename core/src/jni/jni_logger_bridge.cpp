@@ -4,6 +4,7 @@
 #include <android/log.h>
 #include "agenui_logger_interface.h"
 #include "agenui_logger_internal.h"
+#include "agenui_engine_entry.h"
 #include "jni_helper.h"
 
 namespace agenui {
@@ -130,11 +131,24 @@ private:
 // Global logger instance
 static agenui::RuntimeLoggerImpl* gRuntimeLoggerImpl = nullptr;
 
+// Reset the core global gRuntimeLogger to the default logger before freeing
+// this object, so no thread can log through it afterwards.
+static void unbindLoggerFromEngine(agenui::RuntimeLoggerImpl* logger) {
+    if (logger == nullptr) {
+        return;
+    }
+    agenui::IAGenUIEngine* engine = agenui::getAGenUIEngine();
+    if (engine != nullptr) {
+        engine->setRuntimeLogger(nullptr);
+    }
+}
+
 extern "C" {
 
 JNIEXPORT jlong JNICALL
 Java_com_amap_agenui_render_utils_AGenUILogger_nativeInitLogger(JNIEnv* env, jobject thiz) {
     if (gRuntimeLoggerImpl) {
+        unbindLoggerFromEngine(gRuntimeLoggerImpl);
         delete gRuntimeLoggerImpl;
         gRuntimeLoggerImpl = nullptr;
     }
@@ -147,6 +161,8 @@ JNIEXPORT void JNICALL
 Java_com_amap_agenui_render_utils_AGenUILogger_nativeDestroyLogger(JNIEnv* env, jobject thiz, jlong nativePtr) {
     auto* logger = reinterpret_cast<agenui::RuntimeLoggerImpl*>(nativePtr);
     if (logger) {
+        // Unbind before delete to avoid a dangling gRuntimeLogger.
+        unbindLoggerFromEngine(logger);
         if (logger == gRuntimeLoggerImpl) {
             gRuntimeLoggerImpl = nullptr;
         }

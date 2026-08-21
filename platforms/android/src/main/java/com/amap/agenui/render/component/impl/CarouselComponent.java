@@ -171,8 +171,8 @@ public class CarouselComponent extends A2UIComponent {
         // Update image URL list
         if (changedProps.containsKey("content")) {
             Object contentObj = changedProps.get("content");
+            imageUrls.clear();
             if (contentObj instanceof List) {
-                imageUrls.clear();
                 List<?> contentList = (List<?>) contentObj;
                 for (Object item : contentList) {
                     if (item instanceof String) {
@@ -182,19 +182,22 @@ public class CarouselComponent extends A2UIComponent {
                 if (AGenUILogger.isLoggingEnabled()) {
                     AGenUILogger.d(TAG, "Updated image URLs: " + imageUrls.size() + " images");
                 }
-
-                // Update adapter
-                updateAdapter();
-
-                // Update indicator
-                updateIndicatorDots();
             }
+
+            // Update adapter
+            updateAdapter();
+
+            // Update indicator
+            updateIndicatorDots();
         }
 
         // Update auto-play configuration
         if (changedProps.containsKey("autoplay")) {
             Object autoplayObj = changedProps.get("autoplay");
-            if (autoplayObj instanceof Boolean) {
+            if (autoplayObj == null) {
+                // null (delete signal) clears to the type-empty value (false).
+                autoplay = false;
+            } else if (autoplayObj instanceof Boolean) {
                 autoplay = (Boolean) autoplayObj;
             } else if (autoplayObj instanceof String) {
                 autoplay = Boolean.parseBoolean((String) autoplayObj);
@@ -214,7 +217,10 @@ public class CarouselComponent extends A2UIComponent {
         // Update auto-play speed
         if (changedProps.containsKey("autoplaySpeed")) {
             Object speedObj = changedProps.get("autoplaySpeed");
-            if (speedObj instanceof Number) {
+            if (speedObj == null) {
+                // null (delete signal) → reset to default (align iOS autoplaySpeed→3.0)
+                autoplaySpeed = 3000;
+            } else if (speedObj instanceof Number) {
                 autoplaySpeed = ((Number) speedObj).intValue();
             } else if (speedObj instanceof String) {
                 try {
@@ -239,7 +245,10 @@ public class CarouselComponent extends A2UIComponent {
         // Update draggable configuration
         if (changedProps.containsKey("draggable")) {
             Object draggableObj = changedProps.get("draggable");
-            if (draggableObj instanceof Boolean) {
+            if (draggableObj == null) {
+                // null (delete signal) → false (align iOS draggable→false)
+                draggable = false;
+            } else if (draggableObj instanceof Boolean) {
                 draggable = (Boolean) draggableObj;
             } else if (draggableObj instanceof String) {
                 draggable = Boolean.parseBoolean((String) draggableObj);

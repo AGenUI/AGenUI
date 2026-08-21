@@ -15,7 +15,7 @@ napi_value BeginTextStream(napi_env env, napi_callback_info info) {
 
     HM_LOGI("BeginTextStream: instanceId=%d", instanceId);
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (!sm) {
         HM_LOGE("BeginTextStream: SurfaceManager not found for instanceId=%d", instanceId);
         NAPI_RETURN_UNDEFINED(env);
@@ -42,7 +42,7 @@ napi_value EndTextStream(napi_env env, napi_callback_info info) {
 
     HM_LOGI("EndTextStream: instanceId=%d", instanceId);
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (!sm) {
         HM_LOGE("EndTextStream: SurfaceManager not found for instanceId=%d", instanceId);
         NAPI_RETURN_UNDEFINED(env);
@@ -71,7 +71,7 @@ napi_value ReceiveTextChunk(napi_env env, napi_callback_info info) {
 
     HM_LOGI("ReceiveTextChunk: instanceId=%d, data length=%zu", instanceId, data.size());
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (sm) {
         sm->receiveTextChunk(data);
     }

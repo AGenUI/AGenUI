@@ -235,13 +235,13 @@ agenui::A2UIMessageListener* findMessageListenerByInstanceId(int instanceId) {
     return nullptr;
 }
 
-agenui::ISurfaceManager* findSurfaceManagerByInstanceId(int instanceId) {
+std::shared_ptr<agenui::ISurfaceManager> findSurfaceManagerByInstanceId(int instanceId) {
     auto* engine = agenui::getAGenUIEngine();
     if (!engine) {
         HM_LOGE("AGenUI Engine not initialized");
         return nullptr;
     }
-    auto* sm = engine->findSurfaceManager(instanceId);
+    auto sm = engine->findSurfaceManagerShared(instanceId);
     if (!sm) {
         HM_LOGE("ISurfaceManager not found for instanceId=%d", instanceId);
     }
@@ -283,7 +283,10 @@ static napi_value Start(napi_env env, napi_callback_info info) {
         mm->registerMeasurement("Icon",         std::make_shared<a2ui::ImageComponentMeasurement>());
         mm->registerMeasurement("Slider",       std::make_shared<a2ui::SliderComponentMeasurement>());
         mm->registerMeasurement("Text",         std::make_shared<a2ui::TextComponentMeasurement>());
-        mm->registerMeasurement("AmapText",     std::make_shared<a2ui::TextComponentMeasurement>());
+        // NOTE: no native measurement for "AmapText". The amap host registers an
+        // ArkTS measurement handler (SpanText-aware, measurement/render same source)
+        // for this type; registering TextComponentMeasurement here would only serve
+        // as a misleading fallback that does not understand `spans`.
         mm->registerMeasurement("RichText",     std::make_shared<a2ui::TextComponentMeasurement>());
         mm->registerMeasurement("CheckBox",     std::make_shared<a2ui::CheckBoxComponentMeasurement>());
         mm->registerMeasurement("ChoicePicker", std::make_shared<a2ui::ChoicePickerComponentMeasurement>());
@@ -304,6 +307,8 @@ static napi_value Stop(napi_env env, napi_callback_info info) {
     auto* engine = agenui::getAGenUIEngine();
     if (engine) {
         if (a2ui::gRuntimeLoggerImpl) {
+            // Unbind before releasing to avoid a dangling gRuntimeLogger.
+            engine->setRuntimeLogger(nullptr);
             a2ui::gRuntimeLoggerImpl.reset();
             HM_LOGI("Cleaned up RuntimeLogger");
         }
@@ -321,10 +326,10 @@ static napi_value Stop(napi_env env, napi_callback_info info) {
             std::lock_guard<std::mutex> lock(g_messageListenersMutex);
             for (auto it = getMessageListeners().begin(); it != getMessageListeners().end(); ) {
                 int instanceId = it->first;
-                auto* sm = engine->findSurfaceManager(instanceId);
+                auto sm = engine->findSurfaceManagerShared(instanceId);
                 if (sm) {
                     sm->removeSurfaceEventListener(it->second.get());
-                    engine->destroySurfaceManager(sm);
+                    engine->destroySurfaceManager(sm.get());
                 }
                 it = getMessageListeners().erase(it);
                 HM_LOGI("Cleaned up listener for instanceId=%d", instanceId);
@@ -382,7 +387,7 @@ static napi_value InvalidateFunctionCallValues(napi_env env, napi_callback_info 
     int32_t instanceId = 0;
     napi_get_value_int32(env, args[0], &instanceId);
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (!sm) {
         HM_LOGE("InvalidateFunctionCallValues: SurfaceManager not found for instanceId=%d", instanceId);
         NAPI_RETURN_UNDEFINED(env);
@@ -473,6 +478,46 @@ static napi_value RegisterFontNative(napi_env env, napi_callback_info info) {
     HM_LOGI("RegisterFont: OK '%s' path='%s'", familyName.c_str(), filePath.c_str());
     napi_value result;
     napi_get_boolean(env, true, &result);
+    return result;
+}
+
+static napi_value RegisterDeepParsePropertyNative(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value argv[2];
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    napi_value result;
+
+    if (argc < 2) {
+        HM_LOGE("RegisterDeepParseProperty: expected 2 arguments (componentType, propertyName)");
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    std::string componentType = napiGetString(env, argv[0]);
+    std::string propertyName = napiGetString(env, argv[1]);
+
+    if (componentType.empty() || propertyName.empty()) {
+        HM_LOGE("RegisterDeepParseProperty: componentType or propertyName is empty");
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    auto* engine = agenui::getAGenUIEngine();
+    if (!engine) {
+        HM_LOGE("RegisterDeepParseProperty: engine not initialized");
+        napi_get_boolean(env, false, &result);
+        return result;
+    }
+
+    bool success = engine->registerDeepParseProperty(componentType, propertyName);
+    if (!success) {
+        HM_LOGE("RegisterDeepParseProperty: failed, componentType=%s, propertyName=%s",
+                componentType.c_str(), propertyName.c_str());
+    } else {
+        HM_LOGI("RegisterDeepParseProperty: OK '%s'.'%s'", componentType.c_str(), propertyName.c_str());
+    }
+    napi_get_boolean(env, success, &result);
     return result;
 }
 
@@ -604,6 +649,7 @@ static napi_value Init(napi_env env, napi_value exports)
         { "setMessageThreadFactory", nullptr, SetMessageThreadFactory, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "registerFunction", nullptr, RegisterFunction, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "unregisterFunction", nullptr, UnregisterFunction, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "registerDeepParseProperty", nullptr, RegisterDeepParsePropertyNative, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "submitUIAction", nullptr, SubmitUIAction, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "submitUIDataModel", nullptr, SubmitUIDataModel, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "destroySurface", nullptr, DestroySurface, nullptr, nullptr, nullptr, napi_default, nullptr },
@@ -624,6 +670,8 @@ static napi_value Init(napi_env env, napi_value exports)
         { "surfaceCancelBlankCheck", nullptr, Surface_cancelBlankCheck, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "registerFont", nullptr, RegisterFontNative, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "registerFontFromBuffer", nullptr, RegisterFontFromBufferNative, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "parseColor", nullptr, ParseColor, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "parseEdgeInsets", nullptr, ParseEdgeInsets, nullptr, nullptr, nullptr, napi_default, nullptr },
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

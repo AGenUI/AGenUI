@@ -29,13 +29,14 @@ std::unordered_map<int, std::unique_ptr<JNISurfaceSizeProviderBridge>>
 
 }  // namespace
 
-static ISurfaceManager* findSurfaceManagerByInstanceId(jint instanceId) {
+static std::shared_ptr<ISurfaceManager> findSurfaceManagerByInstanceId(jint instanceId) {
     IAGenUIEngine* engine = getAGenUIEngine();
     if (!engine) {
         AGENUI_LOG("[JNI] findSurfaceManagerByInstanceId: engine is null");
         return nullptr;
     }
-    ISurfaceManager* sm = engine->findSurfaceManager(instanceId);
+    // Shared ownership keeps the instance alive for the whole JNI call.
+    auto sm = engine->findSurfaceManagerShared(instanceId);
     if (!sm) {
         AGENUI_LOG("[JNI] findSurfaceManagerByInstanceId: SurfaceManager not found for instanceId=%d", instanceId);
     }
@@ -48,7 +49,7 @@ static void jni_addEventListener(JNIEnv* env, jclass clazz, jint instanceId, job
         AGENUI_LOG("[JNI] addEventListener: listener is null");
         return;
     }
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -71,7 +72,7 @@ static void jni_removeEventListener(JNIEnv* env, jclass clazz, jint instanceId, 
         AGENUI_LOG("[JNI] removeEventListener: listener is null");
         return;
     }
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         AGENUI_LOG("%d does not exist", instanceId);
         return;
@@ -94,7 +95,7 @@ static void jni_removeEventListener(JNIEnv* env, jclass clazz, jint instanceId, 
 
 static void jni_submitUIAction(JNIEnv* env, jclass clazz, jint instanceId, jstring jSurfaceId, jstring jSourceComponentId, jstring jContextJson) {
     AGENUI_LOG("[JNI] submitUIAction: instanceId=%d", instanceId);
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -119,7 +120,7 @@ static void jni_submitUIAction(JNIEnv* env, jclass clazz, jint instanceId, jstri
 }
 
 static void jni_submitUIDataModel(JNIEnv* env, jclass clazz, jint instanceId, jstring jSurfaceId, jstring jComponentId, jstring jChange) {
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -145,7 +146,7 @@ static void jni_submitUIDataModel(JNIEnv* env, jclass clazz, jint instanceId, js
 }
 
 static void jni_beginTextStream(JNIEnv* env, jclass clazz, jint instanceId) {
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -157,7 +158,7 @@ static void jni_receiveTextChunk(JNIEnv* env, jclass clazz, jint instanceId, jst
         AGENUI_LOG("[JNI] receiveTextChunk: content is null");
         return;
     }
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -167,7 +168,7 @@ static void jni_receiveTextChunk(JNIEnv* env, jclass clazz, jint instanceId, jst
 }
 
 static void jni_endTextStream(JNIEnv* env, jclass clazz, jint instanceId) {
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -177,7 +178,7 @@ static void jni_endTextStream(JNIEnv* env, jclass clazz, jint instanceId) {
 static void jni_notifyRenderFinish(JNIEnv* env, jclass clazz, jint instanceId,
                                    jstring jSurfaceId, jstring jComponentId, jstring jType,
                                    jfloat width, jfloat height, jint selectedIndex) {
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -212,7 +213,7 @@ static void jni_notifyRenderFinish(JNIEnv* env, jclass clazz, jint instanceId,
 
 static void jni_notifySurfaceSizeChanged(JNIEnv* env, jclass clazz, jint instanceId,
                                          jstring jSurfaceId, jfloat width, jfloat height) {
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -228,7 +229,7 @@ static void jni_notifySurfaceSizeChanged(JNIEnv* env, jclass clazz, jint instanc
 }
 
 static void jni_invalidateFunctionCallValues(JNIEnv* env, jclass clazz, jint instanceId) {
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -242,7 +243,7 @@ static void jni_setSurfaceSizeProvider(JNIEnv* env, jclass clazz, jint instanceI
         AGENUI_LOG("[JNI] setSurfaceSizeProvider: javaSurfaceManager is null");
         return;
     }
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (!surfaceManager) {
         return;
     }
@@ -268,7 +269,7 @@ static void jni_clearSurfaceSizeProvider(JNIEnv* env, jclass clazz, jint instanc
     // Detach from the engine first so no in-flight Yoga pass can see the bridge
     // while we delete it. If the SurfaceManager is already gone we skip the
     // detach (the engine has nothing to point at) but still drop the bridge.
-    ISurfaceManager* surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
     if (surfaceManager) {
         surfaceManager->setSurfaceSizeProvider(nullptr);
     }

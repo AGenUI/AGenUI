@@ -27,6 +27,7 @@ import {
   createSurfaceManager as nativeCreateSurfaceManager,
   destroySurfaceManager as nativeDestroySurfaceManager,
   registerEtsFunction,
+  registerDeepParseProperty as nativeRegisterDeepParseProperty,
 } from 'liba2ui-capi.so';
 
 import internal_a2ui from 'liba2ui-capi.so';
@@ -37,6 +38,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 
 import {
   IImageLoader,
+  ImageLoaderConfiguration,
   ImageLoadResult,
   ImageLoaderError,
 } from '../ImageLoader';
@@ -167,6 +169,14 @@ export class AGenUIEngineBridge {
   }
 
   /**
+   * Declares a component property as a container of dynamic values, so the parser
+   * descends into it instead of storing a nested object or array verbatim.
+   */
+  registerDeepParseProperty(componentType: string, propertyName: string): boolean {
+    return nativeRegisterDeepParseProperty(componentType, propertyName);
+  }
+
+  /**
    * Sets the day/night mode
    */
   setDayNightMode(mode: string): void {
@@ -203,6 +213,11 @@ export class AGenUIEngineBridge {
    */
   registerImageLoader(loader: IImageLoader): void {
     g_imageLoader = loader;
+    // 与 Android AGenUI.registerImageLoader 语义对齐（AGenUI.java 内同步调
+    // ImageLoaderConfig.getInstance().setLoader）：同时注入 ImageLoaderConfiguration，
+    // 供宿主自定义组件（如 AmapText 的 image span）经 shared().loader 取用；
+    // 只注册给 C++ 桥会导致这类组件读不到 loader、图片恒透明。
+    ImageLoaderConfiguration.shared().setLoader(loader);
 
     const wrappedLoader: WrappedImageLoader = {
       loadImage: (url: string, options: Record<string, Object> | null, requestId: string): string => {

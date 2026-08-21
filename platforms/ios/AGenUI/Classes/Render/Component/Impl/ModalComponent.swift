@@ -47,7 +47,7 @@ class ModalComponent: Component {
         loadStyleConfig()
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -76,9 +76,9 @@ class ModalComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties (e.g., padding, background-color)
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Modal component property update logic
         // trigger and content association is handled in addChild

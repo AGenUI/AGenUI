@@ -56,7 +56,7 @@ class VideoComponent: Component {
         ])
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -70,14 +70,16 @@ class VideoComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties (e.g., padding, background-color)
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Update video URL
-        if let urlValue = properties["url"] {
+        if case .value(let urlValue) = diff["url"] {
             let url = CSSPropertyParser.extractStringValue(urlValue)
             setVideoUrl(url)
+        } else if case .deleted = diff["url"] {
+            setVideoUrl("")
         }
     }
     

@@ -65,8 +65,12 @@ public:
      * @param componentId Component ID
      * @param surfaceId Surface ID
      * @param dispatcher Event dispatcher pointer
+     * @param contextJson Optional caller-supplied context. When it carries a parsable
+     *        "action" definition, that action is executed instead of the component's own
+     *        "action" attribute. Empty or unparsable falls back to the component's own
+     *        action, so existing callers are unaffected.
      */
-    virtual void executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher) = 0;
+    virtual void executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher, const std::string& contextJson = "") = 0;
 
     /**
      * @brief Access the batch guard for this component manager.

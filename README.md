@@ -22,24 +22,19 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.3.1
+## What's New in v1.4.0
 
-> Released on 2026-08-06
+> Released on 2026-08-21
 
-- **Package Type API**: Added package type set/get APIs to the engine, exposed through the Core engine and the Android, iOS, and HarmonyOS integration layers.
-- **Unified Text Rendering Pipeline**: Merged Text and RichText into a single rendering pipeline reusing the shared label implementation, improving rendering consistency and maintainability.
-- Hardened JSON parsing with stricter type checks and exception handling.
-- Moved Button styling onto the shared base-class styling pipeline.
-- Moved Card rounded corners onto the shared clip decision.
-
-- Fixed `overflow: hidden` not taking effect, fixed opacity not taking effect.
-- (Android) Unified `border-radius` and `overflow` into a single clip decision.
-- (Android) Restored rounded corner rendering on software canvases.
-- (Android) Fixed built-in containers unexpectedly clipping their children.
-- (Android) Fixed misalignment between the border stroke center (`border-width`) and the rounded-clip center (`border-radius`).
-- (iOS) Fixed a UIKit assertion crash caused by `layoutIfNeeded` re-entry in horizontal List, and fixed off-screen update timing of horizontal List.
-- (iOS) Fixed a crash by filtering empty values in properties.
-- (Android) Fixed the Tab component incorrectly triggering `onTabClick` on first display.
+- **Shadow & Border-Radius Rendering Rework**: Border radius now applies clipping by default; the shadow layer is rendered independently of component content so it is no longer clipped by the component. The `addChild` logic no longer relies on index computation. .
+- **Style Default Alignment**: Unified default style values across Android, iOS, and HarmonyOS (including font styles and default text size); aligned Android text measurement and style parsing with the other platforms. Styles parsing was refactored to be more cohesive in preparation for this alignment.
+- **Unified `null` Handling in Incremental Updates**: Component data no longer retains `null` values on Android and HarmonyOS, and first-level property `null` behavior is aligned across all built-in components. On iOS, properties with `NSNull` values are now treated as property removal instead of being silently dropped; a `removeProperties` API was added to the render layer, and styles are no longer flattened into first-level properties.
+- **Deep Data Binding for Custom Components**: Custom components now support deep resolution of data bindings within nested properties.
+- (Core) Fixed a low-probability stability issue by returning the surface manager from `findSurfaceManager` as a `shared_ptr` (HarmonyOS usage updated accordingly).
+- (iOS) Fixed the `display` style incorrectly overriding the `visibility` style. Fixed shadow rendering linkage issues.
+- (Android) Fixed string-valued `font-weight` falling back to the binary Typeface path. Fixed AudioPlayer and ChoicePicker component issues. Removed unnecessary click and focus configuration on components.
+- (HarmonyOS) Fixed the right border disappearing on certain device models. Fixed an ArkTS compilation error in `Component.triggerAction`.
+- (All) Fixed the default text size across the three platforms.
 
 ---
 

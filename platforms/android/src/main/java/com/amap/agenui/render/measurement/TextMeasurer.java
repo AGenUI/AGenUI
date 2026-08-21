@@ -18,7 +18,9 @@ import com.amap.agenui.render.style.StyleHelper;
 
 import org.json.JSONObject;
 
-import java.util.Locale;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Synchronous text / rich-text measurement backed by thread-safe text primitives.
@@ -41,7 +43,9 @@ import java.util.Locale;
  */
 public final class TextMeasurer {
 
-    private static final float DEFAULT_TEXT_SIZE_SP = 14f;
+    // RichText render uses 16sp (RichTextComponent.setTextSize(SP,16)); keep its measure
+    // default on the same sp convention. Text's default is computed at the entry points via
+    // standardUnitToPx(FONT_SIZE_A2UI) so measure matches render (dp) exactly.
     private static final float DEFAULT_RICH_TEXT_SIZE_SP = 16f;
     private static final ThreadLocal<TextPaint> THREAD_LOCAL_PAINT = new ThreadLocal<TextPaint>() {
         @Override
@@ -96,7 +100,7 @@ public final class TextMeasurer {
                 context,
                 paramJson,
                 false,
-                DEFAULT_TEXT_SIZE_SP,
+                StyleHelper.standardUnitToPx(context, StyleHelper.StyleDefaults.FONT_SIZE_A2UI),
                 maxWidth,
                 widthMode,
                 maxHeight,
@@ -113,7 +117,8 @@ public final class TextMeasurer {
                 context,
                 paramJson,
                 true,
-                DEFAULT_RICH_TEXT_SIZE_SP,
+                TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,
+                        DEFAULT_RICH_TEXT_SIZE_SP, context.getResources().getDisplayMetrics()),
                 maxWidth,
                 widthMode,
                 maxHeight,
@@ -123,7 +128,7 @@ public final class TextMeasurer {
     private static MeasureResult measureInternal(Context context,
                                                  String paramJson,
                                                  boolean richText,
-                                                 float defaultTextSizeSp,
+                                                 float defaultTextSizePx,
                                                  float maxWidth,
                                                  int widthMode,
                                                  float maxHeight,
@@ -142,7 +147,7 @@ public final class TextMeasurer {
                     widthMode,
                     maxHeight,
                     heightMode,
-                    defaultTextSizeSp);
+                    defaultTextSizePx);
         } catch (Exception ignored) {
             return MeasureResult.zero();
         }
@@ -163,7 +168,7 @@ public final class TextMeasurer {
                 widthMode,
                 maxHeight,
                 heightMode,
-                DEFAULT_TEXT_SIZE_SP);
+                StyleHelper.standardUnitToPx(context, StyleHelper.StyleDefaults.FONT_SIZE_A2UI));
     }
 
     private static MeasureResult measureTextValue(Context context,
@@ -173,7 +178,7 @@ public final class TextMeasurer {
                                                   int widthMode,
                                                   float maxHeight,
                                                   int heightMode,
-                                                  float defaultTextSizeSp) {
+                                                  float defaultTextSizePx) {
         // Shared text primitive used by Text/RichText and by hybrid measurers that need to
         // measure inner labels with the same metric-affecting style subset as Android rendering.
         if (context == null || TextUtils.isEmpty(text)) {
@@ -181,7 +186,7 @@ public final class TextMeasurer {
         }
 
         try {
-            TextLayoutStyle layoutStyle = buildTextLayoutStyle(context, styles, defaultTextSizeSp);
+            TextLayoutStyle layoutStyle = buildTextLayoutStyle(context, styles, defaultTextSizePx);
             int constrainedWidthPx = resolveConstraintPx(context, maxWidth);
             int constrainedHeightPx = resolveConstraintPx(context, maxHeight);
             CharSequence displayText = maybeEllipsizeForLegacySingleLine(
@@ -267,132 +272,60 @@ public final class TextMeasurer {
     }
 
     /**
-     * Resolves the metric-affecting text styles that must stay aligned with
-     * `StyleHelper.applyTextStyles()`: typeface, text size, line spacing, max lines and ellipsis.
+     * Resolves the metric-affecting text styles by delegating to the single source of truth
+     * `StyleHelper.ParsedTextStyles` (shared with `StyleHelper.applyTextStyles()`): typeface,
+     * text size, line height, max lines and ellipsis. Only the application target differs
+     * (TextPaint + StaticLayout here vs TextView in render).
      */
     private static TextLayoutStyle buildTextLayoutStyle(Context context,
                                                         JSONObject styles,
-                                                        float defaultTextSizeSp) {
-        TextPaint paint = obtainThreadLocalPaint(context, defaultTextSizeSp);
-        float lineSpacingAddPx = 0f;
-        float lineSpacingMultiplier = 1f;
-        int lineHeightPx = 0;
-        int maxLines = Integer.MAX_VALUE;
-        TextUtils.TruncateAt ellipsize = null;
+                                                        float defaultTextSizePx) {
+        TextPaint paint = obtainThreadLocalPaint(context, defaultTextSizePx);
+        StyleHelper.ParsedTextStyles p = StyleHelper.ParsedTextStyles.from(toMap(styles), context);
 
-        if (styles != null) {
-            paint.setTypeface(resolveTypeface(context, styles));
-            paint.setTextSize(resolveTextSizePx(context, styles, paint.getTextSize()));
+        paint.setTypeface(StyleHelper.createWeightedTypeface(p.fontFamily, p.fontWeight, p.fontWeightIsNumeric));
+        // Explicit font-size -> a2ui->px (identical to render); absent -> caller default px
+        // (Text: standardUnitToPx(FONT_SIZE_A2UI) == render dp; RichText: 16sp).
+        float textSizePx = p.hasFontSize
+                ? StyleHelper.standardUnitToPx(context, p.fontSizeA2ui)
+                : defaultTextSizePx;
+        paint.setTextSize(textSizePx);
 
-            Object lineHeightValue = firstStyleValue(styles, "line-height", "lineHeight");
-            if (lineHeightValue != null) {
-                String lineHeightStr = String.valueOf(lineHeightValue)
-                        .trim()
-                        .toLowerCase(Locale.ROOT);
-                if (lineHeightStr.matches("^\\d+(\\.\\d+)?$")) {
-                    // CSS semantics: final line-box height = multiplier * font-size. See the
-                    // StyleHelper.applyTextStyles() counterpart for the full rationale. The
-                    // target value is applied via CenteredLineHeightSpan at layout time rather
-                    // than through setLineSpacing so that glyphs are centered inside the line
-                    // box (matching Harmony/iOS).
-                    Float parsedMultiplier = tryParseFloat(lineHeightStr);
-                    if (parsedMultiplier != null && parsedMultiplier > 0f) {
-                        lineHeightPx = Math.round(parsedMultiplier * paint.getTextSize());
-                    }
-                } else if (lineHeightStr.endsWith("px")) {
-                    int parsedPx = StyleHelper.parseDimension(lineHeightValue, context);
-                    if (parsedPx > 0) {
-                        lineHeightPx = parsedPx;
-                    }
-                }
-            }
-
-            Object lineClampValue = firstStyleValue(styles, "line-clamp", "lineClamp");
-            int parsedMaxLines = parseInteger(lineClampValue);
-            if (parsedMaxLines > 0) {
-                maxLines = parsedMaxLines;
-            }
-
-            Object textOverflowValue = firstStyleValue(styles, "text-overflow", "textOverflow");
-            String textOverflow = textOverflowValue == null
-                    ? ""
-                    : String.valueOf(textOverflowValue).trim().toLowerCase(Locale.ROOT);
-            switch (textOverflow) {
-                case "ellipsis":
-                    // Android supports TruncateAt.END for any maxLines > 0
-                    if (maxLines > 0 && maxLines < Integer.MAX_VALUE) {
-                        ellipsize = TextUtils.TruncateAt.END;
-                    }
-                    break;
-                case "head":
-                    if (maxLines == 1) {
-                        ellipsize = TextUtils.TruncateAt.START;
-                    }
-                    break;
-                case "middle":
-                    if (maxLines == 1) {
-                        ellipsize = TextUtils.TruncateAt.MIDDLE;
-                    }
-                    break;
-                case "clip":
-                default:
-                    ellipsize = null;
-                    break;
-            }
-        }
+        int lineHeightPx = p.resolveLineHeightPx(paint.getTextSize());
+        int maxLines = p.lineClamp > 0 ? p.lineClamp : Integer.MAX_VALUE;
+        TextUtils.TruncateAt ellipsize = StyleHelper.ParsedTextStyles.resolveEllipsize(p.textOverflow, maxLines);
 
         return new TextLayoutStyle(
                 paint,
-                lineSpacingAddPx,
-                lineSpacingMultiplier,
+                0f,
+                1f,
                 maxLines,
                 ellipsize,
                 lineHeightPx);
     }
 
-    private static TextPaint obtainThreadLocalPaint(Context context, float defaultTextSizeSp) {
+    /** Converts a JSONObject style bag into a Map so it can reuse StyleHelper.ParsedTextStyles.from(). */
+    private static Map<String, Object> toMap(JSONObject json) {
+        if (json == null) return null;
+        Map<String, Object> map = new HashMap<>(json.length());
+        for (Iterator<String> it = json.keys(); it.hasNext(); ) {
+            String key = it.next();
+            Object value = json.opt(key);
+            map.put(key, value == JSONObject.NULL ? null : value);
+        }
+        return map;
+    }
+
+    private static TextPaint obtainThreadLocalPaint(Context context, float defaultTextSizePx) {
         TextPaint paint = THREAD_LOCAL_PAINT.get();
         paint.reset();
         paint.setFlags(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
         paint.setLinearText(true);
         paint.density = context.getResources().getDisplayMetrics().density;
         paint.setTypeface(Typeface.DEFAULT);
-        paint.setTextSize(TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_SP,
-                defaultTextSizeSp,
-                context.getResources().getDisplayMetrics()));
+        // defaultTextSizePx is already in px (Text: dp == render; RichText: 16sp); apply directly.
+        paint.setTextSize(defaultTextSizePx);
         return paint;
-    }
-
-    private static Typeface resolveTypeface(Context context, JSONObject styles) {
-        Typeface baseTypeface = StyleHelper.parseFontFamily(
-                firstStyleValue(styles, "font-family", "fontFamily"),
-                context);
-        int weight = StyleHelper.parseFontWeightValue(firstStyleValue(styles, "font-weight", "fontWeight"));
-        return StyleHelper.createWeightedTypeface(baseTypeface, weight);
-    }
-
-    private static float resolveTextSizePx(Context context,
-                                           JSONObject styles,
-                                           float defaultTextSizePx) {
-        Object fontSizeValue = firstStyleValue(styles, "font-size", "fontSize");
-        if (fontSizeValue == null) {
-            return defaultTextSizePx;
-        }
-
-        String sizeStr = String.valueOf(fontSizeValue).trim().toLowerCase(Locale.ROOT);
-        float size = 0f;
-        if (sizeStr.endsWith("px")) {
-            Float parsed = tryParseFloat(sizeStr.substring(0, sizeStr.length() - 2));
-            size = parsed == null ? 0f : parsed;
-        } else if (sizeStr.matches("^\\d+(\\.\\d+)?$")) {
-            Float parsed = tryParseFloat(sizeStr);
-            size = parsed == null ? 0f : parsed;
-        }
-        if (size <= 0f) {
-            return defaultTextSizePx;
-        }
-        return StyleHelper.standardUnitToPx(context, size);
     }
 
     private static CharSequence maybeEllipsizeForLegacySingleLine(CharSequence text,
@@ -532,40 +465,5 @@ public final class TextMeasurer {
             return 0;
         }
         return Math.max(Math.round(StyleHelper.standardUnitToPx(context, maxSize)), 0);
-    }
-
-    private static Object firstStyleValue(JSONObject styles, String... keys) {
-        if (styles == null || keys == null) {
-            return null;
-        }
-        for (String key : keys) {
-            Object value = styles.opt(key);
-            if (value != null && value != JSONObject.NULL) {
-                return value;
-            }
-        }
-        return null;
-    }
-
-    private static int parseInteger(Object value) {
-        if (value == null || value == JSONObject.NULL) {
-            return 0;
-        }
-        try {
-            if (value instanceof Number) {
-                return ((Number) value).intValue();
-            }
-            return Integer.parseInt(String.valueOf(value).trim());
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
-    }
-
-    private static Float tryParseFloat(String value) {
-        try {
-            return Float.parseFloat(value);
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
     }
 }

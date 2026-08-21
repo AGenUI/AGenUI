@@ -62,7 +62,7 @@ class CheckBoxComponent: Component {
         createErrorLabel()
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -172,18 +172,20 @@ class CheckBoxComponent: Component {
         }
     }
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Update label text
-        if let label = properties["label"] {
+        if case .value(let label) = diff["label"] {
             let labelText = extractTextValue(label)
             checkBoxButton?.label = labelText
+        } else if case .deleted = diff["label"] {
+            checkBoxButton?.label = ""
         }
         
         // Update checkbox state (from C++ data update)
-        if let value = properties["value"] {
+        if case .value(let value) = diff["value"] {
             // Extract data binding path
             if let valueDict = value as? [String: Any], let path = valueDict["path"] as? String {
                 dataBindingPath = path
@@ -197,10 +199,15 @@ class CheckBoxComponent: Component {
                 checkBoxButton.isSelected = checked
             }
             isUpdatingFromNative = false
+        } else if case .deleted = diff["value"] {
+            dataBindingPath = nil
+            isUpdatingFromNative = true
+            checkBoxButton?.isSelected = false
+            isUpdatingFromNative = false
         }
         
         // checks adaptation - display validation errors
-        if let checks = properties["checks"] as? [String: Any] {
+        if case .value(let v) = diff["checks"], let checks = v as? [String: Any] {
             let result = checks["result"] as? Bool ?? true
             let message = checks["message"] as? String ?? ""
             

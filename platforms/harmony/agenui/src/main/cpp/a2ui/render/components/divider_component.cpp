@@ -80,11 +80,13 @@ void DividerComponent::onUpdateProperties(const nlohmann::json& properties) {
 // ---- applyAxis ----
 
 void DividerComponent::applyAxis(const nlohmann::json& properties) {
-    if (!properties.contains("axis") || !properties["axis"].is_string()) {
+    if (!properties.contains("axis")) {
         return;
     }
 
-    std::string axis = properties["axis"].get<std::string>();
+    const auto& axisValue = properties["axis"];
+    // null (delete signal) → clear axis (align iOS axis→"")
+    std::string axis = axisValue.is_null() ? std::string("") : axisValue.get<std::string>();
     if (axis != m_axis) {
         m_axis = axis;
         updateLayout();

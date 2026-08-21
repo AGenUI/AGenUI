@@ -399,7 +399,7 @@ class AudioPlayerComponent: Component {
         addSubview(audioButton)
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -431,22 +431,26 @@ class AudioPlayerComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Update audio URL
-        if let urlValue = properties["url"] {
+        if case .value(let urlValue) = diff["url"] {
             let url = CSSPropertyParser.extractStringValue(urlValue)
             if url != audioUrl {
                 audioUrl = url
                 loadAudio(url)
             }
+        } else if case .deleted = diff["url"] {
+            audioUrl = ""
         }
         
         // Autoplay
-        if let autoPlayValue = properties["autoPlay"] as? Bool {
+        if case .value(let v) = diff["autoPlay"], let autoPlayValue = v as? Bool {
             autoPlay = autoPlayValue
+        } else if case .deleted = diff["autoPlay"] {
+            autoPlay = false
         }        
     }
 

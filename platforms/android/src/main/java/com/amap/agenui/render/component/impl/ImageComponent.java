@@ -107,14 +107,16 @@ public class ImageComponent extends A2UIComponent {
         float yogaHeight = 0f;
 
         if (changedProps.containsKey("url")) {
-            String url = extractStringValue(changedProps.get("url"));
+            Object urlObj = changedProps.get("url");
+            String url = urlObj == null ? "" : extractStringValue(urlObj);
             urlChanged = !url.equals(currentUrl);
             currentUrl = url;
         }
 
         // Update scale mode (A2UI v0.9 protocol: fit)
         if (changedProps.containsKey("fit")) {
-            String fit = String.valueOf(changedProps.get("fit"));
+            Object fitObj = changedProps.get("fit");
+            String fit = fitObj == null ? "" : String.valueOf(fitObj);
             if (AGenUILogger.isLoggingEnabled()) {
                 AGenUILogger.d(TAG, "[ImageComponent] onUpdateProperties - setting fit: " + fit);
             }

@@ -107,7 +107,9 @@ public class ButtonComponent extends A2UILayoutComponent {
 
         // Update child component ID
         if (props.containsKey("child")) {
-            childComponentId = String.valueOf(props.get("child"));
+            Object childObj = props.get("child");
+            // null (delete signal) → clear child id (align iOS), not the literal "null" string
+            childComponentId = childObj == null ? "" : String.valueOf(childObj);
             // Note: the child component's View is automatically added via Surface.addComponent()
             // No manual handling needed here
         }

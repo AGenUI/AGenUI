@@ -2,6 +2,7 @@
 
 #include "a2ui_surface_manager.h"
 #include "a2ui_surface.h"
+#include "agenui_engine_entry.h"
 #include "log/a2ui_capi_log.h"
 
 namespace a2ui {
@@ -11,8 +12,8 @@ A2UISurfaceManager::A2UISurfaceManager(ComponentRegistry* globalRegistry, int in
     , instanceId_(instanceId) {
     // Register self as the sole listener on internal observables. C++ render-layer
     // components (Tabs/Video/Image) publish render-finish events to these observables;
-    // this class forwards them to the cross-platform ISurfaceManager set via
-    // setCoreSurfaceManager().
+    // this class forwards them to the cross-platform ISurfaceManager resolved via
+    // findSurfaceManagerShared(instanceId_).
     componentRenderObservable_.addComponentRenderListener(this);
     surfaceLayoutObservable_.addSurfaceLayoutListener(this);
 
@@ -22,12 +23,29 @@ A2UISurfaceManager::A2UISurfaceManager(ComponentRegistry* globalRegistry, int in
 A2UISurfaceManager::~A2UISurfaceManager() {
     componentRenderObservable_.removeComponentRenderListener(this);
     surfaceLayoutObservable_.removeSurfaceLayoutListener(this);
-    coreSurfaceManager_ = nullptr;
     clearAll();
 }
 
-void A2UISurfaceManager::setCoreSurfaceManager(agenui::ISurfaceManager* coreSurfaceManager) {
-    coreSurfaceManager_ = coreSurfaceManager;
+void A2UISurfaceManager::onRenderFinish(const agenui::ComponentRenderInfo& info) {
+    // Resolve the target per event: the shared_ptr keeps the core SurfaceManager
+    // alive for the whole call, and the lookup is serialized with its destruction.
+    auto* engine = agenui::getAGenUIEngine();
+    auto sm = engine ? engine->findSurfaceManagerShared(instanceId_) : nullptr;
+    if (!sm) {
+        HM_LOGW("onRenderFinish dropped: SurfaceManager %d not found", instanceId_);
+        return;
+    }
+    sm->onRenderFinish(info);
+}
+
+void A2UISurfaceManager::onSurfaceSizeChanged(const agenui::SurfaceLayoutInfo& info) {
+    auto* engine = agenui::getAGenUIEngine();
+    auto sm = engine ? engine->findSurfaceManagerShared(instanceId_) : nullptr;
+    if (!sm) {
+        HM_LOGW("onSurfaceSizeChanged dropped: SurfaceManager %d not found", instanceId_);
+        return;
+    }
+    sm->onSurfaceSizeChanged(info);
 }
 
 void A2UISurfaceManager::setBlankCheckExecutor(const std::function<void(const std::string&, uint64_t, int32_t)>& executor) {
@@ -44,22 +62,6 @@ void A2UISurfaceManager::setContentSizeChangedCallback(const std::function<void(
 
 void A2UISurfaceManager::setRootComponentUpdateCallback(const std::function<void(const std::string&, const std::string&)>& callback) {
     rootComponentUpdateCallback_ = callback;
-}
-
-void A2UISurfaceManager::onRenderFinish(const agenui::ComponentRenderInfo& info) {
-    if (coreSurfaceManager_) {
-        coreSurfaceManager_->onRenderFinish(info);
-    } else {
-        HM_LOGW("onRenderFinish dropped: coreSurfaceManager_ is null");
-    }
-}
-
-void A2UISurfaceManager::onSurfaceSizeChanged(const agenui::SurfaceLayoutInfo& info) {
-    if (coreSurfaceManager_) {
-        coreSurfaceManager_->onSurfaceSizeChanged(info);
-    } else {
-        HM_LOGW("onSurfaceSizeChanged dropped: coreSurfaceManager_ is null");
-    }
 }
 
 A2UISurface* A2UISurfaceManager::createSurface(const std::string& surfaceId, bool animated) {

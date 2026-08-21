@@ -137,7 +137,7 @@ void TabsComponent::onUpdateProperties(const nlohmann::json& properties) {
         m_selectedIndex = properties["selectedIndex"].get<int>();
     }
 
-    if (properties.contains("tabs") && properties["tabs"].is_array()) {
+    if (properties.contains("tabs")) {
         buildTabBar(properties);
     }
     
@@ -200,7 +200,21 @@ TabsComponent::IndicatorStyle TabsComponent::resolveIndicatorStyle() {
 // ---- Build Tab Bar ----
 
 void TabsComponent::buildTabBar(const nlohmann::json& properties) {
-    if (!properties.contains("tabs") || !properties["tabs"].is_array()) {
+    if (!properties.contains("tabs")) {
+        return;
+    }
+    // null (delete signal) → clear all tabs (align iOS tabs→[])
+    if (properties["tabs"].is_null() || !properties["tabs"].is_array()) {
+        for (auto& tabInfo : m_tabInfos) {
+            if (tabInfo.tabContainerHandle) {
+                g_nodeAPI->unregisterNodeEvent(tabInfo.tabContainerHandle, NODE_ON_CLICK);
+            }
+            g_nodeAPI->removeChild(m_tabBarHandle, tabInfo.tabContainerHandle);
+            g_nodeAPI->disposeNode(tabInfo.indicatorHandle);
+            g_nodeAPI->disposeNode(tabInfo.textHandle);
+            g_nodeAPI->disposeNode(tabInfo.tabContainerHandle);
+        }
+        m_tabInfos.clear();
         return;
     }
 

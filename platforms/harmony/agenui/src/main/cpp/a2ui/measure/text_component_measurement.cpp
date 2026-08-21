@@ -90,7 +90,7 @@ bool TextComponentMeasurement::buildParam(const nlohmann::json& j,
 
     // ---- Default parameters ----
     outParam.text             = outText.c_str();
-    outParam.fontSize         = 24;
+    outParam.fontSize         = 32;   // default 32 a2ui, aligned with render-side text_component.cpp
     outParam.fontWeight       = NODE_PROPERTY_FONT_NORMAL;
     outParam.fontStyle        = NODE_PROPERTY_FONT_NORMAL;
     outParam.textAlign        = TEXT_ALIGN_LEFT_TOP;

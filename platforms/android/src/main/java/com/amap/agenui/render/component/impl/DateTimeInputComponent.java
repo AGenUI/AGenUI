@@ -150,50 +150,60 @@ public class DateTimeInputComponent extends A2UIComponent {
     private void parseProperties(Map<String, Object> props) {
         if (props.containsKey("enableDate")) {
             Object value = props.get("enableDate");
-            if (value instanceof Boolean) {
+            if (value == null) {
+                enableDate = false;
+            } else if (value instanceof Boolean) {
                 enableDate = (Boolean) value;
             }
         }
 
         if (props.containsKey("enableTime")) {
             Object value = props.get("enableTime");
-            if (value instanceof Boolean) {
+            if (value == null) {
+                enableTime = false;
+            } else if (value instanceof Boolean) {
                 enableTime = (Boolean) value;
             }
         }
 
         // Parse initial value - use different formats based on enableDate and enableTime
         if (props.containsKey("value")) {
-            String valueStr = (String) props.get("value");
-            if (valueStr != null && !valueStr.isEmpty()) {
-                try {
-                    Date date = null;
+            Object valueObj = props.get("value");
+            if (valueObj == null) {
+                // null (delete signal) → clear selected date (align iOS value→reset)
+                hasSelectedDate = false;
+            } else {
+                String valueStr = (String) valueObj;
+                if (valueStr != null && !valueStr.isEmpty()) {
+                    try {
+                        Date date = null;
 
-                    // Choose the appropriate format based on enabled features
-                    if (enableDate && enableTime) {
-                        // Attempt to parse full date-time format
-                        date = dateTimeFormat.parse(valueStr);
-                    } else if (enableDate) {
-                        // Parse date part only
-                        date = dateFormat.parse(valueStr);
-                    } else if (enableTime) {
-                        // Parse time part only
-                        date = timeFormat.parse(valueStr);
-                    }
-
-                    if (date != null) {
-                        calendar.setTime(date);
-                        hasSelectedDate = true;
-                        if (AGenUILogger.isLoggingEnabled()) {
-                            AGenUILogger.d(TAG, "Parsed initial value: " + valueStr + " -> " + date);
+                        // Choose the appropriate format based on enabled features
+                        if (enableDate && enableTime) {
+                            // Attempt to parse full date-time format
+                            date = dateTimeFormat.parse(valueStr);
+                        } else if (enableDate) {
+                            // Parse date part only
+                            date = dateFormat.parse(valueStr);
+                        } else if (enableTime) {
+                            // Parse time part only
+                            date = timeFormat.parse(valueStr);
                         }
+
+                        if (date != null) {
+                            calendar.setTime(date);
+                            hasSelectedDate = true;
+                            if (AGenUILogger.isLoggingEnabled()) {
+                                AGenUILogger.d(TAG, "Parsed initial value: " + valueStr + " -> " + date);
+                            }
+                        }
+                    } catch (Exception e) {
+                        if (AGenUILogger.isLoggingEnabled()) {
+                            AGenUILogger.w(TAG, "Failed to parse initial value: " + valueStr, e);
+                        }
+                        // Keep default state on parse failure
+                        hasSelectedDate = false;
                     }
-                } catch (Exception e) {
-                    if (AGenUILogger.isLoggingEnabled()) {
-                        AGenUILogger.w(TAG, "Failed to parse initial value: " + valueStr, e);
-                    }
-                    // Keep default state on parse failure
-                    hasSelectedDate = false;
                 }
             }
         }

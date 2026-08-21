@@ -66,19 +66,24 @@ void RichTextComponent::onUpdateProperties(const nlohmann::json& properties) {
         std::string htmlContent;
         const auto& textValue = properties["text"];
 
-        if (textValue.is_object()) {
-            if (textValue.find("literalString") != textValue.end() && textValue["literalString"].is_string()) {
-                htmlContent = textValue["literalString"].get<std::string>();
+        // null (delete signal) → clear html content (align iOS text→nil)
+        if (textValue.is_null()) {
+            setHtmlContent("");
+        } else {
+            if (textValue.is_object()) {
+                if (textValue.find("literalString") != textValue.end() && textValue["literalString"].is_string()) {
+                    htmlContent = textValue["literalString"].get<std::string>();
+                }
             }
-        }
-        else if (textValue.is_string()) {
-            htmlContent = textValue.get<std::string>();
-        }
+            else if (textValue.is_string()) {
+                htmlContent = textValue.get<std::string>();
+            }
 
-        if (!htmlContent.empty()) {
-            setHtmlContent(htmlContent);
-            HM_LOGI( "Set HTML content, length=%zu, id=%s",
-                        htmlContent.size(), m_id.c_str());
+            if (!htmlContent.empty()) {
+                setHtmlContent(htmlContent);
+                HM_LOGI( "Set HTML content, length=%zu, id=%s",
+                            htmlContent.size(), m_id.c_str());
+            }
         }
     }
 }
@@ -424,8 +429,12 @@ void RichTextComponent::applyStyles(const nlohmann::json& properties) {
     const auto& styles = properties["styles"];
 
     // color -> NODE_FONT_COLOR (cache for span inheritance)
+    // Aligned with iOS (.black) / Android (Color.BLACK): absent -> BLACK.
+    m_fontColor = colors::kColorBlack;
     if (styles.find("color") != styles.end() && styles["color"].is_string()) {
         m_fontColor = parseColor(styles["color"].get<std::string>());
+    }
+    {
         ArkUI_NumberValue colorVal[] = {{.u32 = m_fontColor}};
         ArkUI_AttributeItem colorItem = {colorVal, 1, nullptr, nullptr};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_FONT_COLOR, &colorItem);
@@ -461,17 +470,25 @@ void RichTextComponent::applyStyles(const nlohmann::json& properties) {
 // ---- Filter: drop-shadow ----
 
 void RichTextComponent::applyFilter(const nlohmann::json& styles) {
-    if (!styles.contains("filter") || !styles["filter"].is_string()) return;
+    // Aligned with iOS (absent -> .invalid -> clear) / Android (clear shadow).
+    if (!styles.contains("filter") || !styles["filter"].is_string()) {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_CUSTOM_SHADOW);
+        return;
+    }
 
     std::string filterVal = styles["filter"].get<std::string>();
 
     auto params = parseDropShadow(filterVal);
-    if (!params.valid) return;
+    if (!params.valid) {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_CUSTOM_SHADOW);
+        return;
+    }
 
     // Parse the shadow color.
     uint32_t color = parseColor(params.colorStr);
     if (color == colors::kColorTransparent && params.colorStr != "#00000000" && params.colorStr != "rgba(0, 0, 0, 0)" &&
         params.colorStr != "rgba(0,0,0,0)" && params.colorStr != "rgb(0, 0, 0)") {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_CUSTOM_SHADOW);
         return;
     }
 

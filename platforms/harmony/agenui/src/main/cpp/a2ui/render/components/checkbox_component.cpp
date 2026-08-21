@@ -238,12 +238,8 @@ void CheckBoxComponent::applyLabel(const nlohmann::json& properties) {
         return;
     }
 
+    // null (delete signal) → extractStringValue returns "" → clear label (align iOS label→"")
     std::string label = extractStringValue(properties["label"]);
-    if (label.empty()) {
-        return;
-    }
-
-    // Update the label text.
     A2UITextNode(m_labelHandle).setTextContent(label);
 
     HM_LOGI( "Set label: %s", label.c_str());

@@ -59,6 +59,31 @@ public class StyleHelper {
     private static final String TAG = "StyleHelper";
 
     /**
+     * Centralized style default values. All style properties reference these
+     * constants so a default change is a one-line edit.
+     */
+    public static final class StyleDefaults {
+        // Visual
+        static final String DISPLAY = "flex";
+        static final String VISIBILITY = "visible";
+        static final float OPACITY = 1.0f;
+        static final int BACKGROUND_COLOR = Color.TRANSPARENT;
+        static final int BORDER_COLOR = Color.TRANSPARENT;
+        static final int BORDER_RADIUS = 0;
+        static final int BORDER_WIDTH = 0;
+        static final String BORDER_STYLE = "solid";
+
+        // Text
+        public static final float FONT_SIZE_A2UI = 32f;   // 32 a2ui -> 16dp/16pt default text font size
+        static final Typeface FONT_FAMILY = Typeface.DEFAULT;
+        static final int FONT_WEIGHT = 400;
+        static final int COLOR = Color.BLACK;
+        static final String TEXT_ALIGN = "left";
+        static final int LINE_CLAMP = 0;
+        static final String TEXT_OVERFLOW = "ellipsis";
+    }
+
+    /**
      * {@link LineHeightSpan} implementation that redistributes the extra space evenly between
      * ascent and descent, so every line's glyph content-area is vertically centered inside the
      * target line box. This matches the W3C `line-height` semantics and the behavior of
@@ -151,6 +176,11 @@ public class StyleHelper {
         }
     }
 
+    /** Numeric weight (Number or numeric String) vs keyword such as "bold" / "normal". */
+    public static boolean isNumericFontWeight(Object fontWeight) {
+        return parseInteger(fontWeight) != 0;
+    }
+
     /**
      * Parses font-weight to a numeric CSS weight (100-900), one-to-one with iOS/AJX.
      * Keywords: "normal"->400, "medium"->500, "bold"->700; numeric 100-900 map to themselves;
@@ -162,7 +192,7 @@ public class StyleHelper {
      * @return numeric CSS weight (100-900)
      */
     public static int parseFontWeightValue(Object fontWeight) {
-        if (fontWeight == null) return 400;
+        if (fontWeight == null) return StyleDefaults.FONT_WEIGHT;
         String value = String.valueOf(fontWeight).trim().toLowerCase();
         switch (value) {
             case "normal": return 400;
@@ -180,7 +210,7 @@ public class StyleHelper {
             case 700: return 700;
             case 800: return 800;
             case 900: return 900;
-            default:  return 400;
+            default:  return StyleDefaults.FONT_WEIGHT;
         }
     }
 
@@ -198,10 +228,28 @@ public class StyleHelper {
      * @return weighted Typeface
      */
     public static Typeface createWeightedTypeface(Typeface base, int weight) {
-        Typeface family = (base != null) ? base : Typeface.DEFAULT;
+        Typeface family = (base != null) ? base : StyleDefaults.FONT_FAMILY;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             return Typeface.create(family, weight, false);
         }
+        int style = (weight >= 600) ? Typeface.BOLD : Typeface.NORMAL;
+        return Typeface.create(family, style);
+    }
+
+    /**
+     * Protocol-aligned weight resolution (fixes string font-weight not taking effect):
+     * numeric font-weight (Number / numeric String) renders the real CSS weight via
+     * {@link #createWeightedTypeface(Typeface, int)}; string keywords ("bold" / "normal")
+     * fall back to the binary Typeface.BOLD/NORMAL path, since the A2UI catalog enum is
+     * binary on Android (agent-context/architecture/a2ui-protocol.md).
+     *
+     * @param base    base typeface (usually carries font-family), may be null
+     * @param weight  parsed CSS weight (keyword values arrive as 400/500/700)
+     * @param numeric true if the raw font-weight was numeric, false for keyword strings
+     */
+    public static Typeface createWeightedTypeface(Typeface base, int weight, boolean numeric) {
+        if (numeric) return createWeightedTypeface(base, weight);
+        Typeface family = (base != null) ? base : StyleDefaults.FONT_FAMILY;
         int style = (weight >= 600) ? Typeface.BOLD : Typeface.NORMAL;
         return Typeface.create(family, style);
     }
@@ -257,41 +305,30 @@ public class StyleHelper {
     public static void applyDisplay(View view, Map<String, Object> properties) {
         if (view == null || properties == null) return;
 
-        // display
-        if (properties.containsKey("display")) {
-            String display = String.valueOf(properties.get("display")).toLowerCase();
-            switch (display) {
-                case "none":
-                    view.setVisibility(View.GONE);
-                    break;
-                case "flex":
-                case "block":
-                case "inline-block":
-                default:
-                    view.setVisibility(View.VISIBLE);
-                    break;
-            }
+        // display (default: flex)
+        String display = resolveString(properties, "display", StyleDefaults.DISPLAY);
+        switch (display) {
+            case "none":
+                view.setVisibility(View.GONE);
+                break;
+            default:
+                view.setVisibility(View.VISIBLE);
+                break;
         }
 
-        // visibility
-        if (properties.containsKey("visibility")) {
-            String visibility = String.valueOf(properties.get("visibility")).toLowerCase();
-            switch (visibility) {
-                case "hidden":
-                    view.setVisibility(View.INVISIBLE);
-                    break;
-                case "visible":
-                default:
-                    view.setVisibility(View.VISIBLE);
-                    break;
-            }
+        // visibility (default: visible)
+        String visibility = resolveString(properties, "visibility", StyleDefaults.VISIBILITY);
+        switch (visibility) {
+            case "hidden":
+                view.setVisibility(View.INVISIBLE);
+                break;
+            default:
+                view.setVisibility(View.VISIBLE);
+                break;
         }
 
-        // opacity
-        if (properties.containsKey("opacity")) {
-            float opacity = parseFloat(properties.get("opacity"));
-            view.setAlpha(opacity);
-        }
+        // opacity (default: 1.0f)
+        view.setAlpha(resolveFloat(properties, "opacity", StyleDefaults.OPACITY));
     }
 
 
@@ -301,50 +338,42 @@ public class StyleHelper {
      * handled separately by {@link #applyBorder} via outline clip — both can be called in any
      * order; clipping happens at draw time.
      *
-     * <p>Supports: background-color, background, background-image. No-op when none are present.
+     * <p>Supports: background-color, background, background-image.
      */
     public static void applyBackground(View view, Map<String, Object> styles) {
         if (view == null || styles == null) {
             return;
         }
-        boolean hasSyncBg = styles.containsKey("background-color") || styles.containsKey("background");
         boolean hasAsyncBg = styles.containsKey("background-image");
-        if (!hasSyncBg && !hasAsyncBg) {
-            return;
-        }
-        Drawable syncBg = hasSyncBg ? parseSyncBackgroundDrawable(styles, view.getContext()) : null;
+        Drawable syncBg = parseSyncBackgroundDrawable(styles, view.getContext());
+        view.setBackground(syncBg);
         if (hasAsyncBg) {
-            if (syncBg != null) {
-                view.setBackground(syncBg);
-            }
             loadBackgroundImageAsync(view, styles, syncBg);
-        } else {
-            view.setBackground(syncBg);
         }
     }
 
     /**
-     * Returns a Drawable for the {@code background-color} / {@code background} value, a
-     * transparent {@link ColorDrawable} when the value is present but unparseable (matches the
-     * legacy parse-failure fallback), or {@code null} when neither key is present.
+     * Returns a Drawable for the {@code background-color} / {@code background} value.
+     * Returns a transparent {@link ColorDrawable} when the key is absent or the value
+     * is unparseable (aligned with iOS default .color(.clear)).
      */
     private static Drawable parseSyncBackgroundDrawable(Map<String, Object> styles, Context ctx) {
         Object raw = styles.containsKey("background-color")
                 ? styles.get("background-color")
                 : (styles.containsKey("background") ? styles.get("background") : null);
         if (raw == null) {
-            return null;
+            return new ColorDrawable(StyleDefaults.BACKGROUND_COLOR);
         }
         String css = String.valueOf(raw).trim();
         if (css.isEmpty()) {
-            return null;
+            return new ColorDrawable(StyleDefaults.BACKGROUND_COLOR);
         }
         ColorValue cv = AGenUI.nativeParseColor(css);
         if (cv == null) {
             if (AGenUILogger.isLoggingEnabled()) {
                 AGenUILogger.w(TAG, "applyBackground: native parse failed for: " + raw);
             }
-            return new ColorDrawable(Color.TRANSPARENT);
+            return new ColorDrawable(StyleDefaults.BACKGROUND_COLOR);
         }
         if (cv.type == ColorValue.TYPE_GRADIENT && cv.gradient != null) {
             return GradientDrawableFactory.build(cv.gradient, ctx);
@@ -409,23 +438,16 @@ public class StyleHelper {
      * to the same shape as the outline. {@code border-radius} alone produces a rounded box with
      * no stroke; {@code border-width} alone produces a rectangular stroke.
      *
-     * <p>Supports: border-radius, border-width, border-color. No-op when none are present.
+     * <p>Supports: border-radius, border-width, border-color.
      */
     public static void applyBorder(View view, Map<String, Object> styles) {
         if (view == null || styles == null) {
             return;
         }
-        boolean hasRadius = styles.containsKey("border-radius");
-        boolean hasStroke = styles.containsKey("border-width") || styles.containsKey("border-color");
-        if (!hasRadius && !hasStroke) {
-            return;
-        }
-
         Context ctx = view.getContext();
-        int radiusPx = parseDimensionOrZero(styles.get("border-radius"), ctx);
-        int borderWidth = parseDimensionOrZero(styles.get("border-width"), ctx);
-        int borderColor = styles.containsKey("border-color")
-                ? parseColor(styles.get("border-color")) : Color.BLACK;
+        int radiusPx = resolveDimension(styles, "border-radius", StyleDefaults.BORDER_RADIUS, ctx);
+        int borderWidth = resolveDimension(styles, "border-width", StyleDefaults.BORDER_WIDTH, ctx);
+        int borderColor = resolveColor(styles, "border-color", StyleDefaults.BORDER_COLOR);
 
         applyOutlineRadiusClip(view, radiusPx);
         applyBorderOverlay(view, borderWidth, borderColor, radiusPx);
@@ -439,6 +461,73 @@ public class StyleHelper {
     private static int parseDimensionOrZero(Object value, Context ctx) {
         if (value == null) return 0;
         return Math.max(0, parseDimension(value, ctx));
+    }
+
+    // ------------------------------------------------------------------
+    // Resolve helpers: absent → defaultValue, parse-fail → defaultValue.
+    // Mirrors iOS `ifPresent(key, defaultValue)` — both absent AND parse
+    // failure fall back to defaultValue. Does NOT call parseColor/parseFloat
+    // (which return zero-value fallbacks on failure); inlines parse logic so
+    // failure is detected and defaultValue is returned.
+    // ------------------------------------------------------------------
+
+    /** Resolve a string style property with a default value (lowercased). */
+    private static String resolveString(Map<String, Object> styles, String key, String defaultValue) {
+        if (!styles.containsKey(key)) return defaultValue;
+        Object value = styles.get(key);
+        if (value == null) return defaultValue;
+        return String.valueOf(value).trim().toLowerCase();
+    }
+
+    /** Resolve a float style property with a default value. */
+    private static float resolveFloat(Map<String, Object> styles, String key, float defaultValue) {
+        if (!styles.containsKey(key)) return defaultValue;
+        Object value = styles.get(key);
+        if (value == null) return defaultValue;
+        try {
+            if (value instanceof Number) return ((Number) value).floatValue();
+            return Float.parseFloat(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /** Resolve a color style property with a default value. */
+    private static int resolveColor(Map<String, Object> styles, String key, int defaultValue) {
+        if (!styles.containsKey(key)) return defaultValue;
+        Object value = styles.get(key);
+        if (value == null) return defaultValue;
+        String css = String.valueOf(value).trim();
+        if (css.isEmpty()) return defaultValue;
+        ColorValue cv = AGenUI.nativeParseColor(css);
+        if (cv == null || cv.type == ColorValue.TYPE_GRADIENT) return defaultValue;
+        return cv.solidColor;
+    }
+
+    /** Resolve a dimension style property with a default value (px, clamped >= 0). */
+    private static int resolveDimension(Map<String, Object> styles, String key, int defaultValue, Context ctx) {
+        if (!styles.containsKey(key)) return defaultValue;
+        Object value = styles.get(key);
+        if (value == null) return defaultValue;
+        int result = parseDimension(value, ctx);
+        return result >= 0 ? result : defaultValue;
+    }
+
+    /** Resolve an integer style property with a default value (missing key, null, empty, or parse failure → default). */
+    private static int resolveInteger(Map<String, Object> styles, String key, int defaultValue) {
+        if (!styles.containsKey(key)) return defaultValue;
+        Object value = styles.get(key);
+        if (value == null) return defaultValue;
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        String s = String.valueOf(value).trim();
+        if (s.isEmpty()) return defaultValue;
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     /**
@@ -798,7 +887,7 @@ public class StyleHelper {
         if (hasRadiusKey || "visible".equals(overflow)) {
             return CLIP_OFF;
         }
-        return CLIP_UNSPECIFIED;
+        return CLIP_OFF;
     }
 
     /**
@@ -854,6 +943,113 @@ public class StyleHelper {
 
 
     /**
+     * Parsed text style properties with defaults (mirrors iOS ParsedTextStyles).
+     * Fields carry their default values; from() only overwrites when the key is
+     * present and parsing succeeds — absent or parse-fail keeps the default.
+     */
+    public static class ParsedTextStyles {
+        public float fontSizeA2ui = StyleDefaults.FONT_SIZE_A2UI;
+        public boolean hasFontSize = false;
+        public int fontWeight = StyleDefaults.FONT_WEIGHT;
+        /** True when the raw font-weight was numeric (Number / numeric String); keyword
+         *  strings keep the binary bold/normal path (see createWeightedTypeface(base,w,numeric)). */
+        public boolean fontWeightIsNumeric = true;
+        public Typeface fontFamily = StyleDefaults.FONT_FAMILY;
+        public int color = StyleDefaults.COLOR;
+        public String textAlign = StyleDefaults.TEXT_ALIGN;
+        public int lineClamp = StyleDefaults.LINE_CLAMP;
+        public String textOverflow = StyleDefaults.TEXT_OVERFLOW;
+        public float lineHeightMultiplier = 0f;
+        public int lineHeightAbsPx = 0;
+
+        public static ParsedTextStyles from(Map<String, Object> styles, Context context) {
+            ParsedTextStyles p = new ParsedTextStyles();
+            if (styles == null || styles.isEmpty()) return p;
+
+            if (styles.containsKey("font-family")) {
+                p.fontFamily = parseFontFamily(styles.get("font-family"), context);
+            }
+            if (styles.containsKey("font-weight")) {
+                Object fontWeightValue = styles.get("font-weight");
+                p.fontWeight = parseFontWeightValue(fontWeightValue);
+                p.fontWeightIsNumeric = isNumericFontWeight(fontWeightValue);
+            }
+            Object fontSize = styles.get("font-size");
+            if (fontSize != null) {
+                float sizeA2ui = parseFontSizeA2ui(fontSize);
+                if (sizeA2ui > 0) {
+                    p.fontSizeA2ui = sizeA2ui;
+                    p.hasFontSize = true;
+                }
+            }
+            p.color = resolveColor(styles, "color", StyleDefaults.COLOR);
+
+            Object textAlign = styles.get("text-align");
+            if (textAlign != null) {
+                String s = String.valueOf(textAlign).trim().toLowerCase();
+                if (!s.isEmpty()) p.textAlign = s;
+            }
+            p.lineClamp = resolveInteger(styles, "line-clamp", StyleDefaults.LINE_CLAMP);
+            Object textOverflow = styles.get("text-overflow");
+            if (textOverflow != null) {
+                String s = String.valueOf(textOverflow).trim().toLowerCase();
+                if (!s.isEmpty()) p.textOverflow = s;
+            }
+            Object lineHeight = styles.get("line-height");
+            if (lineHeight != null) {
+                String s = String.valueOf(lineHeight).trim().toLowerCase();
+                if (s.matches("^\\d+(\\.\\d+)?$")) {
+                    float multiplier = Float.parseFloat(s);
+                    if (multiplier > 0f) p.lineHeightMultiplier = multiplier;
+                } else if (s.endsWith("px")) {
+                    int px = parseDimension(lineHeight, context);
+                    if (px > 0) p.lineHeightAbsPx = px;
+                }
+            }
+
+            return p;
+        }
+
+        /** Resolve line-height to px given the effective text size in px. Shared by render/measure. */
+        public int resolveLineHeightPx(float textSizePx) {
+            if (lineHeightMultiplier > 0f) return Math.round(lineHeightMultiplier * textSizePx);
+            if (lineHeightAbsPx > 0) return lineHeightAbsPx;
+            return 0;
+        }
+
+        /** Map text-overflow + maxLines to an ellipsize mode. Shared by render/measure. */
+        public static TextUtils.TruncateAt resolveEllipsize(String textOverflow, int maxLines) {
+            switch (textOverflow) {
+                case "ellipsis":
+                    return (maxLines > 0 && maxLines < Integer.MAX_VALUE) ? TextUtils.TruncateAt.END : null;
+                case "head":
+                    return (maxLines == 1) ? TextUtils.TruncateAt.START : null;
+                case "middle":
+                    return (maxLines == 1) ? TextUtils.TruncateAt.MIDDLE : null;
+                case "clip":
+                default:
+                    return null;
+            }
+        }
+    }
+
+    /** Parse font-size string into a2ui value. Returns 0 on parse failure. */
+    private static float parseFontSizeA2ui(Object value) {
+        if (value == null) return 0;
+        String sizeStr = String.valueOf(value).trim().toLowerCase();
+        try {
+            if (sizeStr.endsWith("px")) {
+                return Float.parseFloat(sizeStr.replace("px", ""));
+            } else if (sizeStr.matches("^\\d+(\\.\\d+)?$")) {
+                return Float.parseFloat(sizeStr);
+            }
+        } catch (NumberFormatException e) {
+            AGenUILogger.w(TAG, "Failed to parse font-size: " + value, e);
+        }
+        return 0;
+    }
+
+    /**
      * Applies text styles to a TextView.
      * Supports all style properties of TextComponent.
      *
@@ -863,180 +1059,56 @@ public class StyleHelper {
      */
     @SuppressLint("WrongConstant")
     public static void applyTextStyles(TextView textView, Map<String, Object> styles, Context context) {
-        if (textView == null || styles == null || styles.isEmpty()) {
-            return;
+        if (textView == null || styles == null) return;
+
+        ParsedTextStyles p = ParsedTextStyles.from(styles, context);
+
+        // 1. Font: family + weight + size (composed together)
+        // Numeric weight -> real CSS weight; string keyword -> binary bold/normal path.
+        textView.setTypeface(createWeightedTypeface(p.fontFamily, p.fontWeight, p.fontWeightIsNumeric));
+        textView.getPaint().setFakeBoldText(false);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, standardUnitToPx(context, p.fontSizeA2ui));
+
+        // 2. Color
+        textView.setTextColor(p.color);
+
+        // 3. Line-height (only override when explicitly set)
+        // W3C semantics: line box = multiplier * font-size (or px value).
+        // CenteredLineHeightSpan redistributes extra space evenly, matching iOS/Harmony.
+        // Parsed in ParsedTextStyles (shared with TextMeasurer).
+        int targetLineHeightPx = p.resolveLineHeightPx(textView.getTextSize());
+        if (targetLineHeightPx > 0) {
+            textView.setLineSpacing(0f, 1.0f);
+            applyCenteredLineHeight(textView, targetLineHeightPx);
         }
 
-        // 1. Handle font-related properties (Typeface must be composed together)
-        Typeface currentTypeface = textView.getTypeface();
-        Typeface baseTypeface = currentTypeface != null ? currentTypeface : Typeface.DEFAULT;
-
-        // font-family: font family
-        if (styles.containsKey("font-family")) {
-            Object fontFamilyValue = styles.get("font-family");
-            baseTypeface = parseFontFamily(fontFamilyValue, context);
-        }
-
-        // font-weight: numeric CSS weight (100-900). API 28+ renders the real weight (incl. medium);
-        // older APIs degrade to bold/normal (aligned with AJX TextMeasurement).
-        if (styles.containsKey("font-weight")) {
-            Object fontWeightValue = styles.get("font-weight");
-            int weight = parseFontWeightValue(fontWeightValue);
-            textView.setTypeface(createWeightedTypeface(baseTypeface, weight));
-            textView.getPaint().setFakeBoldText(false);
-        } else if (styles.containsKey("font-family")) {
-            // Only font-family is set, no weight
-            textView.setTypeface(baseTypeface);
-        }
-
-        // 2. font-size: font size (only px is supported)
-        if (styles.containsKey("font-size")) {
-            Object fontSizeValue = styles.get("font-size");
-            String sizeStr = String.valueOf(fontSizeValue).trim().toLowerCase();
-
-            float size = 0;
-            if (sizeStr.endsWith("px")) {
-                size = Float.parseFloat(sizeStr.replace("px", ""));
-            } else if (sizeStr.matches("^\\d+(\\.\\d+)?$")) {
-                size = Float.parseFloat(sizeStr);
-            }
-
-            if (size > 0) {
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, standardUnitToPx(context, size));
-            }
-        }
-
-        // 3. color: text color
-        if (styles.containsKey("color")) {
-            Object colorValue = styles.get("color");
-            int color = parseColor(colorValue);
-            if (color != 0) {
-                textView.setTextColor(color);
-            } else {
-                textView.setTextColor(Color.BLACK);
-            }
-        }
-
-        // 4. line-height: line height (supports multiplier or pixel value)
-        //
-        // W3C semantics: the line box height equals `multiplier * font-size` (or the px value
-        // directly). The glyph "content area" is centered in the line box, so the first line
-        // has a half-leading gap above and the last line has a half-leading gap below.
-        //
-        // `TextView.setLineSpacing(add, mult)` does NOT match this semantics — `add` is piled
-        // on top of every non-first line, leaving the glyph flush with the line-box top and the
-        // first/last lines without any padding. Visually this makes Android's line gap look
-        // larger than Harmony (ArkUI's NODE_TEXT_LINE_HEIGHT is W3C-compliant) and iOS.
-        //
-        // Instead we apply a `LineHeightSpan` that redistributes the extra space evenly between
-        // ascent and descent on EVERY line, producing the same centered layout as Harmony/iOS.
-        if (styles.containsKey("line-height")) {
-            Object lineHeightValue = styles.get("line-height");
-            String lineHeightStr = String.valueOf(lineHeightValue).trim().toLowerCase();
-
-            int targetLineHeightPx = 0;
-            if (lineHeightStr.matches("^\\d+(\\.\\d+)?$")) {
-                // Syntax 1: line-height:2.0; — multiplier of font-size
-                float multiplier = Float.parseFloat(lineHeightStr);
-                if (multiplier > 0f) {
-                    targetLineHeightPx = Math.round(multiplier * textView.getTextSize());
-                }
-            } else if (lineHeightStr.endsWith("px")) {
-                // Syntax 2: line-height:10px; — explicit line height value
-                int parsedPx = parseDimension(lineHeightValue, context);
-                if (parsedPx > 0) {
-                    targetLineHeightPx = parsedPx;
-                }
-            }
-
-            if (targetLineHeightPx > 0) {
-                // Reset any legacy line-spacing tweaks so the span is the sole source of truth.
-                textView.setLineSpacing(0f, 1.0f);
-                applyCenteredLineHeight(textView, targetLineHeightPx);
-            }
-        }
-
-        // 5. line-clamp: maximum number of lines (<=0 means unlimited)
-        if (styles.containsKey("line-clamp")) {
-            Object lineClampValue = styles.get("line-clamp");
-            int maxLines = parseInteger(lineClampValue);
-            if (maxLines > 0) {
-                textView.setMaxLines(maxLines);
-            } else {
-                // <=0 means unlimited
-                textView.setMaxLines(Integer.MAX_VALUE);
-            }
+        // 4. Line-clamp
+        if (p.lineClamp > 0) {
+            textView.setMaxLines(p.lineClamp);
+        } else {
+            textView.setMaxLines(Integer.MAX_VALUE);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // Keep Android wrapping closer to iOS/Harmony by using greedy line breaking
-            // instead of the platform's balanced/high-quality strategy.
             textView.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
             textView.setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE);
         }
 
-        // 6. text-overflow: text overflow handling
-        if (styles.containsKey("text-overflow")) {
-            Object textOverflowValue = styles.get("text-overflow");
-            String textOverflow = String.valueOf(textOverflowValue).toLowerCase();
+        // 5. Text-overflow (shared resolver with TextMeasurer)
+        int currentMaxLines = textView.getMaxLines();
+        textView.setEllipsize(ParsedTextStyles.resolveEllipsize(p.textOverflow, currentMaxLines));
 
-            // Get the current line-clamp setting
-            int currentMaxLines = textView.getMaxLines();
+        // 6. Text-align
+        int gravity = parseTextAlign(p.textAlign);
+        if (gravity != -1) textView.setGravity(gravity);
 
-            switch (textOverflow) {
-                case "ellipsis":
-                    // Android TextView supports TruncateAt.END for any maxLines > 0
-                    if (currentMaxLines > 0 && currentMaxLines < Integer.MAX_VALUE) {
-                        textView.setEllipsize(TextUtils.TruncateAt.END);
-                    } else {
-                        textView.setEllipsize(null);
-                    }
-                    break;
-                case "head":
-                    // head requires line-clamp=1 to take effect
-                    if (currentMaxLines == 1) {
-                        textView.setEllipsize(TextUtils.TruncateAt.START);
-                    }
-                    break;
-                case "middle":
-                    // middle requires line-clamp=1 to take effect
-                    if (currentMaxLines == 1) {
-                        textView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
-                    }
-                    break;
-                case "clip":
-                default:
-                    textView.setEllipsize(null);
-                    break;
-            }
-        }
-
-        // 7. text-align: text alignment
-        if (styles.containsKey("text-align")) {
-            Object textAlignValue = styles.get("text-align");
-            String textAlign = String.valueOf(textAlignValue).toLowerCase();
-            int gravity = parseTextAlign(textAlign);
-            if (gravity != -1) {
-                textView.setGravity(gravity);
-            }
-        }
-
-        // 8. Text decoration properties (text-decoration series)
+        // 7. Text decoration
         applyTextDecoration(textView, styles, context);
 
-        // 8b. CSS padding -> TextView.setPadding
-        // Yoga has already accounted for `padding` in the leaf node's layout box
-        // (the TextView's final width/height is the borderBox), but TextView by
-        // default renders glyphs across the entire box. Translating the CSS
-        // padding to `TextView.setPadding(...)` lets the glyph area shrink to
-        // the contentBox so it lines up with what Yoga gave to the measureFunc.
-        // setPadding does NOT change the view's outer size, so this is not a
-        // double-count with Yoga's padding.
+        // 8. CSS padding -> TextView.setPadding
         applyTextPadding(textView, styles, context);
 
-        // 9. filter: drop-shadow -> per-glyph text shadow via setShadowLayer.
-        // Clear box shadow set by applyFilter() so the parent does not paint a redundant
-        // rectangular shadow behind the text view.
+        // 9. Filter: drop-shadow -> per-glyph text shadow
         ShadowPainter.setConfig(textView, null);
         ShadowPainter.ShadowConfig shadowConfig = parseDropShadowConfig(context, styles);
         if (shadowConfig != null) {
@@ -1092,13 +1164,10 @@ public class StyleHelper {
      * existing padding on the view is left untouched.
      */
     public static void applyCSSPadding(View view, Map<String, Object> styles, Context context) {
-        if (view == null || styles == null || styles.isEmpty()) {
+        if (view == null) {
             return;
         }
         Rect padding = resolveCSSPaddingPx(styles, context);
-        if (padding == null) {
-            return;
-        }
         view.setPadding(padding.left, padding.top, padding.right, padding.bottom);
     }
 
@@ -1111,10 +1180,9 @@ public class StyleHelper {
      * RecyclerView-backed list whose right/bottom padding gutter must extend
      * the scrollable range).
      *
-     * <p>Returns {@code null} when no {@code padding*} key is present,
-     * so callers can distinguish "not specified" from "explicitly zero".
+     * <p>Returns an all-zero {@code Rect} when no {@code padding*} key is present
+     * (aligned with the "absent → default value" spec).
      */
-    @Nullable
     public static Rect resolveCSSPaddingPx(@Nullable Map<String, Object> styles,
                                            @NonNull Context context) {
         Rect out = new Rect(0, 0, 0, 0);
@@ -1123,7 +1191,6 @@ public class StyleHelper {
         }
 
         int topPx = 0, rightPx = 0, bottomPx = 0, leftPx = 0;
-        boolean anyPaddingPresent = false;
 
         if (styles.containsKey("padding")) {
             String shorthand = String.valueOf(styles.get("padding")).trim();
@@ -1134,30 +1201,21 @@ public class StyleHelper {
                     rightPx  = resolveSidePx(insets.right,  context);
                     bottomPx = resolveSidePx(insets.bottom, context);
                     leftPx   = resolveSidePx(insets.left,   context);
-                    anyPaddingPresent = true;
                 }
             }
         }
 
         if (styles.containsKey("padding-top")) {
             topPx = parseDimension(styles.get("padding-top"), context);
-            anyPaddingPresent = true;
         }
         if (styles.containsKey("padding-right")) {
             rightPx = parseDimension(styles.get("padding-right"), context);
-            anyPaddingPresent = true;
         }
         if (styles.containsKey("padding-bottom")) {
             bottomPx = parseDimension(styles.get("padding-bottom"), context);
-            anyPaddingPresent = true;
         }
         if (styles.containsKey("padding-left")) {
             leftPx = parseDimension(styles.get("padding-left"), context);
-            anyPaddingPresent = true;
-        }
-
-        if (!anyPaddingPresent) {
-            return null;
         }
 
         // Guard against parseDimension returning negative sentinel values such as
@@ -1352,12 +1410,12 @@ public class StyleHelper {
      */
     public static Typeface parseFontFamily(Object value, Context context) {
         if (value == null) {
-            return Typeface.DEFAULT;
+            return StyleDefaults.FONT_FAMILY;
         }
 
         String raw = String.valueOf(value).trim();
         if (raw.isEmpty()) {
-            return Typeface.DEFAULT;
+            return StyleDefaults.FONT_FAMILY;
         }
 
         // CSS fallback list: "CustomFont, monospace, sans-serif"
@@ -1381,7 +1439,7 @@ public class StyleHelper {
             }
         }
 
-        return Typeface.DEFAULT;
+        return StyleDefaults.FONT_FAMILY;
     }
 
     private static String stripFontQuotes(String value) {

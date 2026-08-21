@@ -39,7 +39,7 @@ class ButtonComponent: Component {
         super.init(componentId: componentId, componentType: "Button", properties: properties)
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -48,10 +48,10 @@ class ButtonComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Record the alpha set by CSS (e.g. "opacity" style) before any disabled-state
         // override, so it can be correctly restored when the button is re-enabled.
@@ -60,15 +60,17 @@ class ButtonComponent: Component {
         }
         
         // Read background-color-disabled and disabled-opacity properties from styles field
-        if let styles = properties["styles"] as? [String: Any] {
+        if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {
             if let disabledColorStr = styles["background-color-disabled"] as? String {
                 self.disabledBackgroundColor = UIColor(hexString: disabledColorStr)
             }
         }
         
         // Handle disable property
-        if let disable = properties["disable"] as? Bool {
+        if case .value(let v) = diff["disable"], let disable = v as? Bool {
             self.isDisabled = disable
+        } else if case .deleted = diff["disable"] {
+            self.isDisabled = false
         }
         
         // Parse disabled-opacity property, range 0-1
@@ -88,7 +90,7 @@ class ButtonComponent: Component {
         applyDisabledState()
         
         // checks adaptation
-        if let checks = properties["checks"] as? [String: Any] {
+        if case .value(let v) = diff["checks"], let checks = v as? [String: Any] {
             let result = checks["result"] as? Bool ?? true
             
             // Control clickability and enabled state

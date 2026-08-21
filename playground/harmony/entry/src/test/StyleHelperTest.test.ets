@@ -4,8 +4,16 @@ import { StyleHelper } from '@agenui/agenui';
 /**
  * Unit tests for StyleHelper.parseColor / parseDimension.
  *
- * StyleHelper is a pure-function utility (no native bridge, no Looper),
- * therefore is suitable for local hypium unit testing.
+ * parseColor prefers the shared C++ ColorParser (NAPI, liba2ui-capi.so) so
+ * color semantics stay aligned with Android/iOS; the ArkTS implementation
+ * (parseColorFallback) is only a degradation path when the native symbol is
+ * unavailable.
+ *
+ * This file is a Local Test (src/test): it runs on the host and cannot load
+ * the device .so, so parseColor always falls through to parseColorFallback.
+ * All expectations below therefore pin the *fallback* behavior. The native
+ * (C++ ColorParser) path is covered on-device by
+ * src/ohosTest/ets/test/tests/StyleHelperTest.ets.
  *
  * Source: platforms/harmony/agenui/src/main/ets/agenui/custom/StyleHelper.ets
  */
@@ -60,6 +68,9 @@ export default function styleHelperTest() {
     });
 
     it('parseColor_namedColor_green', 0, () => {
+      // Fallback maps 'green' to pure green 0xFF00FF00. Note: the native
+      // C++ ColorParser follows CSS ('green' == 0xFF008000); that path is
+      // covered by the ohosTest instrument suite, not here.
       expect(StyleHelper.parseColor('green')).assertEqual(0xFF00FF00);
     });
 
@@ -111,7 +122,9 @@ export default function styleHelperTest() {
     });
 
     it('parseColor_hexInvalidLength_returnsTransparent', 0, () => {
-      // Only length 6 and 8 are accepted; others fall through to NaN paths.
+      // Fallback only accepts length 6 and 8 (native additionally accepts
+      // #RGB/#RGBA). Lengths 2/5/7 are invalid on BOTH paths: native reports
+      // undefined and the public parseColor maps it to 0.
       // #FF -> length 2, no rgb match, returns 0
       expect(StyleHelper.parseColor('#FF')).assertEqual(0x00000000);
       // #FFFFF -> length 5, no rgb match, returns 0
@@ -124,7 +137,9 @@ export default function styleHelperTest() {
     // parseColor - rgb / rgba format
     // ============================================================
     it('parseColor_rgb_threeChannels', 0, () => {
-      // rgb path uses bitwise OR (returns signed int32). Use `| 0` on expected to match.
+      // Fallback rgb path uses bitwise OR (returns signed int32), so use `| 0`
+      // on expected to match. The native path instead returns unsigned
+      // (`parsed >>> 0`); that contract is validated in the ohosTest suite.
       expect(StyleHelper.parseColor('rgb(255, 0, 0)')).assertEqual(0xFFFF0000 | 0);
       expect(StyleHelper.parseColor('rgb(0, 255, 0)')).assertEqual(0xFF00FF00 | 0);
       expect(StyleHelper.parseColor('rgb(0, 0, 255)')).assertEqual(0xFF0000FF | 0);
@@ -169,9 +184,51 @@ export default function styleHelperTest() {
     });
 
     it('parseColor_arbitraryString_returnsTransparent', 0, () => {
+      // These inputs are rejected by BOTH paths, so the expectation is
+      // environment-independent (native reports undefined; the public
+      // parseColor maps it to 0).
       expect(StyleHelper.parseColor('not-a-color')).assertEqual(0x00000000);
-      expect(StyleHelper.parseColor('hsl(120, 100%, 50%)')).assertEqual(0x00000000);
       expect(StyleHelper.parseColor('null')).assertEqual(0x00000000);
+    });
+
+    it('parseColor_hsl_fallbackPath_returnsTransparent', 0, () => {
+      // hsl() is supported by the native C++ ColorParser (would yield
+      // 0xFF00FF00 for pure green) but NOT by the ArkTS fallback. This Local
+      // Test cannot load liba2ui-capi.so, so it always exercises the fallback,
+      // which returns transparent. The native hsl behavior belongs to the
+      // ohosTest instrument suite.
+      expect(StyleHelper.parseColor('hsl(120, 100%, 50%)')).assertEqual(0x00000000);
+    });
+
+    // ============================================================
+    // tryParseColor - distinguishing variant (fallback path here)
+    // ============================================================
+    // On-device the NAPI path returns undefined only for parse failure /
+    // gradient ('currentcolor' is a successful solid 0xFF000000). This Local
+    // Test exercises the ArkTS fallback, which cannot distinguish failure
+    // from legal transparent -- both yield 0 and are reported as undefined
+    // (documented degradation trade-off in StyleHelper.tryParseColor).
+    it('tryParseColor_numberInput_returnsAsIs', 0, () => {
+      expect(StyleHelper.tryParseColor(0xFFAABBCC)).assertEqual(0xFFAABBCC);
+      expect(StyleHelper.tryParseColor(0)).assertEqual(0);
+    });
+
+    it('tryParseColor_validHex_returnsArgb', 0, () => {
+      expect(StyleHelper.tryParseColor('#FF0000')).assertEqual(0xFFFF0000);
+      expect(StyleHelper.tryParseColor('black')).assertEqual(0xFF000000);
+    });
+
+    it('tryParseColor_unresolvable_returnsUndefined', 0, () => {
+      expect(StyleHelper.tryParseColor('not-a-color')).assertUndefined();
+      expect(StyleHelper.tryParseColor('')).assertUndefined();
+      expect(StyleHelper.tryParseColor(true as Object)).assertUndefined();
+    });
+
+    it('tryParseColor_fallbackTransparent_degradesToUndefined', 0, () => {
+      // Fallback-only behavior: legal explicit transparent is reported as
+      // undefined because the ArkTS fallback yields 0 for both failure and
+      // transparent. The NAPI path (on-device) returns number 0 instead.
+      expect(StyleHelper.tryParseColor('transparent')).assertUndefined();
     });
 
     // ============================================================

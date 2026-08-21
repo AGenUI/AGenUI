@@ -335,7 +335,7 @@ class ChoicePickerComponent: Component {
         createErrorLabel()
 
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
 
     required init?(coder: NSCoder) {
@@ -612,33 +612,41 @@ class ChoicePickerComponent: Component {
         return currentY + rowHeight + chipMargin
     }
 
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
 
         // Update variant
-        if let variantValue = properties["variant"] as? String {
+        if case .value(let v) = diff["variant"], let variantValue = v as? String {
             variant = variantValue
         }
 
         // Update displayStyle
-        if let displayStyleValue = properties["displayStyle"] as? String {
+        if case .value(let v) = diff["displayStyle"], let displayStyleValue = v as? String {
             displayStyle = displayStyleValue
+        } else if case .deleted = diff["displayStyle"] {
+            displayStyle = ""
         }
 
         // Update filterable
-        if let filterableValue = properties["filterable"] as? Bool {
+        if case .value(let v) = diff["filterable"], let filterableValue = v as? Bool {
             filterable = filterableValue
+        } else if case .deleted = diff["filterable"] {
+            filterable = false
         }
 
         // Update options
-        if let optionsValue = properties["options"] as? [[String: Any]] {
-            options = optionsValue
+        if case .value(let optionsValue) = diff["options"], let options = optionsValue as? [[String: Any]] {
+            self.options = options
             // Reset filtered options when options change
-            filteredOptions = options
+            filteredOptions = self.options
+        } else if case .deleted = diff["options"] {
+            options = []
+            filteredOptions = []
         }
 
         // Update orientation (from styles.base.orientation)
-        if let styles = properties["styles"] as? [String: Any],
+        if case .value(let stylesValue) = diff["styles"],
+           let styles = stylesValue as? [String: Any],
            let orientationValue = styles["orientation"] as? String {
             orientation = orientationValue
         }
@@ -664,14 +672,18 @@ class ChoicePickerComponent: Component {
         }
 
         // Update selected state (data update from C++)
-        if let value = properties["value"] {
+        if case .value(let value) = diff["value"] {
             isUpdatingFromNative = true
             updateSelectedValue(value)
+            isUpdatingFromNative = false
+        } else if case .deleted = diff["value"] {
+            isUpdatingFromNative = true
+            updateSelectedValue([])
             isUpdatingFromNative = false
         }
 
         // checks adaptation - display validation errors
-        if let checks = properties["checks"] as? [String: Any] {
+        if case .value(let v) = diff["checks"], let checks = v as? [String: Any] {
             let result = checks["result"] as? Bool ?? true
             let message = checks["message"] as? String ?? ""
 

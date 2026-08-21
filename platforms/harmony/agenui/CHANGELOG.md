@@ -155,3 +155,33 @@
 - (Android) 修复 Tab 组件第一次展示时误触发 `onTabClick` 的问题。
 
 ---
+
+# [v1.4.0] - 2026-08-21
+
+### 新特性
+
+- **阴影与圆角渲染重构**：圆角默认开启裁剪；阴影图层独立于组件内容渲染，不再被组件裁剪。组件 `addChild` 逻辑不再依赖 index 计算。注意：`filter: drop-shadow` 统一为盒阴影，文字组件不再支持字形级阴影。
+- **样式默认值拉齐**：统一 Android、iOS、鸿蒙三端的样式默认值（含字体样式与默认文字大小）；Android 文字测量与样式解析与其他端拉齐。重构 styles 解析使其更内聚，为默认值拉齐做准备。
+- **增量更新 `null` 行为统一**：Android 与鸿蒙端组件数据不再保留 `null` 值，所有内置组件的一级属性 `null` 行为拉齐。iOS 端属性值为 `NSNull` 时不再被丢弃，而是作为删除属性处理；渲染层新增 `removeProperties` 接口，styles 内容不再平铺到一级属性。
+- **自定义组件数据绑定深度解析**：自定义组件支持嵌套属性中数据绑定的深度解析。
+- **(iOS) 部署版本**：最低部署版本从 15.0 恢复为 13.0。
+
+### Bug 修复
+
+- (Core) `findSurfaceManager` 返回值改为 `shared_ptr`，修复低概率稳定性问题（鸿蒙端用法同步更新）。
+- (iOS) 修复 `display` 样式错误覆盖 `visibility` 样式的问题。
+- (iOS) 修复阴影联动渲染问题。
+- (Android) 修复字符串值 `font-weight` 回退至二值 Typeface 路径的问题。
+- (Android) 修复 AudioPlayer 与 ChoicePicker 组件问题。
+- (Android) 移除组件上不必要的点击和焦点设置。
+- (鸿蒙) 修复特殊机型右边框消失问题。
+- (鸿蒙) 修复 `Component.triggerAction` 的 ArkTS 编译错误。
+- (全平台) 恢复 `action` 为空时的重置行为。
+- (全平台) 修复三端默认文字大小不一致问题。
+
+### 测试与质量
+
+- 新增 null-diff 增量更新渲染测试 case，补齐 catalog 中零覆盖的样式属性与枚举取值。
+- 新增稳定性压力测试 case 与脚本。
+
+---
