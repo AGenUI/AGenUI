@@ -67,7 +67,7 @@ export class StyleHelper {
     // fallback for environments where the native symbol is unavailable.
     try {
       if (typeof nativeModule.parseColor === 'function') {
-        const parsed = nativeModule.parseColor(raw);
+        const parsed: number | undefined = nativeModule.parseColor(raw);
         if (typeof parsed === 'number') {
           return parsed >>> 0;
         }
