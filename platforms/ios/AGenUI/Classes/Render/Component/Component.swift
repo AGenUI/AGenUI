@@ -100,7 +100,7 @@ public enum MeasureMode: Int {
     // MARK: - Callbacks
     
     /// Called after updateProperties completes
-    /// - Parameters: the properties that were applied in this update
+    /// - Parameters: the raw diff values that were applied (.deleted → NSNull)
     public var onPropertiesUpdate: (([String: Any]) -> Void)?
 
     /// Called whenever this component's frame is actually changed (post-write).
@@ -129,7 +129,7 @@ public enum MeasureMode: Int {
         
         // Note: Do not call updateProperties in base class init
         // because subclass properties (e.g., label) are not yet initialized
-        // Subclasses should call updateProperties(properties) after creating internal views
+        // Subclasses should call updateProperties(DiffValue.from(properties)) after creating internal views
     }
     
     required public init?(coder: NSCoder) {
@@ -175,7 +175,11 @@ public enum MeasureMode: Int {
         // Insert at correct position in children array
         children.insert(child, at: min(insertPosition, children.count))
 
-        attachChildView(child, at: insertPosition)
+        // Resolve the view anchor BEFORE attaching: the last logical sibling
+        // already mounted ahead of the newcomer.
+        // `attachChildView` only mounts, it never recomputes positions.
+        let anchorChild = children[..<insertPosition].last { $0.superview === self }
+        attachChildView(child, above: anchorChild)
     }
     
     /// Remove a child component
@@ -192,34 +196,25 @@ public enum MeasureMode: Int {
         // Remove from list
         children.removeAll { $0.componentId == child.componentId }
     }
-    
-    /// Insert child component at specified position
-    ///
-    /// - Parameters:
-    ///   - child: Child component
-    ///   - index: Insertion position
-    @MainActor open func insertChild(_ child: Component, at index: Int) {
-        guard index >= 0 && index <= children.count else { return }
-        
-        // Avoid duplicate addition
-        if children.contains(where: { $0.componentId == child.componentId }) {
-            return
-        }
-        
-        children.insert(child, at: index)
-        child.parent = self
-        child.surface = self.surface
 
-        attachChildView(child, at: index)
-    }
-
-    private func attachChildView(_ child: Component, at index: Int) {
+    private func attachChildView(_ child: Component, above anchorChild: Component?) {
         guard shouldCreateChildView() else { return }
         guard canCreateChildViewConsideringParent() || isViewCreated else { return }
 
         child.createView()
         if child.superview !== self {
-            insertSubview(child, at: min(index, subviews.count))
+            // Anchor insertion, never counting subview slots: sibling shadow
+            // views sit between child bodies, so a numeric index derived from
+            // the logical order can land wrong. Anchoring ABOVE the previous
+            // sibling's body also leaves every sibling decoration layer
+            // untouched (shadows sit below their bodies), keeping this path
+            // free of decoration-layer knowledge. No previous sibling -> bottom.
+            if let anchorChild {
+                insertSubview(child, aboveSubview: anchorChild)
+            } else {
+                insertSubview(child, at: 0)
+            }
+            // The body's didMoveToSuperview re-pins the shadow below the body.
         }
     }
     
@@ -251,6 +246,114 @@ public enum MeasureMode: Int {
         return nil
     }
     
+    // MARK: - Shadow
+
+    /// Dedicated shadow view, mounted in the parent view directly below this body.
+    /// The body's own layer never carries a shadow, so self-clipping
+    /// (corner-radius / clipsToBounds) can never eat the shadow.
+    /// Must stay a plain UIView: `setShadow` writes its frame, and a Component
+    /// here could re-enter the frame/replay chain.
+    private(set) var shadowView: UIView?
+
+    /// Current shadow spec, kept so geometry changes (frame / corner radius)
+    /// and reparenting can reapply via `setShadow(shadowInfo)` — mirrors
+    /// `gradientInfo`.
+    private var shadowInfo: CSSShadow?
+
+    /// Set shadow (non-nil) or clear it (nil). Mirrors `setGradient`.
+    ///
+    /// Single cohesive shadow entry point: applies the spec, shapes the shadow
+    /// from the body's current geometry, and mounts it directly below the body.
+    ///
+    /// matecode: deliberate full-replay — every call rewrites the layer props and
+    /// allocates a fresh mask layer. Ceiling: measurable churn only under
+    /// sustained per-frame geometry changes (animations/scroll). Upgrade path:
+    /// split a geometry-only fast path (frame + path + mask) out of this method.
+    @MainActor func setShadow(_ shadow: CSSShadow?) {
+        shadowInfo = shadow
+        guard let shadow else {
+            shadowView?.removeFromSuperview()
+            shadowView = nil
+            return
+        }
+        let view: UIView
+        if let existing = shadowView {
+            view = existing
+        } else {
+            let created = UIView(frame: frame)
+            created.backgroundColor = .clear
+            created.isUserInteractionEnabled = false   // shadows never intercept touches
+            shadowView = created
+            view = created
+        }
+        // CSSShadow arrives pt-ready (the parser scales A2UI units to pt).
+        // CSS Y-positive is downward, same as UIKit — offset used as-is.
+        view.layer.shadowOffset = CGSize(width: shadow.offsetX, height: shadow.offsetY)
+        view.layer.shadowRadius = shadow.blur
+        view.layer.shadowColor = shadow.color.cgColor
+        // shadowColor carries the alpha.
+        view.layer.shadowOpacity = 1.0
+        // matecode: deliberately NOT rasterized — rasterizing a masked shadow
+        // layer clips the halo asymmetrically (CA offscreen buffer heuristic),
+        // and AJX ships without rasterize. Ceiling: per-frame shadow layers
+        // draw slightly slower; upgrade path only if profiling demands it.
+        // Geometry: the shadow view has no content of its own, so the shadow is
+        // shaped ONLY by shadowPath.
+        view.frame = frame
+        let shapePath = UIBezierPath(roundedRect: bounds, cornerRadius: layer.cornerRadius)
+        view.layer.shadowPath = shapePath.cgPath
+        // Hollow mask: the shadow only renders in the halo region outside the
+        // shape — nothing under the shape itself, so a transparent body shows
+        // no shadow bleeding through. Mask = outer rect (blur reach, ~2.5x
+        // radius incl. offset) with the shape appended REVERSED, so the
+        // non-zero winding rule cuts the interior out.
+        let radiusOffset = view.layer.shadowRadius * 2.5   // blur reach ~2.5x radius
+        let offset = view.layer.shadowOffset
+        let maskPath = UIBezierPath(rect: CGRect(x: offset.width - radiusOffset,
+                                                 y: offset.height - radiusOffset,
+                                                 width: bounds.width + radiusOffset * 2,
+                                                 height: bounds.height + radiusOffset * 2))
+        maskPath.append(shapePath.reversing())
+        let mask = CAShapeLayer()
+        mask.path = maskPath.cgPath
+        view.layer.mask = mask
+        // Mount directly below the body in the current parent (no-op until the
+        // body itself is mounted).
+        if let parent = superview, view.superview !== parent {
+            view.removeFromSuperview()
+            parent.insertSubview(view, belowSubview: self)
+        }
+    }
+
+    // MARK: - Shadow manual sync
+    //
+    // The shadow lives OUTSIDE the body, so none of UIKit's hierarchy machinery
+    // keeps it in sync — every body state change must drag it along explicitly
+    // (frame / hidden / alpha / reparent / removal).
+
+    /// Removal takes the shadow out of the hierarchy with the body. The shadow
+    /// view itself stays allocated so a later re-mount can reinsert it without
+    /// waiting for the next property update.
+    open override func removeFromSuperview() {
+        shadowView?.removeFromSuperview()
+        super.removeFromSuperview()
+    }
+
+    /// Whenever the body lands in a (new) superview, the shadow re-pins itself
+    /// directly below the body there.
+    open override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        setShadow(shadowInfo)
+    }
+
+    open override var isHidden: Bool {
+        didSet { shadowView?.isHidden = isHidden }
+    }
+
+    open override var alpha: CGFloat {
+        didSet { shadowView?.alpha = alpha }
+    }
+
     // MARK: - Children Management
     
     /// Get child component IDs from properties
@@ -275,48 +378,59 @@ public enum MeasureMode: Int {
     /// `A2UIComponent.updateProperties`.
     ///
     /// - Parameter properties: diff map from the core engine (only changed keys)
-    @MainActor open func updateProperties(_ properties: [String: Any]) {
+    @MainActor open func updateProperties(_ diff: [String: DiffValue]) {
         if state == nil {
             state = ComponentState()
         }
 
         // Per-key compare against stored values; only truly changed keys are marked dirty.
-        state!.updateProperties(properties)
+        state!.updateProperties(diff)
 
-        // Flatten styles to the top level for CSSPropertyApplier, which skips keys it does not recognise.
-        var allProperties = properties
-        if var styles = allProperties["styles"] as? [String: Any] {
-            styles = styles.filter { !($0.value is NSNull) }
-            allProperties.merge(styles) { _, new in new }
+        // Update self.properties storage: .value → store value, .deleted → remove key.
+        for (key, dv) in diff {
+            switch dv {
+            case .value(let v):
+                self.properties[key] = v
+            case .deleted:
+                self.properties.removeValue(forKey: key)
+            }
         }
-        self.properties.merge(allProperties) { _, new in new }
 
         // Skip the entire apply cycle when nothing actually changed.
         if !state!.isDirty {
             return
         }
 
-        // Layout + CSS only when styles changed
-        if let styles = properties["styles"] as? [String: Any] {
+        // Layout + CSS only when styles changed (styles kept at second level).
+        // CSSPropertyApplier reads from the styles sub-dictionary, not flattened.
+        if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {
             applyLayoutFromStyles(styles)
-            CSSPropertyApplier.apply(properties: allProperties, to: self)
+            CSSPropertyApplier.apply(properties: styles, to: self)
         }
 
-        // Extract and process action
-        if let action = allProperties["action"] as? [String: Any] {
-            self.actionDef = action
-            addTapGesture()
+        // Action handling: .value → set action + add tap gesture, .deleted → remove
+        switch diff["action"] {
+        case .value(let actionValue):
+            if let action = actionValue as? [String: Any] {
+                self.actionDef = action
+                addTapGesture()
+            }
+        case .deleted:
+            removeTapGesture()
+            self.actionDef = nil
+        default:
+            break
         }
 
         #if DEBUG
-        accessibilityHint = properties.description
+        accessibilityHint = diff.description
         #endif
 
         // Apply accessibility attributes from DSL
-        applyAccessibility()
+        applyAccessibility(diff: diff)
 
-        // Notify properties update callback
-        onPropertiesUpdate?(allProperties)
+        // Notify properties update callback (convert back to raw [String: Any])
+        onPropertiesUpdate?(diff.toRaw())
 
         state!.clearDirty()
     }
@@ -328,25 +442,31 @@ public enum MeasureMode: Int {
     /// Maps `label` to `accessibilityLabel` and `description` to `accessibilityHint`.
     /// Only touches accessibility state when the `accessibility` field is present and non-empty;
     /// otherwise resets to system defaults so that removing the field from DSL clears VoiceOver text.
-    private func applyAccessibility() {
-        guard let a11y = self.properties["accessibility"] as? [String: Any], !a11y.isEmpty else {
+    private func applyAccessibility(diff: [String: DiffValue]) {
+        switch diff["accessibility"] {
+        case .value(let a11yValue):
+            guard let a11y = a11yValue as? [String: Any], !a11y.isEmpty else {
+                resetAccessibility()
+                return
+            }
+            // label -> accessibilityLabel
+            if let label = a11y["label"] as? String, !label.isEmpty {
+                self.accessibilityLabel = label
+                self.isAccessibilityElement = true
+            } else {
+                self.accessibilityLabel = nil
+            }
+            // description -> accessibilityHint
+            if let desc = a11y["description"] as? String, !desc.isEmpty {
+                self.accessibilityHint = desc
+            } else {
+                self.accessibilityHint = nil
+            }
+        case .deleted:
             resetAccessibility()
-            return
-        }
-
-        // label -> accessibilityLabel
-        if let label = a11y["label"] as? String, !label.isEmpty {
-            self.accessibilityLabel = label
-            self.isAccessibilityElement = true
-        } else {
-            self.accessibilityLabel = nil
-        }
-
-        // description -> accessibilityHint
-        if let desc = a11y["description"] as? String, !desc.isEmpty {
-            self.accessibilityHint = desc
-        } else {
-            self.accessibilityHint = nil
+        default:
+            // No accessibility key in this diff — keep current state
+            break
         }
     }
 
@@ -359,15 +479,18 @@ public enum MeasureMode: Int {
 
     // MARK: - Visual Style Hooks
     
-    /// Called when border-radius is applied via CSS.
+    /// Called when border-radius is applied via CSS — the single radius write
+    /// seam for components.
     ///
-    /// Subclasses can override this to propagate the radius to inner subviews
-    /// (e.g., ImageComponent mirrors it to imageView, TableComponent to innerTableView).
-    /// The base implementation sets self.layer.cornerRadius only.
+    /// Subclasses can override this to propagate the radius to inner subviews.
+    /// The base implementation sets self.layer.cornerRadius and reshapes the
+    /// sibling shadow (which follows this radius), so a radius arriving after
+    /// the shadow never leaves a stale shadowPath.
     ///
     /// - Parameter radius: Corner radius in points
     @MainActor open func setBorderRadius(_ radius: CGFloat) {
         layer.cornerRadius = radius
+        setShadow(shadowInfo)
     }
     
     /// Base point scale factor: converts a2ui units to pt (a2ui / 2 = pt)
@@ -429,7 +552,7 @@ public enum MeasureMode: Int {
         guard !isViewCreated else { return }
         isViewCreated = true
         createChildViews()
-        updateProperties(self.properties)
+        updateProperties(DiffValue.from(self.properties))
     }
 
 
@@ -446,17 +569,53 @@ public enum MeasureMode: Int {
 
     // MARK: - Layout
 
-    /// Frame setter: notifies `onFrameChange` and re-applies gradient geometry on resize.
+    /// Frame setter: notifies `onFrameChange` and replays shadow/gradient.
+    ///
+    /// `super.frame =` does NOT reliably trigger the `bounds`/`center` overrides
+    /// in Swift — UIKit's internal `setFrame:` → `setBounds:` + `setCenter:` chain
+    /// does not dispatch through Swift's override machinery in all cases.
+    /// So we replay shadow/gradient directly here.
     open override var frame: CGRect {
         get { super.frame }
         set {
             let oldFrame = super.frame
+            let oldBounds = super.bounds
             super.frame = newValue
             if oldFrame != newValue {
-                onFrameChange?(newValue)
-                if oldFrame.size != newValue.size {
+                if oldBounds.size != super.bounds.size {
                     setGradient(gradientInfo)
                 }
+                setShadow(shadowInfo)
+                onFrameChange?(newValue)
+            }
+        }
+    }
+
+    /// Center setter: replays the sibling shadow so it follows position writes
+    /// that bypass `frame` (e.g. ButtonComponent.layoutSubviews recentering).
+    open override var center: CGPoint {
+        get { super.center }
+        set {
+            let oldFrame = super.frame
+            super.center = newValue
+            if oldFrame != super.frame {
+                setShadow(shadowInfo)
+            }
+        }
+    }
+
+    /// Bounds setter: replays gradient and sibling shadow on size changes that
+    /// bypass `frame` (e.g. direct `bounds =` writes or CALayer-driven resizes).
+    open override var bounds: CGRect {
+        get { super.bounds }
+        set {
+            let oldBounds = super.bounds
+            super.bounds = newValue
+            if oldBounds != newValue {
+                if oldBounds.size != newValue.size {
+                    setGradient(gradientInfo)
+                }
+                setShadow(shadowInfo)
             }
         }
     }
@@ -502,12 +661,34 @@ public enum MeasureMode: Int {
     /// Trigger UI action to notify SDK of user interaction
     ///
     /// Component instance is already bound to its identifier, no need to pass it when calling.
+    ///
+    /// Sends an empty context, which tells the native layer to use this component's own
+    /// `action` attribute. Kept identical across iOS / Android / HarmonyOS.
     @objc public func triggerAction() {
-        guard let actionDef = actionDef, let surface = surface else { return }
+        guard actionDef != nil else { return }
+        dispatchAction(context: [:])
+    }
+
+    /// Trigger UI action with a caller-supplied context.
+    ///
+    /// Use this when the action to execute is not the component's own top-level `action` —
+    /// e.g. a custom component whose sub-regions carry their own actions (SpanText).
+    ///
+    /// The native layer resolves `context["action"]` as a standard A2UI action definition
+    /// (`{"functionCall": ...}` or `{"event": ...}`); if it is absent or unparsable, the
+    /// component's own `action` attribute is used instead.
+    ///
+    /// - Parameter context: Context data. Put the action definition under the `action` key.
+    @objc public func triggerAction(context: [String: Any]) {
+        dispatchAction(context: context)
+    }
+
+    private func dispatchAction(context: [String: Any]) {
+        guard let surface = surface else { return }
         surface.surfaceManager?.triggerAction(
             surfaceId: surface.surfaceId,
             componentId: componentId,
-            context: ["action": actionDef]
+            context: context
         )
     }
 

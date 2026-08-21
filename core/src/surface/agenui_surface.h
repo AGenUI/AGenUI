@@ -71,7 +71,14 @@ public:
     void syncUIToData(const std::string& componentId, const std::string& changingData);
     
     // User interaction
-    void handleUserAction(const std::string& sourceComponentId);
+    //
+    // contextJson: optional caller-supplied context. When it carries a parsable
+    // "action" definition, that action is executed instead of the component's own
+    // "action" attribute (used by custom components whose sub-regions carry their
+    // own actions, e.g. SpanText). Empty or unparsable falls back to the component's
+    // own action, so existing callers are unaffected.
+    void handleUserAction(const std::string& sourceComponentId,
+                          const std::string& contextJson = "");
     
     // FunctionCall value invalidation
     void invalidateFunctionCallValues();

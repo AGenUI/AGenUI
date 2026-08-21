@@ -99,7 +99,7 @@ ISurfaceManager* AGenUIEngine::createSurfaceManager() {
         _surfaceManagers[instanceId] = sm;
     }
 
-    IThread* messageThread = ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
+    auto messageThread = ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
     if (!messageThread) {
         return nullptr;
     }
@@ -137,7 +137,7 @@ void AGenUIEngine::destroySurfaceManager(ISurfaceManager* surfaceManager) {
     }
 
     shared->exitRunning();
-    IThread* messageThread = ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
+    auto messageThread = ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
     if (!messageThread) {
         return;
     }
@@ -190,6 +190,29 @@ bool AGenUIEngine::unregisterFunction(const std::string& name) {
         return false;
     }
     return _functionCallManager->unregisterFunctionCall(name);
+}
+
+bool AGenUIEngine::registerDeepParseProperty(const std::string& componentType,
+                                            const std::string& propertyName) {
+    AGENUI_LOG("componentType:%s, propertyName:%s", componentType.c_str(), propertyName.c_str());
+    if (!_isRunning.load()) {
+        return false;
+    }
+    if (componentType.empty() || propertyName.empty()) {
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(_deepParsePropertiesMutex);
+    _deepParseProperties[componentType].insert(propertyName);
+    return true;
+}
+
+bool AGenUIEngine::isDeepParseProperty(const std::string& componentType,
+                                      const std::string& propertyName) {
+    std::lock_guard<std::mutex> lock(_deepParsePropertiesMutex);
+
+    auto it = _deepParseProperties.find(componentType);
+    return it != _deepParseProperties.end() && it->second.count(propertyName) > 0;
 }
 
 bool AGenUIEngine::loadThemeConfig(const std::string &themeConfig, std::string &result) {
@@ -259,14 +282,16 @@ bool AGenUIEngine::isDebug() {
     return isDebugBuild();
 }
 
-ISurfaceManager* AGenUIEngine::findSurfaceManager(int instanceId) {
+std::shared_ptr<ISurfaceManager> AGenUIEngine::findSurfaceManagerShared(int instanceId) {
     if (!_isRunning.load()) {
         return nullptr;
     }
+    // Copy the shared_ptr under _surfaceManagersMutex (same lock as the erase
+    // in destroySurfaceManager): caller gets a live reference or nullptr only.
     std::lock_guard<std::mutex> lock(_surfaceManagersMutex);
     auto it = _surfaceManagers.find(instanceId);
     if (it != _surfaceManagers.end()) {
-        return it->second.get();
+        return it->second;
     }
     return nullptr;
 }

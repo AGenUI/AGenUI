@@ -43,6 +43,24 @@ typedef NSString* _Nullable (^AGenUIFunctionCallCallback)(int instanceId, NSStri
 /// @return Whether loading succeeded
 - (BOOL)loadThemeConfig:(NSString *)themeConfigJson;
 
+// MARK: - Component Parse Declarations
+
+/// Declare a component property as a container of dynamic values.
+///
+/// By default a property value is parsed but not descended into, so a nested object or
+/// array is stored verbatim and any {"path":...} binding or {"call":...} function call
+/// inside it never resolves. Registering the property makes the engine walk its whole
+/// subtree, resolving nested dynamic values at any depth.
+///
+/// Must be called before the first render; a declaration made later has no effect on
+/// components that have already been parsed.
+///
+/// @param componentType Component type, i.e. the JSON "component" field (e.g. AmapText)
+/// @param propertyName Property name (e.g. spans)
+/// @return Whether the declaration was recorded
+- (BOOL)registerDeepParsePropertyForComponentType:(NSString *)componentType
+                                     propertyName:(NSString *)propertyName;
+
 // MARK: - Path Configuration
 
 /// Set path configuration

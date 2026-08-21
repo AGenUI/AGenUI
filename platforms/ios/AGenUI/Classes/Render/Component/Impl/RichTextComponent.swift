@@ -45,7 +45,7 @@ class RichTextComponent: Component {
         label.addGestureRecognizer(tapGesture)
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -111,33 +111,46 @@ class RichTextComponent: Component {
         label?.frame = bounds
     }
     
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
         guard let label = label else { return }
         
         // Update linksEnable property
-        if let enable = properties["linksEnable"] as? Bool {
+        if case .value(let v) = diff["linksEnable"], let enable = v as? Bool {
             linksEnable = enable
             label.isUserInteractionEnabled = enable
+        } else if case .deleted = diff["linksEnable"] {
+            linksEnable = false
+            label.isUserInteractionEnabled = false
+        }
+        
+        // Extract styles if present
+        var styles: [String: Any]?
+        if case .value(let stylesValue) = diff["styles"] {
+            styles = stylesValue as? [String: Any]
         }
         
         // Get rich text content (supports both String and numeric types)
-        var contentString = ""
-        if let literalString = properties["literalString"] as? String {
-            contentString = literalString
-        } else if let text = properties["text"] as? String {
-            contentString = text
-        } else if let numberValue = properties["text"] as? NSNumber {
-            contentString = "\(numberValue)"
+        var contentString: String?
+        if case .value(let v) = diff["literalString"], let s = v as? String {
+            contentString = s
+        } else if case .value(let v) = diff["text"], let s = v as? String {
+            contentString = s
+        } else if case .value(let v) = diff["text"], let n = v as? NSNumber {
+            contentString = "\(n)"
         }
         
-        // Parse and apply rich text
-        if !contentString.isEmpty {
-            let attributedString = parseHTMLContentSync(contentString, styles: properties["styles"] as? [String: Any])
+        // text=null or literalString=null → clear to type empty value
+        if case .deleted = diff["text"] {
+            label.attributedText = nil
+        } else if case .deleted = diff["literalString"] {
+            label.attributedText = nil
+        } else if let content = contentString, !content.isEmpty {
+            let attributedString = parseHTMLContentSync(content, styles: styles)
             label.attributedText = attributedString
             
             // Apply text alignment
-            if let styles = properties["styles"] as? [String: Any],
+            if let styles = styles,
                let textAlign = styles["text-align"] as? String {
                 label.textAlignment = parseTextAlignment(textAlign)
             }

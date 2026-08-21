@@ -191,9 +191,14 @@ public class SliderComponent extends A2UIComponent {
         // Update label
         if (props.containsKey("label")) {
             Object labelObj = props.get("label");
-            String label = extractStringValue(labelObj);
-            if (label != null) {
-                labelTextView.setText(label);
+            if (labelObj == null) {
+                // null (delete signal) → clear label (align iOS label→"")
+                labelTextView.setText("");
+            } else {
+                String label = extractStringValue(labelObj);
+                if (label != null) {
+                    labelTextView.setText(label);
+                }
             }
         }
 
@@ -212,7 +217,8 @@ public class SliderComponent extends A2UIComponent {
         // Update current value
         if (props.containsKey("value")) {
             Object valueObj = props.get("value");
-            float value = extractNumberValue(valueObj);
+            // null (delete signal) → reset to minValue (align iOS value→minValue)
+            float value = (valueObj == null) ? minValue : extractNumberValue(valueObj);
 
             // Convert actual value to progress (0.0-1.0)
             float progress = (value - minValue) / (maxValue - minValue);

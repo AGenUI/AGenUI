@@ -24,22 +24,12 @@ class DividerComponent: Component {
         super.init(componentId: componentId, componentType: "Divider", properties: properties)
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    // MARK: - Component Override
-    
-    override func updateProperties(_ properties: [String: Any]) {
-        // Call parent method to apply CSS properties to self
-        // background-color, height, width etc. are applied automatically
-        super.updateProperties(properties)
-    }
-    
-    // MARK: - Private Methods
 }
 
 

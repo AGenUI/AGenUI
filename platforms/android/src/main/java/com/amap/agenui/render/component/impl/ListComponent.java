@@ -230,9 +230,6 @@ public class ListComponent extends A2UILayoutComponent {
             return;
         }
         Rect padding = StyleHelper.resolveCSSPaddingPx(extractStyles(properties), context);
-        if (padding == null) {
-            return;
-        }
         recyclerView.setPadding(0, 0, padding.right, padding.bottom);
         recyclerView.setClipToPadding(false);
     }

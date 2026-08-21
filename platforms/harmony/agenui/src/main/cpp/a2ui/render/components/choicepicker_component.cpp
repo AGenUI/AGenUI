@@ -88,14 +88,18 @@ ChoicePickerComponent::~ChoicePickerComponent() {
 }
 
 void ChoicePickerComponent::onUpdateProperties(const nlohmann::json& properties) {
-    (void)properties;
-
     if (!m_nodeHandle) {
         HM_LOGE("handle is null, id=%s", m_id.c_str());
         return;
     }
 
     m_config = parseChoicePickerConfig(m_properties);
+    // null (delete signal) → clear displayStyle to "" (align iOS displayStyle→"").
+    // parseChoicePickerConfig reads m_properties (merged, null erased → contains false →
+    // keeps spec default "checkbox"), so override here using the diff (properties).
+    if (properties.contains("displayStyle") && properties["displayStyle"].is_null()) {
+        m_config.displayStyle = "";
+    }
     m_styleConfig = getComponentStylesFor("ChoicePicker");
     m_options = parseChoicePickerOptions(m_properties);
 

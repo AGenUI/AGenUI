@@ -12,6 +12,8 @@
 #include "agenui_tabs_data_value.h"
 #include "agenui_event_action_data_value.h"
 #include "agenui_function_call_action_data_value.h"
+#include "agenui_structured_data_value.h"
+#include "nlohmann/json.hpp"
 #include <string>
 #include <memory>
 
@@ -172,7 +174,34 @@ public:
      */
     static std::shared_ptr<InterpolationExpressionDataValue> parseInterpolationExpressionFromRaw(IDataValueContext* context, const std::string& rawValue);
 
+    /**
+     * @brief Parse a data value, recursively resolving nested dynamic values
+     * @param context Data value context pointer
+     * @param valueJson Data value JSON string
+     * @return DataValue smart pointer; never nullptr for any input
+     * @remark Same contract as parseDataValue, except that an object or array is
+     *         descended into instead of being swallowed whole: `{path:}` bindings and
+     *         `{call:}` function calls nested at any depth become real DataValues,
+     *         yielding a StructuredDataValue that mirrors the JSON shape. A value that
+     *         is itself a dynamic form or a scalar produces exactly what parseDataValue
+     *         would. Use it for properties whose value is a container of dynamic values.
+     */
+    static std::shared_ptr<DataValue> parseStructuredDataValue(IDataValueContext* context, const std::string& valueJson);
+
 private:
+    /**
+     * @brief Build one node of a StructuredDataValue tree
+     * @param context Data value context pointer
+     * @param node Parsed JSON for this node
+     * @return DataValue smart pointer for the node; never nullptr
+     * @remark Objects are first tested for the dynamic forms (`{call:}`, `{path:}`)
+     *         and only descended into when neither matches; arrays are always
+     *         descended into; scalars go through parseDataValue so that `${...}`
+     *         templates still resolve. Takes the parsed node rather than a JSON string
+     *         so the descent does not serialize and re-parse every child.
+     */
+    static std::shared_ptr<DataValue> buildStructuredNode(IDataValueContext* context, const nlohmann::json& node);
+
     /**
      * @brief Parse a function-call data value
      * @param context Data value context pointer

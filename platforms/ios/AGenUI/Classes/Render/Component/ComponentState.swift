@@ -13,12 +13,17 @@ class ComponentState {
 
     /// Compares each key in `diff` against the last-seen value.
     /// Only keys whose values actually differ are marked dirty.
-    func updateProperties(_ diff: [String: Any]) {
-        for (key, newValue) in diff {
-            if areEqual(lastValues[key], newValue) {
+    func updateProperties(_ diff: [String: DiffValue]) {
+        for (key, dv) in diff {
+            let rawNewValue: Any
+            switch dv {
+                case .value(let v): rawNewValue = v
+                case .deleted: rawNewValue = NSNull()
+            }
+            if areEqual(lastValues[key], rawNewValue) {
                 continue
             }
-            lastValues[key] = newValue
+            lastValues[key] = rawNewValue
             dirtyKeys.insert(key)
         }
     }

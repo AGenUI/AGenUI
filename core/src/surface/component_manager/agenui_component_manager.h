@@ -74,7 +74,7 @@ public:
      * @param surfaceId Surface ID
      * @param dispatcher Event dispatcher pointer
      */
-    void executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher) override;
+    void executeComponentAction(const std::string& componentId, const std::string& surfaceId, void* dispatcher, const std::string& contextJson = "") override;
 
     /**
      * @brief Called when a component is deleted

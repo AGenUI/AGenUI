@@ -453,30 +453,63 @@ void ComponentModel::setStyleValue(const std::string& styleName, const std::stri
     stylesData->setStyle(styleName, DataValueParser::parseDataValue(this, value));
 }
 
-void ComponentModel::executeAction(const std::string& surfaceId, agenui::EventDispatcher* dispatcher) {
+void ComponentModel::executeAction(const std::string& surfaceId, agenui::EventDispatcher* dispatcher,
+                                   const std::string& contextJson) {
+    // Caller-supplied action takes precedence over the component's own "action" attribute.
+    // Used by custom components whose sub-regions carry their own actions (e.g. SpanText
+    // spans): the platform layer passes {"action": <A2UI action definition>} as context.
+    //
+    // Parsing failures fall through to the component's own action on purpose — the context
+    // is free-form and may carry unrelated payloads, so this must never break the default path.
+    if (!contextJson.empty()) {
+        auto ctx = nlohmann::json::parse(contextJson, nullptr, false);
+        if (!ctx.is_discarded() && ctx.is_object() && ctx.contains("action")) {
+            std::string actionJson = ctx["action"].dump();
+            std::shared_ptr<DataValue> contextAction =
+                DataValueParser::parseFunctionCallActionDataValue(this, actionJson);
+            if (!contextAction) {
+                contextAction = DataValueParser::parseEventActionDataValue(this, actionJson);
+            }
+            if (contextAction && executeActionValue(contextAction, surfaceId, dispatcher)) {
+                return;
+            }
+        }
+    }
+
     auto it = _attributes.find("action");
     if (it == _attributes.end() || !it->second) {
         return;
     }
-    
-    auto actionDataValue = it->second;
+
+    executeActionValue(it->second, surfaceId, dispatcher);
+}
+
+bool ComponentModel::executeActionValue(const std::shared_ptr<DataValue>& actionDataValue,
+                                        const std::string& surfaceId,
+                                        agenui::EventDispatcher* dispatcher) {
+    if (!actionDataValue) {
+        return false;
+    }
+
     DataType dataType = actionDataValue->getDataType();
-    
+
     if (dataType == DataType::EventActionData) {
         auto eventAction = std::static_pointer_cast<EventActionDataValue>(actionDataValue);
         if (eventAction) {
             eventAction->execute(surfaceId, _rawId, dispatcher);
+            return true;
         }
-        return;
+        return false;
     } else if (dataType == DataType::FunctionCallActionData) {
         auto functionCallAction = std::static_pointer_cast<FunctionCallActionDataValue>(actionDataValue);
         if (functionCallAction) {
             functionCallAction->execute();
+            return true;
         }
-        return;
+        return false;
     }
-    
-    return;
+
+    return false;
 }
 
 int ComponentModel::getInstanceId() const {

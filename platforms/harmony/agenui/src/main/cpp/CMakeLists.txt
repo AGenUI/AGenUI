@@ -196,6 +196,7 @@ add_library(a2ui-capi SHARED
     napi_function.cpp
     napi_text_stream.cpp
     napi_misc.cpp
+    napi_color.cpp
     a2ui_api.h
     a2ui_hm_helper.h
     ${AGENUI_SOURCES}

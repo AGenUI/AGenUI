@@ -13,7 +13,6 @@ ThreadManager& ThreadManager::getInstance() {
 ThreadManager::~ThreadManager() {
     for (auto& pair : _threads) {
         pair.second->stop();
-        SAFELY_DELETE(pair.second);
     }
     _threads.clear();
 }
@@ -28,7 +27,7 @@ bool ThreadManager::createThread(int threadId) {
 
     std::string name = "AGenUI-" + std::to_string(threadId);
     // Order: create → start → insert into map
-    IThread *newThread = new MessageThread(name);
+    auto newThread = std::make_shared<MessageThread>(name);
     newThread->start();
     _threads[threadId] = newThread;
     AGENUI_LOG("created thread '%s'", name.c_str());
@@ -37,8 +36,9 @@ bool ThreadManager::createThread(int threadId) {
 
 void ThreadManager::destroyThread(int threadId) {
     AGENUI_LOG("begin destroying thread for %d", threadId);
-    IThread* thread = nullptr;
-    // Order: remove → stop → delete (exact reverse of createThread)
+    std::shared_ptr<IThread> thread;
+    // Order: erase → stop → release. stop() (join) must complete before
+    // releasing our reference: ~MessageThread must never see a joinable thread.
     {
         std::lock_guard<std::mutex> lock(_mutex);
         auto it = _threads.find(threadId);
@@ -49,12 +49,10 @@ void ThreadManager::destroyThread(int threadId) {
         _threads.erase(it);
     }
     thread->stop();
-    SAFELY_DELETE(thread);
-
     AGENUI_LOG("destroyed %d", threadId);
 }
 
-IThread* ThreadManager::getMessageThread(int threadId) {
+std::shared_ptr<IThread> ThreadManager::getMessageThread(int threadId) {
     std::lock_guard<std::mutex> lock(_mutex);
     auto it = _threads.find(threadId);
     if (it == _threads.end()) {

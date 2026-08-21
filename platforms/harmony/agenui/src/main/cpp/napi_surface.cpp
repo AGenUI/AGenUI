@@ -35,9 +35,6 @@ napi_value CreateSurfaceManager(napi_env env, napi_callback_info info) {
         getMessageListeners()[instanceId] = listener;
     }
 
-    a2ui::A2UISurfaceManager* surfaceManager = listener->getSurfaceManager();
-    surfaceManager->setCoreSurfaceManager(sm);
-
     HM_LOGI("CreateSurfaceManager: instanceId=%d created successfully", instanceId);
 
     napi_value result;
@@ -76,16 +73,13 @@ napi_value DestroySurfaceManager(napi_env env, napi_callback_info info) {
         }
     }
 
-    auto* sm = engine->findSurfaceManager(instanceId);
+    auto sm = engine->findSurfaceManagerShared(instanceId);
     if (sm) {
         if (listenerOwner) {
             sm->removeSurfaceEventListener(listenerOwner.get());
-            if (auto* a2uiSm = listenerOwner->getSurfaceManager()) {
-                a2uiSm->setCoreSurfaceManager(nullptr);
-            }
         }
 
-        engine->destroySurfaceManager(sm);
+        engine->destroySurfaceManager(sm.get());
     }
 
     HM_LOGI("DestroySurfaceManager: instanceId=%d destroyed", instanceId);
@@ -109,7 +103,7 @@ napi_value RequestSurface(napi_env env, napi_callback_info info) {
 
     HM_LOGI("RequestSurface: instanceId=%d, dataLen=%zu", instanceId, requestContent.size());
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (!sm) {
         HM_LOGE("RequestSurface: SurfaceManager not found for instanceId=%d", instanceId);
         NAPI_RETURN_UNDEFINED(env);
@@ -303,7 +297,7 @@ napi_value Surface_onSizeChanged(napi_env env, napi_callback_info info) {
         HM_LOGE("OnSurfaceSizeChanged: Engine not initialized");
         NAPI_RETURN_UNDEFINED(env);
     }
-    agenui::ISurfaceManager* sm = engine->findSurfaceManager(instanceId);
+    auto sm = engine->findSurfaceManagerShared(instanceId);
     if (!sm) {
         HM_LOGE("OnSurfaceSizeChanged: SurfaceManager not found for instanceId=%d, surfaceId=%s", instanceId, surfaceId.c_str());
         NAPI_RETURN_UNDEFINED(env);
@@ -339,7 +333,7 @@ napi_value DestroySurface(napi_env env, napi_callback_info info) {
     };
     HM_LOGI("DestroySurface: instanceId=%d, surfaceId=%s", instanceId, surfaceId.c_str());
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (sm) {
         sm->receiveTextChunk(requestContent.dump());
     }

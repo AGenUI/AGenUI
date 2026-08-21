@@ -45,7 +45,7 @@ class IconComponent: Component {
         
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -75,24 +75,29 @@ class IconComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties (e.g., padding, background-color)
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         guard let imageView = iconImageView else { return }
         
         // Update icon name (A2UI v0.9 protocol: name)
-        if let nameValue = properties["name"] {
+        if case .value(let nameValue) = diff["name"] {
             let iconName = CSSPropertyParser.extractStringValue(nameValue)
             currentIconName = iconName
             loadIcon(iconName, for: imageView)
+        } else if case .deleted = diff["name"] {
+            currentIconName = nil
+            imageView.image = nil
         }
         
         // Update icon color (A2UI v0.9 protocol: color)
-        if let colorValue = properties["color"] {
+        if case .value(let colorValue) = diff["color"] {
             if let colorString = colorValue as? String {
                 imageView.tintColor = parseColor(colorString)
             }
+        } else if case .deleted = diff["color"] {
+            imageView.tintColor = .label
         }
     }
     

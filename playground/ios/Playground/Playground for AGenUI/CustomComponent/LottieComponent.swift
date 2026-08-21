@@ -52,7 +52,7 @@ class LottieComponent: Component {
         ])
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -94,28 +94,34 @@ class LottieComponent: Component {
         animationView?.frame = bounds
     }
     
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
         
         // Update animation URL
-        if let urlValue = properties["url"] {
+        if case .value(let urlValue) = diff["url"] {
             loadAnimation(from: urlValue as? String ?? "")
+        } else if case .deleted = diff["url"] {
+            loadAnimation(from: "")
         }
         
         // Update loop mode
-        if let loopValue = properties["loop"] {
+        if case .value(let loopValue) = diff["loop"] {
             let loop = loopValue as? Bool ?? true
             animationView?.loopMode = loop ? .loop : .playOnce
 //            print("[Lottie] Loop mode set to: \(animationView?.loopMode == .loop ? "loop" : "playOnce")")
+        } else if case .deleted = diff["loop"] {
+            animationView?.loopMode = .playOnce
         }
         
         // Update auto-play
-        if let autoPlayValue = properties["autoPlay"] {
+        if case .value(let autoPlayValue) = diff["autoPlay"] {
             let autoPlay = autoPlayValue as? Bool ?? true
             if autoPlay, animationView?.animation != nil {
                 animationView?.play()
                 print("[Lottie] Auto play started")
             }
+        } else if case .deleted = diff["autoPlay"] {
+            animationView?.pause()
         }
     }
     

@@ -196,10 +196,7 @@ void TextFieldComponent::applyPlaceholder(const nlohmann::json& properties) {
         placeholder = extractStringValue(properties["label"]);
     }
 
-    if (placeholder.empty()) {
-        return;
-    }
-
+    // null (delete signal) → extractStringValue returns "" → clear placeholder (align iOS label/placeholder→"")
     if (m_isTextArea) {
         ArkUI_AttributeItem item = {nullptr, 0, placeholder.c_str()};
         g_nodeAPI->setAttribute(m_textInputHandle, NODE_TEXT_AREA_PLACEHOLDER, &item);

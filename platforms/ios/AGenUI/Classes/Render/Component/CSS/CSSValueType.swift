@@ -13,11 +13,7 @@ enum CSSValueType {
     /// Dimension value type, supports numbers and percentages
     /// Example: "100", "50%"
     case dimension
-    
-    /// Pure numeric type, only supports numbers
-    /// Example: "1", "0.5"
-    case number
-    
+
     /// Color value type
     /// Example: "#FF0000", "rgb(255, 0, 0)", "rgba(255, 0, 0, 0.5)"
     case color
@@ -28,8 +24,8 @@ enum CSSValueType {
     case opacity
     
     /// Shadow value type
-    /// Used for filter and box-shadow properties
-    /// Example: "drop-shadow(0 2 4 rgba(0,0,0,0.1))", "0 2 8 0 rgba(0,0,0,0.15)"
+    /// Used for the filter (drop-shadow) property
+    /// Example: "drop-shadow(0 2 4 rgba(0,0,0,0.1))"
     case shadow
     
     /// Keyword type

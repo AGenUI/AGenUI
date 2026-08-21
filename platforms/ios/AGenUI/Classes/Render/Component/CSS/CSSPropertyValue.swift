@@ -22,7 +22,7 @@ public enum CSSPropertyValue: Equatable {
     /// Keyword type, e.g., "center", "start", "transparent"
     case keyword(String)
     
-    /// Shadow type, used for filter and box-shadow
+    /// Shadow type, used for the filter (drop-shadow) property
     case shadow(CSSShadow)
 
     /// Gradient type, produced when CSS color value is `linear-gradient(...)`,
@@ -36,72 +36,6 @@ public enum CSSPropertyValue: Equatable {
     
     /// Invalid value, indicates parsing failure
     case invalid
-    
-    // MARK: - Convenience Properties
-    
-    /// Checks if the value is valid
-    var isValid: Bool {
-        if case .invalid = self {
-            return false
-        }
-        return true
-    }
-    
-    /// Gets numeric value (if number type)
-    var numberValue: CGFloat? {
-        if case .number(let value) = self {
-            return value
-        }
-        return nil
-    }
-    
-    /// Gets percentage value (if percentage type)
-    var percentageValue: CGFloat? {
-        if case .percentage(let value) = self {
-            return value
-        }
-        return nil
-    }
-    
-    /// Gets color value (if color type)
-    var colorValue: UIColor? {
-        if case .color(let value) = self {
-            return value
-        }
-        return nil
-    }
-    
-    /// Gets keyword value (if keyword type)
-    var keywordValue: String? {
-        if case .keyword(let value) = self {
-            return value
-        }
-        return nil
-    }
-    
-    /// Gets shadow value (if shadow type)
-    var shadowValue: CSSShadow? {
-        if case .shadow(let value) = self {
-            return value
-        }
-        return nil
-    }
-    
-    /// Gets URL value (if url type)
-    var urlValue: String? {
-        if case .url(let value) = self {
-            return value
-        }
-        return nil
-    }
-
-    /// Gets gradient value (if gradient type)
-    var gradientValue: AGUIGradientInfo? {
-        if case .gradient(let value) = self {
-            return value
-        }
-        return nil
-    }
     
     // MARK: - Equatable
     
@@ -133,7 +67,7 @@ public enum CSSPropertyValue: Equatable {
 // MARK: - CSSShadow
 
 /// CSS shadow value
-/// Used for filter (drop-shadow) and box-shadow properties
+/// Shadow spec for the filter (drop-shadow) property
 public struct CSSShadow: Equatable {
     /// Horizontal offset (positive = right, negative = left)
     public let offsetX: CGFloat
@@ -143,10 +77,6 @@ public struct CSSShadow: Equatable {
 
     /// Blur radius (larger value = more blur)
     public let blur: CGFloat
-
-    /// Spread radius (optional, only used by box-shadow)
-    /// Positive value expands shadow, negative value shrinks shadow
-    public let spread: CGFloat?
 
     /// Shadow color
     public let color: UIColor
@@ -161,22 +91,6 @@ public struct CSSShadow: Equatable {
         self.offsetX = offsetX
         self.offsetY = offsetY
         self.blur = blur
-        self.spread = nil
-        self.color = color
-    }
-    
-    /// Creates from box-shadow
-    /// - Parameters:
-    ///   - offsetX: Horizontal offset
-    ///   - offsetY: Vertical offset
-    ///   - blur: Blur radius
-    ///   - spread: Spread radius
-    ///   - color: Shadow color
-    init(offsetX: CGFloat, offsetY: CGFloat, blur: CGFloat, spread: CGFloat, color: UIColor) {
-        self.offsetX = offsetX
-        self.offsetY = offsetY
-        self.blur = blur
-        self.spread = spread
         self.color = color
     }
     
@@ -186,7 +100,6 @@ public struct CSSShadow: Equatable {
         return lhs.offsetX == rhs.offsetX &&
                lhs.offsetY == rhs.offsetY &&
                lhs.blur == rhs.blur &&
-               lhs.spread == rhs.spread &&
                lhs.color == rhs.color
     }
 }

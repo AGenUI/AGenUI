@@ -250,8 +250,17 @@ public abstract class A2UIComponent {
         // Per-key compare against stored values; only truly changed keys are marked dirty.
         state.updateProperties(changedProps);
 
-        // Merge diff into full properties
-        this.properties.putAll(changedProps);
+        // Merge diff into full properties. null is the delete signal (PRD
+        // agenui-null-handling-alignment.md): remove the key rather than storing
+        // null, so containsKey/get downstream never see a stored null. The null
+        // value is still passed through to onUpdateProperties below for leaf reset.
+        for (Map.Entry<String, Object> entry : changedProps.entrySet()) {
+            if (entry.getValue() == null) {
+                this.properties.remove(entry.getKey());
+            } else {
+                this.properties.put(entry.getKey(), entry.getValue());
+            }
+        }
 
         // Skip the entire apply cycle when nothing actually changed.
         if (!state.isDirty()) {
@@ -716,9 +725,30 @@ public abstract class A2UIComponent {
      * Equivalent to the Action triggered by a user click.
      * Custom components can call this proactively when needed
      * (e.g. for gestures, long press, or other interactions).
+     * <p>
+     * Sends an empty context, which tells the Native layer to use this component's own
+     * {@code action} attribute. Kept identical across iOS / Android / HarmonyOS.
      *
      */
     public final void triggerAction() {
+        triggerAction("");
+    }
+
+    /**
+     * Triggers an Action with a caller-supplied context.
+     * <p>
+     * Use this when the action to execute is not the component's own top-level
+     * {@code action} — e.g. a custom component whose sub-regions carry their own
+     * actions (SpanText).
+     * <p>
+     * The Native layer resolves {@code context.action} as a standard A2UI action
+     * definition ({@code {"functionCall": ...}} or {@code {"event": ...}}); if it is
+     * absent or unparsable, the component's own {@code action} attribute is used instead.
+     *
+     * @param contextJson Context in JSON format; put the action definition under the
+     *                    {@code action} key. Pass {@code ""} to use the component's own action.
+     */
+    public final void triggerAction(String contextJson) {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.d(TAG, "Component action triggered: " + id + " (type: " + componentType + ")");
         }
@@ -736,7 +766,7 @@ public abstract class A2UIComponent {
             return;
         }
 
-        componentEventDispatcher.submitUIAction(surfaceId, id, "");
+        componentEventDispatcher.submitUIAction(surfaceId, id, contextJson != null ? contextJson : "");
     }
 
     /**

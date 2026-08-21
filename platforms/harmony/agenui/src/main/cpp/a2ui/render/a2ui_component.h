@@ -324,10 +324,21 @@ protected:
      *   visibility: hidden  -> ARKUI_VISIBILITY_HIDDEN (invisible but still occupies layout space)
      *   visibility: visible -> ARKUI_VISIBILITY_VISIBLE (default)
      * Mirrors Android StyleHelper.applyDisplay's visibility branch and CSS semantics.
-     * No-op when the "visibility" key is absent so previous values are preserved.
+     * Applies the default "visible" when the key is absent, aligned with
+     * iOS CSSPropertyApplier and Android StyleHelper.
      * @param styles Style JSON object
      */
     void applyVisibility(const nlohmann::json& styles);
+
+    /**
+     * Apply the display style.
+     *   display: none  -> hidden
+     *   display: flex   -> visible (default)
+     * Mirrors iOS CSSPropertyApplier.applyDisplay and Android StyleHelper.
+     * Runs after applyVisibility so display can override it, matching iOS.
+     * @param styles Style JSON object
+     */
+    void applyDisplay(const nlohmann::json& styles);
 
     /**
      * Apply the opacity style.

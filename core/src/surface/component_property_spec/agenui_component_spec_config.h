@@ -31,31 +31,6 @@ static const char* const kBaseComponentSpecConfig = R"JSON({
         }
       }
     },
-    "AmapText": {
-      "text": {"default": ""},
-      "variant": {
-        "default": "body",
-        "enum": {
-          "h1": {"styles": {"font-size": "40px", "font-weight": "bold", "line-height": "56px", "color": {"call": "token", "args": {"name": "Color_Text_Heading"}}}},
-          "h2": {"styles": {"font-size": "36px", "font-weight": "bold", "line-height": "50px", "color": {"call": "token", "args": {"name": "Color_Text_Heading"}}}},
-          "h3": {"styles": {"font-size": "32px", "font-weight": "bold", "line-height": "44px", "color": {"call": "token", "args": {"name": "Color_Text_Heading"}}}},
-          "h4": {"styles": {"font-size": "30px", "font-weight": "bold", "line-height": "42px", "color": {"call": "token", "args": {"name": "Color_Text_Heading"}}}},
-          "h5": {"styles": {"font-size": "28px", "font-weight": "bold", "line-height": "40px", "color": {"call": "token", "args": {"name": "Color_Text_Heading"}}}},
-          "body": {"styles": {"font-size": "28px", "line-height": "40px", "color": {"call": "token", "args": {"name": "Color_Text_Body"}}}},
-          "caption": {"styles": {"font-size": "24px", "line-height": "34px", "color": {"call": "token", "args": {"name": "Color_Text_Caption"}}}}
-        }
-      },
-      "styles": {
-        "default": {
-          "width": "auto",
-          "height": "auto",
-          "font-family": "system",
-          "line-clamp": 1,
-          "text-align": "left",
-          "text-overflow": "ellipsis"
-        }
-      }
-    },
     "Card": {
       "styles": {
         "default": {

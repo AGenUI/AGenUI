@@ -145,10 +145,32 @@ public class WebComponent extends A2UIComponent {
             return;
         }
 
+        // Update JavaScript setting (align iOS enableJavaScript→false on null)
+        if (changedProps.containsKey("enableJavaScript")) {
+            Object jsObj = changedProps.get("enableJavaScript");
+            boolean enable = (jsObj == null) ? false
+                    : (jsObj instanceof Boolean ? (Boolean) jsObj
+                    : Boolean.parseBoolean(String.valueOf(jsObj)));
+            webView.getSettings().setJavaScriptEnabled(enable);
+        }
+
+        // Update zoom setting (align iOS enableZoom→false on null)
+        if (changedProps.containsKey("enableZoom")) {
+            Object zoomObj = changedProps.get("enableZoom");
+            boolean enable = (zoomObj == null) ? false
+                    : (zoomObj instanceof Boolean ? (Boolean) zoomObj
+                    : Boolean.parseBoolean(String.valueOf(zoomObj)));
+            webView.getSettings().setSupportZoom(enable);
+        }
+
         // Update source (supports URL or HTML content)
         if (changedProps.containsKey("source")) {
-            String source = String.valueOf(changedProps.get("source"));
-            if (source != null && !source.isEmpty() && !source.equals("null")) {
+            Object sourceObj = changedProps.get("source");
+            if (sourceObj == null || "".equals(sourceObj)) {
+                // null (delete signal) → clear web content (align iOS source/url/html→"")
+                webView.loadUrl("about:blank");
+            } else {
+                String source = String.valueOf(sourceObj);
                 // Determine whether it is a URL or HTML content
                 if (source.startsWith("http://") || source.startsWith("https://")) {
                     // Load as URL

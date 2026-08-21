@@ -155,7 +155,7 @@ napi_value SubmitUIAction(napi_env env, napi_callback_info info) {
 
     HM_LOGI("SubmitUIAction: instanceId=%d, surfaceId=%s, sourceComponentId=%s", instanceId, surfaceId.c_str(), sourceComponentId.c_str());
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (sm) {
         agenui::ActionMessage msg;
         msg.surfaceId = std::move(surfaceId);
@@ -186,7 +186,7 @@ napi_value SubmitUIDataModel(napi_env env, napi_callback_info info) {
 
     HM_LOGI("SubmitUIDataModel: instanceId=%d, surfaceId=%s, componentId=%s", instanceId, surfaceId.c_str(), componentId.c_str());
 
-    auto* sm = findSurfaceManagerByInstanceId(instanceId);
+    auto sm = findSurfaceManagerByInstanceId(instanceId);
     if (sm) {
         agenui::SyncUIToDataMessage msg;
         msg.surfaceId = std::move(surfaceId);

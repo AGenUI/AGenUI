@@ -21,7 +21,7 @@ So you get the same high-quality output as mounting the Skill into an AI coding 
 
 ## Features
 
-- **BYOK multi-model** — DeepSeek, Qwen (DashScope), GLM (Zhipu), Moonshot, MiniMax, OpenAI, Gemini, Anthropic, OpenRouter, OrcaRouter, plus any OpenAI-compatible endpoint.
+- **BYOK multi-model** — DeepSeek, Qwen (DashScope), GLM (Zhipu), Moonshot, MiniMax, OpenAI, Gemini, Anthropic, OpenRouter, plus any OpenAI-compatible endpoint.
 - **Real-time streaming** — generation streams over SSE with a live protocol preview.
 - **Reasoning mode** — a toggle enables reasoning for capable models (may increase generation time).
 - **Multi-turn refinement** — iterate on the generated protocol with follow-up prompts; the previous protocol is used as the baseline.
@@ -114,7 +114,7 @@ Each entry under `providers` is an OpenAI-compatible endpoint:
 | `model`      | Model name to call                                 |
 | `max_tokens` | Maximum tokens for the generation response         |
 
-The template ships with ready-to-fill entries for DeepSeek, Qwen, Moonshot, Zhipu (GLM), MiniMax, OpenAI, Gemini, Anthropic, OpenRouter, and OrcaRouter.
+The template ships with ready-to-fill entries for DeepSeek, Qwen, Moonshot, Zhipu (GLM), MiniMax, OpenAI, Gemini, Anthropic, and OpenRouter.
 
 ### Server
 

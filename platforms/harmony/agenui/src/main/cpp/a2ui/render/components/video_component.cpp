@@ -120,7 +120,10 @@ void VideoComponent::onUpdateProperties(const nlohmann::json& properties) {
 
     if (properties.find("autoPlay") != properties.end()) {
         const auto& autoPlayVal = properties["autoPlay"];
-        if (autoPlayVal.is_boolean()) {
+        // null (delete signal) → false (align iOS autoPlay→false)
+        if (autoPlayVal.is_null()) {
+            m_autoPlay = false;
+        } else if (autoPlayVal.is_boolean()) {
             m_autoPlay = autoPlayVal.get<bool>();
         } else if (autoPlayVal.is_string()) {
             m_autoPlay = (autoPlayVal.get<std::string>() == "true");
@@ -138,7 +141,10 @@ void VideoComponent::onUpdateProperties(const nlohmann::json& properties) {
 
     if (properties.find("url") != properties.end()) {
         const auto& urlVal = properties["url"];
-        if (urlVal.is_string()) {
+        // null (delete signal) → clear url (align iOS url→"")
+        if (urlVal.is_null()) {
+            setVideoUrl("");
+        } else if (urlVal.is_string()) {
             std::string newUrl = urlVal.get<std::string>();
             if (!newUrl.empty()) {
                 setVideoUrl(newUrl);

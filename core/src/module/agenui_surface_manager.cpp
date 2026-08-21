@@ -58,21 +58,20 @@ bool SurfaceManager::init() {
 
 void SurfaceManager::uninit() {
     AGENUI_LOG("uninit, %d", _instanceId);
-    // Remove all listeners first to prevent callbacks during teardown
+    // Tear down the dispatcher under _cachedListenersMutex: concurrent
+    // add/removeSurfaceEventListener callers must never touch a freed dispatcher.
     {
         std::lock_guard<std::mutex> mutexWrap(_cachedListenersMutex);
         _cachedListeners.clear();
-    }
-    if (_dispatcher) {
-        _dispatcher->removeAllEventListeners();
+        if (_dispatcher) {
+            _dispatcher->removeAllEventListeners();
+            SAFELY_DELETE(_dispatcher);
+        }
     }
 
     // Destroy in strict reverse order
     destroyStreamingContentParser();
     destroySurfaceCoordinator();
-
-    // Destroy EventDispatcher
-    SAFELY_DELETE(_dispatcher);
 }
 
 void SurfaceManager::addSurfaceEventListener(IAGenUIMessageListener* listener) {
@@ -111,7 +110,7 @@ void SurfaceManager::submitUIAction(const ActionMessage& msg) {
     if (!_isRunning.load()) {
         return;
     }
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         AGENUI_LOG("MessageThread is null, submitUIAction ignored");
         return;
@@ -128,7 +127,7 @@ void SurfaceManager::submitUIDataModel(const SyncUIToDataMessage& msg) {
     if (!_isRunning.load()) {
         return;
     }
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         AGENUI_LOG("MessageThread is null, submitUIDataModel ignored");
         return;
@@ -147,7 +146,7 @@ void SurfaceManager::beginTextStream() {
         return;
     }
     AGENUI_PERFORMANCE_LOG("surface_begin_text_stream", "instanceId=%d", _instanceId);
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         AGENUI_LOG("MessageThread is null, beginTextStream ignored");
         return;
@@ -166,7 +165,7 @@ void SurfaceManager::endTextStream() {
         return;
     }
     AGENUI_PERFORMANCE_LOG("surface_end_text_stream", "instanceId=%d", _instanceId);
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         AGENUI_LOG("MessageThread is null, endTextStream ignored");
         return;
@@ -184,7 +183,7 @@ void SurfaceManager::receiveTextChunk(const std::string& data) {
         return;
     }
     AGENUI_PERFORMANCE_LOG("surface_receive_text_chunk", "instanceId=%d, bytes=%zu", _instanceId, data.size());
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         AGENUI_LOG("MessageThread is null, receiveTextChunk ignored");
         return;
@@ -201,7 +200,7 @@ void SurfaceManager::onRenderFinish(const ComponentRenderInfo& info) {
     if (!_isRunning.load()) {
         return;
     }
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         AGENUI_LOG("onRenderFinish: messageThread is null, drop");
         return;
@@ -218,7 +217,7 @@ void SurfaceManager::onSurfaceSizeChanged(const SurfaceLayoutInfo& info) {
     if (!_isRunning.load()) {
         return;
     }
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         AGENUI_LOG("onSurfaceSizeChanged: messageThread is null, drop");
         return;
@@ -235,7 +234,7 @@ void SurfaceManager::invalidateFunctionCallValues() {
     if (!_isRunning.load()) {
         return;
     }
-    IThread* messageThread = getMessageThread();
+    auto messageThread = getMessageThread();
     if (!messageThread) {
         return;
     }
@@ -274,7 +273,7 @@ SurfaceCoordinator* SurfaceManager::getSurfaceCoordinator() {
     return _surfaceCoordinator;
 }
 
-IThread* SurfaceManager::getMessageThread() {
+std::shared_ptr<IThread> SurfaceManager::getMessageThread() {
     return ThreadManager::getInstance().getMessageThread(AGENUI_SHARED_THREAD_ID);
 }
 

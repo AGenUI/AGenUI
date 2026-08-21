@@ -515,7 +515,7 @@ class TextComponent: Component {
         self.labelTrailingConstraint = trailingC
         
         // Apply initial properties after label is created
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -535,14 +535,14 @@ class TextComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self (padding, background-color, etc.)
-        super.updateProperties(properties)
+        super.updateProperties(diff)
 
         guard let label = label else { return }
 
         // Handle textChunk field (content append, supports both String and numeric types)
-        if let textChunkValue = properties["textChunk"] {
+        if case .value(let textChunkValue) = diff["textChunk"] {
             let textChunk = TextComponent.extractTextValue(textChunkValue) ?? ""
             if !textChunk.isEmpty {
                 let currentText = label.text ?? ""
@@ -551,14 +551,19 @@ class TextComponent: Component {
             }
         }
         // Update text content (supports both String and numeric types)
-        else if let textValue = properties["text"] {
+        else if case .value(let textValue) = diff["text"] {
             let text = TextComponent.extractTextValue(textValue) ?? ""
             label.text = text.count == 0 ? " " : text
             label.invalidateIntrinsicContentSize()
         }
+        // text=null → clear to type empty value (string → "")
+        else if case .deleted = diff["text"] {
+            label.text = ""
+            label.invalidateIntrinsicContentSize()
+        }
 
         // Update style properties
-        if let styles = properties["styles"] as? [String: Any] {
+        if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {
             applyStyles(styles)
         }
     }
@@ -568,15 +573,15 @@ class TextComponent: Component {
     /// Parsed text style properties (intermediate representation)
     /// Shared by applyStyles and measure to ensure consistent parsing
     private struct ParsedTextStyles {
-        var fontSize: CGFloat?
-        var fontWeight: UIFont.Weight?
-        var fontFamily: String?
-        var color: UIColor?
-        var textAlign: NSTextAlignment?
-        var lineHeight: LineHeightType?
-        var lineClamp: Int?
-        var textOverflow: String?
-        var decorationConfig: TextDecorationConfig?
+        var fontSize: CGFloat = 32.0 * Component.BS_POINT_SCALE  // 32 a2ui → 16pt
+        var fontWeight: UIFont.Weight = .regular
+        var fontFamily: String = "system"
+        var color: UIColor = .black
+        var textAlign: NSTextAlignment = .left
+        var lineHeight: LineHeightType?              // nil = native line spacing
+        var lineClamp: Int = 0
+        var textOverflow: String = "ellipsis"
+        var decorationConfig: TextDecorationConfig?  // nil = no decoration
     }
 
     /// Parse styles dictionary into intermediate representation
@@ -586,7 +591,9 @@ class TextComponent: Component {
 
         // Parse font-size (supports String with px unit and NSNumber)
         if let fontSizeValue = styles["font-size"] as? String {
-            parsed.fontSize = extractFontSize(from: fontSizeValue)
+            if let result = extractFontSize(from: fontSizeValue) {
+                parsed.fontSize = result
+            }
         } else if let num = styles["font-size"] as? NSNumber {
             parsed.fontSize = CGFloat(num.doubleValue) * Component.BS_POINT_SCALE
         }
@@ -614,7 +621,9 @@ class TextComponent: Component {
 
         // Parse text-align
         if let textAlignValue = styles["text-align"] as? String {
-            parsed.textAlign = parseTextAlign(textAlignValue)
+            if let result = parseTextAlign(textAlignValue) {
+                parsed.textAlign = result
+            }
         }
 
         // Parse line-height (compatible with string and number)
@@ -663,20 +672,8 @@ class TextComponent: Component {
         // Phase 2: Synthesize UIFont - family + weight + size one-time build
         // ========================
 
-        let currentFont = label.font ?? UIFont.systemFont(ofSize: 16)
-        let finalSize = parsed.fontSize ?? currentFont.pointSize
-        let finalWeight = parsed.fontWeight ?? currentFontWeight(from: currentFont)
-
-        let finalFont: UIFont
-        if let family = parsed.fontFamily {
-            finalFont = TextComponent.buildFont(family: family, weight: finalWeight, size: finalSize)
-        } else if parsed.fontSize != nil || parsed.fontWeight != nil {
-            // size or weight changed, but family not specified, keep current family
-            let currentFamily = currentFont.familyName
-            finalFont = TextComponent.buildFont(family: currentFamily, weight: finalWeight, size: finalSize)
-        } else {
-            finalFont = currentFont
-        }
+        let finalFont = TextComponent.buildFont(
+            family: parsed.fontFamily, weight: parsed.fontWeight, size: parsed.fontSize)
 
         label.font = finalFont
 
@@ -684,15 +681,13 @@ class TextComponent: Component {
         // Phase 3: Synthesize NSAttributedString - build all text attributes in one pass
         // ========================
 
-        let finalColor = parsed.color ?? label.textColor ?? .black
+        let finalColor = parsed.color
         label.textColor = finalColor
 
         // text-align set directly on label (consistent with original behavior, does not trigger attributedText creation)
-        if let textAlign = parsed.textAlign {
-            label.textAlignment = textAlign
-        }
+        label.textAlignment = parsed.textAlign
 
-        label.numberOfLines = parsed.lineClamp ?? 0
+        label.numberOfLines = parsed.lineClamp
 
         // Only create attributedText when lineHeight or decoration exists
         let needsAttributedText = parsed.lineHeight != nil
@@ -706,16 +701,14 @@ class TextComponent: Component {
                 color: finalColor,
                 textAlignment: label.textAlignment,
                 lineHeight: parsed.lineHeight,
-                lineClamp: parsed.lineClamp ?? 0,
+                lineClamp: parsed.lineClamp,
                 decorationConfig: parsed.decorationConfig
             ) {
                 label.attributedText = attributedString
             }
         }
 
-        if let textOverflow = parsed.textOverflow {
-            applyTextOverflow(to: label, overflow: textOverflow)
-        }
+        applyTextOverflow(to: label, overflow: parsed.textOverflow)
 
         // Apply CSS padding to the inner label.
         //
@@ -743,10 +736,8 @@ class TextComponent: Component {
               let leadingC = labelLeadingConstraint,
               let trailingC = labelTrailingConstraint else { return }
 
-        // Skip silently if the styles dict carries no padding-* key, so we
-        // do not clobber existing constants.
-        guard CSSPaddingResolver.hasAnyPaddingKey(styles) else { return }
-
+        // When no padding-* key is present, resolve() returns all zeros,
+        // resetting the constraints to their default (no inset).
         let p = CSSPaddingResolver.resolve(styles)
         topC.constant = p.top
         leadingC.constant = p.left
@@ -817,14 +808,6 @@ class TextComponent: Component {
     // MARK: - Phase 2 Helpers: UIFont synthesis
     
     /// Extract UIFont.Weight from current UIFont
-    private func currentFontWeight(from font: UIFont) -> UIFont.Weight {
-        let traits = font.fontDescriptor.object(forKey: .traits) as? [UIFontDescriptor.TraitKey: Any]
-        if let weightValue = traits?[.weight] as? CGFloat {
-            return UIFont.Weight(rawValue: weightValue)
-        }
-        return .regular
-    }
-    
     /// Build UIFont with family + weight + size in one pass
     private class func buildFont(family: String, weight: UIFont.Weight, size: CGFloat) -> UIFont {
         // CSS fallback list: "CustomFont, monospace, sans-serif"
@@ -1032,14 +1015,14 @@ class TextComponent: Component {
         let parsed = parseStyles(styles)
 
         // 4. Build UIFont (reuse same logic as applyStyles Phase 2)
-        let fontSize = parsed.fontSize ?? 16.0
-        let fontWeight = parsed.fontWeight ?? .regular
-        let fontFamily = parsed.fontFamily ?? "system"
+        let fontSize = parsed.fontSize
+        let fontWeight = parsed.fontWeight
+        let fontFamily = parsed.fontFamily
         let font = buildFont(family: fontFamily, weight: fontWeight, size: fontSize)
 
         // 5. Build NSAttributedString (reuse same logic as applyStyles Phase 3)
-        let textAlignment = parsed.textAlign ?? .left
-        let lineClamp = parsed.lineClamp ?? 0
+        let textAlignment = parsed.textAlign
+        let lineClamp = parsed.lineClamp
 
         guard let attributedString = buildAttributedText(
             text: text,

@@ -81,7 +81,7 @@ class TextFieldComponent: Component {
         createErrorLabel()
         
         // Apply initial properties after view is created
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -181,30 +181,28 @@ class TextFieldComponent: Component {
         }
     }
 
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
         
         // Check if input control type needs switching
-        if let variant = properties["variant"] as? String {
+        if case .value(let v) = diff["variant"], let variant = v as? String {
             if variant != currentVariant {
                 switchInputControl(to: variant)
             }
+        } else if case .deleted = diff["variant"] {
+            switchInputControl(to: "longtext")
         }
         
         // 1. Update placeholder first
-        if let label = properties["label"] {
+        if case .value(let label) = diff["label"] {
             let labelText = CSSPropertyParser.extractStringValue(label)
             updatePlaceholder(labelText)
+        } else if case .deleted = diff["label"] {
+            updatePlaceholder("")
         }
         
-        // Support independent placeholder property
-//        if let placeholder = properties["placeholder"] {
-//            let placeholderText = CSSPropertyParser.extractStringValue(placeholder)
-//            updatePlaceholder(placeholderText)
-//        }
-        
         // 2. Then update text value (data update from C++)
-        if let value = properties["value"] {
+        if case .value(let value) = diff["value"] {
             // Extract data binding path
             if let valueDict = value as? [String: Any], let path = valueDict["path"] as? String {
                 dataBindingPath = path
@@ -215,22 +213,30 @@ class TextFieldComponent: Component {
             let text = CSSPropertyParser.extractStringValue(value)
             updateTextValue(text)
             isUpdatingFromNative = false
+        } else if case .deleted = diff["value"] {
+            dataBindingPath = nil
+            isUpdatingFromNative = true
+            updateTextValue("")
+            isUpdatingFromNative = false
         }
         
         // Update input type
-        if let variant = properties["variant"] as? String {
+        if case .value(let v) = diff["variant"], let variant = v as? String {
             applyVariant(variant)
         }
 
         // Update validation regexp
-        if let regexp = properties["validationRegexp"] as? String {
+        if case .value(let v) = diff["validationRegexp"], let regexp = v as? String {
             validationRegexp = regexp
             // Validate current value when regexp changes
+            validateCurrentInput()
+        } else if case .deleted = diff["validationRegexp"] {
+            validationRegexp = nil
             validateCurrentInput()
         }
 
         // checks adaptation - display validation errors
-        if let checks = properties["checks"] as? [String: Any] {
+        if case .value(let v) = diff["checks"], let checks = v as? [String: Any] {
             let result = checks["result"] as? Bool ?? true
             let message = checks["message"] as? String ?? ""
             

@@ -200,8 +200,15 @@ public class VideoComponent extends A2UIComponent {
     protected void onUpdateProperties(Map<String, Object> changedProps) {
         // Update video URL
         if (changedProps.containsKey("url")) {
-            String url = (String) changedProps.get("url");
-            setVideoUrl(url);
+            Object urlObj = changedProps.get("url");
+            if (urlObj == null || "".equals(urlObj)) {
+                // null (delete signal) → stop and clear (align iOS url→"")
+                if (videoView != null) {
+                    videoView.stopPlayback();
+                }
+            } else {
+                setVideoUrl((String) urlObj);
+            }
         }
     }
 

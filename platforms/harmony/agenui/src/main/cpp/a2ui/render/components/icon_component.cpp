@@ -70,9 +70,15 @@ void IconComponent::applyIconName(const nlohmann::json& properties) {
         return;
     }
 
-    std::string iconName;
     const auto& nameValue = properties["name"];
 
+    // null (delete signal) → clear icon (align iOS name→nil)
+    if (nameValue.is_null()) {
+        A2UIImageNode(m_nodeHandle).setSrc("");
+        return;
+    }
+
+    std::string iconName;
     // Format 1: {"name": "favorite"}
     if (nameValue.is_string()) {
         iconName = nameValue.get<std::string>();
@@ -110,6 +116,11 @@ void IconComponent::applyIconColor(const nlohmann::json& properties) {
     }
 
     const auto& colorValue = properties["color"];
+    // null (delete signal) → clear color tint (align iOS color→default)
+    if (colorValue.is_null()) {
+        A2UIImageNode(m_nodeHandle).setFillColor(0);
+        return;
+    }
     if (!colorValue.is_string()) {
         return;
     }

@@ -285,12 +285,15 @@ void ImageComponent::onUpdateProperties(const nlohmann::json& properties) {
 }
 
 void ImageComponent::applyFit(const nlohmann::json& properties) {
-    if (!properties.contains("fit") || !properties["fit"].is_string()) {
+    if (!properties.contains("fit")) {
         return;
     }
 
+    // null (delete signal) → extractStringValue returns "" → mapObjectFit default CONTAIN
+    // (align iOS fit→.scaleAspectFit / Android FIT_CENTER)
+    std::string fit = extractStringValue(properties["fit"]);
     A2UIImageNode node(m_nodeHandle);
-    node.setObjectFit(static_cast<ArkUI_ObjectFit>(mapObjectFit(properties["fit"].get<std::string>())));
+    node.setObjectFit(static_cast<ArkUI_ObjectFit>(mapObjectFit(fit)));
 }
 
 

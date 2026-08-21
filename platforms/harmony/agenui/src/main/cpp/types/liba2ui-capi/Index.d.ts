@@ -176,6 +176,13 @@ export const registerFunction: (name: string, config: string, callback: (context
 /** Unregisters a platform function. */
 export const unregisterFunction: (name: string) => void;
 
+/**
+ * Declares a component property as a container of dynamic values, so the parser
+ * descends into it and resolves nested {path:} bindings and {call:} function calls
+ * at any depth. Must be called before the first render.
+ */
+export const registerDeepParseProperty: (componentType: string, propertyName: string) => boolean;
+
 /** Sets the theme mode. */
 export const setThemeMode: (mode: string) => void;
 
@@ -226,3 +233,39 @@ export const surfaceStartBlankCheck: (instanceId: number, surfaceId: string, del
 
 /** Cancels pending blank-screen detection on a specific surface. */
 export const surfaceCancelBlankCheck: (instanceId: number, surfaceId: string) => void;
+
+/**
+ * Parses a CSS color string (hex 3/4/6/8, rgb/rgba, hsl/hsla, hwb, named colors)
+ * via the shared C++ ColorParser. Returns the ARGB uint32 for a legal solid
+ * color -- including explicit transparent ('transparent' / rgba(0,0,0,0)),
+ * which yields 0, and 'currentcolor', which yields its solid placeholder
+ * (0xFF000000, aligned with iOS/Android). Returns undefined only on parse
+ * failure or gradient input, so callers can distinguish "unresolvable" from
+ * a legal explicit transparent.
+ */
+export const parseColor: (cssValue: string) => number | undefined;
+
+/** One side of a parsed CSS edge-insets shorthand. Mirrors core `agenui::EdgeInsetValue`. */
+export interface EdgeInsetSideValue {
+  value: number;      // raw number; 0 when unit is auto
+  unit: number;       // 0=PX,1=PERCENT,2=EM,3=REM,4=VW,5=VH,6=VMIN,7=VMAX,8=CM,9=MM,10=IN,11=PT,12=PC,13=AUTO
+  isCalc: boolean;
+  calcExpr?: string;  // present only when isCalc===true
+}
+
+/** Parsed CSS edge-insets shorthand, expanded to four sides in CSS order. */
+export interface EdgeInsetsValue {
+  top: EdgeInsetSideValue;
+  right: EdgeInsetSideValue;
+  bottom: EdgeInsetSideValue;
+  left: EdgeInsetSideValue;
+}
+
+/**
+ * Parses a CSS edge-insets shorthand ("10px", "10px 20px", "10px 20px 30px",
+ * "10px 20% auto calc(1px + 2%)") with the standard 1/2/3/4-value expansion, via the
+ * shared C++ EdgeInsetsParser -- the same parser Android reaches through JNI and iOS
+ * links directly, so the grammar is identical on all three platforms.
+ * Returns null when the value cannot be parsed.
+ */
+export const parseEdgeInsets: (cssValue: string) => EdgeInsetsValue | null;

@@ -245,9 +245,14 @@ public class CheckBoxComponent extends A2UIComponent {
         // Update label text
         if (props.containsKey("label")) {
             Object labelObj = props.get("label");
-            String label = extractStringValue(labelObj);
-            if (label != null) {
-                labelTextView.setText(label);
+            if (labelObj == null) {
+                // Delete signal: clear to the type-empty value (empty string).
+                labelTextView.setText("");
+            } else {
+                String label = extractStringValue(labelObj);
+                if (label != null) {
+                    labelTextView.setText(label);
+                }
             }
         }
         

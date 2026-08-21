@@ -11,7 +11,7 @@ import UIKit
 ///
 /// Supported properties:
 /// - children: Child component ID array (Array<String>)
-/// - CSS properties: padding, background-color, border-radius, box-shadow (applied via CSSPropertyApplier)
+/// - CSS properties: padding, background-color, border-radius, filter (drop-shadow) (applied via CSSPropertyApplier)
 class CardComponent: Component {
     
     // MARK: - Initialization
@@ -20,7 +20,7 @@ class CardComponent: Component {
         super.init(componentId: componentId, componentType: "Card", properties: properties)
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -29,9 +29,9 @@ class CardComponent: Component {
     
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        // padding, background-color, border-radius, box-shadow etc. are applied automatically
-        super.updateProperties(properties)
+        // padding, background-color, border-radius, filter etc. are applied automatically
+        super.updateProperties(diff)
     }
 }

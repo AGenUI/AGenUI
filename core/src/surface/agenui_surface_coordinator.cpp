@@ -207,7 +207,7 @@ void SurfaceCoordinator::handleAction(const ActionMessage &msg) {
     }
 
     BatchScope batchScope(it->second->batchGuard());
-    it->second->handleUserAction(msg.sourceComponentId);
+    it->second->handleUserAction(msg.sourceComponentId, msg.contextJson);
 }
 
 void SurfaceCoordinator::handleSyncUIToData(const SyncUIToDataMessage &msg) {

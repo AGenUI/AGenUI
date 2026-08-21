@@ -35,7 +35,7 @@ napi_value ReportComponentRenderSize(napi_env env, napi_callback_info info) {
         HM_LOGE("ReportComponentRenderSize: Engine not initialized");
         NAPI_RETURN_UNDEFINED(env);
     }
-    agenui::ISurfaceManager* sm = engine->findSurfaceManager(instanceId);
+    auto sm = engine->findSurfaceManagerShared(instanceId);
     if (!sm) {
         HM_LOGE("ReportComponentRenderSize: SurfaceManager not found for instanceId=%d, surfaceId=%s", instanceId, surfaceId.c_str());
         NAPI_RETURN_UNDEFINED(env);

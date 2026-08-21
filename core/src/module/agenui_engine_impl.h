@@ -6,6 +6,7 @@
 #include "surface/agenui_path_config.h"
 #include <map>
 #include <memory>
+#include <set>
 #include <atomic>
 #include <mutex>
 
@@ -46,12 +47,14 @@ public:
 
     ISurfaceManager* createSurfaceManager() override;
     void destroySurfaceManager(ISurfaceManager* surfaceManager) override;
-    ISurfaceManager* findSurfaceManager(int instanceId) override;
+    std::shared_ptr<ISurfaceManager> findSurfaceManagerShared(int instanceId) override;
 
     bool setPathConfig(const std::string &configJson) override;
 
     bool registerFunction(const std::string& config, IPlatformFunction* function) override;
     bool unregisterFunction(const std::string& name) override;
+    bool registerDeepParseProperty(const std::string& componentType,
+                                   const std::string& propertyName) override;
     bool loadThemeConfig(const std::string &themeConfig, std::string &result) override;
     bool loadDesignTokenConfig(const std::string &designTokenConfig, std::string &result) override;
     void setDayNightMode(const std::string &mode) override;
@@ -63,6 +66,8 @@ public:
     TemplateRegistry* getTemplateRegistry() override { return _templateRegistry; }
     IComponentPropertySpecManager* getComponentPropertySpecManager() override { return _componentPropertySpecManager; }
     PathConfig* getPathConfig() override { return _pathConfig; }
+    bool isDeepParseProperty(const std::string& componentType,
+                             const std::string& propertyName) override;
     
     void setRuntimeLogger(IRuntimeLogger* logger) override { agenui::setRuntimeLoggerInternal(logger); }
     IRuntimeLogger* getRuntimeLogger() override { return agenui::getRuntimeLoggerInternal(); }
@@ -82,6 +87,11 @@ private:
 
     // Shared MeasurementManager (engine-level singleton)
     std::unique_ptr<MeasurementManagerImpl> _measurementManager;
+
+    // Host-declared containers of dynamic values: component type -> property names.
+    // Written at init, read by the parser on the message thread.
+    std::map<std::string, std::set<std::string>> _deepParseProperties;
+    mutable std::mutex _deepParsePropertiesMutex;
 };
 
 } // namespace agenui

@@ -44,7 +44,7 @@ extern std::mutex g_messageListenersMutex;
 std::map<int, std::shared_ptr<agenui::A2UIMessageListener>>& getMessageListeners();
 
 agenui::A2UIMessageListener* findMessageListenerByInstanceId(int instanceId);
-agenui::ISurfaceManager* findSurfaceManagerByInstanceId(int instanceId);
+std::shared_ptr<agenui::ISurfaceManager> findSurfaceManagerByInstanceId(int instanceId);
 
 namespace a2ui {
 void registerEtsFunction(const std::string& name, napi_env env, napi_value value);
@@ -109,3 +109,7 @@ napi_value HybridFactory_getPropertiesJson(napi_env env, napi_callback_info info
 napi_value SetMessageThreadFactory(napi_env env, napi_callback_info info);
 napi_value SubmitUIAction(napi_env env, napi_callback_info info);
 napi_value SubmitUIDataModel(napi_env env, napi_callback_info info);
+
+// napi_color.cpp
+napi_value ParseColor(napi_env env, napi_callback_info info);
+napi_value ParseEdgeInsets(napi_env env, napi_callback_info info);

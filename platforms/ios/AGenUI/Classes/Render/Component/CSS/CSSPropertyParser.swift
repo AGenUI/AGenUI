@@ -24,12 +24,6 @@ public class CSSPropertyParser {
         return try? NSRegularExpression(pattern: pattern)
     }()
     
-    /// box-shadow regex: offsetX offsetY blur [spread] color
-    private static let boxShadowRegex: NSRegularExpression? = {
-        let pattern = "(-?[\\d.]+)(?:px)?\\s+(-?[\\d.]+)(?:px)?\\s+([\\d.]+)(?:px)?(?:\\s+(-?[\\d.]+)(?:px)?)?\\s+(.+)"
-        return try? NSRegularExpression(pattern: pattern)
-    }()
-    
     /// url() regex: supports double quotes, single quotes, and no quotes formats
     private static let urlFunctionRegex: NSRegularExpression? = {
         let pattern = #"url\(\s*['"]?([^'"\)]+)['"]?\s*\)"#
@@ -38,35 +32,24 @@ public class CSSPropertyParser {
     
     // MARK: - Main Parsing Methods
     
-    /// Parses property value
-    /// - Parameters:
-    ///   - value: Property value string
-    ///   - config: Property configuration
-    /// - Returns: Parsed property value
-    static func parse(value: String, config: CSSPropertyConfig) -> CSSPropertyValue {
+    /// Parses a property value, routing by value type. Replaces the former
+    /// `parse(value:config:)`: caller passes the value type (and optional
+    /// valid-values list for keywords) directly — no CSSPropertyConfig needed.
+    static func parse(value: String, valueType: CSSValueType, validValues: [String]? = nil) -> CSSPropertyValue {
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        switch config.valueType {
+
+        switch valueType {
         case .dimension:
             return parseDimension(trimmedValue)
-        case .number:
-            return parseNumber(trimmedValue)
         case .color:
             return parseColor(trimmedValue)
-
         case .opacity:
             return parseOpacity(trimmedValue)
         case .shadow:
-            // shadow type needs different parsing methods based on property name
-            if config.name == "filter" {
-                return parseFilter(trimmedValue)
-            } else if config.name == "box-shadow" {
-                return parseBoxShadow(trimmedValue)
-            }
-            return .invalid
+            // filter (drop-shadow) is the only shadow-carrying property
+            return parseFilter(trimmedValue)
         case .keyword:
-            // keyword type uses valid values list from configuration for validation
-            return parseKeyword(trimmedValue, validValues: config.validValues ?? [])
+            return parseKeyword(trimmedValue, validValues: validValues ?? [])
         case .url:
             return parseUrlFunction(trimmedValue)
         }
@@ -106,36 +89,13 @@ public class CSSPropertyParser {
                 return .number(CGFloat(num))
             }
         } else {
-            // Unitless number: "100" -> 100.0
-            // Note: unitless numbers are treated as px by default, which is equivalent to pt in iOS
-            // Example: "2" is equivalent to "2px", both parse to 2.0
+            // Unitless number: A2UI standard unit, same as px (× BS_POINT_SCALE).
+            // Aligned with Android standardUnitToPx which divides unitless values
+            // by 2 — the former branch returned the raw number as if it were pt,
+            // leaving iOS rendering unitless dimensions 2× too large.
             if let num = Double(value) {
-                return .number(CGFloat(num))
+                return .number(CGFloat(num) * BS_POINT_SCALE)
             }
-        }
-        return .invalid
-    }
-    
-    /// Parses pure numeric values
-    /// - Parameter value: Numeric string, e.g., "1", "0.5" or "3 / 2" (ratio expression)
-    /// - Returns: Parsed property value
-    private static func parseNumber(_ value: String) -> CSSPropertyValue {
-        // Check if it's a ratio expression (e.g., "3 / 2" or "16/9")
-        if value.contains("/") {
-            let components = value.split(separator: "/").map { $0.trimmingCharacters(in: .whitespaces) }
-            if components.count == 2,
-               let numerator = Double(components[0]),
-               let denominator = Double(components[1]),
-               denominator != 0 {
-                let ratio = CGFloat(numerator / denominator)
-                return .number(ratio)
-            }
-            return .invalid
-        }
-        
-        // Standard numeric parsing
-        if let num = Double(value) {
-            return .number(CGFloat(num))
         }
         return .invalid
     }
@@ -194,9 +154,9 @@ public class CSSPropertyParser {
     /// - Parameter value: Filter value string
     /// - Returns: Parsed property value
     ///
-    /// Output carries the raw CSS numbers — no px -> pt scaling is applied here,
-    /// since `CSSPropertyApplier` consumes them as points directly. Callers that
-    /// work in A2UI standard units must scale the result themselves.
+    /// Numbers arrive in A2UI units and are scaled to pt here (x * BS_POINT_SCALE),
+    /// same convention as `parseDimension` — the parsed shadow is pt-ready and
+    /// consumers apply it without further scaling.
     public static func parseFilter(_ value: String) -> CSSPropertyValue {
         // Use precompiled regex to match drop-shadow function
         guard let regex = dropShadowRegex,
@@ -225,69 +185,11 @@ public class CSSPropertyParser {
             return .invalid
         }
         
-        // Create shadow object (drop-shadow does not support spread)
+        // Create shadow object — offset/blur scaled from A2UI units to pt
         let shadow = CSSShadow(
-            offsetX: CGFloat(offsetX),
-            offsetY: CGFloat(offsetY),
-            blur: CGFloat(blur),
-            color: color
-        )
-        
-        return .shadow(shadow)
-    }
-    
-    /// Parses box-shadow property
-    /// Format: "offsetX offsetY blur [spread] color"
-    /// Example: "0 2 8 0 rgba(0,0,0,0.15)" or "0px 2px 4px rgba(0, 0, 0, 0.1)"
-    /// - Parameter value: box-shadow value string
-    /// - Returns: Parsed property value
-    static func parseBoxShadow(_ value: String) -> CSSPropertyValue {
-        // Use precompiled regex to match box-shadow format
-        guard let regex = boxShadowRegex,
-              let match = regex.firstMatch(in: value, range: NSRange(value.startIndex..., in: value)) else {
-            Logger.shared.debug("Invalid box-shadow format: \(value)")
-            return .invalid
-        }
-        
-        let nsString = value as NSString
-        
-        // Extract parameters
-        let offsetXStr = nsString.substring(with: match.range(at: 1))
-        let offsetYStr = nsString.substring(with: match.range(at: 2))
-        let blurStr = nsString.substring(with: match.range(at: 3))
-        
-        // spread parameter is optional
-        var spreadStr: String? = nil
-        if match.range(at: 4).location != NSNotFound {
-            spreadStr = nsString.substring(with: match.range(at: 4))
-        }
-        
-        let colorStr = nsString.substring(with: match.range(at: 5)).trimmingCharacters(in: .whitespaces)
-        
-        guard let offsetX = Double(offsetXStr),
-              let offsetY = Double(offsetYStr),
-              let blur = Double(blurStr) else {
-            return .invalid
-        }
-        
-        // Parse spread if present, otherwise default to 0
-        var spread: Double = 0
-        if let spreadStr = spreadStr, let spreadValue = Double(spreadStr) {
-            spread = spreadValue
-        }
-        
-        // Parse color
-        let colorValue = parseColor(colorStr)
-        guard case .color(let color) = colorValue else {
-            return .invalid
-        }
-        
-        // Create shadow object (box-shadow supports spread, including 0 and negative values)
-        let shadow = CSSShadow(
-            offsetX: CGFloat(offsetX),
-            offsetY: CGFloat(offsetY),
-            blur: CGFloat(blur),
-            spread: CGFloat(spread),
+            offsetX: CGFloat(offsetX) * BS_POINT_SCALE,
+            offsetY: CGFloat(offsetY) * BS_POINT_SCALE,
+            blur: CGFloat(blur) * BS_POINT_SCALE,
             color: color
         )
         
@@ -400,7 +302,7 @@ public class CSSPropertyParser {
     public static func extractStringValue(_ value: Any) -> String {
         return String(describing: value)
     }
-    
+
     /// Extracts numeric value
     /// - Parameter value: Value of any type
     /// - Returns: Double value, or nil if conversion fails
@@ -413,7 +315,7 @@ public class CSSPropertyParser {
         }
         return nil
     }
-    
+
     /// Extracts boolean value
     /// - Parameter value: Value of any type
     /// - Returns: Bool value, defaults to false

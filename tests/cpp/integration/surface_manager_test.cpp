@@ -59,7 +59,7 @@ TEST_F(SurfaceManagerTest, SM003_MultipleCreate_DistinctInstanceIds) {
 TEST_F(SurfaceManagerTest, SM004_FindSurfaceManager_ById_Returns) {
     auto* sm = engine_->createSurfaceManager();
     ASSERT_NE(sm, nullptr);
-    auto* found = engine_->findSurfaceManager(sm->getInstanceId());
+    auto* found = engine_->findSurfaceManagerShared(sm->getInstanceId()).get();
     EXPECT_EQ(found, sm);
     engine_->destroySurfaceManager(sm);
     ::agenui::testing::WaitForWorkerIdle();
@@ -67,7 +67,7 @@ TEST_F(SurfaceManagerTest, SM004_FindSurfaceManager_ById_Returns) {
 
 // SM005
 TEST_F(SurfaceManagerTest, SM005_FindSurfaceManager_UnknownId_ReturnsNull) {
-    EXPECT_EQ(engine_->findSurfaceManager(999999), nullptr);
+    EXPECT_EQ(engine_->findSurfaceManagerShared(999999), nullptr);
 }
 
 // SM006
@@ -77,7 +77,7 @@ TEST_F(SurfaceManagerTest, SM006_DestroySurfaceManager_ThenFindReturnsNull) {
     int id = sm->getInstanceId();
     engine_->destroySurfaceManager(sm);
     ::agenui::testing::WaitForWorkerIdle();
-    EXPECT_EQ(engine_->findSurfaceManager(id), nullptr);
+    EXPECT_EQ(engine_->findSurfaceManagerShared(id), nullptr);
 }
 
 // SM007

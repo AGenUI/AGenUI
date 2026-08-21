@@ -62,12 +62,12 @@ static void jni_destroySurfaceManager(JNIEnv *env, jclass jcls, jint instanceId)
         AGENUI_LOG("[JNI] destroySurfaceManager: engine is null");
         return;
     }
-    ISurfaceManager* sm = engine->findSurfaceManager(instanceId);
+    auto sm = engine->findSurfaceManagerShared(instanceId);
     if (!sm) {
         AGENUI_LOG("[JNI] destroySurfaceManager: SurfaceManager not found for instanceId=%d", instanceId);
         return;
     }
-    engine->destroySurfaceManager(sm);
+    engine->destroySurfaceManager(sm.get());
     AGENUI_LOG("[JNI] destroySurfaceManager: destroyed instanceId=%d", instanceId);
 }
 
@@ -85,6 +85,26 @@ static jboolean jni_setPathConfig(JNIEnv* env, jclass clazz, jstring jConfigJson
     std::string configJson = configObj.c_str();
     AGENUI_LOG("[JNI] setPathConfig");
     bool success = engine->setPathConfig(configJson);
+    return success ? JNI_TRUE : JNI_FALSE;
+}
+
+static jboolean jni_registerDeepParseProperty(JNIEnv* env, jclass clazz, jstring jComponentType,
+                                              jstring jPropertyName) {
+    if (jComponentType == nullptr || jPropertyName == nullptr) {
+        AGENUI_LOG("[JNI] registerDeepParseProperty: componentType or propertyName is null");
+        return JNI_FALSE;
+    }
+    IAGenUIEngine *engine = getAGenUIEngine();
+    if (!engine) {
+        AGENUI_LOG("[JNI] registerDeepParseProperty: engine is null");
+        return JNI_FALSE;
+    }
+    ScopedUtfChars componentTypeObj(env, jComponentType);
+    ScopedUtfChars propertyNameObj(env, jPropertyName);
+    std::string componentType = componentTypeObj.c_str();
+    std::string propertyName = propertyNameObj.c_str();
+    AGENUI_LOG("[JNI] registerDeepParseProperty");
+    bool success = engine->registerDeepParseProperty(componentType, propertyName);
     return success ? JNI_TRUE : JNI_FALSE;
 }
 
@@ -267,6 +287,7 @@ jint register_jni_AGenUIEngine(JNIEnv* env) {
         // Function registration
         {"nativeRegisterFunction", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V", (void*)jni_registerFunction},
         {"nativeUnregisterFunction", "(Ljava/lang/String;)V", (void*)jni_unregisterFunction},
+        {"nativeRegisterDeepParseProperty", "(Ljava/lang/String;Ljava/lang/String;)Z", (void*)jni_registerDeepParseProperty},
         // Version
         {"nativeGetVersion", "()Ljava/lang/String;", (void*)jni_getVersion},
     };

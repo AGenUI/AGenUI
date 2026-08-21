@@ -68,20 +68,25 @@ public class IconComponent extends A2UIComponent {
         // Update icon name
         if (changedProps.containsKey("name")) {
             Object nameObj = changedProps.get("name");
-            String iconName = null;
+            if (nameObj == null) {
+                // null (delete signal) → clear icon (align iOS name→nil)
+                imageView.setImageDrawable(null);
+            } else {
+                String iconName = null;
 
-            // name can be a string or an object containing a path
-            if (nameObj instanceof String) {
-                iconName = (String) nameObj;
-            } else if (nameObj instanceof Map) {
-                Map<String, Object> nameMap = (Map<String, Object>) nameObj;
-                if (nameMap.containsKey("path")) {
-                    iconName = String.valueOf(nameMap.get("path"));
+                // name can be a string or an object containing a path
+                if (nameObj instanceof String) {
+                    iconName = (String) nameObj;
+                } else if (nameObj instanceof Map) {
+                    Map<String, Object> nameMap = (Map<String, Object>) nameObj;
+                    if (nameMap.containsKey("path")) {
+                        iconName = String.valueOf(nameMap.get("path"));
+                    }
                 }
-            }
 
-            if (iconName != null) {
-                loadIcon(iconName);
+                if (iconName != null) {
+                    loadIcon(iconName);
+                }
             }
         }
 
@@ -112,7 +117,10 @@ public class IconComponent extends A2UIComponent {
         // Update icon color
         if (changedProps.containsKey("color")) {
             Object colorObj = changedProps.get("color");
-            if (colorObj instanceof String) {
+            if (colorObj == null) {
+                // null (delete signal) → clear color filter (align iOS color→default)
+                imageView.clearColorFilter();
+            } else if (colorObj instanceof String) {
                 try {
                     int color = Color.parseColor((String) colorObj);
                     imageView.setColorFilter(color);

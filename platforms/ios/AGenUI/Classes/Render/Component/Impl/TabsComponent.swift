@@ -316,7 +316,7 @@ open class TabsComponent: Component {
             self?.notifyHeightForSelectedTab()
         }
 
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
 
     // MARK: - Tab Selection Hook
@@ -355,13 +355,13 @@ open class TabsComponent: Component {
 
     // MARK: - Component Override
 
-    open override func updateProperties(_ properties: [String: Any]) {
+    open override func updateProperties(_ diff: [String: DiffValue]) {
         // Note: children sync is completed in init
         // Only call super here to handle CSS properties etc.
-        super.updateProperties(properties)
+        super.updateProperties(diff)
 
         // Parse tab text colors from styles
-        if let styles = properties["styles"] as? [String: Any] {
+        if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {
             if let selectedTextColorStr = styles["tab-font-color-selected"] as? String,
                let selectedColor = ComponentStyleConfigManager.parseColorToUIColor(selectedTextColorStr) {
                 innerTabsView.selectedTabColor = selectedColor
@@ -374,7 +374,7 @@ open class TabsComponent: Component {
         }
 
         // Update tabs configuration (during dynamic updates)
-        if let tabs = properties["tabs"] as? [[String: Any]] {
+        if case .value(let tabsValue) = diff["tabs"], let tabs = tabsValue as? [[String: Any]] {
             // Convert to TabItem array
             let items = tabs.map { tab -> TabItem in
                 let title = tab["title"] as? String ?? "Tab"
@@ -384,6 +384,8 @@ open class TabsComponent: Component {
 
             // Set Tab data (InnerTabsView auto-handles changes)
             innerTabsView.setTabs(items)
+        } else if case .deleted = diff["tabs"] {
+            innerTabsView.setTabs([])
         }
     }
 

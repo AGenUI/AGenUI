@@ -49,7 +49,7 @@ class ChartComponent: Component {
         super.init(componentId: componentId, componentType: "Chart", properties: properties)
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -65,12 +65,13 @@ class ChartComponent: Component {
         chartView?.frame = bounds
     }
     
-    override func updateProperties(_ properties: [String: Any]) {
+    override func updateProperties(_ diff: [String: DiffValue]) {
         // Call parent method to apply CSS properties to self
-        super.updateProperties(properties)
+        super.updateProperties(diff)
         
         // Extract color configuration
-        if let styles = properties["styles"] as? [String: Any],
+        if case .value(let stylesValue) = diff["styles"],
+           let styles = stylesValue as? [String: Any],
            let chartConfigStyles = styles["chartConfig"] as? [String: Any],
            let colorsArray = chartConfigStyles["colors"] as? [String] {
             self.colors = colorsArray.compactMap { UIColor(hexString: $0) }

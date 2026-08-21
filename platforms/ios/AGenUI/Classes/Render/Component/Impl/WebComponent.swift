@@ -71,7 +71,7 @@ class WebComponent: Component {
         setupObservers()
         
         // Apply initial properties
-        updateProperties(properties)
+        updateProperties(DiffValue.from(properties))
     }
     
     required init?(coder: NSCoder) {
@@ -94,32 +94,44 @@ class WebComponent: Component {
 
     // MARK: - Component Override
     
-    override func updateProperties(_ properties: [String: Any]) {
-        super.updateProperties(properties)
+    override func updateProperties(_ diff: [String: DiffValue]) {
+        super.updateProperties(diff)
         
         // Update JavaScript enabled state
-        if let enableJS = properties["enableJavaScript"] as? Bool {
+        if case .value(let v) = diff["enableJavaScript"], let enableJS = v as? Bool {
             enableJavaScript = enableJS
             webView?.configuration.preferences.javaScriptEnabled = enableJS
+        } else if case .deleted = diff["enableJavaScript"] {
+            enableJavaScript = false
+            webView?.configuration.preferences.javaScriptEnabled = false
         }
         
         // Update zoom settings
-        if let enableZoomValue = properties["enableZoom"] as? Bool {
+        if case .value(let v) = diff["enableZoom"], let enableZoomValue = v as? Bool {
             enableZoom = enableZoomValue
+            updateZoomSettings()
+        } else if case .deleted = diff["enableZoom"] {
+            enableZoom = false
             updateZoomSettings()
         }
         
         // Handle source field (can be URL or HTML text)
-        if let sourceValue = properties["source"] {
+        if case .value(let sourceValue) = diff["source"] {
             handleSource(sourceValue as? String ?? "")
+        } else if case .deleted = diff["source"] {
+            loadHTML("")
         }
         // Load URL (backward compatible)
-        else if let urlValue = properties["url"] {
+        else if case .value(let urlValue) = diff["url"] {
             loadURL(urlValue as? String ?? "")
+        } else if case .deleted = diff["url"] {
+            loadURL("")
         }
         // Load HTML content (backward compatible)
-        else if let htmlValue = properties["html"] {
+        else if case .value(let htmlValue) = diff["html"] {
             loadHTML(htmlValue as? String ?? "")
+        } else if case .deleted = diff["html"] {
+            loadHTML("")
         }
     }
     

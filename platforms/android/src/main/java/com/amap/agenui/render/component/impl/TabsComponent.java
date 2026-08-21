@@ -573,7 +573,16 @@ public class TabsComponent extends A2UILayoutComponent {
         }
 
         if (changedProps.containsKey("tabs")) {
-            parseTabs();
+            if (changedProps.get("tabs") == null) {
+                // null (delete signal) → clear all tabs (align iOS tabs→[])
+                if (tabLayout != null) {
+                    while (tabLayout.getTabCount() > 0) {
+                        tabLayout.removeTabAt(0);
+                    }
+                }
+            } else {
+                parseTabs();
+            }
         }
 
         Map<String, Object> styles = extractStyles(changedProps);

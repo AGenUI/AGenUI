@@ -407,14 +407,16 @@ void Surface::syncUIToData(const std::string& componentId, const std::string& ch
     }
 }
 
-void Surface::handleUserAction(const std::string& sourceComponentId) {
+void Surface::handleUserAction(const std::string& sourceComponentId,
+                               const std::string& contextJson) {
     AGENUI_PERFORMANCE_LOG("surface_handleUserAction_begin", "%s", sourceComponentId.c_str());
-    
+
     if (_componentManager != nullptr && _surfaceManager) {
         EventDispatcher* dispatcher = _surfaceManager->getEventDispatcher();
-        _componentManager->executeComponentAction(sourceComponentId, _surfaceId, dispatcher);
+        _componentManager->executeComponentAction(sourceComponentId, _surfaceId, dispatcher,
+                                                  contextJson);
     }
-    
+
     AGENUI_PERFORMANCE_LOG("surface_handleUserAction_end", "%s", sourceComponentId.c_str());
 }
 

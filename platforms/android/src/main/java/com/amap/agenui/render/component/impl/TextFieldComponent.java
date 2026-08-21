@@ -154,7 +154,7 @@ public class TextFieldComponent extends A2UIComponent {
         // Update label (displayed as hint)
         if (props.containsKey("label")) {
             Object labelValue = props.get("label");
-            String label = extractTextValue(labelValue);
+            String label = labelValue == null ? "" : extractTextValue(labelValue);
             editText.setHint(label);
         }
 
@@ -164,7 +164,7 @@ public class TextFieldComponent extends A2UIComponent {
 
             // Update text content
             isUpdatingFromNative = true;
-            String text = extractTextValue(textValue);
+            String text = textValue == null ? "" : extractTextValue(textValue);
             if (!editText.getText().toString().equals(text)) {
                 editText.setText(text);
                 editText.setSelection(text.length());

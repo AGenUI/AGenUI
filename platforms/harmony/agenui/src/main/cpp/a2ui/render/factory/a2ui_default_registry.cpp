@@ -19,7 +19,10 @@ ComponentRegistry& getDefaultFactoryRegistry() {
 
         // Base components
         r->registerFactory(ComponentType::kText,         makeCreator(ComponentType::kText));
-        r->registerFactory("AmapText",                   makeCreator(ComponentType::kText));
+        // NOTE: "AmapText" is intentionally NOT aliased to the native Text component.
+        // The amap host registers an ArkTS hybrid component under this type name to
+        // provide SpanText rich-text rendering (text/spans dual mode). With no native
+        // factory registered, ComponentRegistry falls back to the hybrid registry.
         r->registerFactory(ComponentType::kButton,       makeCreator(ComponentType::kButton));
         r->registerFactory(ComponentType::kImage,        makeCreator(ComponentType::kImage));
         r->registerFactory(ComponentType::kIcon,         makeCreator(ComponentType::kIcon));

@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <string>
 #include "agenui_measurement.h"
 
@@ -39,9 +40,12 @@ public:
     /**
      * @brief Finds a SurfaceManager by instanceId
      * @param instanceId The unique ID assigned at creation
-     * @return SurfaceManager interface pointer, nullptr if not found
+     * @return Shared ownership of the SurfaceManager, nullptr if not found.
+     *         The lookup is serialized with destroySurfaceManager() under the
+     *         same lock, so the object stays alive until the caller releases
+     *         the shared_ptr. Safe to use from any thread.
      */
-    virtual ISurfaceManager* findSurfaceManager(int instanceId) = 0;
+    virtual std::shared_ptr<ISurfaceManager> findSurfaceManagerShared(int instanceId) = 0;
 
     /**
      * @brief Sets the path configuration
@@ -68,6 +72,23 @@ public:
      * @return true if unregistration succeeds, false if not found or engine not ready
      */
     virtual bool unregisterFunction(const std::string& name) = 0;
+
+    /**
+     * @brief Declares a component property as a container of dynamic values
+     * @param componentType Component type name, i.e. the JSON "component" field
+     *        (e.g. "AmapText") — applies to every instance of that type
+     * @param propertyName Property name (e.g. "spans")
+     * @return true on success; false when either name is empty or the engine is not ready
+     * @note By default a property value is parsed but not descended into, so a nested
+     *       object or array is stored verbatim and any {"path":...} binding or
+     *       {"call":...} function call inside it never resolves. Registering the
+     *       property makes the parser walk its entire subtree instead, resolving
+     *       nested dynamic values at any depth. Intended for host-registered custom
+     *       components. Must be called before the first render; a declaration made
+     *       later has no effect on components already parsed.
+     */
+    virtual bool registerDeepParseProperty(const std::string& componentType,
+                                           const std::string& propertyName) = 0;
 
     /**
      * @brief Loads the theme configuration file

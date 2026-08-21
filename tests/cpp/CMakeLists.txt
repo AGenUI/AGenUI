@@ -374,6 +374,28 @@ if(_CONCURRENCY_SOURCES OR _SANITIZER_THREAD)
     agenui_apply_sanitizer(agenui_concurrency_tests)
 endif()
 
+# ---- 8.25 Object-lifetime race reproducers (standalone, ASan) ----
+# Each program forces one lifetime race deterministically and prints PASS/FAIL.
+# Both races are fixed (the lookups now return shared_ptr), so these double as
+# regression checks and must print PASS:
+#   repro_sm_uaf                     : ISurfaceManager* used after destroySurfaceManager
+#   repro_thread_post_uaf            : IThread* used after destroyThread
+#   repro_dangling_post_proof        : shows the first race reaching the worker thread
+#   repro_plain_stress               : the same race under load, without a sanitizer
+#   repro_datamodel_path_type_mismatch : updateDataModel/appendDataModel path type crash (RISK46/47)
+#   repro_stress_datamodel            : DataModel pathological input stress test
+#
+# Standalone executables, not registered with ctest — run them manually.
+foreach(_repro repro_sm_uaf repro_thread_post_uaf repro_plain_stress repro_dangling_post_proof repro_datamodel_path_type_mismatch repro_stress_datamodel)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/repro/${_repro}.cpp")
+        add_executable(${_repro} "${CMAKE_CURRENT_SOURCE_DIR}/repro/${_repro}.cpp")
+        target_include_directories(${_repro} PRIVATE ${AGENUI_TESTS_INCLUDE_DIRS})
+        target_link_libraries(${_repro} PRIVATE agenui_core_for_test)
+        target_compile_options(${_repro} PRIVATE -Wno-error)
+        agenui_apply_sanitizer(${_repro})
+    endif()
+endforeach()
+
 # ---- 8.3 Stream Tests (standalone target) ----
 # REMOVED: Internal stream unit tests (ProtocolStreamExtractor,
 # MarkdownStreamPlugin, TextStreamPlugin, CompositeStreamPlugin)
