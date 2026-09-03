@@ -88,6 +88,37 @@ def _extract_markdown_sections(text: str, headings: tuple[str, ...], source: str
     return "\n\n".join(sections)
 
 
+# Sections of SKILL.md written for an agentic runtime (file reads/writes,
+# script execution). Studio inlines every referenced doc into the prompt and
+# the BYOK model has no tools, so leaving these in provokes hallucinated
+# <function=read> calls with fabricated absolute paths instead of JSON output.
+_AGENT_ONLY_HEADINGS = frozenset(
+    {"Read Only What You Need", "Output Persistence", "Workflow", "Resources"}
+)
+
+
+def _strip_agent_only_sections(text: str) -> str:
+    """Drop SKILL.md sections that instruct tool use the studio model lacks."""
+    lines = text.splitlines()
+    parsed: list[tuple[int, int, str]] = []
+    for index, line in enumerate(lines):
+        match = re.match(r"^(#{1,6})\s+(.+?)\s*$", line)
+        if match:
+            parsed.append((index, len(match.group(1)), match.group(2)))
+
+    drop: set[int] = set()
+    for start, level, title in parsed:
+        if title not in _AGENT_ONLY_HEADINGS:
+            continue
+        end = len(lines)
+        for next_start, next_level, _ in parsed:
+            if next_start > start and next_level <= level:
+                end = next_start
+                break
+        drop.update(range(start, end))
+    return "\n".join(line for i, line in enumerate(lines) if i not in drop).strip()
+
+
 def _read_skill_fragment(
     skill_dir: Path,
     relative_path: str,
@@ -324,12 +355,15 @@ def build_system_prompt(
         parts.append(SKILL_BACKED_OUTPUT_INSTRUCTIONS)
         return "\n\n---\n\n".join(parts)
 
-    # 1. Load SKILL.md (strip YAML frontmatter)
+    # 1. Load SKILL.md (strip YAML frontmatter and agentic file/script
+    #    instructions — the studio model has no tools and all referenced
+    #    docs are inlined below anyway)
     raw = skill_md.read_text(encoding="utf-8")
     if raw.startswith("---"):
         end = raw.find("---", 3)
         if end != -1:
             raw = raw[end + 3:].strip()
+    raw = _strip_agent_only_sections(raw)
     parts.append(f"# A2UI Generation Skill\n\n{raw}")
 
     # 2. Load reference docs based on mode
