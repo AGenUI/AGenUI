@@ -22,20 +22,19 @@
 
 ---
 
-## v1.4.0 新版本亮点
+## v1.5.0 新版本亮点
 
-> 发布于 2026-08-21
+> 发布于 2026-09-04
 
-- **阴影与圆角渲染重构**：圆角默认开启裁剪；阴影图层独立于组件内容渲染，不再被组件裁剪。组件 `addChild` 逻辑不再依赖 index 计算。
-- **样式默认值拉齐**：统一 Android、iOS、鸿蒙三端的样式默认值（含字体样式与默认文字大小）；Android 文字测量与样式解析与其他端拉齐。重构 styles 解析使其更内聚，为默认值拉齐做准备。
-- **增量更新 `null` 行为统一**：Android 与鸿蒙端组件数据不再保留 `null` 值，所有内置组件的一级属性 `null` 行为拉齐。iOS 端属性值为 `NSNull` 时不再被丢弃，而是作为删除属性处理；渲染层新增 `removeProperties` 接口，styles 内容不再平铺到一级属性。
-- **自定义组件数据绑定深度解析**：自定义组件支持嵌套属性中数据绑定的深度解析。
-- **(iOS) 部署版本**：最低部署版本从 15.0 恢复为 13.0。
-- (Core) `findSurfaceManager` 返回值改为 `shared_ptr`，修复低概率稳定性问题（鸿蒙端用法同步更新）。
-- (iOS) 修复 `display` 样式错误覆盖 `visibility` 样式的问题。修复阴影联动渲染问题。
-- (Android) 修复字符串值 `font-weight` 回退至二值 Typeface 路径的问题。修复 AudioPlayer 与 ChoicePicker 组件问题。移除组件上不必要的点击和焦点设置。
-- (鸿蒙) 修复特殊机型右边框消失问题。复 `Component.triggerAction` 的 ArkTS 编译错误。
-- (全平台) 修复三端默认文字大小不一致问题。
+- **(iOS) 运行时配置接口**：新增 `AGenUI.setRuntimeConfig(_:)`，接收宿主下发的 JSON 开关串，便于云端控制行为。需在 SDK 初始化阶段、任何 Surface 渲染之前调用一次。
+- **(iOS) 物理像素对齐**：细线边框提升为整数物理像素宽度，使四条边在各种屏幕倍率下粗细一致；组件 frame 对齐到物理像素网格，使相邻兄弟节点之间不留缝隙。由 `borderPixelAlignment` 开关控制（默认开启）。
+- **(鸿蒙) `line-height` 测量重构**：文字测量改为携带解析后的绝对行盒高度，与渲染侧完全一致。显式设置的 `line-height` 即使小于字体自然行高也一样定义行盒，`white-space` 不再影响行高解析。
+- **`font-weight` 能力对齐**：三端统一支持 `normal` / `medium` / `bold` 关键字与 100～900 数值字重（可写成 JSON 数字或整数字符串），catalog 中同步补充了平台差异说明。
+- **(iOS) 空白检测新增组件数量**：`onBlankCheckResult` 新增回调检测时刻的组件树规模。**不兼容变更**：方法签名变为 `onBlankCheckResult(_ surface:isBlank:componentCount:)`。
+- (Android) 修复特定屏幕密度下不可断行的数字与中文字符串整体消失的问题，使测量度量与渲染路径对齐。
+- (iOS) 修复组件初始化阶段写入的属性（最典型的是常量 `trackInfo`）无法送达监听方的问题。
+- (鸿蒙) 修复 DateTimeInput 测量时携带残留行高覆盖值的问题。
+
 ---
 
 ## 什么是 AGenUI？

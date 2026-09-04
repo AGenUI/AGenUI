@@ -14,8 +14,7 @@ void TextMeasurementUtils::buildSimpleParam(const std::string& text,
     outParam.fontWeight       = fontWeight;
     outParam.fontStyle        = NODE_PROPERTY_FONT_NORMAL;
     outParam.textAlign        = TEXT_ALIGN_LEFT_TOP;
-    outParam.isMultLineHeight = true;
-    outParam.lineHeight       = 1.0f;
+    outParam.lineHeightPx     = 0.0f;
     outParam.maxLines         = INT_MAX;
     outParam.id               = 0;
     outParam.textOverflow     = NODE_PROPERTY_TEXT_OVERFLOW_UNDEFINED;

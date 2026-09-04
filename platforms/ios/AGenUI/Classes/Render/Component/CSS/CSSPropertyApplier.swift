@@ -289,7 +289,25 @@ class CSSPropertyApplier {
     ///   - view: Target view
     @MainActor private static func applyBorderWidth(_ value: CSSPropertyValue, to view: UIView) {
         guard case .number(let width) = value else { return }
-        view.layer.borderWidth = width
+        // A 1px DSL border maps to 0.5pt: exactly 1 physical pixel on 2x
+        // (uniform), but 1.5 on 3x which CoreAnimation rasterizes
+        // asymmetrically (min edges expand to 2 rows, max edges shrink to 1,
+        // measured 2/1/2/1.5 physical px per side, varying per chip in the
+        // same frame). Promote any hairline-level border (<= 1 DSL px, i.e.
+        // <= BS_POINT_SCALE pt) to an integer physical pixel width so all
+        // sides render identically on every scale: 2x keeps 0.5pt (=1px,
+        // no change), 3x uses 2/3pt (=2px, the smallest integer multiple
+        // that preserves the 2x-proportional visual weight).
+        // Cloud-controlled circuit breaker (default on): explicitly setting
+        // false falls back to the legacy direct assignment behavior.
+        let pixelAlignment = RuntimeConfig.shared.bool(
+            forKey: RuntimeConfig.borderPixelAlignmentKey, default: true)
+        if pixelAlignment, width > 0, width <= Component.BS_POINT_SCALE {
+            let scale = UIScreen.main.scale
+            view.layer.borderWidth = (scale >= 3) ? (2.0 / 3.0) : 0.5
+        } else {
+            view.layer.borderWidth = width
+        }
     }
     
 

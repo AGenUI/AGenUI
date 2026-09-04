@@ -122,6 +122,27 @@ import Foundation
         }
     }
 
+    // MARK: - Runtime Configuration
+
+    /// Apply runtime configuration switches from the host (cloud control)
+    ///
+    /// Call once at SDK initialization, before surfaces render. The value is
+    /// fixed for the session; runtime changes are not supported.
+    ///
+    /// - Parameter configJson: Runtime config JSON string, e.g. {"borderPixelAlignment": true}
+    /// - Returns: AGenUIError with result and message fields
+    @objc public static func setRuntimeConfig(_ configJson: String) -> AGenUIError {
+        Logger.shared.debug("setRuntimeConfig - configJson length: \(configJson.count)")
+        let result = RuntimeConfig.shared.setRuntimeConfig(configJson)
+        if result {
+            Logger.shared.info("Runtime config applied successfully")
+            return AGenUIError(result: true, message: "Success")
+        } else {
+            Logger.shared.error("Failed to apply runtime config")
+            return AGenUIError(result: false, message: "Failed to parse runtime config JSON")
+        }
+    }
+
     // MARK: - Component Registration
 
     /// Register a custom component factory

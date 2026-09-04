@@ -294,9 +294,9 @@ public enum MeasureMode: Int {
         // shadowColor carries the alpha.
         view.layer.shadowOpacity = 1.0
         // matecode: deliberately NOT rasterized — rasterizing a masked shadow
-        // layer clips the halo asymmetrically (CA offscreen buffer heuristic),
-        // and AJX ships without rasterize. Ceiling: per-frame shadow layers
-        // draw slightly slower; upgrade path only if profiling demands it.
+        // layer clips the halo asymmetrically (CA offscreen buffer heuristic).
+        // Ceiling: per-frame shadow layers draw slightly slower; upgrade path
+        // only if profiling demands it.
         // Geometry: the shadow view has no content of its own, so the shadow is
         // shaped ONLY by shadowPath.
         view.frame = frame
@@ -514,7 +514,32 @@ public enum MeasureMode: Int {
         newFrame.origin.y = y
         newFrame.size.width  = width
         newFrame.size.height = height
+        // Cloud-controlled circuit breaker (default on): shares
+        // borderPixelAlignment with the border width promotion in
+        // CSSPropertyApplier — both must toggle together; disabling either
+        // one alone falls back to the measured non-uniform state.
+        let pixelAlignment = RuntimeConfig.shared.bool(
+            forKey: RuntimeConfig.borderPixelAlignmentKey, default: true)
+        if pixelAlignment, let scale = window?.screen.scale {
+            newFrame = Component.pixelAligned(newFrame, scale: scale)
+        }
         self.frame = newFrame
+    }
+
+    /// Snap a frame to the physical pixel grid by aligning its four absolute
+    /// edges (min-x/min-y/max-x/max-y) and recomputing size from them.
+    /// Aligning edges — not origin/size separately — keeps adjacent components
+    /// gap-free: siblings sharing a fractional boundary snap to the same pixel
+    /// row/column. Uses rounded() so negative coordinates stay symmetric
+    /// (-0.6 → -1), unlike an (NSInteger) cast which truncates toward zero.
+    static func pixelAligned(_ frame: CGRect, scale: CGFloat) -> CGRect {
+        let left   = (frame.minX * scale).rounded() / scale
+        let top    = (frame.minY * scale).rounded() / scale
+        let right  = (frame.maxX * scale).rounded() / scale
+        let bottom = (frame.maxY * scale).rounded() / scale
+        return CGRect(x: left, y: top,
+                      width: max(0, right - left),
+                      height: max(0, bottom - top))
     }
     
     /// Convert a numeric value from styles dictionary to CGFloat

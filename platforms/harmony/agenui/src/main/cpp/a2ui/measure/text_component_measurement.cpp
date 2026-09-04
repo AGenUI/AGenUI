@@ -94,8 +94,7 @@ bool TextComponentMeasurement::buildParam(const nlohmann::json& j,
     outParam.fontWeight       = NODE_PROPERTY_FONT_NORMAL;
     outParam.fontStyle        = NODE_PROPERTY_FONT_NORMAL;
     outParam.textAlign        = TEXT_ALIGN_LEFT_TOP;
-    outParam.isMultLineHeight = true;
-    outParam.lineHeight       = 1.0f;
+    outParam.lineHeightPx     = 0.0f;
     outParam.maxLines         = INT_MAX;
     outParam.id               = 0;
     outParam.textOverflow     = NODE_PROPERTY_TEXT_OVERFLOW_UNDEFINED;
@@ -177,18 +176,12 @@ bool TextComponentMeasurement::buildParam(const nlohmann::json& j,
         outParam.letter_spacing = static_cast<float>(std::atof(lsVal.get<std::string>().c_str()));
     }
     
-    // line-height:
-    // `outParam.lineHeight` is stored as a unit-less multiplier relative to
-    // `outParam.fontSize` (see `TextMeasureUtils::doMeasure`). We resolve the
-    // raw style value to an absolute a2ui-px height via `resolveLineHeightPx`
-    // (shared rule with iOS/Android and the render-side `text_component.cpp`)
-    // and then divide by fontSize to store the multiplier.
+    // line-height: store the resolved absolute a2ui-px line-box height; 0 =
+    // absent. Identical rule and value to the render side
+    // (text_component.cpp applyTextLayoutStyles).
     const json& lhVal = getValue("line-height");
-    const float resolvedLineHeightPx =
+    outParam.lineHeightPx =
         resolveLineHeightPx(lhVal, static_cast<float>(outParam.fontSize));
-    if (resolvedLineHeightPx > 0.0f && outParam.fontSize > 0) {
-        outParam.lineHeight = resolvedLineHeightPx / static_cast<float>(outParam.fontSize);
-    }
     
     // line-clamp -> maxLines
     const json& lcVal = getValue("line-clamp");
@@ -211,13 +204,6 @@ bool TextComponentMeasurement::buildParam(const nlohmann::json& j,
         else                         outParam.textOverflow = std::atoi(tov.c_str());
     }
     
-    // white-space -> isMultLineHeight
-    const json& wsVal = getValue("white-space");
-    if (wsVal.is_string()) {
-        const std::string ws = wsVal.get<std::string>();
-        outParam.isMultLineHeight = (ws != "nowrap" && ws != "pre");
-    }
-
     return true;
 }
 

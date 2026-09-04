@@ -19,12 +19,6 @@ extern float gFontWeightScale;
 
 namespace a2ui {
 
-inline bool floatEqual(float a, float b) {
-    if (std::isnan(a) || std::isnan(b)) return false;
-    return std::abs(a - b) < std::numeric_limits<float>::epsilon();
-}
-
-
 constexpr std::string_view kstr_line_through = "line-through";
 constexpr std::string_view kstr_underline = "underline";
 
@@ -41,8 +35,9 @@ struct TextMeasureParam {
     int         fontWeight     = 0;
     int         fontStyle      = 0;
     int         textAlign      = 0;
-    bool        isMultLineHeight = true;
-    float       lineHeight     = 1.0f;
+    // Resolved absolute line-box height in a2ui-px; 0 = style absent (natural
+    // metrics). Same rule and value as the render side (text_component.cpp).
+    float       lineHeightPx   = 0.0f;
     int         maxLines       = INT_MAX;
     bool        isRichtext     = false;
     int         textOverflow   = 0;
@@ -78,8 +73,7 @@ namespace css{
 class TextMeasureUtils {
 private:
     struct MeasureTextStyle {
-        bool isMultLineHeight;
-        float lineHeight;
+        float lineHeightPx = 0.0f;
         double fontSize;
         double letterSpacing;
 
@@ -340,7 +334,17 @@ public:
             // Rich text height should use the maximum span height.
             measuredHeight = std::max(maxRichTextHeight, measuredHeight);
         }
-        
+
+        // Align with the render side (text_component.cpp): an explicit
+        // line-height defines the line box (NODE_LINE_HEIGHT) even when smaller
+        // than the font's natural height — glyphs overflow, the box doesn't grow.
+        // OH_Drawing clamps SetTextStyleFontHeight at the natural metrics, so the
+        // typography height would over-report; recompute from the line box.
+        if (param.lineHeightPx > 0.0f && !param.isRichtext && lines > 0) {
+            measuredHeight = static_cast<float>(ceil(
+                param.lineHeightPx * static_cast<float>(lines)));
+        }
+
         // Resolve measured text height.
         switch (heightMode) {
         case MeasureMode::MeasureModeExactly:
@@ -533,8 +537,7 @@ private:
             }
             index = index + static_cast<int>(sub_span.text.size());
             sub_span.end = index;
-            sub_span.style.isMultLineHeight = param.isMultLineHeight;
-            sub_span.style.lineHeight = param.lineHeight;
+            sub_span.style.lineHeightPx = param.lineHeightPx;
             span_array.push_back(sub_span);
         }
         return span_array;
@@ -542,8 +545,7 @@ private:
 
     static MeasureTextStyle convertTextStyle(const TextMeasureParam &param) {
         MeasureTextStyle textStyle;
-        textStyle.isMultLineHeight = param.isMultLineHeight;
-        textStyle.lineHeight = param.lineHeight;
+        textStyle.lineHeightPx = param.lineHeightPx;
         textStyle.fontSize = param.fontSize;
         textStyle.fontStyle = param.fontStyle;
         textStyle.textAlign = param.textAlign;
@@ -568,11 +570,9 @@ private:
         OH_Drawing_TextStyleAddFontVariation(ohTextStyle, "wght", convertToRealFontWeightValue(fontWeight) * gFontWeightScale);
         
         OH_Drawing_SetTextStyleBaseLine(ohTextStyle, TEXT_BASELINE_ALPHABETIC);
-        if (!textStyle.isMultLineHeight) {
-            // Handle absolute line height by converting it to a font-size multiplier.
-            OH_Drawing_SetTextStyleFontHeight(ohTextStyle, textStyle.lineHeight / textStyle.fontSize);
-        } else if (!floatEqual(textStyle.lineHeight, 1.0f)) {
-            OH_Drawing_SetTextStyleFontHeight(ohTextStyle, textStyle.lineHeight);
+        if (textStyle.lineHeightPx > 0.0f) {
+            OH_Drawing_SetTextStyleFontHeight(ohTextStyle,
+                static_cast<float>(textStyle.lineHeightPx / textStyle.fontSize));
         }
         OH_Drawing_SetTextStyleLetterSpacing(ohTextStyle, textStyle.letterSpacing);
 

@@ -22,19 +22,18 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.4.0
+## What's New in v1.5.0
 
-> Released on 2026-08-21
+> Released on 2026-09-04
 
-- **Shadow & Border-Radius Rendering Rework**: Border radius now applies clipping by default; the shadow layer is rendered independently of component content so it is no longer clipped by the component. The `addChild` logic no longer relies on index computation. .
-- **Style Default Alignment**: Unified default style values across Android, iOS, and HarmonyOS (including font styles and default text size); aligned Android text measurement and style parsing with the other platforms. Styles parsing was refactored to be more cohesive in preparation for this alignment.
-- **Unified `null` Handling in Incremental Updates**: Component data no longer retains `null` values on Android and HarmonyOS, and first-level property `null` behavior is aligned across all built-in components. On iOS, properties with `NSNull` values are now treated as property removal instead of being silently dropped; a `removeProperties` API was added to the render layer, and styles are no longer flattened into first-level properties.
-- **Deep Data Binding for Custom Components**: Custom components now support deep resolution of data bindings within nested properties.
-- (Core) Fixed a low-probability stability issue by returning the surface manager from `findSurfaceManager` as a `shared_ptr` (HarmonyOS usage updated accordingly).
-- (iOS) Fixed the `display` style incorrectly overriding the `visibility` style. Fixed shadow rendering linkage issues.
-- (Android) Fixed string-valued `font-weight` falling back to the binary Typeface path. Fixed AudioPlayer and ChoicePicker component issues. Removed unnecessary click and focus configuration on components.
-- (HarmonyOS) Fixed the right border disappearing on certain device models. Fixed an ArkTS compilation error in `Component.triggerAction`.
-- (All) Fixed the default text size across the three platforms.
+- **(iOS) Runtime Configuration API**: Added `AGenUI.setRuntimeConfig(_:)`, which accepts a JSON string of runtime switches from the host so behavior can be toggled remotely. Call it once during SDK initialization, before any surface renders.
+- **(iOS) Physical Pixel Alignment**: Hairline borders are promoted to an integer physical pixel width so all four sides render with identical weight on every screen scale, and component frames are snapped to the physical pixel grid so adjacent siblings stay gap-free. Governed by the `borderPixelAlignment` switch (default on).
+- **(HarmonyOS) `line-height` Measurement Rework**: Text measurement now carries the resolved absolute line-box height, matching the render side exactly. An explicit `line-height` defines the line box even when smaller than the font's natural metrics, and `white-space` no longer affects line-height resolution.
+- **`font-weight` Catalog Coverage**: All three platforms now accept the `normal` / `medium` / `bold` keywords and numeric 100–900 weights, as either a JSON number or an integer string, with platform caveats documented in the catalog.
+- **(iOS) Blank-Check Component Count**: `onBlankCheckResult` now reports the component-tree size at detection time. **Breaking change**: the signature becomes `onBlankCheckResult(_ surface:isBlank:componentCount:)`.
+- (Android) Fixed text disappearing for unbreakable digit and CJK strings at specific screen densities, by aligning measurement metrics with the rendering path.
+- (iOS) Fixed properties applied during component initialization — most visibly a constant `trackInfo` — never reaching listeners.
+- (HarmonyOS) Fixed DateTimeInput measurement carrying a stale line-height override.
 
 ---
 
