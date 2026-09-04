@@ -218,6 +218,14 @@ import UIKit
             if !component.isViewCreated {
                 component.createView()
             }
+
+            // The initial props were applied inside the component's init,
+            // before the callback above was attached, and createView()'s
+            // replay is skipped when nothing changed. A constant trackInfo
+            // would therefore never reach listeners (it only arrives via a
+            // later UPDATE diff). Backfill one notification with the full
+            // current props.
+            component.onPropertiesUpdate?(component.properties)
         }
         
         // Case 2: Check if parent already exists in componentTree
