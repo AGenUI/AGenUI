@@ -60,6 +60,16 @@ function(agenui_split_debug_symbols target)
 endfunction()
 
 # ---------------------------------------------------------------------------
+# 16 KB page size 
+# ---------------------------------------------------------------------------
+# NDK r27 links with a 4 KB max-page-size by default; r28+ defaults to 16 KB.
+# Set globally rather than per target so every SHARED library defined here is
+# 16 KB aligned, independent of which NDK the build happens to use.
+# Note: -Wl,--no-wchar-size-warning is not supported by lld (Android NDK linker), omitted
+set(CMAKE_SHARED_LINKER_FLAGS
+    "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384")
+
+# ---------------------------------------------------------------------------
 # yoga: prebuilt binary OR build from source via FetchContent
 # ---------------------------------------------------------------------------
 # Option: YOGA_PREBUILT_DIR - path to a directory containing prebuilt yoga artifacts
@@ -273,11 +283,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     android
     log
     yoga
-)
-
-# Note: -Wl,--no-wchar-size-warning is not supported by lld (Android NDK linker), omitted
-target_link_options(${CMAKE_PROJECT_NAME} PRIVATE
-    -Wl,-z,max-page-size=16384
 )
 
 # Emit lib<name>.so.debug companion files when AGENUI_EMIT_DEBUG_SYMBOLS=ON.
