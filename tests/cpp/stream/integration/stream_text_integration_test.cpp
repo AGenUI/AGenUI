@@ -157,6 +157,48 @@ TEST_F(StreamTextIntegrationTest, STI006_ByteByByte_NoDataLoss) {
 
     std::string collected = collectComponentContent("text", "textChunk");
     EXPECT_EQ(collected, text);
+}// STI007: A following Text component must not inherit the previous component's
+// extra fields while its text is still incomplete.
+TEST_F(StreamTextIntegrationTest, STI007_ComponentsDoNotShareStreamingFields) {
+    createTestSurface("s1");
+    listener.clear();
+
+    const std::string update = buildUpdateComponents(
+        "s1",
+        R"([{"id":"feedback","component":"Text","styles":{"color":"#8D8599"},"text":"Feedback"},{"id":"coffee","component":"Text","styles":{"color":"#5F5E72"},"text":"Americano"}])");
+
+    const size_t textStart = update.find("Americano");
+    const size_t feedbackStart = update.find("Feedback");
+    ASSERT_NE(textStart, std::string::npos);
+    ASSERT_NE(feedbackStart, std::string::npos);
+    sm->beginTextStream();
+    sm->receiveTextChunk(update.substr(0, feedbackStart + 3));
+    sm->receiveTextChunk(update.substr(feedbackStart + 3, textStart - feedbackStart));
+    sm->receiveTextChunk(update.substr(textStart + 3, 6));
+    sm->receiveTextChunk(update.substr(textStart + 9));
+    sm->endTextStream();
+    Drain(3000);
+
+    bool sawCoffeeChunk = false;
+    bool everyCoffeeChunkHasOwnStyle = true;
+    listener.withLock([&](::agenui::testing::MockMessageListener& l) {
+        for (const auto& record : l.componentsUpdateCalls) {
+            for (const auto& message : record.messages) {
+                if (message.componentId != "coffee") continue;
+                auto component = nlohmann::json::parse(message.component, nullptr, false);
+                if (!component.is_discarded() && component.contains("textChunk")) {
+                    sawCoffeeChunk = true;
+                    everyCoffeeChunkHasOwnStyle = everyCoffeeChunkHasOwnStyle &&
+                        component.contains("styles") &&
+                        component["styles"]["color"] == "#5F5E72";
+                }
+            }
+        }
+    });
+    EXPECT_TRUE(sawCoffeeChunk);
+    EXPECT_TRUE(everyCoffeeChunkHasOwnStyle);
 }
+
+
 
 }  // namespace
