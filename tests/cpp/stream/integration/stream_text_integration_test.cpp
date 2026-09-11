@@ -156,7 +156,8 @@ TEST_F(StreamTextIntegrationTest, STI006_ByteByByte_NoDataLoss) {
         [&]() { return !listener.componentsAddCalls.empty(); }, 5000));
 
     std::string collected = collectComponentContent("text", "textChunk");
-    EXPECT_EQ(collected, text);}
+    EXPECT_EQ(collected, text);
+}
 
 // STI007: A following Text component must not inherit the previous component's
 // extra fields while its text is still incomplete.
