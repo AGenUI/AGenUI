@@ -46,6 +46,10 @@ bool TextStreamPlugin::handleIncompleteComponent(
     // Deliver the first partial content immediately (using the text field)
     std::string partialJson = constructPartialJson(buffer, _componentStart, "\"}");
     if (!partialJson.empty()) {
+        // Seed the cache from this component's currently available fields so
+        // intermediate textChunk updates cannot inherit the previous Text style.
+        cacheExtraFieldsFromComponent(partialJson);
+
         ProtocolStreamExtractor::ParseResult result;
         result.type = ProtocolStreamExtractor::ParseResult::Type::ComponentUpdate;
         result.componentJson = partialJson;
