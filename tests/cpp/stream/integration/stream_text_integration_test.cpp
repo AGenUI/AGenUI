@@ -167,7 +167,7 @@ TEST_F(StreamTextIntegrationTest, STI007_ComponentsDoNotShareStreamingFields) {
 
     const std::string update = buildUpdateComponents(
         "s1",
-        R"([{"id":"feedback","component":"Text","styles":{"color":"#8D8599"},"text":"Feedback"},{"id":"coffee","component":"Text","styles":{"color":"#5F5E72"},"text":"Americano"}])");
+        R"([{"id":"root","component":"Card","children":["feedback","coffee"]},{"id":"feedback","component":"Text","styles":{"color":"#8D8599"},"text":"Feedback"},{"id":"coffee","component":"Text","styles":{"color":"#5F5E72"},"text":"Americano"}])");
 
     const size_t textStart = update.find("Americano");
     const size_t feedbackStart = update.find("Feedback");
@@ -181,24 +181,41 @@ TEST_F(StreamTextIntegrationTest, STI007_ComponentsDoNotShareStreamingFields) {
     sm->endTextStream();
     Drain(3000);
 
+    bool sawCoffeeAdd = false;
+    bool coffeeAddHasOwnStyle = false;
     bool sawCoffeeChunk = false;
-    bool everyCoffeeChunkHasOwnStyle = true;
+    bool noChunkHasForeignStyle = true;
     listener.withLock([&](::agenui::testing::MockMessageListener& l) {
+        for (const auto& record : l.componentsAddCalls) {
+            for (const auto& message : record.messages) {
+                if (message.componentId != "coffee") continue;
+                auto component = nlohmann::json::parse(message.component, nullptr, false);
+                if (component.is_discarded()) continue;
+                sawCoffeeAdd = true;
+                coffeeAddHasOwnStyle = component.contains("styles") &&
+                    component["styles"].contains("color") &&
+                    component["styles"]["color"] == "#5F5E72";
+            }
+        }
         for (const auto& record : l.componentsUpdateCalls) {
             for (const auto& message : record.messages) {
                 if (message.componentId != "coffee") continue;
                 auto component = nlohmann::json::parse(message.component, nullptr, false);
-                if (!component.is_discarded() && component.contains("textChunk")) {
-                    sawCoffeeChunk = true;
-                    everyCoffeeChunkHasOwnStyle = everyCoffeeChunkHasOwnStyle &&
-                        component.contains("styles") &&
-                        component["styles"]["color"] == "#5F5E72";
-                }
+                if (component.is_discarded() || !component.contains("textChunk"))
+                    continue;
+                sawCoffeeChunk = true;
+                if (!component.contains("styles") ||
+                    !component["styles"].contains("color"))
+                    continue;
+                noChunkHasForeignStyle = noChunkHasForeignStyle &&
+                    component["styles"]["color"] == "#5F5E72";
             }
         }
     });
+    EXPECT_TRUE(sawCoffeeAdd);
+    EXPECT_TRUE(coffeeAddHasOwnStyle);
     EXPECT_TRUE(sawCoffeeChunk);
-    EXPECT_TRUE(everyCoffeeChunkHasOwnStyle);
+    EXPECT_TRUE(noChunkHasForeignStyle);
 }
 
 }  // namespace
