@@ -1,6 +1,7 @@
 package com.amap.agenui.render.component.impl;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.widget.ImageView;
@@ -53,6 +54,28 @@ public class ImageComponent extends A2UIComponent {
     private Object currentWidth;
     private Object currentHeight;
 
+    /**
+     * Keeps the ImageView clipped to its own Yoga-assigned box, re-applying the clip rect on
+     * every layout change (same pattern as ListComponent's RecyclerView clip, fa182925).
+     */
+    private final View.OnLayoutChangeListener mSelfBoxClipListener = (v, left, top, right, bottom,
+                                                                       oldLeft, oldTop, oldRight, oldBottom) -> {
+        int w = right - left;
+        int h = bottom - top;
+        // Same skip rule as StyleHelper.applySelfClipRect: no size yet (e.g. before the
+        // first layout) — an empty clip rect would blank the first frame.
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        // Full-rect idempotence guard (not just right/bottom): a clip rect with a
+        // non-zero origin, or any edge mismatching the current box, must be re-applied.
+        Rect current = v.getClipBounds();
+        if (current == null || current.left != 0 || current.top != 0
+                || current.right != w || current.bottom != h) {
+            v.setClipBounds(new Rect(0, 0, w, h));
+        }
+    };
+
     public ImageComponent(Context context, String id, Map<String, Object> properties) {
         super(id, "Image");
         if (AGenUILogger.isLoggingEnabled()) {
@@ -79,6 +102,19 @@ public class ImageComponent extends A2UIComponent {
         // base class — this component owns only the image content (url, fit, scale type).
         imageView = new ImageView(context);
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+        // Clip the image content to the ImageView's own Yoga-assigned box. CENTER_CROP (fit:cover)
+        // can paint outside the view bounds when the bitmap's aspect ratio differs from the
+        // box's, and the YogaAbsoluteLayout parent never clips children (clipChildren=false),
+        // so without a self-clip the overflow bleeds onto siblings.
+        // Tri-platform semantics (aligned with iOS ImageComponent clipsToBounds=true and
+        // HarmonyOS NODE_CLIP in a2ui_component.cpp): per W3C object-fit, "cover" scales the
+        // image to fill the box AND clips it to the box. Implemented via setClipBounds, which
+        // is orthogonal to the setClipToOutline(true) path StyleHelper.applyOutlineRadiusClip
+        // installs for border-radius>0 (rect ∩ rounded outline = rounded clip), so the variant
+        // rounded-corner rendering is unaffected; for radius<=0 that path explicitly disables
+        // clipToOutline, while this rect clip keeps clipping — exactly the iOS behaviour.
+        imageView.addOnLayoutChangeListener(mSelfBoxClipListener);
 
         if (!properties.isEmpty()) {
             AGenUILogger.d(TAG, "[ImageComponent] onCreateView - applying properties immediately");
@@ -267,7 +303,11 @@ public class ImageComponent extends A2UIComponent {
     /**
      * Cancel the loading task when the component is destroyed.
      */
+    @Override
     public void onDestroy() {
+        if (imageView != null) {
+            imageView.removeOnLayoutChangeListener(mSelfBoxClipListener);
+        }
         if (currentRequestId != null) {
             ImageLoaderConfig.getInstance().getLoader().cancel(currentRequestId);
             currentRequestId = null;
