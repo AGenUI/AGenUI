@@ -701,7 +701,12 @@ std::shared_ptr<DataValue> DataValueParser::buildStructuredNode(IDataValueContex
 
         std::map<std::string, std::shared_ptr<DataValue>> fields;
         for (auto it = node.begin(); it != node.end(); ++it) {
-            fields[it.key()] = buildStructuredNode(context, it.value());
+            const std::string& key = it.key();
+            if (key == "action") {
+                fields[key] = std::make_shared<StaticDataValue>(it.value().dump());
+            } else {
+                fields[key] = buildStructuredNode(context, it.value());
+            }
         }
         return std::make_shared<StructuredDataValue>(context, fields);
     }
