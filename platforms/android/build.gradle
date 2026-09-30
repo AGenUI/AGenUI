@@ -88,11 +88,14 @@ android {
                 // to avoid mixing STL types in the same process (NDK requirement).
                 def stlType = resolvedYogaPrebuiltDir ? "c++_shared" : "c++_static"
                 // projectDir = platforms/android/ \u2192 parentFile = platforms/ \u2192 parentFile = repo root
+                // Windows 下 absolutePath 含反斜杠，CMake 引号字符串里 '\X' 是非法转义序列，
+                // 统一转为正斜杠（Windows 上 CMake/clang 均接受正斜杠路径）
+                def repoRootPath = projectDir.parentFile.parentFile.absolutePath.replace("\\", "/")
                 def cmakeArgs = ["-DANDROID_STL=" + stlType,
-                          "-DAGENUI_REPO_ROOT=" + projectDir.parentFile.parentFile.absolutePath]
+                          "-DAGENUI_REPO_ROOT=" + repoRootPath]
                 // Pass YOGA_PREBUILT_DIR to CMake if resolved
                 if (resolvedYogaPrebuiltDir) {
-                    cmakeArgs.add("-DYOGA_PREBUILT_DIR=" + resolvedYogaPrebuiltDir)
+                    cmakeArgs.add("-DYOGA_PREBUILT_DIR=" + resolvedYogaPrebuiltDir.replace("\\", "/"))
                 }
                 if (project.hasProperty('agenuiEmitDebugSymbols')
                         && project.property('agenuiEmitDebugSymbols').toString().toBoolean()) {
