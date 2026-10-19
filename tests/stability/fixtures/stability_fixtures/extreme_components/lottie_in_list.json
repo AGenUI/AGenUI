@@ -2,7 +2,7 @@
   "description": "6 Lottie animations inside a scrollable List - tests Lottie lifecycle in list recycling",
   "surfaceId": "stability-lottie-list",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-lottie-list","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-lottie-list","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-lottie-list","components":[
       {"id":"root","component":"List","children":["l0","l1","l2","l3","l4","l5"],"styles":{"width":"100%"}},
       {"id":"l0","component":"Row","children":["l0a","l0t"],"styles":{"padding":"8px","align-items":"center","gap":"8px"}},

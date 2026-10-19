@@ -30,9 +30,11 @@ public final class SliderMeasurer {
                                  int heightMode) {
         Map<String, String> styleConfig = MeasurementSupport.getComponentStyle(context, COMPONENT_NAME);
         float sliderHeight = MeasurementSupport.readStyleDimensionA2ui(styleConfig, "slider-height", 48f);
+        MeasureResult label = MeasurementSupport.measureFormLabel(context,
+                MeasurementSupport.parseRoot(paramJson), maxWidth, widthMode);
         return resolveSyncResult(
-                widthMode == MeasurementSupport.MODE_UNDEFINED ? 0f : maxWidth,
-                sliderHeight + CONTAINER_VERTICAL_PADDING_A2UI,
+                widthMode == MeasurementSupport.MODE_UNDEFINED ? label.width : maxWidth,
+                sliderHeight + CONTAINER_VERTICAL_PADDING_A2UI + label.height,
                 maxWidth,
                 widthMode,
                 maxHeight,

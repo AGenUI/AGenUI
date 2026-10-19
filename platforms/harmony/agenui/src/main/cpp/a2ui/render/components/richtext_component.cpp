@@ -351,6 +351,12 @@ void RichTextComponent::registerLinkClicks() {
 
 
 void RichTextComponent::onLinkClickCallback(ArkUI_NodeEvent* event) {
+    // NodeEventReceiver is node-level: filter to the registered event type before
+    // casting the userData (aligned with A2UIComponent::onActionClickCallback).
+    if (OH_ArkUI_NodeEvent_GetEventType(event) != ArkUI_NodeEventType::NODE_ON_CLICK) {
+        return;
+    }
+
     auto* clickNode = static_cast<ClickNode*>(OH_ArkUI_NodeEvent_GetUserData(event));
     if (!clickNode) {
         HM_LOGW( "userData is null");

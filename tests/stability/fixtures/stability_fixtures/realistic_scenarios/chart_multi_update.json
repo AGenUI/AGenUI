@@ -2,7 +2,7 @@
   "description": "Chart component receiving multiple data updates - tests chart re-render pipeline",
   "surfaceId": "stability-chart-update",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-update","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-update","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-update","components":[
       {"id":"root","component":"Column","children":["title","chart1"],"styles":{"width":"100%","padding":"16px"}},
       {"id":"title","component":"Text","text":"Sales Dashboard","styles":{"width":"100%"}},

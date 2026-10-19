@@ -44,6 +44,7 @@ class ChoicePickerComponent final : public A2UIComponent {
 public:
     ChoicePickerComponent(const std::string& id, const nlohmann::json& properties);
     ~ChoicePickerComponent() override;
+    void onDestroy() override;
 
 protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
@@ -113,6 +114,7 @@ private:
     // Inner wrapper used to keep search input + options container the same width.
     // Wrapper auto-sizes to the widest child; search + options-container then
     // stretch to wrapper width. See rebuildContent() for details.
+    ArkUI_NodeHandle m_titleHandle = nullptr;
     ArkUI_NodeHandle m_contentWrapperHandle = nullptr;
     ArkUI_NodeHandle m_searchInputHandle = nullptr;
     ArkUI_NodeHandle m_optionsContainerHandle = nullptr;

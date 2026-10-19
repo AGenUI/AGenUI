@@ -5,7 +5,7 @@
     {
       "action": "createSurface",
       "delay_ms": 0,
-      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-chart","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-chart","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
     },
     {
       "action": "updateComponents",

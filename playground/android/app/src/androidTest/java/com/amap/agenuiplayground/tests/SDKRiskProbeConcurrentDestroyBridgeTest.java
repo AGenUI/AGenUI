@@ -97,7 +97,7 @@ public class SDKRiskProbeConcurrentDestroyBridgeTest extends AGenUIBaseTest {
             String surfaceId = "r28-" + iter;
             String createJson = "{\"version\":\"v0.9\",\"createSurface\":"
                     + "{\"surfaceId\":\"" + surfaceId + "\","
-                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
             sm.beginTextStream();
             sm.receiveTextChunk(createJson);
             // Intentionally leave stream open — mid-stream state maximizes internal complexity
@@ -175,7 +175,7 @@ public class SDKRiskProbeConcurrentDestroyBridgeTest extends AGenUIBaseTest {
             String surfaceId = "r28b-" + iter;
             String createJson = "{\"version\":\"v0.9\",\"createSurface\":"
                     + "{\"surfaceId\":\"" + surfaceId + "\","
-                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
             sm.beginTextStream();
             sm.receiveTextChunk(createJson);
             sm.endTextStream();
@@ -291,7 +291,7 @@ public class SDKRiskProbeConcurrentDestroyBridgeTest extends AGenUIBaseTest {
                 String sid = "r28c-" + cycle + "-" + i;
                 String json = "{\"version\":\"v0.9\",\"createSurface\":"
                         + "{\"surfaceId\":\"" + sid + "\","
-                        + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                        + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
                 sms[i].beginTextStream();
                 sms[i].receiveTextChunk(json);
                 // Leave stream open for some, close for others

@@ -2,7 +2,7 @@
   "description": "Complex nested grid-like dashboard with Cards inside Rows inside Columns - tests recursive layout",
   "surfaceId": "stability-dashboard-nested",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-dashboard-nested","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-dashboard-nested","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-dashboard-nested","components":[
       {"id":"root","component":"Column","children":["r1","r2","r3"],"styles":{"width":"100%","gap":"8px","padding":"8px"}},
       {"id":"r1","component":"Row","children":["r1c1","r1c2","r1c3"],"styles":{"width":"100%","gap":"8px"}},

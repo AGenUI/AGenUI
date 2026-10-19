@@ -2,7 +2,7 @@
   "description": "Cards nested 5 levels deep - tests recursive Card rendering",
   "surfaceId": "stability-nested-cards",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-nested-cards","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-nested-cards","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-nested-cards","components":[
       {"id":"root","component":"Column","children":["c0"],"styles":{"width":"100%","padding":"8px"}},
       {"id":"c0","component":"Card","child":"c0b","styles":{"width":"100%"}},

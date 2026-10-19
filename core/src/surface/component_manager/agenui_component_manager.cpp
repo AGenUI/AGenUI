@@ -391,9 +391,16 @@ std::shared_ptr<ComponentModel> ComponentManager::parseComponent(const nlohmann:
             // containers of dynamic values
             if (key == "action") {
                 std::string actionJson = it.value().dump();
-                value = DataValueParser::parseFunctionCallActionDataValue(entity.get(), actionJson);
+                // Host-declared deep parse: nested bindings inside
+                // functionCall.args / event.context resolve at any depth
+                // instead of freezing into static JSON. The wrapper types
+                // (and their click-time-only execution semantics) stay
+                // unchanged either way.
+                const bool deepParse = engineContext != nullptr
+                    && engineContext->isDeepParseProperty(component, key);
+                value = DataValueParser::parseFunctionCallActionDataValue(entity.get(), actionJson, deepParse);
                 if (!value) {
-                    value = DataValueParser::parseEventActionDataValue(entity.get(), actionJson);
+                    value = DataValueParser::parseEventActionDataValue(entity.get(), actionJson, deepParse);
                 }
                 if (!value) {
                     value = std::make_shared<StaticDataValue>(actionJson);

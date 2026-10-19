@@ -89,7 +89,7 @@ public class SDKRiskProbeMultiSMFloodTest {
             String sid = "r36dd-" + round;
             sm.receiveTextChunk(
                     "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"" + sid
-                    + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                    + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                     + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"" + sid
                     + "\",\"components\":[{\"id\":\"root\",\"component\":\"Column\","
                     + "\"children\":[\"c1\"],\"align\":\"stretch\"},"
@@ -152,7 +152,7 @@ public class SDKRiskProbeMultiSMFloodTest {
             String sid = "r36flood-" + i;
             sms[i].receiveTextChunk(
                     "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"" + sid
-                    + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}");
+                    + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}");
         }
 
         // Layout chunk template with complex percent-based layout
@@ -211,7 +211,7 @@ public class SDKRiskProbeMultiSMFloodTest {
                                 String sid = "r36flood-" + idx;
                                 newSm.receiveTextChunk(
                                         "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\""
-                                        + sid + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}");
+                                        + sid + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}");
                                 sms[idx] = newSm;
                                 destroyed++;
                             }
@@ -274,7 +274,7 @@ public class SDKRiskProbeMultiSMFloodTest {
             sm.beginTextStream();
             sm.receiveTextChunk(
                     "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"" + sid
-                    + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}");
+                    + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}");
 
             // Thread 1: continuously streams data (no external lock)
             Thread streamer = new Thread(() -> {

@@ -2,7 +2,7 @@
   "description": "aspect-ratio conflicting with explicit width and height values - tests aspect ratio resolution",
   "surfaceId": "stability-aspect-conflict",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-aspect-conflict","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-aspect-conflict","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-aspect-conflict","components":[
       {"id":"root","component":"Column","children":["a1","a2","a3","a4","a5"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
       {"id":"a1","component":"Image","properties":{"url":"https://example.com/sq.png","width":100,"height":100},"styles":{"width":"200px","height":"100px","aspect-ratio":"1"}},

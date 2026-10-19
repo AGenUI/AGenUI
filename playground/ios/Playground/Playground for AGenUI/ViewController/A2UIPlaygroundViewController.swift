@@ -815,7 +815,7 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
                     "version": "v0.9",
                     "createSurface": [
                         "surfaceId": surfaceId,
-                        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json",
+                        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
                         "theme": [
                             "primaryColor": "#00BFFF"
                         ],

@@ -203,3 +203,20 @@
 - (鸿蒙) 修复混合视图创建失败时临时组件状态对象的内存泄漏问题。
 
 ---
+
+# [v1.7.0] - 2026-10-19
+
+### 新特性
+
+- **`resolveCalls` 内置函数**：递归执行 JSON 中的嵌套 FunctionCall，并以返回值替换对应节点。
+- **`action` 深度解析**：通过 `registerDeepParseProperty` 启用函数参数和事件上下文中的多级绑定解析。
+- **三端表单标题**：ChoicePicker 和 Slider 补齐 `label` 渲染与测量，支持换行、动态更新和清空。
+
+### Bug 修复
+
+- (Android) 修复动态更新文本后 `line-height` 丢失的问题。
+- (鸿蒙) 修复带 `action` 的 Image 点击崩溃，并补充 RichText、Tabs 事件类型校验。
+- (鸿蒙) 调整 ChoicePicker 节点清理时机，确保销毁顺序正确。
+- (Playground) 更新基础 catalog 地址，同步修正测试用例引用。
+
+---

@@ -1,4 +1,5 @@
 #include "choicepicker_component.h"
+#include "../../measure/form_label_measurement.h"
 
 #include "../a2ui_node.h"
 #include "../../utils/a2ui_color_palette.h"
@@ -83,8 +84,11 @@ ChoicePickerComponent::ChoicePickerComponent(const std::string& id, const nlohma
 }
 
 ChoicePickerComponent::~ChoicePickerComponent() {
-    clearContent();
     HM_LOGI("ChoicePickerComponent - Destroyed: id=%s", m_id.c_str());
+}
+
+void ChoicePickerComponent::onDestroy() {
+    clearContent();
 }
 
 void ChoicePickerComponent::onUpdateProperties(const nlohmann::json& properties) {
@@ -115,6 +119,18 @@ void ChoicePickerComponent::onUpdateProperties(const nlohmann::json& properties)
 
 void ChoicePickerComponent::rebuildContent() {
     clearContent();
+
+    const auto title = formLabelText(m_properties);
+    if (!title.empty()) {
+        m_titleHandle = g_nodeAPI->createNode(ARKUI_NODE_TEXT);
+        A2UITextNode label(m_titleHandle);
+        label.setTextContent(title);
+        label.setFontSize(kFormLabelFontSize);
+        label.setFontColor(colors::kColorBlack);
+        label.setWidth(getWidth());
+        label.setMargin(0.0f, 0.0f, kFormLabelSpacing, 0.0f);
+        g_nodeAPI->addChild(m_nodeHandle, m_titleHandle);
+    }
 
     // Create the inner content wrapper. With align-items=STRETCH on the wrapper
     // and no fixed width, ArkUI auto-sizes the wrapper to its widest child. Both
@@ -414,6 +430,11 @@ void ChoicePickerComponent::clearOptions() {
 
 void ChoicePickerComponent::clearContent() {
     clearOptions();
+    if (m_titleHandle) {
+        if (m_nodeHandle) g_nodeAPI->removeChild(m_nodeHandle, m_titleHandle);
+        g_nodeAPI->disposeNode(m_titleHandle);
+        m_titleHandle = nullptr;
+    }
 
     if (m_searchInputHandle) {
         g_nodeAPI->unregisterNodeEvent(m_searchInputHandle, NODE_TEXT_INPUT_ON_CHANGE);

@@ -234,7 +234,7 @@ public class SDKRiskProbeWidthAndPayloadTest extends AGenUIBaseTest {
 
     private static String buildCreateSurfacePayload(String surfaceId) {
         return "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\""
-                + surfaceId + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + surfaceId + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
     }
 
     /**

@@ -1,4 +1,5 @@
 #include "slider_component.h"
+#include "../../measure/form_label_measurement.h"
 #include "../a2ui_node.h"
 #include "../../utils/a2ui_color_palette.h"
 #include "../../measure/a2ui_platform_layout_bridge.h"
@@ -148,6 +149,7 @@ void SliderComponent::onUpdateProperties(const nlohmann::json& properties) {
     }
 
     applySliderStyles();
+    updateLabel();
     applyFallbackHeight();
 
     // Apply min/max before value so clamping uses the latest range.
@@ -157,6 +159,30 @@ void SliderComponent::onUpdateProperties(const nlohmann::json& properties) {
     updateThumbLayout();
 
     HM_LOGI("Applied properties, id=%s", m_id.c_str());
+}
+
+void SliderComponent::updateLabel() {
+    const auto title = formLabelText(m_properties);
+    m_titleHeight = measureFormLabel(m_properties, getWidth());
+    if (title.empty()) {
+        if (m_titleHandle) {
+            g_nodeAPI->removeChild(m_nodeHandle, m_titleHandle);
+            g_nodeAPI->disposeNode(m_titleHandle);
+            m_titleHandle = nullptr;
+        }
+        return;
+    }
+    if (!m_titleHandle) {
+        m_titleHandle = g_nodeAPI->createNode(ARKUI_NODE_TEXT);
+        g_nodeAPI->addChild(m_nodeHandle, m_titleHandle);
+    }
+    A2UITextNode label(m_titleHandle);
+    label.setTextContent(title);
+    label.setFontSize(kFormLabelFontSize);
+    label.setFontColor(colors::kColorBlack);
+    label.setPosition(0.0f, 0.0f);
+    label.setWidth(getWidth());
+    label.setHeight(m_titleHeight - kFormLabelSpacing);
 }
 
 void SliderComponent::applySliderStyles() {
@@ -219,7 +245,7 @@ void SliderComponent::applySliderStyles() {
 }
 
 void SliderComponent::applyFallbackHeight() {
-    const float fallbackHeight = std::max(m_sliderHeight, m_thumbOuterDiameter);
+    const float fallbackHeight = std::max(m_sliderHeight, m_thumbOuterDiameter) + m_titleHeight;
     if (getHeight() <= 1.0f) {
         setHeight(fallbackHeight);
         HM_LOGI("Applied fallback height: %.1f", fallbackHeight);
@@ -232,7 +258,7 @@ void SliderComponent::updateThumbLayout() {
     }
 
     const float componentWidth = std::max(getWidth(), m_thumbOuterDiameter);
-    const float componentHeight = std::max(getHeight(), m_sliderHeight);
+    const float componentHeight = std::max(getHeight() - m_titleHeight, m_sliderHeight);
     const float trackHeight = std::max(m_trackHeight, 1.0f);
     const float trackRadius = std::max(std::min(m_trackCornerRadius, trackHeight * 0.5f), 0.0f);
     const float outerDiameter = std::max(m_thumbOuterDiameter, 1.0f);
@@ -240,7 +266,7 @@ void SliderComponent::updateThumbLayout() {
 
     {
         A2UINode sliderNode(m_sliderHandle);
-        sliderNode.setPosition(0.0f, 0.0f);
+        sliderNode.setPosition(0.0f, m_titleHeight);
         sliderNode.setWidth(componentWidth);
         sliderNode.setHeight(componentHeight);
     }
@@ -253,9 +279,9 @@ void SliderComponent::updateThumbLayout() {
 
     const float thumbTravel = std::max(componentWidth - outerDiameter, 0.0f);
     const float thumbLeft = ratio * thumbTravel;
-    const float thumbTop = std::max((componentHeight - outerDiameter) * 0.5f, 0.0f);
+    const float thumbTop = m_titleHeight + std::max((componentHeight - outerDiameter) * 0.5f, 0.0f);
     const float thumbCenter = thumbLeft + outerDiameter * 0.5f;
-    const float trackTop = std::max((componentHeight - trackHeight) * 0.5f, 0.0f);
+    const float trackTop = m_titleHeight + std::max((componentHeight - trackHeight) * 0.5f, 0.0f);
     const float selectedTrackWidth = std::clamp(thumbCenter, 0.0f, componentWidth);
     const float innerLeft = thumbLeft + (outerDiameter - innerDiameter) * 0.5f;
     const float innerTop = thumbTop + (outerDiameter - innerDiameter) * 0.5f;
@@ -295,12 +321,19 @@ void SliderComponent::updateThumbLayout() {
 
 void SliderComponent::destroyInternalNodes() {
     if (!m_nodeHandle) {
+        m_titleHandle = nullptr;
         m_maxTrackHandle = nullptr;
         m_minTrackHandle = nullptr;
         m_sliderHandle = nullptr;
         m_thumbOuterHandle = nullptr;
         m_thumbInnerHandle = nullptr;
         return;
+    }
+
+    if (m_titleHandle) {
+        g_nodeAPI->removeChild(m_nodeHandle, m_titleHandle);
+        g_nodeAPI->disposeNode(m_titleHandle);
+        m_titleHandle = nullptr;
     }
 
     if (m_sliderHandle) {

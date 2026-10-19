@@ -2,7 +2,7 @@
   "description": "Row with flex-wrap and 20 items of varying sizes - tests wrap algorithm with heterogeneous sizes",
   "surfaceId": "stability-flexwrap-20",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-flexwrap-20","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-flexwrap-20","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-flexwrap-20","components":[
       {"id":"root","component":"Row","children":["fw0","fw1","fw2","fw3","fw4","fw5","fw6","fw7","fw8","fw9","fw10","fw11","fw12","fw13","fw14","fw15","fw16","fw17","fw18","fw19"],"styles":{"width":"100%","flex-wrap":"wrap","gap":"4px","padding":"8px"}},
       {"id":"fw0","component":"Text","text":"Short","styles":{"width":"40px","height":"30px"}},

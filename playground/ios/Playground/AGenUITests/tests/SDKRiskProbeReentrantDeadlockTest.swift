@@ -21,7 +21,7 @@ final class SDKRiskProbeReentrantDeadlockTest: XCTestCase {
     // MARK: - JSON builders
 
     private func buildCreateSurfaceJSON(surfaceId: String) -> String {
-        return "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"\(surfaceId)\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+        return "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"\(surfaceId)\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
     }
 
     private func buildUpdateWithFunctionCallBinding(surfaceId: String, funcName: String) -> String {

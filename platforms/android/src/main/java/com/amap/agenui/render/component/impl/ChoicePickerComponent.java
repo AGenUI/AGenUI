@@ -14,6 +14,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.amap.agenui.render.component.A2UIComponent;
+import com.amap.agenui.render.component.view.FormLabelView;
 import com.amap.agenui.render.component.view.CustomCheckBoxView;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
@@ -84,6 +85,10 @@ public class ChoicePickerComponent extends A2UIComponent {
         styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("ChoicePicker");
         parseProperties();
         filterQuery = "";
+        FormLabelView title = new FormLabelView(context);
+        Object label = properties.get("label");
+        title.updateLabel(label);
+        containerLayout.addView(title);
 
         if (filterable) {
             filterEditText = createFilterEditText(context);
@@ -122,6 +127,10 @@ public class ChoicePickerComponent extends A2UIComponent {
         styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("ChoicePicker");
         parseProperties();
         filterQuery = "";
+        FormLabelView title = new FormLabelView(context);
+        Object label = properties.get("label");
+        title.updateLabel(label);
+        containerLayout.addView(title);
 
         if (filterable) {
             filterEditText = createFilterEditText(context);

@@ -22,7 +22,7 @@ from typing import Any
 
 # Standard A2UI basic component catalog (matches the iOS menu flow and the
 # Android stability engine).
-DEFAULT_CATALOG_ID = "https://a2ui.org/specification/v0_9/basic_catalog.json"
+DEFAULT_CATALOG_ID = "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
 
 
 def build_render_sequence(

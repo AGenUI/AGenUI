@@ -81,7 +81,7 @@ public class SDKRiskProbeJniBridgeRaceTest {
         // path that calls env->CallObjectMethod(_javaHost, ...) on the worker thread.
         final String layoutChunkTemplate =
                 "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"%s\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"%s\","
                 + "\"components\":[{\"id\":\"root\",\"component\":\"Column\","
                 + "\"children\":[\"c1\"],\"align\":\"stretch\"},"
@@ -167,7 +167,7 @@ public class SDKRiskProbeJniBridgeRaceTest {
 
         final String layoutChunkTemplate =
                 "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"%s\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"%s\","
                 + "\"components\":[{\"id\":\"root\",\"component\":\"Column\","
                 + "\"children\":[\"c1\",\"c2\"],\"align\":\"stretch\"},"
@@ -227,7 +227,7 @@ public class SDKRiskProbeJniBridgeRaceTest {
                         // Heavy layout: multiple components with percent widths → multiple surfaceSize pulls
                         sm.receiveTextChunk(
                                 "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\""
-                                + sid + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                                + sid + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\""
                                 + sid + "\",\"components\":[{\"id\":\"root\",\"component\":\"Column\","
                                 + "\"children\":[\"a\",\"b\",\"c\"],\"align\":\"stretch\"},"
@@ -279,7 +279,7 @@ public class SDKRiskProbeJniBridgeRaceTest {
 
         final String layoutChunkTemplate =
                 "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"%s\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"%s\","
                 + "\"components\":[{\"id\":\"root\",\"component\":\"Column\","
                 + "\"children\":[\"t\"],\"align\":\"stretch\"},"

@@ -37,7 +37,7 @@ final class SDKRiskProbeInitCrashTest: XCTestCase {
 
     private static func createSurfaceJSON(surfaceId: String) -> String {
         return """
-        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
         """
     }
 }

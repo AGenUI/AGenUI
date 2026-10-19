@@ -29,7 +29,7 @@ Send 2 messages：
   "version": "v0.9",
   "createSurface": {
     "surfaceId": "test-surf-col-01",
-    "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+    "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
   }
 }
 ```

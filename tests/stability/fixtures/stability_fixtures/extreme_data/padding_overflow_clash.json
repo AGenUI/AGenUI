@@ -2,7 +2,7 @@
   "description": "Padding larger than container dimensions - tests padding overflow behavior",
   "surfaceId": "stability-pad-overflow",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-pad-overflow","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-pad-overflow","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-pad-overflow","components":[
       {"id":"root","component":"Column","children":["p1","p2","p3"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
       {"id":"p1","component":"Column","children":["p1t"],"styles":{"width":"100px","height":"50px","padding":"60px"}},

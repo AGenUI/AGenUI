@@ -118,7 +118,7 @@ public class SDKRiskProbeEngineSelfJoinCrashTest extends AGenUIBaseTest {
         // Feed a createSurface event to trigger the onCreateSurface callback
         String createChunk = "{\"version\":\"v0.9\",\"createSurface\":{"
                 + "\"surfaceId\":\"risk33-cs\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         surfaceManager.beginTextStream();
         surfaceManager.receiveTextChunk(createChunk);
@@ -208,7 +208,7 @@ public class SDKRiskProbeEngineSelfJoinCrashTest extends AGenUIBaseTest {
         // createSurface + updateComponents to trigger first layout → surfaceSize pull
         String createJson = "{\"version\":\"v0.9\","
                 + "\"createSurface\":{\"surfaceId\":\"risk33-ss\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         String updateJson = "{\"version\":\"v0.9\","
                 + "\"updateComponents\":{\"surfaceId\":\"risk33-ss\","

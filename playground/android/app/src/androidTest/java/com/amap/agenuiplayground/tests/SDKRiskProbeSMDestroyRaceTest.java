@@ -105,7 +105,7 @@ public class SDKRiskProbeSMDestroyRaceTest extends AGenUIBaseTest {
                 surfaceIds[i] = "r10-" + iter + "-" + i;
                 String createJson = "{\"version\":\"v0.9\",\"createSurface\":"
                         + "{\"surfaceId\":\"" + surfaceIds[i] + "\","
-                        + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                        + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
                 sms[i].beginTextStream();
                 sms[i].receiveTextChunk(createJson);
                 sms[i].endTextStream();
@@ -195,7 +195,7 @@ public class SDKRiskProbeSMDestroyRaceTest extends AGenUIBaseTest {
             String surfaceId = "r11-" + iter;
             String createJson = "{\"version\":\"v0.9\",\"createSurface\":"
                     + "{\"surfaceId\":\"" + surfaceId + "\","
-                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
             sm.beginTextStream();
             sm.receiveTextChunk(createJson);
             sm.endTextStream();

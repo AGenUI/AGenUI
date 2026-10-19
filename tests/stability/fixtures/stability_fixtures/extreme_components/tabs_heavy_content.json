@@ -2,7 +2,7 @@
   "description": "Tabs with 5 tabs each containing heavy content - tests tab content lifecycle",
   "surfaceId": "stability-tabs-heavy",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-tabs-heavy","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-tabs-heavy","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-tabs-heavy","components":[
       {"id":"root","component":"Column","children":["tabs"],"styles":{"width":"100%"}},
       {"id":"tabs","component":"Tabs","tabs":[{"label":"List","child":"t1"},{"label":"Table","child":"t2"},{"label":"Form","child":"t3"},{"label":"Media","child":"t4"},{"label":"Chart","child":"t5"}]},

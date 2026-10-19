@@ -2,7 +2,7 @@
   "description": "Components with zero width and height - tests Yoga layout with degenerate dimensions",
   "surfaceId": "stability-zero-dims",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-zero-dims","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-zero-dims","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-zero-dims","components":[
       {"id":"root","component":"Column","children":["z1","z2","z3","z4","z5"],"styles":{"width":"100%","padding":"8px"}},
       {"id":"z1","component":"Text","text":"Zero width text","styles":{"width":"0"}},

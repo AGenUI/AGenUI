@@ -390,6 +390,14 @@ std::string ImageComponent::extractStringValue(const nlohmann::json& value) {
 
 
 void ImageComponent::onImageCompleteCallback(ArkUI_NodeEvent* event) {
+    // NodeEventReceiver is node-level: this callback is also invoked for other
+    // event types registered on the same node (e.g. NODE_ON_CLICK registered by
+    // the base class when the Image carries an action). Only NODE_IMAGE_ON_COMPLETE
+    // carries the ImageCallbackPayload userData.
+    if (OH_ArkUI_NodeEvent_GetEventType(event) != ArkUI_NodeEventType::NODE_IMAGE_ON_COMPLETE) {
+        return;
+    }
+
     void* userData = OH_ArkUI_NodeEvent_GetUserData(event);
     if (!userData) {
         HM_LOGE( "userData is null");

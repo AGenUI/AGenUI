@@ -2,7 +2,7 @@
   "description": "Charts inside Tabs with tab switching - tests chart lifecycle across tab changes",
   "surfaceId": "stability-chart-tabs",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-tabs","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-tabs","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-tabs","components":[
       {"id":"root","component":"Column","children":["tabs1"],"styles":{"width":"100%","padding":"8px"}},
       {"id":"tabs1","component":"Tabs","tabs":[{"label":"Bar Chart","child":"tab1"},{"label":"Line Chart","child":"tab2"},{"label":"Pie Chart","child":"tab3"}],"styles":{"width":"100%"}},

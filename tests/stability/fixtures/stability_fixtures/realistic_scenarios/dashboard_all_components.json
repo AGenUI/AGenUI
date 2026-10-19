@@ -2,7 +2,7 @@
   "description": "Dashboard with 15+ different component types in one surface - tests heterogeneous rendering",
   "surfaceId": "stability-dashboard-all",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-dashboard-all","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-dashboard-all","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-dashboard-all","components":[
       {"id":"root","component":"Column","children":["hdr","row1","div1","row2","div2","form","div3","media"],"styles":{"width":"100%","padding":"12px","gap":"8px"}},
       {"id":"hdr","component":"Row","children":["logo","title","badge"],"styles":{"width":"100%","align-items":"center","gap":"8px"}},

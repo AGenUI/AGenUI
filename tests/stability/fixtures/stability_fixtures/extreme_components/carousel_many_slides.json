@@ -2,7 +2,7 @@
   "description": "Carousel with 15 slides of varied content - tests carousel with many children",
   "surfaceId": "stability-carousel-15",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-carousel-15","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-carousel-15","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-carousel-15","components":[
       {"id":"root","component":"Column","children":["car1"],"styles":{"width":"100%","padding":"8px"}},
       {"id":"car1","component":"Carousel","children":["s0","s1","s2","s3","s4","s5","s6","s7","s8","s9","s10","s11","s12","s13","s14"],"styles":{"width":"100%","height":"200px"}},

@@ -206,6 +206,12 @@ import Foundation
     /// Example — MyText carries its rich-text runs in a `spans` array:
     /// `AGenUI.registerDeepParseProperty("MyText", propertyName: "spans")`
     ///
+    /// Reserved keys keep their dedicated parsing regardless of registration —
+    /// with one nuance for `action`: registering it keeps the wrapper parsing,
+    /// but dynamic values nested inside `functionCall.args` and `event.context`
+    /// resolve at any depth (still lazily, at click time) instead of being
+    /// frozen into static JSON.
+    ///
     /// Must be called before the first render; a declaration made later has no effect on
     /// components that have already been parsed.
     ///

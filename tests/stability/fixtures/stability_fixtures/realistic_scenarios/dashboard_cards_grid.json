@@ -2,7 +2,7 @@
   "description": "Grid of 12 Cards in 3x4 layout - tests many Card instances with varied content",
   "surfaceId": "stability-cards-grid",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-cards-grid","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-cards-grid","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-cards-grid","components":[
       {"id":"root","component":"Column","children":["gr1","gr2","gr3","gr4"],"styles":{"width":"100%","gap":"8px","padding":"8px"}},
       {"id":"gr1","component":"Row","children":["c01","c02","c03"],"styles":{"width":"100%","gap":"8px"}},

@@ -78,9 +78,12 @@ public:
      * @param componentType Component type name, i.e. the JSON "component" field
      *        (e.g. "MyText") — applies to every instance of that type.
      *        Pass "*" to match every component type with one declaration.
-     *        Note: engine-reserved keys ("action", "checks", "styles",
-     *        "accessibility", "tabs") keep their dedicated parsing regardless
-     *        of registration.
+     *        Note: engine-reserved keys ("checks", "styles", "accessibility",
+     *        "tabs") keep their dedicated parsing regardless of registration.
+     *        "action" also keeps its dedicated wrapper parsing, but when
+     *        registered, dynamic values nested inside functionCall.args and
+     *        event.context resolve at any depth (still lazily, at click time)
+     *        instead of being frozen into static JSON.
      * @param propertyName Property name (e.g. "spans")
      * @return true on success; false when either name is empty or the engine is not ready
      * @note By default a property value is parsed but not descended into, so a nested
@@ -90,6 +93,11 @@ public:
      *       nested dynamic values at any depth. Intended for host-registered custom
      *       components. Must be called before the first render; a declaration made
      *       later has no effect on components already parsed.
+     * @note Registering "action" also folds its deep bindings into the component-level
+     *       dataBindingStatus aggregate: an unresolved nested binding inside
+     *       functionCall.args / event.context lowers the aggregate status (relevant
+     *       when a root component's displayRule gates on it). Hosts that prefer the
+     *       legacy aggregate simply do not register "action".
      */
     virtual bool registerDeepParseProperty(const std::string& componentType,
                                            const std::string& propertyName) = 0;
