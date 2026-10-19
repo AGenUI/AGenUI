@@ -260,7 +260,7 @@ public class StabilityScenarioEngine {
         SurfaceManager sm = new SurfaceManager(activity);
         sm.beginTextStream();
 
-        String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"marathon-surf\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+        String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"marathon-surf\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
         sm.receiveTextChunk(createMsg);
 
         for (int i = 0; i < 100; i++) {
@@ -280,7 +280,7 @@ public class StabilityScenarioEngine {
         sm.beginTextStream();
 
         for (int i = 0; i < 5; i++) {
-            String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"multi-" + i + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+            String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"multi-" + i + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
             sm.receiveTextChunk(createMsg);
             String updateMsg = "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"multi-" + i + "\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"txt-" + i + "\"],\"align\":\"stretch\"},{\"id\":\"txt-" + i + "\",\"component\":\"Text\",\"text\":\"Surface " + i + "\"}]}}";
             sm.receiveTextChunk(updateMsg);
@@ -326,7 +326,7 @@ public class StabilityScenarioEngine {
         });
         sm.beginTextStream();
 
-        String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"action-flood\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+        String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"action-flood\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
         sm.receiveTextChunk(createMsg);
         String updateMsg = "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"action-flood\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"cb\",\"tf\"],\"align\":\"stretch\"},{\"id\":\"cb\",\"component\":\"CheckBox\",\"label\":\"Flood checkbox\",\"value\":false},{\"id\":\"tf\",\"component\":\"TextField\",\"label\":\"Flood field\",\"value\":\"\"}]}}";
         sm.receiveTextChunk(updateMsg);
@@ -361,7 +361,7 @@ public class StabilityScenarioEngine {
         SurfaceManager sm = new SurfaceManager(activity);
         sm.beginTextStream();
 
-        String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"interrupt-surf\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+        String createMsg = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"interrupt-surf\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
         sm.receiveTextChunk(createMsg);
 
         sm.destroy();
@@ -960,7 +960,7 @@ public class StabilityScenarioEngine {
         // worker spends most of its time in the JNI callback, not in parsing.
         final String layoutChunkTemplate =
                 "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"%s\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"%s\","
                 + "\"components\":[{\"id\":\"root\",\"component\":\"Column\","
                 + "\"children\":[\"txt\"],\"align\":\"stretch\"},"
@@ -1042,7 +1042,7 @@ public class StabilityScenarioEngine {
 
     // Helper: build a simple surface JSON for quick tests
     private String buildSimpleSurfaceJson(String surfaceId) {
-        return "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"" + surfaceId + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}" +
+        return "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"" + surfaceId + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}" +
                "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"" + surfaceId + "\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"txt\"],\"align\":\"stretch\"},{\"id\":\"txt\",\"component\":\"Text\",\"text\":\"Test surface: " + surfaceId + "\"}]}}";
     }
 

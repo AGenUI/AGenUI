@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] - 2026-10-19
+
+### Features
+
+- **`resolveCalls` Built-in Function**: Recursively executes FunctionCalls nested in JSON and replaces each call node with its return value.
+- **Deep Parsing for `action`**: `registerDeepParseProperty` now enables nested binding resolution within function arguments and event context.
+- **Cross-Platform Form Labels**: Completed `label` rendering and measurement for ChoicePicker and Slider, supporting wrapping, dynamic updates, and clearing.
+
+### Bug Fixes
+
+- (Android) Fixed `line-height` being lost after dynamic text updates.
+- (HarmonyOS) Fixed crashes when tapping Images with an `action`, and added event-type checks to RichText and Tabs callbacks.
+- (HarmonyOS) Adjusted ChoicePicker node cleanup to ensure correct destruction order.
+- (Playground) Updated the basic catalog URL and related test references.
+
+---
+
 ## [1.6.0] - 2026-09-21
 
 ### Features

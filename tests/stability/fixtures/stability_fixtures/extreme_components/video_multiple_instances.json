@@ -2,7 +2,7 @@
   "description": "8 Video components in a scrollable list - tests multiple video instance management",
   "surfaceId": "stability-multi-video",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-multi-video","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-multi-video","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-video","components":[
       {"id":"root","component":"List","children":["v0","v1","v2","v3","v4","v5","v6","v7"],"styles":{"width":"100%"}},
       {"id":"v0","component":"Column","children":["v0t","v0v"],"styles":{"padding":"8px"}},

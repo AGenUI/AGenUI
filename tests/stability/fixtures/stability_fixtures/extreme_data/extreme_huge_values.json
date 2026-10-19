@@ -2,7 +2,7 @@
   "description": "Extremely large CSS values - tests numeric overflow in layout engine",
   "surfaceId": "stability-huge-values",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-huge-values","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-huge-values","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-huge-values","components":[
       {"id":"root","component":"Column","children":["h1","h2","h3","h4"],"styles":{"width":"100%"}},
       {"id":"h1","component":"Text","text":"Huge width","styles":{"width":"99999px","height":"50px"}},

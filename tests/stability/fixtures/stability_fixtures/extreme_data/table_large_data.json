@@ -2,7 +2,7 @@
   "description": "Table with 8 columns and 12 rows - tests table layout with large data",
   "surfaceId": "stability-table-large",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-table-large","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-table-large","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-table-large","components":[
       {"id":"root","component":"Column","children":["tbl"],"styles":{"width":"100%","padding":"8px"}},
       {"id":"tbl","component":"Table","properties":{"columns":["ID","Name","Category","Status","Price","Qty","Total","Notes"],"rows":[

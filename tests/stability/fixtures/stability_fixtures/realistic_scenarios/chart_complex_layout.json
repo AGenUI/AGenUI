@@ -2,7 +2,7 @@
   "description": "Chart inside complex flex layout with competing constraints - tests chart sizing",
   "surfaceId": "stability-chart-layout",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-layout","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-chart-layout","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-chart-layout","components":[
       {"id":"root","component":"Column","children":["header","body"],"styles":{"width":"100%","height":"100%"}},
       {"id":"header","component":"Row","children":["htxt","hbtn"],"styles":{"width":"100%","padding":"8px","justify-content":"space-between","align-items":"center"}},

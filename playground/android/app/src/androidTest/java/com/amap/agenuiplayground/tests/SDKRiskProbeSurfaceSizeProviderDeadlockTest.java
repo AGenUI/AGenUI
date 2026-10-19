@@ -168,7 +168,7 @@ public class SDKRiskProbeSurfaceSizeProviderDeadlockTest extends AGenUIBaseTest 
         // → Java → our surfaceSize() callback.
         String createJson = "{\"version\":\"v0.9\","
                 + "\"createSurface\":{\"surfaceId\":\"risk31\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\","
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\","
                 + "\"theme\":{},\"sendDataModel\":false,\"animated\":true}}";  // separate envelope
 
         String updateJson = "{\"version\":\"v0.9\","
@@ -309,7 +309,7 @@ public class SDKRiskProbeSurfaceSizeProviderDeadlockTest extends AGenUIBaseTest 
 
         String createJson = "{\"version\":\"v0.9\","
                 + "\"createSurface\":{\"surfaceId\":\"risk31v2\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\","
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\","
                 + "\"theme\":{},\"sendDataModel\":false,\"animated\":true}}";
 
         String updateJson = "{\"version\":\"v0.9\","

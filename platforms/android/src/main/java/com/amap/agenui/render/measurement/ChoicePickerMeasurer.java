@@ -40,9 +40,7 @@ public final class ChoicePickerMeasurer {
         }
 
         JSONArray options = root.optJSONArray("options");
-        if (options == null || options.length() == 0) {
-            return MeasureResult.zero();
-        }
+        if (options == null) options = new JSONArray();
 
         JSONObject styles = MeasurementSupport.optStyles(root);
         String orientation = styles == null ? "vertical" : styles.optString("orientation", "vertical");
@@ -97,7 +95,8 @@ public final class ChoicePickerMeasurer {
             filterExtraHeight = filterPaddingV * 2f + filterTextSize * 1.4f + filterMarginBottom;
         }
 
-        return resolveSyncResult(
+        MeasureResult title = MeasurementSupport.measureFormLabel(context, root, maxWidth, widthMode);
+        MeasureResult content = resolveSyncResult(
                 horizontal,
                 itemWidths,
                 itemHeights,
@@ -105,8 +104,10 @@ public final class ChoicePickerMeasurer {
                 filterExtraHeight,
                 maxWidth,
                 widthMode,
-                maxHeight,
-                heightMode);
+                0f,
+                MeasurementSupport.MODE_UNDEFINED);
+        return MeasurementSupport.resolveSize(Math.max(content.width, title.width),
+                content.height + title.height, maxWidth, widthMode, maxHeight, heightMode);
     }
 
     static MeasureResult resolveSyncResult(boolean horizontal,

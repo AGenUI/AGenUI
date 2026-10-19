@@ -1,4 +1,5 @@
 #include "choice_picker_component_measurement.h"
+#include "form_label_measurement.h"
 #include "a2ui_platform_layout_bridge.h"
 #include "text_measurement_utils.h"
 #include "text_component_measurement.h"
@@ -113,12 +114,13 @@ agenui::MeasureResult ChoicePickerComponentMeasurement::measure(
         }
     }
 
+    const float titleHeight = measureFormLabel(j, maxWidth);
     if (options.empty()) {
         // Even with zero options, the search input still consumes vertical space.
         const float emptyHeight = filterable
             ? (searchHeight + searchMarginBottom + searchBorderWidth * 2.0f)
             : 0.0f;
-        return {agenui::CalcType::Sync, maxWidth, emptyHeight, 0};
+        return {agenui::CalcType::Sync, maxWidth, emptyHeight + titleHeight, 0};
     }
 
     // Build text style JSON (consistent with Table's cellStyleJson)
@@ -193,7 +195,7 @@ agenui::MeasureResult ChoicePickerComponentMeasurement::measure(
         totalHeight += searchHeight + searchMarginBottom + searchBorderWidth * 2.0f;
     }
 
-    return {agenui::CalcType::Sync, maxWidth, totalHeight, 0};
+    return {agenui::CalcType::Sync, maxWidth, totalHeight + titleHeight, 0};
 }
 
 }  // namespace a2ui

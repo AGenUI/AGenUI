@@ -35,6 +35,7 @@ class SliderComponent: Component {
     
     // MARK: - Properties
     
+    private let titleLabel = FormLabel()
     private var slider: UISlider?
     private var dataBindingPath: String?
     private var isUpdatingFromNative = false
@@ -60,6 +61,8 @@ class SliderComponent: Component {
         // Load local style config
         loadLocalStyleConfig()
         
+        addSubview(titleLabel)
+
         // Create slider and add to self
         createSlider()
         
@@ -90,6 +93,10 @@ class SliderComponent: Component {
                 ? min(measuredWidth, CGFloat(maxWidth))
                 : CGFloat(maxWidth)
         }
+        if let data = paramJson.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            measuredHeight += FormLabel.measure(json["label"], width: measuredWidth).height
+        }
         if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
             measuredHeight = heightMode == .atMost
                 ? min(measuredHeight, CGFloat(maxHeight))
@@ -105,13 +112,17 @@ class SliderComponent: Component {
         super.layoutSubviews()
         
         // Sync slider frame with component bounds
-        slider?.frame = bounds
+        let titleHeight = titleLabel.layout(width: bounds.width)
+        slider?.frame = CGRect(x: 0, y: titleHeight, width: bounds.width,
+                               height: max(0, bounds.height - titleHeight))
     }
     
     // MARK: - Component Override
     
     override func updateProperties(_ diff: [String: DiffValue]) {
         super.updateProperties(diff)
+        titleLabel.update(diff["label"])
+        setNeedsLayout()
         
         // Update minimum value
         if case .value(let min) = diff["min"] {

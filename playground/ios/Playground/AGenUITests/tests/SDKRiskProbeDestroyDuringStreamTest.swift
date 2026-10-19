@@ -182,7 +182,7 @@ final class SDKRiskProbeDestroyDuringStreamTest: XCTestCase {
     /// Minimal createSurface + updateComponents payload that triggers layout
     private func buildLayoutTriggeringJSON(surfaceId: String) -> String {
         return """
-        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"root","component":"Column","children":["t1","t2","t3","t4","t5"]},{"id":"t1","component":"Text","text":"Hello 1"},{"id":"t2","component":"Text","text":"Hello 2"},{"id":"t3","component":"Text","text":"Hello 3"},{"id":"t4","component":"Text","text":"Hello 4"},{"id":"t5","component":"Text","text":"Hello 5"}]}}
+        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"root","component":"Column","children":["t1","t2","t3","t4","t5"]},{"id":"t1","component":"Text","text":"Hello 1"},{"id":"t2","component":"Text","text":"Hello 2"},{"id":"t3","component":"Text","text":"Hello 3"},{"id":"t4","component":"Text","text":"Hello 4"},{"id":"t5","component":"Text","text":"Hello 5"}]}}
         """
     }
 
@@ -198,7 +198,7 @@ final class SDKRiskProbeDestroyDuringStreamTest: XCTestCase {
         let childrenStr = children.joined(separator: ",")
         let componentsStr = components.joined(separator: ",")
         return """
-        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"root","component":"Column","children":[\(childrenStr)],\"style\":{\"width\":\"300px\",\"padding\":\"10px\"}},\(componentsStr)]}}
+        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"root","component":"Column","children":[\(childrenStr)],\"style\":{\"width\":\"300px\",\"padding\":\"10px\"}},\(componentsStr)]}}
         """
     }
 

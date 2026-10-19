@@ -6,7 +6,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-interleaved-0",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -34,7 +34,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-interleaved-1",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -62,7 +62,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-interleaved-2",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -90,7 +90,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-interleaved-3",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -118,7 +118,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-interleaved-4",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {

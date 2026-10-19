@@ -664,7 +664,7 @@ class StabilityScenarioEngine {
 
     private func buildCreateSurfaceJSON(surfaceId: String) -> String {
         return """
-        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
         """
     }
 
@@ -688,7 +688,7 @@ class StabilityScenarioEngine {
 
     private func buildCreateSurfaceWithInputJSON(surfaceId: String) -> String {
         return """
-        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json","sendDataModel":true}}
+        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json","sendDataModel":true}}
         """
     }
 

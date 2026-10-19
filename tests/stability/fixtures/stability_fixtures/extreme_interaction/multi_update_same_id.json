@@ -2,7 +2,7 @@
   "description": "Multiple updateComponents messages changing the same component properties - tests incremental update",
   "surfaceId": "stability-multi-update",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-multi-update","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-multi-update","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-multi-update","components":[
       {"id":"root","component":"Column","children":["txt","img","chk"],"styles":{"width":"100%","padding":"16px","gap":"8px"}},
       {"id":"txt","component":"Text","text":"Initial text","styles":{"width":"100%"}},

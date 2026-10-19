@@ -5,7 +5,7 @@
     {
       "action": "createSurface",
       "delay_ms": 0,
-      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-lottie","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json","animated":true}}
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"realistic-lottie","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json","animated":true}}
     },
     {
       "action": "updateComponents",

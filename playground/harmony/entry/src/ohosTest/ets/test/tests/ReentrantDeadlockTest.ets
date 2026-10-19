@@ -70,7 +70,7 @@ function isWorkerThreadAlive(sm: SurfaceManager, surfaceId: string): Promise<boo
     };
     sm.addListener(listener);
 
-    const json = `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}`;
+    const json = `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}`;
     sm.beginTextStream();
     sm.receiveTextChunk(json);
     sm.endTextStream();
@@ -81,7 +81,7 @@ function isWorkerThreadAlive(sm: SurfaceManager, surfaceId: string): Promise<boo
  * Build createSurface JSON
  */
 function buildCreateSurfaceJSON(surfaceId: string): string {
-  return `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}`;
+  return `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}`;
 }
 
 /**

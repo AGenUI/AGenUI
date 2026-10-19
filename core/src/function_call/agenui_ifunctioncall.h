@@ -1,6 +1,7 @@
 #pragma once
 
 #include "agenui_functioncall_config.h"
+#include "agenui_platform_function.h"
 #include "function_call/agenui_functioncall_resolution.h"
 #include <memory>
 #include "nlohmann/json.hpp"
@@ -23,6 +24,21 @@ public:
      * @return Execution result
      */
     virtual FunctionCallResolution execute(const nlohmann::json& args) = 0;
+
+    /**
+     * @brief Execute the functionCall, knowing where it was invoked from
+     * @param args FunctionCall arguments (JSON object)
+     * @param context Instance and surface the call originates from
+     * @return Execution result
+     * @remark FunctionCallManager always calls this overload. Override it when the result depends
+     *         on the invocation site — reaching a platform service keyed by instanceId, or
+     *         forwarding the context to nested calls. The default defers to execute(args), so a
+     *         functionCall that is a pure function of its arguments needs no change.
+     */
+    virtual FunctionCallResolution execute(const nlohmann::json& args,
+                                           const FunctionCallContext&) {
+        return execute(args);
+    }
 
     /**
      * @brief Get the functionCall configuration

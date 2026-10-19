@@ -6,7 +6,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-0",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -40,7 +40,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-1",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -74,7 +74,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-2",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -108,7 +108,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-3",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -142,7 +142,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-4",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -176,7 +176,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-5",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -210,7 +210,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-6",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -244,7 +244,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-7",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -278,7 +278,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-8",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -312,7 +312,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-9",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -346,7 +346,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-10",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -380,7 +380,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-11",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -414,7 +414,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-12",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -448,7 +448,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-13",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -482,7 +482,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-14",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -516,7 +516,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-15",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -550,7 +550,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-16",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -584,7 +584,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-17",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -618,7 +618,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-18",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {
@@ -652,7 +652,7 @@
       "version": "v0.9",
       "createSurface": {
         "surfaceId": "stability-lifecycle-19",
-        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
       }
     },
     {

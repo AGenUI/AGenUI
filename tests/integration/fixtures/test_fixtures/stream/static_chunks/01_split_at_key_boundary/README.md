@@ -29,7 +29,7 @@ Unlike dynamic chunking (automatically split by chunkSize), this test's split po
 
 **chunk_01.txt（201 bytes):**
 ```
-{"version":"v0.9","createSurface":{"surfaceId":"test-surf-split-01","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}{"version":"v0.9","updateComponents":{"surf
+{"version":"v0.9","createSurface":{"surfaceId":"test-surf-split-01","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}{"version":"v0.9","updateComponents":{"surf
 ```
 Note: splits at the `"surf` position of `"surfaceId"`, i.e., in the middle of a key's value string.
 

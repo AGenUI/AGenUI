@@ -2,7 +2,7 @@
   "description": "List with 25 heterogeneous items - tests list rendering with many children",
   "surfaceId": "stability-list-25",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-list-25","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-list-25","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-list-25","components":[
       {"id":"root","component":"Column","children":["list1"],"styles":{"width":"100%"}},
       {"id":"list1","component":"List","children":["i0","i1","i2","i3","i4","i5","i6","i7","i8","i9","i10","i11","i12","i13","i14","i15","i16","i17","i18","i19","i20","i21","i22","i23","i24"],"styles":{"width":"100%"}},

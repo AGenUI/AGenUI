@@ -243,7 +243,7 @@ public class SDKRiskProbeConfigDestroyRaceTest extends AGenUIBaseTest {
         StringBuilder sb = new StringBuilder();
         sb.append("{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"")
           .append(surfaceId)
-          .append("\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}");
+          .append("\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}");
         sb.append("{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"")
           .append(surfaceId)
           .append("\",\"components\":[");

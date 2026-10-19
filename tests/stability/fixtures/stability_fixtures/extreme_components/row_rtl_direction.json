@@ -2,7 +2,7 @@
   "description": "Row with direction:rtl - tests right-to-left layout with mixed content",
   "surfaceId": "stability-rtl-row",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-rtl-row","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-rtl-row","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-rtl-row","components":[
       {"id":"root","component":"Column","children":["ltr","rtl1","rtl2"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
       {"id":"ltr","component":"Row","children":["la","lb","lc"],"styles":{"width":"100%","direction":"ltr"}},

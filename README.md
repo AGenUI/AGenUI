@@ -22,17 +22,17 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.6.0
+## What's New in v1.7.0
 
-> Released on 2026-09-21
+> Released on 2026-10-19
 
-- **Wildcard Deep-Parse Registration**: `registerDeepParseProperty` now accepts `"*"` as the component type, enabling nested dynamic-value parsing for a named property across all component types with one registration.
-- **Data Binding Status Propagation**: Component snapshots now include `dataBindingStatus` metadata, distinguishing no dependency, not ready, partially ready, and fully ready.
-- **(HarmonyOS) Unified Component Registration**: Component creation and built-in measurement registration now share a component descriptor table, with one global component registry serving all surfaces. ArkTS custom-view registration and unregistration are synchronized with the native layer.
-- **(iOS) Property Update Callback Semantics**: `onPropertiesUpdate` now returns the complete post-update property snapshot, aligning with the full-properties callback semantics on Android and HarmonyOS.
-- (Android) Fixed images using `fit: cover` drawing outside their own bounds and overlapping adjacent components.
-- (Core) Fixed recursive parsing altering nested `action` payloads, restoring correct rich-text span click handling.
-- (HarmonyOS) Added null-node guards to native calls during layout updates and background-image cleanup, avoiding ArkUI calls with a null component node handle.
+- **`resolveCalls` Built-in Function**: Recursively executes FunctionCalls nested in JSON and replaces each call node with its return value.
+- **Deep Parsing for `action`**: `registerDeepParseProperty` now enables nested binding resolution within function arguments and event context.
+- **Cross-Platform Form Labels**: Completed `label` rendering and measurement for ChoicePicker and Slider, supporting wrapping, dynamic updates, and clearing.
+- (Android) Fixed `line-height` being lost after dynamic text updates.
+- (HarmonyOS) Fixed crashes when tapping Images with an `action`, and added event-type checks to RichText and Tabs callbacks.
+- (HarmonyOS) Adjusted ChoicePicker node cleanup to ensure correct destruction order.
+- (Playground) Updated the basic catalog URL and related test references.
 
 ---
 

@@ -22,6 +22,7 @@
 #include "function_call/builtins/agenui_and_functioncall.h"
 #include "function_call/builtins/agenui_or_functioncall.h"
 #include "function_call/builtins/agenui_not_functioncall.h"
+#include "function_call/builtins/agenui_resolve_calls_functioncall.h"
 #include "surface/token_parser/agenui_token_parser.h"
 #include "module/agenui_surface_manager.h"
 
@@ -250,6 +251,7 @@ void SurfaceCoordinator::initFunctionCalls() {
     functionCallManager->registerFunctionCall(std::make_shared<AndFunctionCall>());
     functionCallManager->registerFunctionCall(std::make_shared<OrFunctionCall>());
     functionCallManager->registerFunctionCall(std::make_shared<NotFunctionCall>());
+    functionCallManager->registerFunctionCall(std::make_shared<ResolveCallsFunctionCall>(functionCallManager));
 }
 
 void SurfaceCoordinator::handleRenderFinish(const ComponentRenderInfo &info) {

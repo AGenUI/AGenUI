@@ -52,7 +52,7 @@ public class SDKRiskProbeFormatNumberOOMCrashTest extends AGenUIBaseTest {
     public void testSDKRISK61_formatNumberExtremeDecimals_crash() throws Exception {
         String createSurface = "{\"version\":\"v0.9\",\"createSurface\":{"
                 + "\"surfaceId\":\"" + SURFACE_ID + "\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         // Component with formatNumber function call using extreme decimals
         String updateComponents = "{\"version\":\"v0.9\",\"updateComponents\":{"
@@ -91,7 +91,7 @@ public class SDKRiskProbeFormatNumberOOMCrashTest extends AGenUIBaseTest {
     public void testSDKRISK61_formatNumberLargeDecimals_crash() throws Exception {
         String createSurface = "{\"version\":\"v0.9\",\"createSurface\":{"
                 + "\"surfaceId\":\"" + SURFACE_ID + "-2\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         String updateComponents = "{\"version\":\"v0.9\",\"updateComponents\":{"
                 + "\"surfaceId\":\"" + SURFACE_ID + "-2\","
@@ -124,7 +124,7 @@ public class SDKRiskProbeFormatNumberOOMCrashTest extends AGenUIBaseTest {
     public void testSDKRISK61_formatNumberIntMaxDecimals_crash() throws Exception {
         String createSurface = "{\"version\":\"v0.9\",\"createSurface\":{"
                 + "\"surfaceId\":\"" + SURFACE_ID + "-3\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         String updateComponents = "{\"version\":\"v0.9\",\"updateComponents\":{"
                 + "\"surfaceId\":\"" + SURFACE_ID + "-3\","
@@ -160,7 +160,7 @@ public class SDKRiskProbeFormatNumberOOMCrashTest extends AGenUIBaseTest {
     public void testSDKRISK61_formatNumberRepeatedLargeAllocation_oomCrash() throws Exception {
         String createSurface = "{\"version\":\"v0.9\",\"createSurface\":{" 
                 + "\"surfaceId\":\"" + SURFACE_ID + "-stress\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         surfaceManager.beginTextStream();
         surfaceManager.receiveTextChunk(createSurface);
@@ -173,7 +173,7 @@ public class SDKRiskProbeFormatNumberOOMCrashTest extends AGenUIBaseTest {
             String surfaceId = SURFACE_ID + "-stress-" + i;
             String create = "{\"version\":\"v0.9\",\"createSurface\":{" 
                     + "\"surfaceId\":\"" + surfaceId + "\","
-                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                    + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
             String update = "{\"version\":\"v0.9\",\"updateComponents\":{" 
                     + "\"surfaceId\":\"" + surfaceId + "\","
                     + "\"components\":[" 

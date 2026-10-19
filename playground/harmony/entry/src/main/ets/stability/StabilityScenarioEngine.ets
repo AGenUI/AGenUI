@@ -165,7 +165,7 @@ export class StabilityScenarioEngine {
     for (let i = 0; i < 50; i++) {
       components.push(`{"id":"txt-${i}","component":"Text","text":"Item ${i} - ${'x'.repeat(100)}"}`);
     }
-    const msg = `{"version":"v0.9","createSurface":{"surfaceId":"extreme","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}`;
+    const msg = `{"version":"v0.9","createSurface":{"surfaceId":"extreme","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}`;
     sm.receiveTextChunk(msg);
     const updateMsg = `{"version":"v0.9","updateComponents":{"surfaceId":"extreme","components":[{"id":"root","component":"Column","children":[${components.map((_, i) => `"txt-${i}"`).join(',')}],"align":"stretch"},${components.join(',')}]}}`;
     sm.receiveTextChunk(updateMsg);
@@ -428,6 +428,6 @@ export class StabilityScenarioEngine {
 
   // Helper: build create surface JSON
   private buildCreateSurfaceJSON(surfaceId: string): string {
-    return `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}`;
+    return `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}`;
   }
 }

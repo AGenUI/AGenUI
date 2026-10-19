@@ -26,6 +26,7 @@ private:
     static void onSliderChangeEvent(ArkUI_NodeEvent* event);
 
     void applySliderStyles();
+    void updateLabel();
     void applyFallbackHeight();
     void updateThumbLayout();
     void destroyInternalNodes();
@@ -42,6 +43,8 @@ private:
     /** Extract a numeric value, including string and DynamicNumber input. */
     static float extractNumberValue(const nlohmann::json& value);
 
+    ArkUI_NodeHandle m_titleHandle = nullptr;
+    float m_titleHeight = 0.0f;
     float m_minValue = 0.0f;
     float m_maxValue = 100.0f;
     float m_currentValue = 0.0f;

@@ -2,7 +2,7 @@
   "description": "Multiple absolutely positioned elements overlapping - tests z-ordering and absolute layout",
   "surfaceId": "stability-abs-overlap",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-abs-overlap","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-abs-overlap","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-abs-overlap","components":[
       {"id":"root","component":"Column","children":["container"],"styles":{"width":"100%","padding":"16px"}},
       {"id":"container","component":"Column","children":["base","a1","a2","a3","a4","a5"],"styles":{"width":"300px","height":"300px","position":"relative"}},

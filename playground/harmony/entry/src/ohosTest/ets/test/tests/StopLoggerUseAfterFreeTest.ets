@@ -58,7 +58,7 @@ class DummyFunction implements IFunctionCall {
 }
 
 function buildCreateSurfaceJSON(surfaceId: string): string {
-  return `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}`;
+  return `{"version":"v0.9","createSurface":{"surfaceId":"${surfaceId}","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}`;
 }
 
 function buildUpdateComponentsJSON(surfaceId: string): string {

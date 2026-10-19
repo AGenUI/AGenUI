@@ -7,6 +7,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.amap.agenui.render.component.A2UIComponent;
+import com.amap.agenui.render.component.view.FormLabelView;
 import com.amap.agenui.render.component.view.CustomSliderView;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
@@ -40,7 +41,7 @@ public class SliderComponent extends A2UIComponent {
     private Context context;
 
     private LinearLayout containerLayout;
-    private TextView labelTextView;
+    private FormLabelView labelTextView;
     private CustomSliderView sliderView;
     private TextView errorTextView;
     private String dataPath;
@@ -67,9 +68,7 @@ public class SliderComponent extends A2UIComponent {
         containerLayout.setPadding(0, StyleHelper.standardUnitToPx(context, 8), 0, StyleHelper.standardUnitToPx(context, 8));
 
         // Create label
-        labelTextView = new TextView(context);
-        labelTextView.setTextSize(14);
-        labelTextView.setVisibility(View.GONE);
+        labelTextView = new FormLabelView(context);
         containerLayout.addView(labelTextView);
 
         // Create custom slider
@@ -191,15 +190,7 @@ public class SliderComponent extends A2UIComponent {
         // Update label
         if (props.containsKey("label")) {
             Object labelObj = props.get("label");
-            if (labelObj == null) {
-                // null (delete signal) → clear label (align iOS label→"")
-                labelTextView.setText("");
-            } else {
-                String label = extractStringValue(labelObj);
-                if (label != null) {
-                    labelTextView.setText(label);
-                }
-            }
+            labelTextView.updateLabel(labelObj == null ? "" : extractStringValue(labelObj));
         }
 
         // Update minimum value

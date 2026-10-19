@@ -2,7 +2,7 @@
   "description": "Conflicting min/max constraints where min exceeds max - tests constraint resolution",
   "surfaceId": "stability-minmax-conflict",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-minmax-conflict","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-minmax-conflict","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-minmax-conflict","components":[
       {"id":"root","component":"Column","children":["c1","c2","c3","c4","c5"],"styles":{"width":"100%","padding":"8px"}},
       {"id":"c1","component":"Text","text":"min-width > max-width","styles":{"min-width":"300px","max-width":"100px","height":"40px"}},

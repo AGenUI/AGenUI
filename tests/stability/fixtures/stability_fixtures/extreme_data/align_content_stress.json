@@ -2,7 +2,7 @@
   "description": "All align-content values with flex-wrap - tests cross-axis alignment of wrapped lines",
   "surfaceId": "stability-align-content",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-align-content","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-align-content","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-align-content","components":[
       {"id":"root","component":"Column","children":["ac1","ac2","ac3"],"styles":{"width":"100%","gap":"16px","padding":"8px"}},
       {"id":"ac1","component":"Row","children":["a1a","a1b","a1c","a1d","a1e","a1f"],"styles":{"width":"200px","height":"200px","flex-wrap":"wrap","align-content":"flex-start"}},

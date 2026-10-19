@@ -262,6 +262,8 @@ class ChoicePickerComponent: Component {
     private var options: [[String: Any]] = []
     private var orientation: String = "vertical" // Default vertical layout
 
+    private let titleLabel = FormLabel()
+
     // Search state
     private var searchText: String = ""
     private var filteredOptions: [[String: Any]] = []
@@ -305,6 +307,8 @@ class ChoicePickerComponent: Component {
 
         // Load style configuration
         loadLocalStyleConfig()
+
+        addSubview(titleLabel)
 
         // Pre-create search input view (kept hidden until filterable=true).
         // Pre-creation avoids reordering subviews when filterable toggles at runtime.
@@ -380,10 +384,6 @@ class ChoicePickerComponent: Component {
         let displayStyle = (json["displayStyle"] as? String) ?? "checkbox"
         let filterable = (json["filterable"] as? Bool) ?? false
 
-        if optionLabels.isEmpty {
-            return .zero
-        }
-
         // 3. Load style config values
         var checkboxSize: CGFloat = 16
         var textMargin: CGFloat = 8
@@ -425,7 +425,7 @@ class ChoicePickerComponent: Component {
             let chipPaddingH: CGFloat = 16
 
             var rowWidth: CGFloat = 0
-            var rowCount: Int = 1
+            var rowCount: Int = optionLabels.isEmpty ? 0 : 1
             for label in optionLabels {
                 let textWidth = (label as NSString).size(withAttributes: [.font: chipFont]).width
                 let chipWidth = ceil(textWidth) + chipPaddingH * 2 + chipMargin * 2
@@ -467,7 +467,7 @@ class ChoicePickerComponent: Component {
         }
 
         var measuredWidth: CGFloat = constraintWidth
-        var measuredHeight: CGFloat = totalHeight
+        var measuredHeight: CGFloat = totalHeight + FormLabel.measure(json["label"], width: constraintWidth).height
 
         // 5. Apply MeasureMode constraints
         if (widthMode == .exactly || widthMode == .atMost) && maxWidth > 0 {
@@ -490,7 +490,7 @@ class ChoicePickerComponent: Component {
         super.layoutSubviews()
 
         let boundsWidth = bounds.width
-        var currentY: CGFloat = 0
+        var currentY = titleLabel.layout(width: boundsWidth)
 
         // 1. Search input bar at the top
         if let searchView = searchInputView, !searchView.isHidden {
@@ -614,6 +614,8 @@ class ChoicePickerComponent: Component {
 
     override func updateProperties(_ diff: [String: DiffValue]) {
         super.updateProperties(diff)
+        titleLabel.update(diff["label"])
+        setNeedsLayout()
 
         // Update variant
         if case .value(let v) = diff["variant"], let variantValue = v as? String {

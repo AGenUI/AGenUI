@@ -3,6 +3,7 @@ package com.amap.agenui.render.measurement;
 import android.content.Context;
 
 import com.amap.agenui.render.style.ComponentStyleConfig;
+import com.amap.agenui.render.component.view.FormLabelView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -22,6 +23,18 @@ public final class MeasurementSupport {
     public static final int MODE_UNDEFINED = 0;
     public static final int MODE_EXACTLY = 1;
     public static final int MODE_AT_MOST = 2;
+
+    /** Measure the same title font/spacing used by FormLabelView without creating a View. */
+    static MeasureResult measureFormLabel(Context context, JSONObject root, float width, int widthMode) {
+        String text = root == null ? "" : extractString(root.opt("label"));
+        if (text.isEmpty()) return MeasureResult.zero();
+        MeasureResult size = TextMeasurer.measureTextValue(context, text,
+                buildTextStyles(null,
+                        FormLabelView.TEXT_SIZE, false, "font-size"),
+                width, widthMode, 0f, MODE_UNDEFINED);
+        return MeasureResult.sync(size.width,
+                size.height + FormLabelView.SPACING);
+    }
 
     private MeasurementSupport() {
     }

@@ -2,7 +2,7 @@
   "description": "Web component inside a Modal - tests Web rendering in modal context",
   "surfaceId": "stability-web-modal",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-web-modal","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-web-modal","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-web-modal","components":[
       {"id":"root","component":"Column","children":["trigger","modal1"],"styles":{"width":"100%","padding":"16px"}},
       {"id":"trigger","component":"Button","child":"trigt","action":{"functionCall":{"name":"open_modal"}}},

@@ -6,7 +6,7 @@
     {
       "action": "createSurface",
       "delay_ms": 0,
-      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-1","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-1","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
     },
     {
       "action": "updateComponents",
@@ -22,7 +22,7 @@
     {
       "action": "createSurface",
       "delay_ms": 300,
-      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-2","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-2","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
     },
     {
       "action": "updateComponents",
@@ -38,7 +38,7 @@
     {
       "action": "createSurface",
       "delay_ms": 300,
-      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-3","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-3","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
     },
     {
       "action": "updateComponents",
@@ -54,7 +54,7 @@
     {
       "action": "createSurface",
       "delay_ms": 300,
-      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-4","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}}
+      "message": {"version":"v0.9","createSurface":{"surfaceId":"page-4","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}}
     },
     {
       "action": "updateComponents",

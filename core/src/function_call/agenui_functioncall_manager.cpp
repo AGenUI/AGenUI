@@ -74,7 +74,7 @@ FunctionCallResolution FunctionCallManager::executeFunctionCallSync(const std::s
     // 1. Look up C++ functionCall first (shared_ptr, inherently safe)
     FunctionCallPtr cppFunctionCall = findCppFunctionCall(name);
     if (cppFunctionCall) {
-        return cppFunctionCall->execute(args);
+        return cppFunctionCall->execute(args, context);
     }
 
     // 2. Fall back to platform functionCall

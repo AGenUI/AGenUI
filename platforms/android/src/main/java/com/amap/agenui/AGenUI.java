@@ -324,6 +324,12 @@ public class AGenUI {
      * AGenUI.getInstance().registerComponent("MyText", new MyTextComponentFactory());
      * AGenUI.getInstance().registerDeepParseProperty("MyText", "spans");
      * }</pre>
+     * <p>
+     * Reserved keys keep their dedicated parsing regardless of registration —
+     * with one nuance for {@code action}: registering it keeps the wrapper
+     * parsing, but dynamic values nested inside {@code functionCall.args} and
+     * {@code event.context} resolve at any depth (still lazily, at click time)
+     * instead of being frozen into static JSON.
      *
      * @param componentType Component type, i.e. the JSON {@code component} field
      *                      (e.g. "MyText") — applies to every instance of that type

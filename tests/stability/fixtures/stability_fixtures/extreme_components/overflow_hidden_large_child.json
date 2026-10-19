@@ -2,7 +2,7 @@
   "description": "overflow:hidden with children 5x larger than parent container - tests clipping",
   "surfaceId": "stability-overflow-clip",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-overflow-clip","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-overflow-clip","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-overflow-clip","components":[
       {"id":"root","component":"Column","children":["box1","box2","box3"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
       {"id":"box1","component":"Column","children":["big1"],"styles":{"width":"100px","height":"100px","overflow":"hidden"}},

@@ -141,6 +141,12 @@ public class UITestActivity extends AppCompatActivity {
         agenui.registerFontFromAsset("PlayfairDisplay", "fonts/PlayfairDisplay-Regular.ttf");
         agenui.registerFontFromAsset("FiraCode", "fonts/FiraCode-Regular.ttf");
 
+        // SDK form controls are opt-in; register them for rendering regression cases.
+        agenui.registerComponent("ChoicePicker",
+                new com.amap.agenui.render.component.factory.ChoicePickerComponentFactory());
+        agenui.registerComponent("Slider",
+                new com.amap.agenui.render.component.factory.SliderComponentFactory());
+
         // Register custom components (same as A2UIPlaygroundActivity)
         agenui.registerComponent("Markdown", new MarkdownComponentFactory());
         agenui.registerComponent("Lottie", new LottieComponentFactory());

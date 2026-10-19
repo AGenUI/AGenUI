@@ -487,7 +487,7 @@ public class SDKRiskProbeProtocolFuzzTest extends AGenUIBaseTest {
 
     private static String buildValidProtocolJson(String surfaceId) {
         return "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\""
-                + surfaceId + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + surfaceId + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"" + surfaceId
                 + "\",\"components\":["
                 + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"t1\"],"

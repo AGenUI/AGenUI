@@ -55,7 +55,7 @@ final class SDKRiskProbeRichTextBgThreadTest: XCTestCase {
     /// containing a RichText component with HTML content.
     private static func richTextPayload(surfaceId: String, html: String = "<p>This is <strong>bold</strong> and <em>italic</em> text with <a href='https://test.com'>a link</a>.</p>") -> String {
         """
-        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"root","component":"RichText","text":"\(html)","styles":{"fontSize":16}}]}}
+        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"root","component":"RichText","text":"\(html)","styles":{"fontSize":16}}]}}
         """
     }
 
@@ -63,7 +63,7 @@ final class SDKRiskProbeRichTextBgThreadTest: XCTestCase {
     private static func complexRichTextPayload(surfaceId: String) -> String {
         let html = "<div><h1>Title</h1><p>Paragraph with <b>bold</b>, <i>italic</i>, <u>underline</u></p><ul><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul><ol><li>First</li><li>Second</li></ol><blockquote>A quoted passage with <a href='http://example.com'>link</a></blockquote></div>"
         return """
-        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"rt1","component":"RichText","text":"\(html)","styles":{"fontSize":14,"color":"#333333"}}]}}
+        {"version":"v0.9","createSurface":{"surfaceId":"\(surfaceId)","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"},"updateComponents":{"surfaceId":"\(surfaceId)","components":[{"id":"rt1","component":"RichText","text":"\(html)","styles":{"fontSize":14,"color":"#333333"}}]}}
         """
     }
 

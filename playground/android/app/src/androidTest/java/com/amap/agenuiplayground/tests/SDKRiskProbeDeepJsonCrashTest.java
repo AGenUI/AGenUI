@@ -68,7 +68,7 @@ public class SDKRiskProbeDeepJsonCrashTest extends AGenUIBaseTest {
 
         // First create a surface, then send deeply nested component data
         String createChunk = "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"deep-uc-1\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         surfaceManager.beginTextStream();
         surfaceManager.receiveTextChunk(createChunk);
@@ -141,7 +141,7 @@ public class SDKRiskProbeDeepJsonCrashTest extends AGenUIBaseTest {
         StringBuilder sb = new StringBuilder(depth * 10);
         sb.append("{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"");
         sb.append(surfaceId);
-        sb.append("\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\",\"extra\":");
+        sb.append("\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\",\"extra\":");
         // Build nested object: {"a":{"a":{"a":...}}}
         for (int i = 0; i < depth; i++) {
             sb.append("{\"a\":");

@@ -2,7 +2,7 @@
   "description": "Components with display:none mixed with visible siblings - tests display toggling",
   "surfaceId": "stability-display-none",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-display-none","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-display-none","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-display-none","components":[
       {"id":"root","component":"Column","children":["vis1","hid1","vis2","hid2","vis3","hid3"],"styles":{"width":"100%","padding":"8px","gap":"8px"}},
       {"id":"vis1","component":"Text","text":"Visible 1","styles":{"width":"100%"}},

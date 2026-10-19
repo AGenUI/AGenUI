@@ -2,7 +2,7 @@
   "description": "Modal with deeply nested complex content including charts, lists, and forms - tests modal rendering",
   "surfaceId": "stability-modal-complex",
   "messages": [
-    {"version":"v0.9","createSurface":{"surfaceId":"stability-modal-complex","catalogId":"https://a2ui.org/specification/v0_9/basic_catalog.json"}},
+    {"version":"v0.9","createSurface":{"surfaceId":"stability-modal-complex","catalogId":"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"}},
     {"version":"v0.9","updateComponents":{"surfaceId":"stability-modal-complex","components":[
       {"id":"root","component":"Column","children":["bg","modal1"],"styles":{"width":"100%"}},
       {"id":"bg","component":"Text","text":"Background content"},

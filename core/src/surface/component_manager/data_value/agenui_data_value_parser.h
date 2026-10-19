@@ -69,17 +69,28 @@ public:
      * @brief Parse an event action data value
      * @param context Data value context pointer
      * @param valueJson JSON string
+     * @param deepParseContext When true, context values descend with
+     *        parseStructuredDataValue so bindings / function calls nested at
+     *        any depth inside event.context become real DataValues instead of
+     *        being frozen into static JSON. Default false keeps the legacy
+     *        one-level parsing.
      * @return EventActionDataValue smart pointer
      */
-    static std::shared_ptr<EventActionDataValue> parseEventActionDataValue(IDataValueContext* context, const std::string& valueJson);
+    static std::shared_ptr<EventActionDataValue> parseEventActionDataValue(IDataValueContext* context, const std::string& valueJson, bool deepParseContext = false);
 
     /**
      * @brief Parse a function-call action data value
      * @param context Data value context pointer
      * @param valueJson JSON string
+     * @param deepParseArgs When true, argument values descend with
+     *        parseStructuredDataValue so bindings / function calls nested at
+     *        any depth inside functionCall.args become real DataValues
+     *        instead of being frozen into static JSON; they still resolve
+     *        lazily at click time. Default false keeps the legacy one-level
+     *        parsing.
      * @return FunctionCallActionDataValue smart pointer
      */
-    static std::shared_ptr<FunctionCallActionDataValue> parseFunctionCallActionDataValue(IDataValueContext* context, const std::string& valueJson);
+    static std::shared_ptr<FunctionCallActionDataValue> parseFunctionCallActionDataValue(IDataValueContext* context, const std::string& valueJson, bool deepParseArgs = false);
 
     /**
      * @brief Parse a string into an interpolation expression composed of segments.
@@ -206,9 +217,14 @@ private:
      * @brief Parse a function-call data value
      * @param context Data value context pointer
      * @param valueJson JSON string
+     * @param deepParseArgs When true, argument values descend with
+     *        parseStructuredDataValue so bindings / function calls nested at
+     *        any depth inside args become real DataValues instead of being
+     *        frozen into static JSON. Default false keeps the legacy one-level
+     *        parsing.
      * @return FunctionCallDataValue smart pointer
      */
-    static std::shared_ptr<FunctionCallDataValue> parseFunctionCallDataValue(IDataValueContext* context, const std::string& valueJson);
+    static std::shared_ptr<FunctionCallDataValue> parseFunctionCallDataValue(IDataValueContext* context, const std::string& valueJson, bool deepParseArgs = false);
 
     /**
      * @brief Parse a data-binding data value

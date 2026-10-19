@@ -613,7 +613,7 @@ std::shared_ptr<FunctionCallDataValue> DataValueParser::parseFunctionCallDataVal
     return std::make_shared<FunctionCallDataValue>(context, functionName, args);
 }
 
-std::shared_ptr<FunctionCallDataValue> DataValueParser::parseFunctionCallDataValue(IDataValueContext* context, const std::string& valueJson) {
+std::shared_ptr<FunctionCallDataValue> DataValueParser::parseFunctionCallDataValue(IDataValueContext* context, const std::string& valueJson, bool deepParseArgs) {
     auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
     if (json.is_discarded() || !json.is_object()) {
@@ -642,7 +642,12 @@ std::shared_ptr<FunctionCallDataValue> DataValueParser::parseFunctionCallDataVal
         for (auto it = argsJson.begin(); it != argsJson.end(); ++it) {
             std::string paramName = it.key();
             std::string argValueJson = it.value().dump();
-            auto argValue = parseDataValue(context, argValueJson);
+            // Host-declared deep parse walks the arg subtree so nested
+            // bindings / function calls stay live DataValues; the default
+            // keeps the legacy one-level freeze.
+            auto argValue = deepParseArgs
+                ? parseStructuredDataValue(context, argValueJson)
+                : parseDataValue(context, argValueJson);
 
             if (!argValue) {
                 continue;
@@ -877,7 +882,7 @@ std::shared_ptr<TabsDataValue> DataValueParser::parseTabsDataValue(IDataValueCon
     return std::make_shared<TabsDataValue>(context, tabs);
 }
 
-std::shared_ptr<EventActionDataValue> DataValueParser::parseEventActionDataValue(IDataValueContext* context, const std::string& valueJson) {
+std::shared_ptr<EventActionDataValue> DataValueParser::parseEventActionDataValue(IDataValueContext* context, const std::string& valueJson, bool deepParseContext) {
     auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
     if (json.is_discarded() || !json.is_object() || !json.contains("event")) {
@@ -908,7 +913,12 @@ std::shared_ptr<EventActionDataValue> DataValueParser::parseEventActionDataValue
         for (auto it = contextJson.begin(); it != contextJson.end(); ++it) {
             std::string contextKey = it.key();
             std::string contextValueJson = it.value().dump();
-            auto contextValue = parseDataValue(context, contextValueJson);
+            // Host-declared deep parse walks the context subtree so nested
+            // bindings / function calls stay live DataValues; the default
+            // keeps the legacy one-level freeze.
+            auto contextValue = deepParseContext
+                ? parseStructuredDataValue(context, contextValueJson)
+                : parseDataValue(context, contextValueJson);
 
             if (!contextValue) {
                 continue;
@@ -921,7 +931,7 @@ std::shared_ptr<EventActionDataValue> DataValueParser::parseEventActionDataValue
     return std::make_shared<EventActionDataValue>(context, eventName, contextMap);
 }
 
-std::shared_ptr<FunctionCallActionDataValue> DataValueParser::parseFunctionCallActionDataValue(IDataValueContext* context, const std::string& valueJson) {
+std::shared_ptr<FunctionCallActionDataValue> DataValueParser::parseFunctionCallActionDataValue(IDataValueContext* context, const std::string& valueJson, bool deepParseArgs) {
     auto json = nlohmann::json::parse(valueJson, nullptr, false);
 
     if (json.is_discarded() || !json.is_object() || !json.contains("functionCall")) {
@@ -930,7 +940,7 @@ std::shared_ptr<FunctionCallActionDataValue> DataValueParser::parseFunctionCallA
 
     std::string functionCallJson = json["functionCall"].dump();
 
-    auto functionCallValue = parseFunctionCallDataValue(context, functionCallJson);
+    auto functionCallValue = parseFunctionCallDataValue(context, functionCallJson, deepParseArgs);
 
     if (!functionCallValue) {
         return nullptr;

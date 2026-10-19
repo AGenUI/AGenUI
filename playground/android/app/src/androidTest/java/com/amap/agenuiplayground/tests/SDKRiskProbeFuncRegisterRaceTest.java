@@ -187,7 +187,7 @@ public class SDKRiskProbeFuncRegisterRaceTest extends AGenUIBaseTest {
     private static String buildChunk(String surfaceId) {
         // A2UI protocol: createSurface + updateComponents with a function call trigger
         return "{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"" + surfaceId
-                + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + "\",\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"" + surfaceId
                 + "\",\"components\":[{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"btn\"],"
                 + "\"align\":\"stretch\",\"styles\":{\"width\":\"100%\",\"height\":\"100%\"}},"

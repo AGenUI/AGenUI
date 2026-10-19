@@ -152,7 +152,7 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
         // Send data that triggers onComponentsAdd
         String json = "{\"version\":\"v0.9\",\"createSurface\":"
                 + "{\"surfaceId\":\"risk30-surface\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}"
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}"
                 + "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"risk30-surface\","
                 + "\"components\":["
                 + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"c1\"]},"
@@ -255,7 +255,7 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
         // First: create a surface with a component
         String createJson = "{\"version\":\"v0.9\",\"createSurface\":"
                 + "{\"surfaceId\":\"risk30v2\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
         String addJson = "{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"risk30v2\","
                 + "\"components\":["
                 + "{\"id\":\"root\",\"component\":\"Column\",\"children\":[\"t1\"]},"
@@ -346,7 +346,7 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
         // Send createSurface → triggers onCreateSurface → destroy() → deadlock
         String createJson = "{\"version\":\"v0.9\",\"createSurface\":"
                 + "{\"surfaceId\":\"risk30v3\","
-                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/basic_catalog.json\"}}";
+                + "\"catalogId\":\"https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json\"}}";
 
         surfaceManager.beginTextStream();
         surfaceManager.receiveTextChunk(createJson);
