@@ -23,6 +23,16 @@ using ImageLoadCallback = std::function<void(
     bool               isCancelled
 )>;
 
+/**
+ * Which attribute a loaded PixelMap is applied to on the target node.
+ *   kImageSrc       - NODE_IMAGE_SRC, the foreground of an Image node (default)
+ *   kBackgroundImage - NODE_BACKGROUND_IMAGE, the node's own background layer
+ */
+enum class ImageApplyTarget {
+    kImageSrc,
+    kBackgroundImage
+};
+
 struct LoadImageRequest {
     std::string       url;
     float             width       = 0.0f;
@@ -31,6 +41,9 @@ struct LoadImageRequest {
     std::string       surfaceId;
     ArkUI_NodeHandle  nodeHandle  = nullptr;
     ImageLoadCallback callback;
+    // Kept last so existing aggregate-initialization call sites (which end
+    // with the callback) keep compiling with the kImageSrc default.
+    ImageApplyTarget  applyTarget = ImageApplyTarget::kImageSrc;
 };
 
 struct PixelMapData {
@@ -152,6 +165,9 @@ private:
 
     // requestId -> ArkUI Image node handle
     std::unordered_map<std::string, ArkUI_NodeHandle> pending_handles_;
+
+    // requestId -> which attribute the PixelMap is applied to (see ImageApplyTarget)
+    std::unordered_map<std::string, ImageApplyTarget> pending_apply_targets_;
 };
 
 } // namespace a2ui

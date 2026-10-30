@@ -44,6 +44,9 @@ enum AGenUIExeCode {
     DeleteSurface_MissingSurfaceId,
     DeleteSurface_EmptySurfaceId,
     DeleteSurface_JsonError,
+
+    // updateComponents: a component's children lead back to itself (cyclic reference).
+    UpdateComponents_CyclicReference,
 };
 
 /**

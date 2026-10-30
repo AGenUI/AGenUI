@@ -36,8 +36,10 @@ public:
     /**
      * @brief Update components
      * @param components Array of component JSON strings
+     * @return Execute_Success, or UpdateComponents_CyclicReference when at least
+     *         one component was dropped for introducing a reference cycle.
      */
-    void updateComponents(const std::vector<std::string>& components) override;
+    AGenUIExeCode updateComponents(const std::vector<std::string>& components) override;
 
     /**
      * @brief Synchronize a binding value
@@ -130,6 +132,12 @@ private:
      * @param entity Parent component model
      */
     void parseChildren(const nlohmann::json& json, const std::string& componentType, std::shared_ptr<ComponentModel> entity);
+
+    /**
+     * @brief Whether committing this component would introduce a reference cycle
+     *        against the already-committed graph in _components.
+     */
+    bool wouldIntroduceCycle(const ComponentModel& component) const;
 
     /**
      * @brief Register a newly created component and enqueue it for the

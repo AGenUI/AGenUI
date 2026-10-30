@@ -384,9 +384,10 @@ endif()
 #   repro_plain_stress               : the same race under load, without a sanitizer
 #   repro_datamodel_path_type_mismatch : updateDataModel/appendDataModel path type crash (RISK46/47)
 #   repro_stress_datamodel            : DataModel pathological input stress test
+#   repro_orphan_iterator_uaf         : VirtualDOM orphan-table id-cycle defects (payload A stack overflow / B use-after-free)
 #
 # Standalone executables, not registered with ctest — run them manually.
-foreach(_repro repro_sm_uaf repro_thread_post_uaf repro_plain_stress repro_dangling_post_proof repro_datamodel_path_type_mismatch repro_stress_datamodel)
+foreach(_repro repro_sm_uaf repro_thread_post_uaf repro_plain_stress repro_dangling_post_proof repro_datamodel_path_type_mismatch repro_stress_datamodel repro_orphan_iterator_uaf)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/repro/${_repro}.cpp")
         add_executable(${_repro} "${CMAKE_CURRENT_SOURCE_DIR}/repro/${_repro}.cpp")
         target_include_directories(${_repro} PRIVATE ${AGENUI_TESTS_INCLUDE_DIRS})

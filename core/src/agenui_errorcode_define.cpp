@@ -73,6 +73,9 @@ std::string getExeCodeString(AGenUIExeCode code) {
         case DeleteSurface_JsonError:
             return "JSON exception in deleteSurface";
 
+        case UpdateComponents_CyclicReference:
+            return "cyclic component reference detected in updateComponents";
+
         default:
             return "unknown";
     }

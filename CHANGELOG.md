@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] - 2026-10-30
+
+### Features
+
+- **Component Cycle Detection**: `updateComponents` now detects cyclic references, skips components that introduce cycles, and reports a protocol error.
+- **(iOS) Component View Lookup**: Added `Surface.viewForComponent(_:)` to retrieve a component's `UIView` by ID.
+
+### Bug Fixes
+
+- (Core) Added cycle guards to orphan-node display checks, preventing infinite recursion and stack overflows.
+- (HarmonyOS) Moved `background-image` rendering to the node's background layer, fixing content overlap, layout interference, sizing, and rounded-corner clipping. Unified TextField background-image handling.
+- (HarmonyOS) Restored retries for unchanged background-image URLs after load failures, and cleaned up pending image requests and callbacks when JS dispatch fails.
+
+---
+
 ## [1.7.0] - 2026-10-19
 
 ### Features

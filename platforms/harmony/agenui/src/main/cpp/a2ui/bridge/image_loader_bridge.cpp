@@ -114,18 +114,46 @@ void ImageLoaderBridge::CallLoadImageOnJsThread(
 
     ImageLoaderBridge& bridge = *static_cast<ImageLoaderBridge*>(context);
 
-    // Resolve the loader object.
+    // Fails the request and keeps the three pending maps consistent. The
+    // callback runs outside the lock, matching onFailed()'s contract.
+    // Without this, an early return below would leak the callback / handle /
+    // apply-target entries and never notify the caller.
+    auto failAndCleanup = [&bridge, payload](const char* reason) {
+        HM_LOGE("ImageLoaderBridge: dispatch failed (%s), requestId=%s url=%s",
+            reason, payload->requestId.c_str(), payload->url.c_str());
+        ImageLoadCallback cb;
+        {
+            std::lock_guard<std::mutex> lock(bridge.mutex_);
+            auto it = bridge.pending_callbacks_.find(payload->requestId);
+            if (it != bridge.pending_callbacks_.end()) {
+                cb = std::move(it->second);
+                bridge.pending_callbacks_.erase(it);
+                bridge.pending_handles_.erase(payload->requestId);
+                bridge.pending_apply_targets_.erase(payload->requestId);
+            }
+        }
+        if (cb) cb(payload->requestId, false, false);
+        delete payload;
+    };
+
+    // Resolve the loader object. The null check is hoisted out of the lock so
+    // the failure path can take the lock itself inside failAndCleanup.
     napi_value loaderObj = nullptr;
+    bool loaderRefMissing = false;
     {
         std::lock_guard<std::mutex> lock(bridge.mutex_);
         if (bridge.loader_ref_ == nullptr) {
-            delete payload;
-            return;
+            loaderRefMissing = true;
+        } else {
+            napi_get_reference_value(env, bridge.loader_ref_, &loaderObj);
         }
-        napi_get_reference_value(env, bridge.loader_ref_, &loaderObj);
+    }
+    if (loaderRefMissing) {
+        failAndCleanup("loader unregistered");
+        return;
     }
     if (loaderObj == nullptr) {
-        delete payload;
+        failAndCleanup("loader object unavailable");
         return;
     }
 
@@ -133,8 +161,7 @@ void ImageLoaderBridge::CallLoadImageOnJsThread(
     napi_value loadImageFn = nullptr;
     napi_get_named_property(env, loaderObj, "loadImage", &loadImageFn);
     if (loadImageFn == nullptr) {
-        HM_LOGE("ImageLoaderBridge: loader has no loadImage method");
-        delete payload;
+        failAndCleanup("loader has no loadImage method");
         return;
     }
 
@@ -175,17 +202,7 @@ void ImageLoaderBridge::CallLoadImageOnJsThread(
     napi_value returnVal = nullptr;
     napi_status callStatus = napi_call_function(env, thisVal, loadImageFn, 3, args, &returnVal);
     if (callStatus != napi_ok) {
-        HM_LOGE("ImageLoaderBridge: napi_call_function(loadImage) failed, url=%s", payload->url.c_str());
-        // Notify failure
-        std::lock_guard<std::mutex> lock(bridge.mutex_);
-        auto it = bridge.pending_callbacks_.find(payload->requestId);
-        if (it != bridge.pending_callbacks_.end()) {
-            auto cb = std::move(it->second);
-            bridge.pending_callbacks_.erase(it);
-            bridge.pending_handles_.erase(payload->requestId);
-            if (cb) cb(payload->requestId, false, false);
-        }
-        delete payload;
+        failAndCleanup("napi_call_function(loadImage)");
         return;
     }
 
@@ -264,6 +281,7 @@ std::string ImageLoaderBridge::loadImage(const LoadImageRequest& request) {
         pending_callbacks_[requestId] = request.callback;
         if (request.nodeHandle != nullptr) {
             pending_handles_[requestId] = request.nodeHandle;
+            pending_apply_targets_[requestId] = request.applyTarget;
         }
         tsfn = tsfn_load_image_;
     }
@@ -278,6 +296,7 @@ std::string ImageLoaderBridge::loadImage(const LoadImageRequest& request) {
         std::lock_guard<std::mutex> lock(mutex_);
         pending_callbacks_.erase(requestId);
         pending_handles_.erase(requestId);
+        pending_apply_targets_.erase(requestId);
         return "";
     }
 
@@ -297,6 +316,7 @@ void ImageLoaderBridge::cancel(const std::string& requestId) {
         // Drop the pending callback entry.
         pending_callbacks_.erase(requestId);
         pending_handles_.erase(requestId);
+        pending_apply_targets_.erase(requestId);
         tsfn = tsfn_cancel_;
     }
 
@@ -320,6 +340,7 @@ void ImageLoaderBridge::cancel(const std::string& requestId) {
 void ImageLoaderBridge::setImagePixelMapFromBytes(const PixelMapData& pixelMap) {
     ImageLoadCallback cb;
     ArkUI_NodeHandle handle = nullptr;
+    ImageApplyTarget applyTarget = ImageApplyTarget::kImageSrc;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = pending_callbacks_.find(pixelMap.requestId);
@@ -335,6 +356,11 @@ void ImageLoaderBridge::setImagePixelMapFromBytes(const PixelMapData& pixelMap) 
         if (hit != pending_handles_.end()) {
             handle = hit->second;
             pending_handles_.erase(hit);
+        }
+        auto targetHit = pending_apply_targets_.find(pixelMap.requestId);
+        if (targetHit != pending_apply_targets_.end()) {
+            applyTarget = targetHit->second;
+            pending_apply_targets_.erase(targetHit);
         }
     }
 
@@ -383,8 +409,12 @@ void ImageLoaderBridge::setImagePixelMapFromBytes(const PixelMapData& pixelMap) 
         return;
     }
 
-    ArkUI_AttributeItem item = { .object = descriptor };
-    g_nodeAPI->setAttribute(handle, NODE_IMAGE_SRC, &item);
+    if (applyTarget == ImageApplyTarget::kBackgroundImage) {
+        A2UINode(handle).setBackgroundImage(descriptor);
+    } else {
+        ArkUI_AttributeItem item = { .object = descriptor };
+        g_nodeAPI->setAttribute(handle, NODE_IMAGE_SRC, &item);
+    }
     OH_ArkUI_DrawableDescriptor_Dispose(descriptor);
     OH_PixelmapNative_Release(nativePixelmap);
 
@@ -396,6 +426,7 @@ void ImageLoaderBridge::setImagePixelMapFromBytes(const PixelMapData& pixelMap) 
 void ImageLoaderBridge::setImagePixelMapFromNative(const std::string& requestId, OH_PixelmapNative* nativePixelMap) {
     ImageLoadCallback cb;
     ArkUI_NodeHandle handle = nullptr;
+    ImageApplyTarget applyTarget = ImageApplyTarget::kImageSrc;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         auto it = pending_callbacks_.find(requestId);
@@ -414,6 +445,11 @@ void ImageLoaderBridge::setImagePixelMapFromNative(const std::string& requestId,
         if (hit != pending_handles_.end()) {
             handle = hit->second;
             pending_handles_.erase(hit);
+        }
+        auto targetHit = pending_apply_targets_.find(requestId);
+        if (targetHit != pending_apply_targets_.end()) {
+            applyTarget = targetHit->second;
+            pending_apply_targets_.erase(targetHit);
         }
     }
 
@@ -438,8 +474,12 @@ void ImageLoaderBridge::setImagePixelMapFromNative(const std::string& requestId,
         return;
     }
 
-    ArkUI_AttributeItem item = { .object = descriptor };
-    g_nodeAPI->setAttribute(handle, NODE_IMAGE_SRC, &item);
+    if (applyTarget == ImageApplyTarget::kBackgroundImage) {
+        A2UINode(handle).setBackgroundImage(descriptor);
+    } else {
+        ArkUI_AttributeItem item = { .object = descriptor };
+        g_nodeAPI->setAttribute(handle, NODE_IMAGE_SRC, &item);
+    }
     OH_ArkUI_DrawableDescriptor_Dispose(descriptor);
     OH_PixelmapNative_Release(nativePixelMap);
     HM_LOGI("ImageLoaderBridge::setImagePixelMapFromNative - PixelMap set to node OK, requestId=%s",
@@ -461,6 +501,7 @@ void ImageLoaderBridge::onFailed(const std::string& requestId, bool isCancelled)
         cb = std::move(it->second);
         pending_callbacks_.erase(it);
         pending_handles_.erase(requestId);
+        pending_apply_targets_.erase(requestId);
     }
 
     HM_LOGI("ImageLoaderBridge::onFailed - requestId=%s cancelled=%d", requestId.c_str(), isCancelled);
@@ -487,6 +528,7 @@ void ImageLoaderBridge::clear() {
     env_ = nullptr;
     pending_callbacks_.clear();
     pending_handles_.clear();
+    pending_apply_targets_.clear();
 
     HM_LOGI("ImageLoaderBridge: Cleared");
 }

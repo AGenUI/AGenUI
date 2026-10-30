@@ -416,35 +416,12 @@ void TextFieldComponent::applyBorderColor(const nlohmann::json& styles) {
 }
 
 /**
- * @brief Apply the background image on the leaf TextInput / TextArea node.
- *        TEXT_INPUT / TEXT_AREA do not support addChild, so the base class's
- *        "child Image node" approach does not work. We use the leaf-friendly
- *        NODE_BACKGROUND_IMAGE attribute instead.
- * @param styles Style JSON object.
+ * @brief The background-image layer lives on the inner TextInput / TextArea
+ *        node (see backgroundImageTargetNode); the shared base implementation
+ *        handles URL parsing, dedupe, external loading and reset.
  */
-void TextFieldComponent::applyBackgroundImage(const nlohmann::json& styles) {
-    if (!styles.contains("background-image") || !styles["background-image"].is_string()) {
-        return;
-    }
-
-    std::string url = extractUrlFromCssUrl(styles["background-image"].get<std::string>());
-    if (url.empty()) {
-        return;
-    }
-
-    ArkUI_AttributeItem item = {nullptr, 0, url.c_str()};
-    int32_t ret = g_nodeAPI->setAttribute(m_textInputHandle, NODE_BACKGROUND_IMAGE, &item);
-
-    // Make the background image cover the full node area.
-    // Default behaviour pins the original-size image at top-left, so we explicitly
-    // set the size mode to COVER (preserve aspect ratio, may crop edges).
-    ArkUI_NumberValue sizeValue[] = {{.i32 = ARKUI_IMAGE_SIZE_COVER}};
-    ArkUI_AttributeItem sizeItem  = {sizeValue, 1};
-    int32_t sizeRet = g_nodeAPI->setAttribute(
-        m_textInputHandle, NODE_BACKGROUND_IMAGE_SIZE_WITH_STYLE, &sizeItem);
-
-    HM_LOGI("TextField applyBackgroundImage: id=%s, url=%s, ret=%d, sizeRet=%d",
-            m_id.c_str(), url.c_str(), ret, sizeRet);
+ArkUI_NodeHandle TextFieldComponent::backgroundImageTargetNode() const {
+    return m_textInputHandle;
 }
 
 void TextFieldComponent::handleTextChanged(const std::string& text) {

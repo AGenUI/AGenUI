@@ -3,6 +3,7 @@
 #include "agenui_logger_internal.h"
 #include "surface/agenui_isurface_context.h"
 #include <functional>
+#include <unordered_set>
 #include <yoga/Yoga.h>
 #include "surface/yoga_node/agenui_yoga_node_manager.h"
 
@@ -128,36 +129,41 @@ bool VirtualDOM::checkCanDisplay(const ComponentSnapshot& snapshot) const {
         return nullptr;
     };
 
-    // Recursively check if any descendant has data ready
-    std::function<bool(const ComponentSnapshot&)> hasAnyDescendantDataReady =
-        [&](const ComponentSnapshot& s) -> bool {
+    // The two orphan tables together form a graph, not a tree: a template
+    // component K can list K_x as a child while K_x lists K back, so an id cycle
+    // makes the recursions below descend forever. Each carries a `visited` set;
+    // the neutral return on a repeat (false for the existential predicate, true
+    // for the universal ones) preserves its meaning over the reachable node set.
+    std::function<bool(const ComponentSnapshot&, std::unordered_set<std::string>&)> hasAnyDescendantDataReady =
+        [&](const ComponentSnapshot& s, std::unordered_set<std::string>& visited) -> bool {
+        if (!visited.insert(s.id).second) return false;
         for (const auto& childId : s.children) {
             const ComponentSnapshot* child = findChildSnapshot(childId);
             if (child == nullptr) continue;
             if (isAnyDataReady(child->dataBindingStatus)) return true;
-            if (hasAnyDescendantDataReady(*child)) return true;
+            if (hasAnyDescendantDataReady(*child, visited)) return true;
         }
         return false;
     };
 
-    // Recursively check if all descendants are in orphan and are NotDependent
-    std::function<bool(const ComponentSnapshot&)> allDescendantsNotDependent =
-        [&](const ComponentSnapshot& s) -> bool {
+    std::function<bool(const ComponentSnapshot&, std::unordered_set<std::string>&)> allDescendantsNotDependent =
+        [&](const ComponentSnapshot& s, std::unordered_set<std::string>& visited) -> bool {
+        if (!visited.insert(s.id).second) return true;
         for (const auto& childId : s.children) {
             const ComponentSnapshot* child = findChildSnapshot(childId);
             if (child == nullptr || child->dataBindingStatus != DataBindingStatus::NotDependent) return false;
-            if (!allDescendantsNotDependent(*child)) return false;
+            if (!allDescendantsNotDependent(*child, visited)) return false;
         }
         return true;
     };
 
-    // Recursively check if all descendants are in orphan and are FullyReady or NotDependent
-    std::function<bool(const ComponentSnapshot&)> allDescendantsFullyReadyOrNotDependent =
-        [&](const ComponentSnapshot& s) -> bool {
+    std::function<bool(const ComponentSnapshot&, std::unordered_set<std::string>&)> allDescendantsFullyReadyOrNotDependent =
+        [&](const ComponentSnapshot& s, std::unordered_set<std::string>& visited) -> bool {
+        if (!visited.insert(s.id).second) return true;
         for (const auto& childId : s.children) {
             const ComponentSnapshot* child = findChildSnapshot(childId);
             if (child == nullptr || !isFullyReadyOrNotDependent(child->dataBindingStatus)) return false;
-            if (!allDescendantsFullyReadyOrNotDependent(*child)) return false;
+            if (!allDescendantsFullyReadyOrNotDependent(*child, visited)) return false;
         }
         return true;
     };
@@ -177,11 +183,13 @@ bool VirtualDOM::checkCanDisplay(const ComponentSnapshot& snapshot) const {
             if (isAnyDataReady(snapshot.dataBindingStatus)) return true;
 
             // Condition B: any descendant's data is ready
-            if (hasAnyDescendantDataReady(snapshot)) return true;
+            std::unordered_set<std::string> visitedB;
+            if (hasAnyDescendantDataReady(snapshot, visitedB)) return true;
 
             // Condition C: self and all descendants are orphans and all are NotDependent
             if (snapshot.dataBindingStatus == DataBindingStatus::NotDependent) {
-                return allDescendantsNotDependent(snapshot);
+                std::unordered_set<std::string> visitedC;
+                return allDescendantsNotDependent(snapshot, visitedC);
             }
             return false;
         }
@@ -189,7 +197,8 @@ bool VirtualDOM::checkCanDisplay(const ComponentSnapshot& snapshot) const {
         case DisplayRule::AllDataReady: {
             // All descendants must be in orphan and be FullyReady or NotDependent
             if (!isFullyReadyOrNotDependent(snapshot.dataBindingStatus)) return false;
-            return allDescendantsFullyReadyOrNotDependent(snapshot);
+            std::unordered_set<std::string> visitedD;
+            return allDescendantsFullyReadyOrNotDependent(snapshot, visitedD);
         }
     }
     return false;

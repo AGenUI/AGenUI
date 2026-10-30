@@ -309,16 +309,9 @@ void A2UIComponent::destroy() {
         m_actionClickRegistered = false;
     }
 
-    if (m_backgroundImageHandle) {
-        if (!m_backgroundImageRequestId.empty()) {
-            ImageLoaderBridge::getInstance().cancel(m_backgroundImageRequestId);
-            m_backgroundImageRequestId.clear();
-        }
-        if (m_nodeHandle) {
-            g_nodeAPI->removeChild(m_nodeHandle, m_backgroundImageHandle);
-        }
-        g_nodeAPI->disposeNode(m_backgroundImageHandle);
-        m_backgroundImageHandle = nullptr;
+    if (!m_backgroundImageRequestId.empty()) {
+        ImageLoaderBridge::getInstance().cancel(m_backgroundImageRequestId);
+        m_backgroundImageRequestId.clear();
         m_backgroundImageUrl.clear();
     }
 
@@ -618,8 +611,34 @@ uint32_t A2UIComponent::parseColorWithToken(const nlohmann::json& colorValue, ui
 
 // extractUrlFromCssUrl is provided by utils/a2ui_parse_utils.h (inline).
 
+/**
+ * background-image is painted on the component's own background layer
+ * (NODE_BACKGROUND_IMAGE) instead of a stacked child Image node.
+ *
+ * Why the child-Image approach was replaced: a background Image child is a
+ * real sibling — with zIndex=-1 it covers the content of leaf nodes (Text/
+ * Button have no separate text child to raise above it), its percent sizes
+ * resolve against the parent's content box (wrong with padding), it takes
+ * part in container layout, and it breaks every container's "children are
+ * content" contract. The background layer paints under all children, fills
+ * the border box and is clipped by border-radius, matching CSS semantics.
+ *
+ * Fill mode: the background layer supports Auto/Contain/Cover only (no
+ * stretch), so we pin Cover — aspect-preserving, cropping overflow. This
+ * matches iOS layer.contents semantics and the TextField implementation that
+ * already used this layer.
+ *
+ * Loading order is aligned with Android StyleHelper.loadBackgroundImageAsync:
+ * with a host loader registered it is the only network channel — the URL
+ * never reaches the attribute directly (no duplicate fetch, no bypassing of
+ * the host's crop/auth policies), and a failed load keeps the sync background
+ * (background-color/gradient) with no secondary fetch. The url attribute is
+ * a Harmony-only convenience used when no loader exists (playground/bare SDK)
+ * or when the loader could not even accept the request.
+ */
 void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
-    if (!m_nodeHandle) {
+    ArkUI_NodeHandle target = backgroundImageTargetNode();
+    if (!target) {
         return;
     }
     
@@ -637,17 +656,19 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
             ImageLoaderBridge::getInstance().cancel(m_backgroundImageRequestId);
             m_backgroundImageRequestId.clear();
         }
-        if (m_backgroundImageHandle) {
-            g_nodeAPI->removeChild(m_nodeHandle, m_backgroundImageHandle);
-            g_nodeAPI->disposeNode(m_backgroundImageHandle);
-            m_backgroundImageHandle = nullptr;
+        if (!m_backgroundImageUrl.empty()) {
+            A2UINode(target).resetBackgroundImage();
             m_backgroundImageUrl.clear();
             HM_LOGI("Removed background image for component %s", m_id.c_str());
         }
+        m_backgroundImageLoadFailed->store(false);
         return;
     }
     
-    if (bgImageUrl == m_backgroundImageUrl && m_backgroundImageHandle) {
+    // A failed url must be retried by the next identical update: the background layer
+    // kept the previous image, so deduping would leave that stale image on screen until
+    // the component is recreated or a different url succeeds.
+    if (bgImageUrl == m_backgroundImageUrl && !m_backgroundImageLoadFailed->load()) {
         return;
     }
     
@@ -656,34 +677,16 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
         m_backgroundImageRequestId.clear();
     }
 
-    if (m_backgroundImageHandle) {
-        g_nodeAPI->removeChild(m_nodeHandle, m_backgroundImageHandle);
-        g_nodeAPI->disposeNode(m_backgroundImageHandle);
-        m_backgroundImageHandle = nullptr;
-    }
-    
-    m_backgroundImageHandle = g_nodeAPI->createNode(ARKUI_NODE_IMAGE);
-    if (!m_backgroundImageHandle) {
-        HM_LOGE("Failed to create background image node for component %s", m_id.c_str());
-        return;
-    }
-    
-    A2UIImageNode bgNode(m_backgroundImageHandle);
-    bgNode.setObjectFitFill();
-    bgNode.setPercentWidth(1.0f);
-    bgNode.setPercentHeight(1.0f);
-    A2UINode bgNodeBase(m_backgroundImageHandle);
-    bgNodeBase.setZIndex(-1.0f);
-    bgNodeBase.setHitTestBehavior(ARKUI_HIT_TEST_MODE_NONE);
-    
-    g_nodeAPI->addChild(m_nodeHandle, m_backgroundImageHandle);
     m_backgroundImageUrl = bgImageUrl;
+    m_backgroundImageLoadFailed->store(false);
+    A2UINode bgNode(target);
+    // Declared up-front: independent attribute, applies to whatever ends up on
+    // the background layer (url string or loaded PixelMap descriptor).
+    bgNode.setBackgroundImageSize(ARKUI_IMAGE_SIZE_COVER);
 
-    // Check whether an external loader exists
     if (ImageLoaderBridge::getInstance().hasLoader()) {
-        ArkUI_NodeHandle bgHandle = m_backgroundImageHandle;
-        std::string currentUrl   = bgImageUrl;
-        std::string componentId  = m_id;
+        std::string currentUrl  = bgImageUrl;
+        std::string componentId = m_id;
 
         std::string requestId = ImageLoaderBridge::getInstance().loadImage({
             bgImageUrl,
@@ -691,34 +694,51 @@ void A2UIComponent::applyBackgroundImage(const nlohmann::json& styles) {
             getHeight(),
             m_id,
             getSurfaceId(),
-            bgHandle,
-            [bgHandle, currentUrl, componentId](const std::string& rid, bool success, bool isCancelled) {
+            target,
+            [currentUrl, componentId, loadFailed = m_backgroundImageLoadFailed](
+                const std::string& rid, bool success, bool isCancelled) {
                 if (isCancelled) {
                     HM_LOGI("bg image_loader: cancelled, componentId=%s url=%s",
                         componentId.c_str(), currentUrl.c_str());
                     return;
                 }
                 if (!success) {
-                    HM_LOGW("bg image_loader: failed, fallback ArkUI, componentId=%s url=%s",
+                    // Aligned with Android: no secondary fetch, the PixelMap-on-success
+                    // path is owned by the bridge (it sets the descriptor on the
+                    // background layer). Unlike Android, which falls back to the sync
+                    // background, we keep the previous image on the background layer;
+                    // flag the failure so the next identical url is not deduped away.
+                    loadFailed->store(true);
+                    HM_LOGW("bg image_loader: failed, keep previous image on the background layer"
+                        " (Android falls back to sync background), componentId=%s url=%s",
                         componentId.c_str(), currentUrl.c_str());
-                    if (bgHandle) {
-                        A2UIImageNode(bgHandle).setSrc(currentUrl);
-                    }
                     return;
                 }
-                HM_LOGI("bg image_loader: success(PixelMap set), componentId=%s url=%s",
+                HM_LOGI("bg image_loader: success(PixelMap on background layer), componentId=%s url=%s",
                     componentId.c_str(), currentUrl.c_str());
-            }
+            },
+            ImageApplyTarget::kBackgroundImage
         });
 
         if (requestId.empty()) {
-            HM_LOGW("bg image_loader: loadImage failed, fallback ArkUI, componentId=%s", m_id.c_str());
-            bgNode.setSrc(bgImageUrl);
+            // Loader could not even accept the request (e.g. TSFN not ready):
+            // degrade to the url attribute so the layer is not empty.
+            HM_LOGW("bg image_loader: dispatch failed, fall back to url attribute, componentId=%s", m_id.c_str());
+            bgNode.setBackgroundImage(bgImageUrl);
+            // The degraded url is loaded natively by ArkUI and its outcome is never
+            // reported back to C++, so flag it as unconfirmed: the next identical update
+            // must not be deduped away and gets another chance once the loader is ready.
+            m_backgroundImageLoadFailed->store(true);
         } else {
             m_backgroundImageRequestId = requestId;
         }
     } else {
-        bgNode.setSrc(bgImageUrl);
+        // No host loader (playground / bare SDK): let ArkUI load the URL natively.
+        // Same as the dispatch-failure path, this result is not observable here, so the
+        // url stays retryable. Re-setting an unchanged url is idempotent and hits ArkUI's
+        // image cache, hence no extra fetch is expected.
+        bgNode.setBackgroundImage(bgImageUrl);
+        m_backgroundImageLoadFailed->store(true);
     }
 
     HM_LOGI("Set background image %s for component %s", bgImageUrl.c_str(), m_id.c_str());

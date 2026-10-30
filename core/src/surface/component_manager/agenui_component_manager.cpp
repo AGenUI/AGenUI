@@ -2,6 +2,7 @@
 #include "data_value/agenui_data_value_parser.h"
 #include "surface/datamodel/agenui_idata_model.h"
 #include "surface/agenui_serializable_data.h"
+#include "surface/validation/agenui_topology_validator.h"
 #include "agenui_engine_context.h"
 #include "surface/component_property_spec/agenui_icomponent_property_spec_manager.h"
 #include "agenui_logger_internal.h"
@@ -20,11 +21,12 @@ ComponentManager::~ComponentManager() {
     _components.clear();
 }
 
-void ComponentManager::updateComponents(const std::vector<std::string>& components) {
+AGenUIExeCode ComponentManager::updateComponents(const std::vector<std::string>& components) {
     // Batching is the caller's responsibility: every external entry point
     // (see Surface::updateComponents) wraps the call in a BatchScope so
     // attribute updates triggered during parsing/data-binding fan out
     // into a single flush per component.
+    AGenUIExeCode code = Execute_Success;
     for (const auto& componentJson : components) {
         nlohmann::json json;
         try {
@@ -38,11 +40,37 @@ void ComponentManager::updateComponents(const std::vector<std::string>& componen
         }
 
         auto component = parseComponent(json);
-        if (component) {
-            addComponent(component);
-            tryUpdateTemplate(component->getId());
+        if (!component) {
+            continue;
         }
+
+        // A2UI models the UI as a tree; a component whose children lead back to
+        // itself is malformed. Drop it (and report) rather than commit a cycle,
+        // which would otherwise corrupt the orphan tables. See TopologyValidator.
+        if (wouldIntroduceCycle(*component)) {
+            AGENUI_LOG("drop component id=%s (%s): cyclic reference",
+                       component->getId().c_str(), component->getComponent().c_str());
+            code = UpdateComponents_CyclicReference;
+            continue;
+        }
+
+        addComponent(component);
+        tryUpdateTemplate(component->getId());
     }
+    return code;
+}
+
+bool ComponentManager::wouldIntroduceCycle(const ComponentModel& component) const {
+    TopologyValidator::ChildrenProvider provider =
+        [this](const std::string& id, std::vector<std::string>& outChildren) -> bool {
+        auto it = _components.find(id);
+        if (it == _components.end() || !it->second) {
+            return false;
+        }
+        outChildren = it->second->getChildren();
+        return true;
+    };
+    return TopologyValidator::wouldIntroduceCycle(component.getId(), component.getChildren(), provider);
 }
 
 // Intercept streaming text chunks before parseComponent, which would create

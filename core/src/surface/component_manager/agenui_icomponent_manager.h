@@ -4,6 +4,8 @@
 #include <vector>
 #include <map>
 
+#include "agenui_errorcode_define.h"
+
 namespace agenui {
 
 class BatchGuard;
@@ -25,8 +27,10 @@ public:
     /**
      * @brief Update components
      * @param components Array of component JSON strings
+     * @return Execute_Success, or UpdateComponents_CyclicReference when at least
+     *         one component was dropped for introducing a reference cycle.
      */
-    virtual void updateComponents(const std::vector<std::string>& components) = 0;
+    virtual AGenUIExeCode updateComponents(const std::vector<std::string>& components) = 0;
 
     /**
      * @brief Synchronize a binding value

@@ -221,7 +221,10 @@ AGenUIExeCode Surface::updateComponents(const nlohmann::json& componentsData) {
         if (!displayRules.empty()) {
             _componentManager->setComponentsDisplayRule(displayRules);
         }
-        _componentManager->updateComponents(parsedComponents);
+        AGenUIExeCode cmCode = _componentManager->updateComponents(parsedComponents);
+        if (cmCode != Execute_Success) {
+            return cmCode;
+        }
     }
 
     return Execute_Success;

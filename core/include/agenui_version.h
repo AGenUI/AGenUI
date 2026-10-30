@@ -1,3 +1,3 @@
 #pragma once
 
-#define AGENUI_VERSION "1.7.0"
+#define AGENUI_VERSION "1.8.0"

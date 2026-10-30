@@ -22,17 +22,14 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.7.0
+## What's New in v1.8.0
 
-> Released on 2026-10-19
+> Released on 2026-10-30
 
-- **`resolveCalls` Built-in Function**: Recursively executes FunctionCalls nested in JSON and replaces each call node with its return value.
-- **Deep Parsing for `action`**: `registerDeepParseProperty` now enables nested binding resolution within function arguments and event context.
-- **Cross-Platform Form Labels**: Completed `label` rendering and measurement for ChoicePicker and Slider, supporting wrapping, dynamic updates, and clearing.
-- (Android) Fixed `line-height` being lost after dynamic text updates.
-- (HarmonyOS) Fixed crashes when tapping Images with an `action`, and added event-type checks to RichText and Tabs callbacks.
-- (HarmonyOS) Adjusted ChoicePicker node cleanup to ensure correct destruction order.
-- (Playground) Updated the basic catalog URL and related test references.
+- **Component Cycle Protection**: Added cycle detection and orphan-node guards to prevent infinite recursion and stack overflows from malformed protocols.
+- **(iOS) Component View Lookup**: Added `Surface.viewForComponent(_:)` to retrieve a component's native view by ID.
+- (HarmonyOS) Fixed background images covering content, interfering with layout, and clipping incorrectly at rounded corners.
+- (HarmonyOS) Restored retries for unchanged background-image URLs after load failures and improved failed-request cleanup.
 
 ---
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <vector>
 #include <memory>
@@ -313,11 +314,22 @@ protected:
     virtual void onUpdateProperties(const nlohmann::json& properties);
     
     /**
-     * Apply the background-image style
-     * Create an IMAGE child node under the component node, with the same size and the lowest z-index
+     * Apply the background-image style on the node's own background layer
+     * (NODE_BACKGROUND_IMAGE), not on a stacked child Image node: the layer
+     * paints under all children/content, fills the border box and is clipped
+     * by border-radius, so content-bearing leaves (Text/Button) keep their
+     * content visible. Virtual because leaf nodes without child capacity
+     * (TextInput/TextArea) retarget the layer via backgroundImageTargetNode().
      * @param styles Style JSON object
      */
-    void applyBackgroundImage(const nlohmann::json& styles);
+    virtual void applyBackgroundImage(const nlohmann::json& styles);
+
+    /**
+     * Node that carries the background-image layer. Defaults to the component
+     * node itself; subclasses whose ArkUI node rejects children (TextInput/
+     * TextArea) override this to point at their inner content node.
+     */
+    virtual ArkUI_NodeHandle backgroundImageTargetNode() const { return m_nodeHandle; }
 
     /**
      * Apply the visibility style.
@@ -419,10 +431,15 @@ protected:
     ArkUI_NodeHandle m_nodeHandle = nullptr;
     bool m_actionClickRegistered = false;  // Whether the shared action click event is registered
     
-    // background-image node (first child, lowest z-index)
-    ArkUI_NodeHandle m_backgroundImageHandle = nullptr;
+    // background-image bookkeeping on the node background layer
     std::string m_backgroundImageUrl;  // Store the current background image URL to avoid redundant updates
     std::string m_backgroundImageRequestId;  // Current external loader request ID (empty when unused)
+    // Set by the loader failure callback (JS thread). The background layer keeps the
+    // previous image on failure, so the dedupe check must not swallow the next
+    // identical url: a failed url stays retryable. shared_ptr keeps the flag alive
+    // for callbacks still in flight after the component is gone.
+    std::shared_ptr<std::atomic<bool>> m_backgroundImageLoadFailed =
+        std::make_shared<std::atomic<bool>>(false);
     bool m_pendingAppearAnimation = false;
     bool m_hasPlayedAppearAnimation = false;
     float m_appearTargetOpacity = 1.0f;

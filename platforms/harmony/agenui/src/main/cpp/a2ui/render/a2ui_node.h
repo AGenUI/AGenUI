@@ -313,6 +313,41 @@ public:
         g_nodeAPI->resetAttribute(m_nodeHandle, NODE_BACKGROUND_COLOR);
     }
 
+    /**
+     * Draw background image on the node's own background layer (under all
+     * children). NODE_BACKGROUND_IMAGE accepts either an image address
+     * (.string) or a DrawableDescriptor (.object); it fills the border box
+     * and is clipped by border-radius, matching CSS background-image
+     * semantics. Unlike a child Image node it never participates in layout
+     * and never covers the node content.
+     */
+    void setBackgroundImage(const std::string& url) {
+        ArkUI_AttributeItem item = {.string = url.c_str()};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_BACKGROUND_IMAGE, &item);
+    }
+
+    void setBackgroundImage(ArkUI_DrawableDescriptor* descriptor) {
+        ArkUI_AttributeItem item = {.object = descriptor};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_BACKGROUND_IMAGE, &item);
+    }
+
+    /**
+     * Size mode of the background layer image. The background layer only
+     * supports Auto/Contain/Cover; we always pin Cover (aspect-preserving,
+     * may crop) because the default Auto draws the image at its original
+     * size pinned to the top-left corner.
+     */
+    void setBackgroundImageSize(ArkUI_ImageSize size) {
+        ArkUI_NumberValue value[] = {{.i32 = size}};
+        ArkUI_AttributeItem item = {value, 1};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_BACKGROUND_IMAGE_SIZE_WITH_STYLE, &item);
+    }
+
+    void resetBackgroundImage() {
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_BACKGROUND_IMAGE);
+        g_nodeAPI->resetAttribute(m_nodeHandle, NODE_BACKGROUND_IMAGE_SIZE_WITH_STYLE);
+    }
+
     // ========== Spacing ==========
 
     void setPadding(float top, float right, float bottom, float left) {

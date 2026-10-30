@@ -114,9 +114,12 @@ private:
     void applyBorderColor(const nlohmann::json& styles);
 
     /**
-     * @brief Apply the background image on the inner text node.
+     * @brief Node that carries the background-image layer.
+     *        TEXT_INPUT / TEXT_AREA reject child nodes, so the shared
+     *        "background layer on the component node" must be applied to the
+     *        inner input node instead of the outer handle.
      */
-    void applyBackgroundImage(const nlohmann::json& styles);
+    ArkUI_NodeHandle backgroundImageTargetNode() const override;
 
     /**
      * @brief Handle runtime text changes from the native input node.

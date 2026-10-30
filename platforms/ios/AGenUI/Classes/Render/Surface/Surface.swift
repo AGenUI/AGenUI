@@ -301,6 +301,14 @@ import UIKit
     func getComponent(componentId: String) -> Component? {
         return componentTree[componentId]
     }
+
+    /// Get a component's rendered view by componentId
+    ///
+    /// - Parameter componentId: Component ID in the A2UI protocol (e.g. "root")
+    /// - Returns: The component itself as a UIView, or nil if not found
+    @objc @MainActor public func viewForComponent(_ componentId: String) -> UIView? {
+        return componentTree[componentId]
+    }
     
     /// Get all components
     ///
