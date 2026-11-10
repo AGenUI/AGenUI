@@ -29,7 +29,16 @@ set -euo pipefail
 #   --yoga-prebuilt <dir>   Path to prebuilt yoga artifacts directory.
 #                           Expected structure: {dir}/include/yoga/ + {dir}/libs/libyoga.so
 #                           If not specified, yoga is fetched from GitHub via FetchContent.
-#   --no-yoga-in-aar        Exclude libyoga.so from AAR output (use with --yoga-prebuilt)
+#   --rename-yoga           Rename the bundled yoga .so from libyoga.so to
+#                           libagenui_yoga.so (OUTPUT_NAME=agenui_yoga in CMakeLists).
+#                           Use this when the host app already bundles its own libyoga.so
+#                           (e.g. React Native 0.70 ships libyoga.so 1.14.0), so AGenUI's
+#                           yoga 2.0.0 never clashes with it. Default: keep the original
+#                           libyoga.so name (other consumers relying on the default name
+#                           are unaffected).
+#   --no-yoga-in-aar        Deprecated (kept for compatibility). Excludes yoga from the
+#                           AAR entirely. Superseded by --rename-yoga: renaming the .so is
+#                           preferred so the AAR still ships its own (renamed) yoga.
 #   --with-symbols          Emit lib*.so.debug companion files for the release build
 #                           AND package them into <name>-symbols.aar. Wires up
 #                           CMake (-DAGENUI_EMIT_DEBUG_SYMBOLS=ON) + Gradle
@@ -58,6 +67,7 @@ BUILD_VARIANT="release"
 DO_CLEAN=false
 YOGA_PREBUILT_DIR=""
 YOGA_INCLUDE_IN_AAR=""
+RENAME_YOGA=false
 PUBLISH_MAVEN=false
 WITH_SYMBOLS=false
 
@@ -65,7 +75,7 @@ ANDROID_PROJECT_ROOT="${PLATFORMS_DIR}/android"
 
 # -------------------- Argument parsing --------------------
 show_help() {
-    sed -n '5,46p' "$0" | sed -E 's/^#( |$)//'
+    sed -n '5,55p' "$0" | sed -E 's/^#( |$)//'
     exit 0
 }
 
@@ -79,6 +89,7 @@ while [[ $# -gt 0 ]]; do
         --publish-maven)   PUBLISH_MAVEN=true; shift ;;
         --yoga-prebuilt)   YOGA_PREBUILT_DIR="$2"; shift 2 ;;
         --no-yoga-in-aar)  YOGA_INCLUDE_IN_AAR="false"; shift ;;
+        --rename-yoga)     RENAME_YOGA=true; shift ;;
         --with-symbols)    WITH_SYMBOLS=true; shift ;;
         --clean)           DO_CLEAN=true; shift ;;
         -h|--help)         show_help ;;
@@ -147,6 +158,10 @@ fi
 if [[ -n "$YOGA_INCLUDE_IN_AAR" ]]; then
     GRADLE_EXTRA_ARGS="${GRADLE_EXTRA_ARGS} -PYOGA_INCLUDE_IN_AAR=${YOGA_INCLUDE_IN_AAR}"
     info "Yoga include in AAR: ${YOGA_INCLUDE_IN_AAR}"
+fi
+if [[ "$RENAME_YOGA" == true ]]; then
+    GRADLE_EXTRA_ARGS="${GRADLE_EXTRA_ARGS} -PAGENUI_YOGA_RENAMED=true"
+    info "Yoga renamed to libagenui_yoga.so (--rename-yoga)"
 fi
 
 # -------------------- Native debug symbols --------------------

@@ -72,6 +72,10 @@ set(CMAKE_SHARED_LINKER_FLAGS
 # ---------------------------------------------------------------------------
 # yoga: prebuilt binary OR build from source via FetchContent
 # ---------------------------------------------------------------------------
+# Option: AGENUI_YOGA_RENAMED - build the yoga .so as libagenui_yoga.so (instead of
+# the default libyoga.so) to isolate it from a host app's own libyoga.so (default: OFF).
+option(AGENUI_YOGA_RENAMED
+       "Build the yoga .so as libagenui_yoga.so to isolate from a host app's own libyoga.so" OFF)
 # Option: YOGA_PREBUILT_DIR - path to a directory containing prebuilt yoga artifacts
 # Expected structure:
 #   {YOGA_PREBUILT_DIR}/
@@ -84,7 +88,13 @@ set(CMAKE_SHARED_LINKER_FLAGS
 if(DEFINED YOGA_PREBUILT_DIR AND EXISTS "${YOGA_PREBUILT_DIR}/libs/libyoga.so")
     message(STATUS "Using prebuilt yoga from: ${YOGA_PREBUILT_DIR}")
 
-    # Import prebuilt libyoga.so as a shared library
+    # Import prebuilt libyoga.so as a shared library.
+    # NOTE: an IMPORTED target cannot be renamed via OUTPUT_NAME — when the host
+    # app already bundles its own libyoga.so (e.g. React Native), the prebuilt
+    # libyoga.so must be renamed to libagenui_yoga.so manually (and
+    # YOGA_PREBUILT_DIR updated to point at the renamed file) so the two never
+    # collide at runtime. The AAR then ships libagenui_yoga.so alongside
+    # libamap_AGenUI.so, keeping AGenUI's bundled yoga 2.0.0 fully isolated.
     add_library(yoga SHARED IMPORTED)
     set_target_properties(yoga PROPERTIES
         IMPORTED_LOCATION "${YOGA_PREBUILT_DIR}/libs/libyoga.so"
@@ -126,10 +136,26 @@ else()
         "${yoga_SOURCE_DIR}/include"
         "${yoga_SOURCE_DIR}/include/yoga"
     )
+    # By default the yoga .so keeps its original name (libyoga.so), so consumers that
+    # rely on that name are unaffected. When AGENUI_YOGA_RENAMED=ON (build.sh
+    # --rename-yoga), the output is named libagenui_yoga.so instead, so it can coexist
+    # with a host app's own libyoga.so. Hosts that bundle React Native (RN 0.70) ship
+    # libyoga.so 1.14.0; AGenUI compiles against yoga 2.0.0, whose gap API
+    # (YGNodeStyleSetGap / YGGutter) is absent from 1.14.0. Renaming the output
+    # isolates AGenUI's 2.0.0 at runtime, so the original YGNodeStyleSetGap
+    # implementation in agenui_css_style_converter.cpp works without the
+    # margin-based gap emulation (which changed child measure width and caused
+    # cross-axis misalignment in width-constrained rows).
     set_target_properties(yoga PROPERTIES
         CXX_VISIBILITY_PRESET default
         POSITION_INDEPENDENT_CODE ON
     )
+    if(AGENUI_YOGA_RENAMED)
+        set_target_properties(yoga PROPERTIES OUTPUT_NAME agenui_yoga)
+        message(STATUS "yoga .so renamed to libagenui_yoga.so (AGENUI_YOGA_RENAMED=ON)")
+    else()
+        message(STATUS "yoga .so keeps original name libyoga.so (AGENUI_YOGA_RENAMED=OFF)")
+    endif()
 
     target_link_libraries(yoga PRIVATE log)
 endif()
