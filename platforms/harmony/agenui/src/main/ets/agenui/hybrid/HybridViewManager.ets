@@ -13,19 +13,19 @@ export function createHybridView(viewTag: string, ctxId: string, nodeId: string,
   return HybridViewManager.getInstance().createArkTsView(viewTag, ctxId, nodeId, viewStatePtr, instanceId);
 }
 
-export function updateHybridView(nodeId: string, updateStates: UpdateState[]) {
-  hilog.debug(0, HYBRID_VIEW_TAG, "updateHybridView(nodeId:%{public}s,updateStatesLength:%{public}d)", nodeId, updateStates.length);
-  HybridViewManager.getInstance().updateArkTsView(nodeId, updateStates);
+export function updateHybridView(instanceId: number, nodeId: string, updateStates: UpdateState[]) {
+  hilog.debug(0, HYBRID_VIEW_TAG, "updateHybridView(instanceId:%{public}d,nodeId:%{public}s,updateStatesLength:%{public}d)", instanceId, nodeId, updateStates.length);
+  HybridViewManager.getInstance().updateArkTsView(instanceId, nodeId, updateStates);
 }
 
-export function destroyHybridView(nodeId: string) {
-  hilog.debug(0, HYBRID_VIEW_TAG, "destroyHybridView(nodeId:%{public}s)", nodeId);
-  HybridViewManager.getInstance().destroyArkTsView(nodeId);
+export function destroyHybridView(instanceId: number, nodeId: string) {
+  hilog.debug(0, HYBRID_VIEW_TAG, "destroyHybridView(instanceId:%{public}d,nodeId:%{public}s)", instanceId, nodeId);
+  HybridViewManager.getInstance().destroyArkTsView(instanceId, nodeId);
 }
 
-export function onInvokeHybridView(nodeId: string, key: string, params: HybridInvokeCallback) {
-  hilog.debug(0, HYBRID_VIEW_TAG, "onInvokeHybridView(nodeId:%{public}s,key:%{public}s,params:%{public}s)", nodeId, key, String(params));
-  HybridViewManager.getInstance().onInvokeArkTsView(nodeId, key, params);
+export function onInvokeHybridView(instanceId: number, nodeId: string, key: string, params: HybridInvokeCallback) {
+  hilog.debug(0, HYBRID_VIEW_TAG, "onInvokeHybridView(instanceId:%{public}d,nodeId:%{public}s,key:%{public}s,params:%{public}s)", instanceId, nodeId, key, String(params));
+  HybridViewManager.getInstance().onInvokeArkTsView(instanceId, nodeId, key, params);
 }
 
 export class HybridViewManager {
@@ -42,6 +42,20 @@ export class HybridViewManager {
       HybridViewManager.viewManagerInstance = new HybridViewManager();
     }
     return HybridViewManager.viewManagerInstance;
+  }
+
+  /**
+   * Registry key for a hybrid view.
+   *
+   * nodeId is the DSL component id and is only unique **within one surface**.
+   * Two surfaces (e.g. two <a2ui> tags whose payloads both use surfaceId
+   * "default" and a component named "id_checkbox") would otherwise collide on a
+   * single Map entry: the second creation overwrites the first, and every later
+   * update/destroy/invoke is routed to whichever view registered last. The owning
+   * SurfaceManager's instanceId is globally unique, so it disambiguates the key.
+   */
+  private static hybridKey(instanceId: number, nodeId: string): string {
+    return `${instanceId}:${nodeId}`;
   }
 
   /**
@@ -99,7 +113,7 @@ export class HybridViewManager {
         hilog.error(0, HYBRID_VIEW_TAG, "createArkTsView failed: toCreateArkUIView returned null for viewTag:%{public}s,nodeId:%{public}s", viewTag, nodeId);
         return null;
       }
-      this.hybridViews.set(nodeId, hybridView);
+      this.hybridViews.set(HybridViewManager.hybridKey(instanceId, nodeId), hybridView);
       return componentContent;
     }
     hilog.debug(0, HYBRID_VIEW_TAG, "createHybridView(viewTag:%{public}s,ctxId:%{public}d,nodeId:%{public}d) is failed!!!", viewTag.toString(), ctxId, nodeId);
@@ -108,11 +122,12 @@ export class HybridViewManager {
 
   /**
    * Updates ArkTS view properties.
+   * @param instanceId Owning SurfaceManager's instance ID (part of the registry key)
    * @param nodeId Node ID
    * @param updateStates Collection of property update states
    */
-  public updateArkTsView(nodeId: string, updateStates: UpdateState[]) {
-    let view: HybridBaseView | undefined = this.hybridViews.get(nodeId);
+  public updateArkTsView(instanceId: number, nodeId: string, updateStates: UpdateState[]) {
+    let view: HybridBaseView | undefined = this.hybridViews.get(HybridViewManager.hybridKey(instanceId, nodeId));
     if (view) {
       view.toUpdateArkTsView(updateStates);
     }
@@ -120,24 +135,27 @@ export class HybridViewManager {
 
   /**
    * Destroys an ArkTS view.
+   * @param instanceId Owning SurfaceManager's instance ID (part of the registry key)
    * @param nodeId Node ID
    */
-  public destroyArkTsView(nodeId: string) {
-    let view: HybridBaseView | undefined = this.hybridViews.get(nodeId);
+  public destroyArkTsView(instanceId: number, nodeId: string) {
+    const key = HybridViewManager.hybridKey(instanceId, nodeId);
+    let view: HybridBaseView | undefined = this.hybridViews.get(key);
     if (view) {
       view.toDestroyArkTsView();
-      this.hybridViews.delete(nodeId);
+      this.hybridViews.delete(key);
     }
   }
 
   /**
    * Invokes an ArkTS view event.
+   * @param instanceId Owning SurfaceManager's instance ID (part of the registry key)
    * @param nodeId Node ID
    * @param key Event key
    * @param params Event parameters
    */
-  public onInvokeArkTsView(nodeId: string, key: string, params: HybridInvokeCallback) {
-    let view: HybridBaseView | undefined = this.hybridViews.get(nodeId);
+  public onInvokeArkTsView(instanceId: number, nodeId: string, key: string, params: HybridInvokeCallback) {
+    let view: HybridBaseView | undefined = this.hybridViews.get(HybridViewManager.hybridKey(instanceId, nodeId));
     if (view) {
         view.toInvokeArkTsView(key, params);
     }

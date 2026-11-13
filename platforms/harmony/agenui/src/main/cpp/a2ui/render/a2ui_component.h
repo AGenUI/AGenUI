@@ -94,7 +94,15 @@ public:
     }
     
     // ---- State binding (new)----
-    void setState(ComponentState* state) { m_state = state; }
+    // Backfill instanceId from the freshly-bound state: hybrid views are constructed
+    // before their ComponentState is attached, and update/destroy/invoke must never
+    // observe a stale 0 — the ArkTS bridge keys views by (instanceId, componentId).
+    void setState(ComponentState* state) {
+        m_state = state;
+        if (state && m_instanceId == 0 && state->getInstanceId() != 0) {
+            m_instanceId = state->getInstanceId();
+        }
+    }
     ComponentState* getState() const { return m_state; }
     
     // ---- Property updates (refactored)----

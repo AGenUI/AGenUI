@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] - 2026-11-13
+
+### Bug Fixes
+
+- (Core) Fixed static property write-back so the host can reset a control by resending its original value after user interaction. Added regression tests for resets and repeated values.
+- (HarmonyOS) Fixed hybrid view ID collisions across `SurfaceManager` instances so updates, teardown, and method calls reach the correct view.
+
+---
+
 ## [1.8.0] - 2026-10-30
 
 ### Features

@@ -96,7 +96,10 @@ void A2UISurface::handleComponentAdd(const agenui::ComponentsAddMessage& msg) {
         return;
     }
 
-    A2UIComponent* component = registry_->createComponent(getSurfaceId(), componentType, componentId, componentJson);
+    // instanceId 必须在创建时就传下去：hybrid 组件经 ArkTS 桥创建，若等 addComponent
+    // 再补设，ArkTS 侧拿到的仍是 0，桥接层只能按 componentId 建全局索引，
+    // 两个 surface 同名 componentId 时会互相覆盖（表现：只有后创建的实例收到更新）。
+    A2UIComponent* component = registry_->createComponent(getSurfaceId(), instanceId_, componentType, componentId, componentJson);
     if (!component) {
         RELEASE_ASSERT_WITHLOG(false,"Failed to create component: id=%s, type=%s, abort", componentId.c_str(), componentType.c_str());
         return;

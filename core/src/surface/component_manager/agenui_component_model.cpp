@@ -94,15 +94,51 @@ void ComponentModel::syncValue(const std::string& attributeName, const std::stri
         return;
     }
 
-    // Only DataBindingData attributes need synchronization
-    if (it->second->getDataType() != DataType::DataBindingData) {
+    if (it->second->getDataType() == DataType::DataBindingData) {
+        // Bound attribute: the write-back targets the DataModel at the
+        // binding path, so bound components (and any shared path) update.
+        auto dataBindingData = std::static_pointer_cast<DataBindingDataValue>(it->second);
+        if (dataBindingData) {
+            dataBindingData->syncBindingValue(value);
+        }
         return;
     }
 
-    auto dataBindingData = std::static_pointer_cast<DataBindingDataValue>(it->second);
-    if (dataBindingData) {
-        dataBindingData->syncBindingValue(value);
+    if (it->second->getDataType() != DataType::StaticData) {
+        // Function expressions, interpolation templates, structured
+        // composites and other dedicated DataValue types keep their dynamic
+        // semantics; replacing them with a frozen constant is never correct.
+        return;
     }
+
+    // Static (literal) attribute write-back from the platform UI. The value
+    // arrives as JSON value text (Surface::syncUIToData dumps each field).
+    // Parse without throwing; invalid JSON keeps the current state untouched.
+    auto parsed = nlohmann::json::parse(value, nullptr, false);
+    if (parsed.is_discarded()) {
+        return;
+    }
+
+    // Structural comparison (whitespace / object key order insensitive):
+    // an unchanged value must not dirty the component, otherwise repeated
+    // business pushes of the same value would keep producing downstream
+    // updates.
+    const std::string canonicalJson = parsed.dump();
+    const SerializableData currentValue = it->second->getValueData();
+    const SerializableData newValue = SerializableData::parse(canonicalJson);
+    if (currentValue == newValue) {
+        return;
+    }
+
+    // Replace the entry pointer with a fresh StaticDataValue (canonicalized
+    // dump) instead of mutating the old one, which may be shared with other
+    // holders. Deliberately not setAttribute(): this is a plain value
+    // replacement — no DSL re-parsing into path/function values and no
+    // textChunk append side effect. notifyComponentChange marks the attribute
+    // dirty and lets the existing BatchGuard machinery drive the VDOM flush,
+    // so platforms receive a real diff and refresh their property caches.
+    _attributes[attributeName] = std::make_shared<StaticDataValue>(canonicalJson);
+    notifyComponentChange(attributeName, false);
 }
 
 void ComponentModel::setChildren(const std::vector<std::string>& children) {

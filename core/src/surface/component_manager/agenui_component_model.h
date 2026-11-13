@@ -128,10 +128,19 @@ public:
     const std::map<std::string, std::shared_ptr<DataValue>>& getAllAttributes() const;
 
     /**
-     * @brief Synchronize a value
+     * @brief Synchronize a value written back from the platform UI
      * @param attributeName Attribute name
-     * @param value New value
-     * @remark Called when bound data changes
+     * @param value New value as JSON value text (e.g. "true", "3", "\"a\"")
+     * @remark Handles both write-back flavors:
+     *         - DataBindingData attributes: the write targets the DataModel at
+     *           the binding path (bound components and shared paths update).
+     *         - StaticData (literal) attributes: the current component
+     *           attribute is replaced after a structural comparison, so a
+     *           later business push of the original value still produces a
+     *           real downstream diff.
+     *         Other DataValue types (function expressions, interpolation
+     *         templates, structured composites, ...) are ignored; undeclared
+     *         attributes are never created.
      */
     void syncValue(const std::string& attributeName, const std::string& value);
 

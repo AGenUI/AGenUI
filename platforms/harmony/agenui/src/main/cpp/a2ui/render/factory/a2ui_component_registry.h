@@ -48,6 +48,10 @@ public:
      * Create a component through its registered entry.
      *
      * @param surfaceId Surface ID used to identify the owning surface
+     * @param instanceId Owning SurfaceManager's instance ID. Hybrid components
+     *        forward it to ArkTS so the ArkTS-side view registry can key entries
+     *        by (instanceId, componentId) — componentId alone collides when two
+     *        surfaces (even across SurfaceManagers) use the same DSL component id.
      * @param type Component type
      * @param id Component ID
      * @param properties Component properties
@@ -55,6 +59,7 @@ public:
      *         or nullptr when the type is unknown or creation fails
      */
     A2UIComponent* createComponent(const std::string& surfaceId,
+                                   int instanceId,
                                    const std::string& type,
                                    const std::string& id,
                                    const nlohmann::json& properties);

@@ -15,7 +15,10 @@ constexpr const char *kPropMaxH     = "max-height";
 
 WebComponent::WebComponent(ComponentState* state, ArkUI_NodeHandle arkuiHandle, const ArkTSObject& componentContent)
     : A2UIHybridView(state->getId(), state->getType(), state->getProperties(), arkuiHandle, componentContent) {
-    m_state = state;
+    // Route through setState instead of assigning m_state directly, so the
+    // instanceId backfill applies to this special-case branch too — the ArkTS
+    // bridge keys views by (instanceId, componentId) and must never observe 0.
+    setState(state);
     HM_LOGI("WebComponent - Created: id=%s", m_id.c_str());
 }
 
