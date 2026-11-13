@@ -16,10 +16,16 @@ plugins {
 
 def localMavenDir = "${System.getProperty('user.home')}/.m2/repository"
 
-// ==================== Yoga Configuration (dual-control) ====================
-// Two independent controls:
-//   1. yoga.prebuilt.dir  — path to prebuilt yoga (libyoga.so + headers)
-//   2. yoga.include.in.aar — whether to bundle libyoga.so into the AAR (default: true)
+// ==================== Yoga Configuration (triple-control) ====================
+// Three independent controls:
+//   1. yoga.prebuilt.dir    — path to prebuilt yoga (libyoga.so + headers)
+//   2. yoga.include.in.aar  — whether to bundle the yoga .so into the AAR (default: true)
+//   3. AGENUI_YOGA_RENAMED  — build the yoga .so as libagenui_yoga.so (OUTPUT_NAME=agenui_yoga
+//                             in CMakeLists) instead of the default libyoga.so (default: false)
+//
+// Renaming is opt-in via --rename-yoga so consumers that rely on the original libyoga.so
+// name are unaffected. When enabled, the AAR's bundled yoga never collides with a host
+// app's own libyoga.so (e.g. React Native 0.70 bundles libyoga.so 1.14.0).
 //
 // Priority: Gradle -P parameter > local.properties > default (FetchContent + include)
 // ============================================================================
@@ -67,6 +73,16 @@ if (!resolvedYogaPrebuiltDir) {
     logger.lifecycle("[yoga] Prebuilt: ${resolvedYogaPrebuiltDir}, include in AAR: ${resolvedYogaIncludeInAar}")
 }
 
+// --- Resolve AGENUI_YOGA_RENAMED (default: false) ---
+// When true, the bundled yoga .so is built as libagenui_yoga.so (OUTPUT_NAME=agenui_yoga
+// in CMakeLists) instead of the default libyoga.so, so it never collides with a host
+// app's own libyoga.so (e.g. React Native 0.70 ships libyoga.so 1.14.0).
+def resolvedYogaRenamed = false
+if (project.hasProperty('AGENUI_YOGA_RENAMED')) {
+    resolvedYogaRenamed = project.property('AGENUI_YOGA_RENAMED').toString().toBoolean()
+    logger.lifecycle("[yoga] Rename to libagenui_yoga.so from -P parameter: ${resolvedYogaRenamed}")
+}
+
 android {
     namespace 'com.amap.a2ui_sdk'
     resourcePrefix 'agenui_'
@@ -96,6 +112,10 @@ android {
                 // Pass YOGA_PREBUILT_DIR to CMake if resolved
                 if (resolvedYogaPrebuiltDir) {
                     cmakeArgs.add("-DYOGA_PREBUILT_DIR=" + resolvedYogaPrebuiltDir.replace("\\", "/"))
+                }
+                // Rename yoga .so to libagenui_yoga.so when AGENUI_YOGA_RENAMED=true
+                if (resolvedYogaRenamed) {
+                    cmakeArgs.add("-DAGENUI_YOGA_RENAMED=ON")
                 }
                 if (project.hasProperty('agenuiEmitDebugSymbols')
                         && project.property('agenuiEmitDebugSymbols').toString().toBoolean()) {
@@ -142,11 +162,16 @@ android {
 
     ndkVersion "27.3.13750724"
 
-    // Exclude libyoga.so and libc++_shared.so from AAR when configured not to include yoga.
-    // In this mode, the host app is responsible for providing both libraries.
-    if (resolvedYogaPrebuiltDir && !resolvedYogaIncludeInAar) {
+    // Yoga's .so keeps its original name (libyoga.so) by default; with --rename-yoga
+    // (AGENUI_YOGA_RENAMED=true) it becomes libagenui_yoga.so (OUTPUT_NAME=agenui_yoga
+    // in CMakeLists) so it never collides with a host app's own libyoga.so (e.g. React
+    // Native 0.70 bundles libyoga.so 1.14.0). The AAR ships the yoga .so by default;
+    // only when configured not to include yoga (YOGA_INCLUDE_IN_AAR=false) is the host
+    // expected to provide it, along with libc++_shared.so for the c++_shared prebuilt path.
+    if (!resolvedYogaIncludeInAar) {
+        def yogaSoName = resolvedYogaRenamed ? '**/libagenui_yoga.so' : '**/libyoga.so'
         packagingOptions {
-            exclude '**/libyoga.so'
+            exclude yogaSoName
             exclude '**/libc++_shared.so'
         }
     }
