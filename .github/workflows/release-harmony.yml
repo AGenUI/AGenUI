@@ -16,7 +16,8 @@ env:
 jobs:
   release-harmony:
     name: Build & Publish HarmonyOS
-    runs-on: ubuntu-latest
+    # BiSheng from CLT 6.0.1.251 requires libxml2.so.2, provided by Ubuntu 24.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     # Only run when tag matches AGenUI-* format
     if: startsWith(github.event.release.tag_name, 'AGenUI-')
@@ -96,6 +97,12 @@ jobs:
           echo "${CLT_ROOT}/hvigor/bin" >> $GITHUB_PATH
           echo "${CLT_ROOT}/ohpm/bin" >> $GITHUB_PATH
           echo "${CLT_ROOT}/tool/node/bin" >> $GITHUB_PATH
+
+      - name: Install and verify BiSheng runtime dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2
+          "${DEVECO_HOME}/sdk/default/hms/native/BiSheng/bin/ld.lld" --version
 
       # ==================== Build HAR ====================
       - name: Build HarmonyOS HAR
