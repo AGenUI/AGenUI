@@ -118,8 +118,12 @@ void A2UIHybridFactory::updateHybridView(A2UIHybridView* hybridView, const std::
     // Build the update-state array.
     napi_value states = createUpdateStateArray(tsObject.env, updateStates);
     
-    // Call updateHybridView(nodeId, updateStates) on the ArkTS side.
-    HMHelper::callArkTSFunction(tsObject, state->getId(), states);
+    // Call updateHybridView(instanceId, nodeId, updateStates) on the ArkTS side.
+    // The registry key is (instanceId, nodeId): nodeId is the DSL component id and is
+    // only unique within one surface, so routing by it alone would hit the wrong
+    // ArkTS view when two surfaces reuse the same component id (e.g. both "default"
+    // surfaces carry a component named id_checkbox).
+    HMHelper::callArkTSFunction(tsObject, hybridView->getInstanceId(), state->getId(), states);
 }
 
 void A2UIHybridFactory::destroyHybridView(A2UIHybridView* hybridView) {
@@ -128,7 +132,9 @@ void A2UIHybridFactory::destroyHybridView(A2UIHybridView* hybridView) {
         return;
     }
     
-    HMHelper::callArkTSFunction(tsObject, hybridView->getId());
+    // Call destroyHybridView(instanceId, nodeId) on the ArkTS side (see updateHybridView
+    // for why the key must include instanceId).
+    HMHelper::callArkTSFunction(tsObject, hybridView->getInstanceId(), hybridView->getId());
 }
 
 void A2UIHybridFactory::onInvokeHybridView(A2UIHybridView* hybridView, const std::string& key, const nlohmann::json& params) {
@@ -142,8 +148,8 @@ void A2UIHybridFactory::onInvokeHybridView(A2UIHybridView* hybridView, const std
         return;
     }
     
-    // Call onInvokeHybridView(nodeId, key, params) on the ArkTS side.
-    HMHelper::callArkTSFunction(tsObject, state->getId(), key, params);
+    // Call onInvokeHybridView(instanceId, nodeId, key, params) on the ArkTS side.
+    HMHelper::callArkTSFunction(tsObject, hybridView->getInstanceId(), state->getId(), key, params);
 }
 
 napi_value A2UIHybridFactory::addAttributeChangeObserver(napi_env env, napi_callback_info info) {

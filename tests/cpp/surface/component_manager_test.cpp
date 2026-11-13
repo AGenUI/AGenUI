@@ -3,6 +3,9 @@
 #include "surface/component_manager/agenui_component_manager.h"
 #include "surface/component_manager/agenui_component_model.h"
 #include "surface/component_manager/data_value/agenui_static_data_value.h"
+#include "surface/component_manager/data_value/agenui_interpolation_expression_data_value.h"
+#include "surface/component_manager/data_value/agenui_data_value_parser.h"
+#include "surface/datamodel/agenui_data_model.h"
 #include "surface/virtual_dom/agenui_ivirtual_dom.h"
 #include "surface/agenui_isurface_context.h"
 
@@ -367,4 +370,242 @@ TEST_F(ComponentManagerTest, SyncBindingValue_ExistingComponent_DoesNotCrash) {
     };
     cm_->updateComponents(components);
     EXPECT_NO_THROW(cm_->syncBindingValue("synced", "text", "\"updated\""));
+}
+
+// =============================================================================
+// ComponentModel Tests — syncValue static (literal) attribute write-back
+//
+// Host custom components (AmapCheckBox / Switch) call syncState({"value": ...})
+// after the user toggles the control. The core must update the static
+// attribute baseline so a later business push of the original value produces
+// a real downstream diff. See plan 三端静态状态回写修复.
+// =============================================================================
+
+// False -> true write-back must update the attribute, notify the observer and
+// reflect in the flushed snapshot.
+TEST_F(ComponentModelTest, SyncValue_StaticData_Bool_UpdatesAndNotifies) {
+    auto model = makeModel("cb_1", "AmapCheckBox");
+    model->setAttribute("value", std::make_shared<StaticDataValue>("false"));
+    model->clearDirty();
+
+    EXPECT_CALL(*observer_, onComponentChanged("cb_1")).Times(1);
+
+    model->syncValue("value", "true");
+
+    const auto& attrs = model->getAllAttributes();
+    ASSERT_EQ(attrs.count("value"), 1u);
+    EXPECT_TRUE(attrs.at("value")->getValueData().asBool());
+
+    model->markDirty("value", false);
+    const auto& snapshot = model->flushDirty();
+    ASSERT_EQ(snapshot.attributes.count("value"), 1u);
+    EXPECT_TRUE(snapshot.attributes.at("value").asBool());
+}
+
+// Same-value write-back must be a no-op: no notification, no snapshot churn.
+TEST_F(ComponentModelTest, SyncValue_StaticData_SameValue_NoNotify) {
+    auto model = makeModel("cb_2", "AmapCheckBox");
+    model->setAttribute("value", std::make_shared<StaticDataValue>("false"));
+    model->clearDirty();
+
+    EXPECT_CALL(*observer_, onComponentChanged("cb_2")).Times(0);
+
+    model->syncValue("value", "false");
+    EXPECT_FALSE(model->hasDirty());
+}
+
+// Structural comparison: whitespace-only differences and object key order
+// must not be treated as a change.
+TEST_F(ComponentModelTest, SyncValue_StaticData_EquivalentJson_NoNotify) {
+    auto model = makeModel("sw_1", "Switch");
+    model->setAttribute("value", std::make_shared<StaticDataValue>("false"));
+    model->setAttribute("payload", std::make_shared<StaticDataValue>(R"({"a":1,"b":2})"));
+    model->clearDirty();
+
+    EXPECT_CALL(*observer_, onComponentChanged("sw_1")).Times(0);
+
+    model->syncValue("value", "  false  ");
+    model->syncValue("payload", R"({"b":2,"a":1})");
+    EXPECT_FALSE(model->hasDirty());
+}
+
+// All JSON value kinds are accepted verbatim; null keeps the attribute
+// present with a null value (no type coercion, no attribute deletion).
+TEST_F(ComponentModelTest, SyncValue_StaticData_ValueKinds_IncludingNull) {
+    auto model = makeModel("sw_2", "Switch");
+    model->setAttribute("value", std::make_shared<StaticDataValue>("false"));
+    model->clearDirty();
+
+    // number
+    model->syncValue("value", "3");
+    EXPECT_EQ(model->getAllAttributes().at("value")->getValueData().asInt(), 3);
+
+    // string (syncUIToData dumps strings with quotes)
+    model->syncValue("value", "\"medium\"");
+    EXPECT_EQ(model->getAllAttributes().at("value")->getValueData().asString(), "medium");
+
+    // array
+    model->syncValue("value", "[1,2]");
+    EXPECT_EQ(model->getAllAttributes().at("value")->getValueData().size(), 2u);
+
+    // object
+    model->syncValue("value", R"({"k":"v"})");
+    EXPECT_TRUE(model->getAllAttributes().at("value")->getValueData().isObject());
+
+    // null: value kept, attribute declaration kept
+    model->syncValue("value", "null");
+    EXPECT_TRUE(model->hasProperty("value"));
+    EXPECT_TRUE(model->getAllAttributes().at("value")->getValueData().isNull());
+}
+
+// Invalid JSON keeps the current state and must not notify.
+TEST_F(ComponentModelTest, SyncValue_StaticData_InvalidJson_Ignored) {
+    auto model = makeModel("cb_3", "AmapCheckBox");
+    model->setAttribute("value", std::make_shared<StaticDataValue>("false"));
+    model->clearDirty();
+
+    EXPECT_CALL(*observer_, onComponentChanged("cb_3")).Times(0);
+
+    model->syncValue("value", "not json at all");
+    EXPECT_FALSE(model->getAllAttributes().at("value")->getValueData().asBool());
+    EXPECT_FALSE(model->hasDirty());
+}
+
+// A write-back for an attribute the component does not declare is ignored:
+// syncValue must never create undeclared attributes.
+TEST_F(ComponentModelTest, SyncValue_MissingAttribute_Ignored) {
+    auto model = makeModel("cb_4", "AmapCheckBox");
+    model->clearDirty();
+
+    EXPECT_CALL(*observer_, onComponentChanged("cb_4")).Times(0);
+
+    model->syncValue("value", "true");
+    EXPECT_FALSE(model->hasProperty("value"));
+    EXPECT_FALSE(model->hasDirty());
+}
+
+// The replacement allocates a fresh StaticDataValue; other holders of the old
+// one (e.g. sibling components sharing the literal) must keep their value.
+TEST_F(ComponentModelTest, SyncValue_StaticData_DoesNotAffectOtherHolders) {
+    auto shared = std::make_shared<StaticDataValue>("false");
+    auto modelA = makeModel("cb_a", "AmapCheckBox");
+    auto modelB = makeModel("cb_b", "AmapCheckBox");
+    modelA->setAttribute("value", shared);
+    modelB->setAttribute("value", shared);
+    modelA->clearDirty();
+
+    EXPECT_CALL(*observer_, onComponentChanged("cb_a")).Times(1);
+    EXPECT_CALL(*observer_, onComponentChanged("cb_b")).Times(0);
+
+    modelA->syncValue("value", "true");
+
+    EXPECT_TRUE(modelA->getAllAttributes().at("value")->getValueData().asBool());
+    EXPECT_FALSE(modelB->getAllAttributes().at("value")->getValueData().asBool());
+    // modelB still points at the original (shared) instance.
+    EXPECT_EQ(modelB->getAllAttributes().at("value").get(), shared.get());
+}
+
+// Bound attributes keep their existing channel: the write goes to the
+// DataModel at the binding path (never replacing the binding itself).
+TEST_F(ComponentModelTest, SyncValue_BindingAttribute_UpdatesDataModel) {
+    DataModel dataModel;
+    ON_CALL(*surfaceContext_, getDataModel()).WillByDefault(::testing::Return(&dataModel));
+
+    auto model = makeModel("cb_bind", "AmapCheckBox");
+    model->setAttribute("value", DataValueParser::parseDataValue(model.get(), R"({"path":"/state/cb"})"));
+    dataModel.updateData("/state/cb", "false");
+    model->clearDirty();
+
+    // The DataModel update flows back through AttributeDataBinder and
+    // notifies the component-change observer exactly once.
+    EXPECT_CALL(*observer_, onComponentChanged("cb_bind")).Times(1);
+
+    model->syncValue("value", "true");
+
+    EXPECT_TRUE(dataModel.getValue("/state/cb").asBool());
+    // The attribute is still a binding, not a frozen literal.
+    EXPECT_EQ(model->getAllAttributes().at("value")->getDataType(), DataType::DataBindingData);
+}
+
+// Dedicated DataValue types (function expressions, interpolation templates,
+// structured composites) must never be replaced by a frozen constant.
+TEST_F(ComponentModelTest, SyncValue_InterpolationAttribute_NotOverwritten) {
+    auto model = makeModel("sw_3", "Switch");
+    std::vector<std::shared_ptr<DataValue>> segments;
+    segments.push_back(std::make_shared<StaticDataValue>("\"a\""));
+    auto expression = std::make_shared<InterpolationExpressionDataValue>(model.get(), segments);
+    model->setAttribute("value", expression);
+    model->clearDirty();
+
+    EXPECT_CALL(*observer_, onComponentChanged("sw_3")).Times(0);
+
+    model->syncValue("value", "true");
+    EXPECT_EQ(model->getAllAttributes().at("value").get(), expression.get());
+}
+
+// =============================================================================
+// ComponentManager Tests — syncBindingValue pushes static write-back to VDOM
+// =============================================================================
+
+TEST_F(ComponentManagerTest, SyncBindingValue_StaticAttribute_PushesUpdateToVirtualDom) {
+    std::vector<std::string> components = {
+        R"({"id":"cb1","component":"AmapCheckBox","value":false})"
+    };
+    cm_->updateComponents(components);
+
+    int updateCount = 0;
+    SerializableData capturedValue;
+    EXPECT_CALL(*vdom_, updateNode(::testing::_)).Times(::testing::AnyNumber())
+        .WillRepeatedly(::testing::Invoke([&](const ComponentSnapshot& snapshot) {
+            updateCount++;
+            auto it = snapshot.attributes.find("value");
+            if (it != snapshot.attributes.end()) {
+                capturedValue = it->second;
+            }
+        }));
+
+    // User toggled the control on the platform side; the write-back must
+    // reach the virtual DOM as a real snapshot update.
+    cm_->syncBindingValue("cb1", "value", "true");
+
+    EXPECT_EQ(updateCount, 1);
+    ASSERT_EQ(capturedValue.isValid(), true);
+    EXPECT_TRUE(capturedValue.asBool());
+}
+
+TEST_F(ComponentManagerTest, SyncBindingValue_StaticAttribute_SameValue_NoVirtualDomUpdate) {
+    std::vector<std::string> components = {
+        R"({"id":"cb2","component":"AmapCheckBox","value":false})"
+    };
+    cm_->updateComponents(components);
+
+    int updateCount = 0;
+    EXPECT_CALL(*vdom_, updateNode(::testing::_)).Times(::testing::AnyNumber())
+        .WillRepeatedly(::testing::Invoke([&](const ComponentSnapshot&) {
+            updateCount++;
+        }));
+
+    // Re-pushing the value the user already has must deduplicate: no VDOM
+    // update, hence no downstream diff.
+    cm_->syncBindingValue("cb2", "value", "false");
+
+    EXPECT_EQ(updateCount, 0);
+}
+
+TEST_F(ComponentManagerTest, SyncBindingValue_MissingAttribute_NoVirtualDomUpdate) {
+    std::vector<std::string> components = {
+        R"({"id":"cb3","component":"AmapCheckBox","value":false})"
+    };
+    cm_->updateComponents(components);
+
+    int updateCount = 0;
+    EXPECT_CALL(*vdom_, updateNode(::testing::_)).Times(::testing::AnyNumber())
+        .WillRepeatedly(::testing::Invoke([&](const ComponentSnapshot&) {
+            updateCount++;
+        }));
+
+    // 'checked' is not a declared attribute on cb3: silently ignored.
+    cm_->syncBindingValue("cb3", "checked", "true");
+
+    EXPECT_EQ(updateCount, 0);
 }

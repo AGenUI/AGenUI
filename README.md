@@ -22,14 +22,12 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.8.0
+## What's New in v1.9.0
 
-> Released on 2026-10-30
+> Released on 2026-11-13
 
-- **Component Cycle Protection**: Added cycle detection and orphan-node guards to prevent infinite recursion and stack overflows from malformed protocols.
-- **(iOS) Component View Lookup**: Added `Surface.viewForComponent(_:)` to retrieve a component's native view by ID.
-- (HarmonyOS) Fixed background images covering content, interfering with layout, and clipping incorrectly at rounded corners.
-- (HarmonyOS) Restored retries for unchanged background-image URLs after load failures and improved failed-request cleanup.
+- (Core) Fixed static property write-back so the host can reset controls by resending their original values after user interaction.
+- (HarmonyOS) Fixed hybrid view ID collisions across `SurfaceManager` instances.
 
 ---
 

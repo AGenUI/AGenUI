@@ -20,11 +20,16 @@ namespace {
  * Ownership is released to the hybrid view on the success path.
  */
 A2UIComponent* createHybridComponent(const std::string& surfaceId,
+                                     int instanceId,
                                      const std::string& type,
                                      const std::string& id,
                                      const nlohmann::json& properties) {
     std::unique_ptr<ComponentState> state(new ComponentState(id, type, properties));
     state->setSurfaceId(surfaceId);
+    // Carry the owning manager's instanceId into the ArkTS bridge. Without it the
+    // bridge's view registry would key this view by componentId alone, and a second
+    // surface reusing the same component id would silently hijack all updates.
+    state->setInstanceId(instanceId);
     state->markDirty();
     auto* component = static_cast<A2UIComponent*>(A2UIHybridFactory::createHybridView(state.get()));
     if (component) {
@@ -76,6 +81,7 @@ void ComponentRegistry::unregisterComponent(const std::string& type) {
 }
 
 A2UIComponent* ComponentRegistry::createComponent(const std::string& surfaceId,
+                                                  int instanceId,
                                                   const std::string& type,
                                                   const std::string& id,
                                                   const nlohmann::json& properties) {
@@ -92,9 +98,9 @@ A2UIComponent* ComponentRegistry::createComponent(const std::string& surfaceId,
     }
 
     if (descriptor.isHybrid) {
-        HM_LOGI("Creating hybrid component: type=%s, id=%s, surfaceId=%s",
-                type.c_str(), id.c_str(), surfaceId.c_str());
-        return createHybridComponent(surfaceId, type, id, properties);
+        HM_LOGI("Creating hybrid component: type=%s, id=%s, surfaceId=%s, instanceId=%d",
+                type.c_str(), id.c_str(), surfaceId.c_str(), instanceId);
+        return createHybridComponent(surfaceId, instanceId, type, id, properties);
     }
 
     if (!descriptor.create) {
