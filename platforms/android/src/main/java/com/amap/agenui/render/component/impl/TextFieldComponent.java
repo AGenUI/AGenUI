@@ -16,6 +16,7 @@ import android.widget.TextView;
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -52,6 +53,8 @@ public class TextFieldComponent extends A2UIComponent {
     private boolean isRegexpValidationFailing = false;
     private Pattern compiledValidationPattern = null;
     private String regexpErrorMessage = null;
+    /** Page writing direction last applied to the internal EditText, for change detection. */
+    private Integer appliedDirection;
     // External checks error message (separate from local regexp failure so that
     // user typing a valid value does not silently clear an external check error).
     private String externalErrorMessage = null;
@@ -201,6 +204,16 @@ public class TextFieldComponent extends A2UIComponent {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> styles = (Map<String, Object>) stylesValue;
                 applyStyles(styles);
+                appliedDirection = TextDirectionSupport.resolveDirection(properties);
+            }
+        } else {
+            // Direction-only update: logical padding and text direction depend on the page
+            // direction, so refresh them even when the style map is not part of this diff.
+            Integer direction = TextDirectionSupport.resolveDirection(properties);
+            if (appliedDirection == null || !direction.equals(appliedDirection)) {
+                StyleHelper.applyTextDirectionEdgesOnly(editText, extractStyles(properties),
+                        context, direction);
+                appliedDirection = direction;
             }
         }
 
@@ -363,7 +376,8 @@ public class TextFieldComponent extends A2UIComponent {
                 String.valueOf(properties.get("variant")).toLowerCase() : "shorttext";
 
         // 1. Use StyleHelper for unified text style handling
-        StyleHelper.applyTextStyles(editText, styles, context);
+        StyleHelper.applyTextStyles(editText, styles, context,
+                TextDirectionSupport.resolveDirection(properties));
 
         // 2. TextField specific: handle hint color
         if (styles.containsKey("color")) {

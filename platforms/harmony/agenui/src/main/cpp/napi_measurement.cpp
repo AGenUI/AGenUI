@@ -2,6 +2,7 @@
 #include "agenui_measurement.h"
 #include "agenui_render_info_types.h"
 #include "a2ui/utils/a2ui_unit_utils.h"
+#include "a2ui/utils/a2ui_measurement_dispatch.h"
 
 #include <condition_variable>
 
@@ -88,6 +89,7 @@ napi_value RegisterMeasurement(napi_env env, napi_callback_info info) {
 
     struct MeasureCallData {
         std::string paramJson;
+        std::string direction;
         float widthMaxValue  = 0.0f;
         int   widthMode      = 0;
         float heightMaxValue = 0.0f;
@@ -102,6 +104,10 @@ napi_value RegisterMeasurement(napi_env env, napi_callback_info info) {
     auto measureCallJs = [](napi_env env, napi_value js_func, void* /*context*/, void* data) {
         if (!data) return;
         auto* cd = static_cast<MeasureCallData*>(data);
+        if (!env || !js_func) {
+            a2ui::completeMeasurement(*cd);
+            return;
+        }
 
         napi_value jsParamJson = nullptr;
         napi_create_string_utf8(env, cd->paramJson.c_str(), cd->paramJson.size(), &jsParamJson);
@@ -113,10 +119,12 @@ napi_value RegisterMeasurement(napi_env env, napi_callback_info info) {
         napi_create_int32(env, cd->heightMode, &jsHeightMode);
         napi_value jsMaxHeight = nullptr;
         napi_create_double(env, cd->heightMaxValue, &jsMaxHeight);
+        napi_value jsDirection = nullptr;
+        napi_create_string_utf8(env, cd->direction.c_str(), cd->direction.size(), &jsDirection);
 
-        napi_value argv[5] = { jsParamJson, jsWidthMode, jsMaxWidth, jsHeightMode, jsMaxHeight };
+        napi_value argv[6] = { jsParamJson, jsWidthMode, jsMaxWidth, jsHeightMode, jsMaxHeight, jsDirection };
         napi_value result = nullptr;
-        napi_call_function(env, nullptr, js_func, 5, argv, &result);
+        napi_call_function(env, nullptr, js_func, 6, argv, &result);
 
         if (result) {
             napi_value widthVal = nullptr, heightVal = nullptr, calcTypeVal = nullptr;
@@ -139,11 +147,7 @@ napi_value RegisterMeasurement(napi_env env, napi_callback_info info) {
             }
         }
 
-        {
-            std::lock_guard<std::mutex> lk(cd->mtx);
-            cd->done = true;
-        }
-        cd->cv.notify_one();
+        a2ui::completeMeasurement(*cd);
     };
 
     napi_value resourceName = nullptr;
@@ -169,17 +173,18 @@ napi_value RegisterMeasurement(napi_env env, napi_callback_info info) {
                 const agenui::MeasureModes& modes) override {
             MeasureCallData data;
             data.paramJson       = paramJson;
+            data.direction       = modes.direction;
             data.widthMaxValue   = modes.width.maxValue;
             data.widthMode       = modes.width.mode;
             data.heightMaxValue  = modes.height.maxValue;
             data.heightMode      = modes.height.mode;
 
-            napi_call_threadsafe_function(
-                _tsfn, &data, napi_tsfn_blocking);
-
-            {
-                std::unique_lock<std::mutex> lk(data.mtx);
-                data.cv.wait(lk, [&]{ return data.done; });
+            const bool dispatched = a2ui::dispatchMeasurementAndWait(data, [this](MeasureCallData* request) {
+                return napi_call_threadsafe_function(_tsfn, request, napi_tsfn_blocking) == napi_ok;
+            });
+            if (!dispatched) {
+                HM_LOGE("Measurement callback dispatch failed");
+                return {agenui::CalcType::Sync, 0.0f, 0.0f, 0};
             }
             const auto ct = (data.resultCalcType == 1)
                 ? agenui::CalcType::Async

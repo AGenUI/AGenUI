@@ -17,6 +17,7 @@ import textChunkTypeMismatchTest from './tests/TextChunkTypeMismatchTest';
 import rawIdTypeMismatchTest from './tests/RawIdTypeMismatchTest';
 import streamPluginSurfaceIdCrashTest from './tests/StreamPluginSurfaceIdCrashTest';
 import textChunkStylesPathTypeMismatchTest from './tests/TextChunkStylesPathTypeMismatchTest';
+import measurementDirectionTest from './tests/MeasurementDirectionTest';
 
 export default function testsuite() {
   abilityTest();
@@ -38,4 +39,5 @@ export default function testsuite() {
   rawIdTypeMismatchTest();
   streamPluginSurfaceIdCrashTest();
   textChunkStylesPathTypeMismatchTest();
+  measurementDirectionTest();
 }

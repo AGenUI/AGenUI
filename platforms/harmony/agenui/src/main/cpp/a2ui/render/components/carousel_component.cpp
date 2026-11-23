@@ -137,6 +137,25 @@ void CarouselComponent::onUpdateProperties(const nlohmann::json& properties) {
         return;
     }
 
+    // Pager and indicator both follow the manager direction explicitly: page 0
+    // is the logical first page (right side in RTL) and dot 0 sits at the start.
+    const auto direction = getWritingDirection();
+    if (m_swiperHandle) {
+        A2UINode(m_swiperHandle).setWritingDirection(direction);
+    }
+    if (m_indicatorContainerHandle) {
+        A2UINode(m_indicatorContainerHandle).setWritingDirection(direction);
+    }
+    // Dot spacing lives between neighbours; move it to the side facing the
+    // logical start when the direction flips at runtime.
+    for (size_t i = 1; i < m_dotHandles.size(); i++) {
+        if (isRtlLayout()) {
+            A2UINode(m_dotHandles[i]).setMargin(0.0f, kDotSpacing, 0.0f, 0.0f);
+        } else {
+            A2UINode(m_dotHandles[i]).setMargin(0.0f, 0.0f, 0.0f, kDotSpacing);
+        }
+    }
+
     // Styles must run first so content rebuilds use the latest size.
     applyStyles(properties);
     applyContent(properties);
@@ -286,9 +305,13 @@ void CarouselComponent::rebuildIndicatorNodes() {
         dotNode.setBackgroundColor(colors::kColorWhite);
         dotNode.setBorderRadius(kDotRadius);
 
-        // Add left spacing after the first indicator.
+        // Add spacing between indicators, on the side facing the logical start.
         if (i > 0) {
-            dotNode.setMargin(0.0f, 0.0f, 0.0f, kDotSpacing);
+            if (isRtlLayout()) {
+                dotNode.setMargin(0.0f, kDotSpacing, 0.0f, 0.0f);
+            } else {
+                dotNode.setMargin(0.0f, 0.0f, 0.0f, kDotSpacing);
+            }
         }
 
         // Start non-selected dots at 0.5 opacity.

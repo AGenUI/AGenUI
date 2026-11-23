@@ -1,7 +1,7 @@
 import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { abilityDelegatorRegistry } from '@kit.TestKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window } from '@kit.ArkUI';
+import { UIContext, window } from '@kit.ArkUI';
 import { Hypium } from '@ohos/hypium';
 import testsuite from '../test/List.test';
 
@@ -34,6 +34,7 @@ export default class TestAbility extends UIAbility {
         return;
       }
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content. Starting tests...');
+      AppStorage.setOrCreate<UIContext>('context', windowStage.getMainWindowSync().getUIContext());
       // Start tests after WindowStage is ready to ensure ArkUI rendering context is available.
       // Previously tests were started in onCreate(), before the window was created,
       // causing native TSFN callbacks (createSurface etc.) to crash due to missing ArkUI context.

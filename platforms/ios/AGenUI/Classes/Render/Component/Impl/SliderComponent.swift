@@ -52,6 +52,11 @@ class SliderComponent: Component {
     private var thumbOuterColor: UIColor = .white
     private var thumbInnerDiameter: CGFloat = 16
     private var thumbInnerColor: UIColor = UIColor(red: 0x1A/255.0, green: 0x66/255.0, blue: 0xFF/255.0, alpha: 1.0)
+
+    /// Page writing direction, injected by the surface envelope.
+    private var isRTL: Bool {
+        (properties["writingDirection"] as? String)?.lowercased() == "rtl"
+    }
     
     // MARK: - Initialization
     
@@ -76,7 +81,7 @@ class SliderComponent: Component {
     
     // MARK: - Measurement Override
     
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         // Load slider height from style config
         let config = ComponentStyleConfigManager.shared.getConfig(for: "Slider")
         var defaultHeight: CGFloat = 48
@@ -95,7 +100,7 @@ class SliderComponent: Component {
         }
         if let data = paramJson.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            measuredHeight += FormLabel.measure(json["label"], width: measuredWidth).height
+            measuredHeight += FormLabel.measure(json["label"], width: measuredWidth, direction: direction).height
         }
         if (heightMode == .exactly || heightMode == .atMost) && maxHeight > 0 {
             measuredHeight = heightMode == .atMost
@@ -123,6 +128,11 @@ class SliderComponent: Component {
         super.updateProperties(diff)
         titleLabel.update(diff["label"])
         setNeedsLayout()
+
+        // Direction-only update: re-mirror the native slider without touching value.
+        if diff["writingDirection"] != nil {
+            slider?.semanticContentAttribute = isRTL ? .forceRightToLeft : .forceLeftToRight
+        }
         
         // Update minimum value
         if case .value(let min) = diff["min"] {
@@ -235,6 +245,9 @@ class SliderComponent: Component {
         sliderControl.maximumValue = maxValue
         sliderControl.value = minValue
         sliderControl.isContinuous = true
+        // UIKit mirrors track/thumb placement for RTL layouts; value semantics
+        // stay unchanged (minimum still maps to the logical start).
+        sliderControl.semanticContentAttribute = isRTL ? .forceRightToLeft : .forceLeftToRight
         
         // Apply track colors
         sliderControl.minimumTrackTintColor = minimumTrackColor

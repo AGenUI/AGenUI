@@ -8,6 +8,7 @@
 #include <vector>
 #include "agenui_surface_manager_interface.h"
 #include "agenui_surface_size_provider.h"
+#include "surface/agenui_layout_direction.h"
 
 namespace agenui {
 
@@ -122,6 +123,12 @@ public:
      * Non-owning. See ISurfaceManager for the threading and lifetime contract.
      */
     void setSurfaceSizeProvider(ISurfaceSizeProvider* provider) override;
+
+    /**
+     * @brief Sets the surface-level writing direction (see ISurfaceManager).
+     */
+    void setLayoutDirection(const std::string& direction) override;
+
     /**
      * @brief Thread-safe surface-size lookup.
      *
@@ -136,6 +143,11 @@ public:
     EventDispatcher* getEventDispatcher();
     StreamingContentParser* getStreamingContentParser();
     SurfaceCoordinator* getSurfaceCoordinator();
+
+    /** Current direction (atomic; read by SurfaceCoordinator on surface creation). */
+    LayoutDirection getLayoutDirection() const {
+        return _layoutDirection.load();
+    }
 
     std::shared_ptr<IThread> getMessageThread();
 
@@ -167,6 +179,11 @@ private:
 
     // Running state
     std::atomic_bool _isRunning{false};
+
+    // Current surface-level writing direction (LTR by default; set per
+    // SurfaceManager via the public setLayoutDirection). Held as the enum
+    // type directly for compile-time range checking.
+    std::atomic<LayoutDirection> _layoutDirection{LayoutDirection::LTR};
 };
 
 } // namespace agenui

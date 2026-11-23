@@ -40,6 +40,7 @@ struct TextMeasureParam {
     float       lineHeightPx   = 0.0f;
     int         maxLines       = INT_MAX;
     bool        isRichtext     = false;
+    bool        isRtlLayout    = false;
     int         textOverflow   = 0;
     long        id             = 0;
     const char* fontFamily     = "";
@@ -232,7 +233,7 @@ public:
 
         OH_Drawing_TypographyStyle *typoStyle = OH_Drawing_CreateTypographyStyle();
         TypoStyleGuard typoStyleGuard(typoStyle);
-        OH_Drawing_SetTypographyTextDirection(typoStyle, TEXT_DIRECTION_LTR);
+        OH_Drawing_SetTypographyTextDirection(typoStyle, param.isRtlLayout ? TEXT_DIRECTION_RTL : TEXT_DIRECTION_LTR);
         OH_Drawing_SetTypographyTextAlign(typoStyle, convertToHMLayoutTextAlign(param.textAlign));
         int maxLines = width > 0 ? param.maxLines : 1;
         if (height > 0 && param.fontSize * 2 > height && maxLines == INT32_MAX) {

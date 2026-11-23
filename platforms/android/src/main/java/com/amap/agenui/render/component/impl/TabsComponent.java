@@ -20,6 +20,7 @@ import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.A2UILayoutComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.ArrayList;
@@ -127,6 +128,7 @@ public class TabsComponent extends A2UILayoutComponent {
     private CustomTabLayout createTabLayout(Context context,
                                             ComponentStyleConfig.StyleHashMap<String, String> styleConfig) {
         CustomTabLayout layout = new CustomTabLayout(context);
+        layout.setRtl(TextDirectionSupport.isRtl(TextDirectionSupport.resolveDirection(properties)));
 
         // Apply tab-mode configuration
         String tabMode = styleConfig.getOrDefault("tab-mode", "fixed");
@@ -570,6 +572,10 @@ public class TabsComponent extends A2UILayoutComponent {
 
         if (tabLayout == null) {
             return;
+        }
+
+        if (changedProps.containsKey(TextDirectionSupport.DIRECTION_KEY)) {
+            tabLayout.setRtl(TextDirectionSupport.isRtl(TextDirectionSupport.resolveDirection(properties)));
         }
 
         if (changedProps.containsKey("tabs")) {

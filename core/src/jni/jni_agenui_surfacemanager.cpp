@@ -264,6 +264,22 @@ static void jni_setSurfaceSizeProvider(JNIEnv* env, jclass clazz, jint instanceI
     sSurfaceSizeProviderBridgeMap[instanceId] = std::move(bridge);
 }
 
+static void jni_setLayoutDirection(JNIEnv* env, jclass clazz, jint instanceId, jstring jDirection) {
+    if (jDirection == nullptr) {
+        AGENUI_LOG("[JNI] setLayoutDirection: direction is null");
+        return;
+    }
+    ScopedUtfChars direction(env, jDirection);
+    std::string directionStr = direction.c_str();
+    AGENUI_LOG("[JNI] setLayoutDirection: instanceId=%d, direction=%s", instanceId, directionStr.c_str());
+
+    auto surfaceManager = findSurfaceManagerByInstanceId(instanceId);
+    if (!surfaceManager) {
+        return;
+    }
+    surfaceManager->setLayoutDirection(directionStr);
+}
+
 static void jni_clearSurfaceSizeProvider(JNIEnv* env, jclass clazz, jint instanceId) {
     AGENUI_LOG("[JNI] clearSurfaceSizeProvider: instanceId=%d", instanceId);
     // Detach from the engine first so no in-flight Yoga pass can see the bridge
@@ -302,6 +318,8 @@ jint register_jni_AGenUISurfaceManager(JNIEnv* env) {
         {"nativeNotifySurfaceSizeChanged", "(ILjava/lang/String;FF)V", (void*)jni_notifySurfaceSizeChanged},
         // SurfaceManager FunctionCall value invalidation
         {"nativeInvalidateFunctionCallValues", "(I)V", (void*)jni_invalidateFunctionCallValues},
+        // Surface-level writing direction ("ltr"/"rtl"); single direction source for the tree
+        {"nativeSetLayoutDirection", "(ILjava/lang/String;)V", (void*)jni_setLayoutDirection},
         // Surface size pull-channel provider bridge
         {"nativeSetSurfaceSizeProvider",   "(ILcom/amap/agenui/render/surface/ISurfaceSizeProviderHost;)V", (void*)jni_setSurfaceSizeProvider},
         {"nativeClearSurfaceSizeProvider", "(I)V",                                                          (void*)jni_clearSurfaceSizeProvider},

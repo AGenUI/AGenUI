@@ -67,6 +67,9 @@ struct UITestPage {
     });
 
     this.surfaceManager.addListener({
+      onContentSizeChanged: (surfaceId: string, width: number, height: number) => {
+        hilog.info(DOMAIN, TAG, 'RTL_TEST_SIZE %{public}s %{public}s %{public}s', surfaceId, width.toString(), height.toString());
+      },
       onCreateSurface: (surface: Surface) => {
         this.surfaceVersion++;
         this.currentSurfaceId = surface.surfaceId;
@@ -102,6 +105,10 @@ struct UITestPage {
       const bundle: Record<string, Object> = JSON.parse(jsonStr) as Record<string, Object>;
       const version = bundle.version as string;
       const sequence = bundle.sequence as Array<Record<string, Object>>;
+      const layoutDirection: Object = bundle['layoutDirection'];
+      if (typeof layoutDirection === 'string' && (layoutDirection === 'ltr' || layoutDirection === 'rtl')) {
+        this.surfaceManager!.setLayoutDirection(layoutDirection);
+      }
 
       this.surfaceManager!.beginTextStream();
       this.processSequenceItem(sequence, version, 0);
@@ -118,6 +125,12 @@ struct UITestPage {
     }
 
     const item = sequence[index];
+    const layoutDirection: Object = item['__layout_direction'];
+    if (typeof layoutDirection === 'string' && (layoutDirection === 'ltr' || layoutDirection === 'rtl')) {
+      this.surfaceManager!.setLayoutDirection(layoutDirection);
+      this.processSequenceItem(sequence, version, index + 1);
+      return;
+    }
 
     // Handle __pause_ms directive: use setTimeout callback to delay next items
     if (item['__pause_ms'] !== undefined) {

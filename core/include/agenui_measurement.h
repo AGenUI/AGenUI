@@ -24,6 +24,7 @@ struct MeasureModeInfo {
 struct MeasureModes {
     MeasureModeInfo width;
     MeasureModeInfo height;
+    std::string direction = "ltr";
 };
 
 struct MeasureResult {

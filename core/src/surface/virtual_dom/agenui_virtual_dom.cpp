@@ -312,6 +312,37 @@ void VirtualDOM::updateTabsSelectedIndex(const std::string& tabsId, int selected
     checkAndNotifyLayoutChanges();
 }
 
+void VirtualDOM::setLayoutDirection(LayoutDirection direction) {
+    if (!_layoutEngine) return;
+    // Dedup: re-applying the active direction is a no-op — the stored value
+    // already governs the whole tree, so a replay would recompute an
+    // identical layout. Mirrors the SurfaceManager-level dedup; the only
+    // same-value arrival on this path is the creation-time inheritance
+    // injection (a fresh VirtualDOM starts at LTR).
+    if (_layoutDirection == direction) return;
+    _layoutDirection = direction;
+    _layoutEngine->setDefaultRootDirection(direction);
+    // Single-shot configuration change: replay layout immediately so an
+    // already-built tree flips to the new direction without waiting for the
+    // next updateNode batch.
+    const float surfaceWidth = _surfaceContext ? _surfaceContext->getSurfaceWidth() : 0.0f;
+    _layoutEngine->calculateLayoutWithAdjust(_root, surfaceWidth);
+    checkAndNotifyLayoutChanges();
+}
+
+void VirtualDOM::initLayoutDirection(LayoutDirection direction) {
+    if (!_layoutEngine) return;
+    // Creation-time path: configure the engine default ONLY. No re-layout
+    // (the tree is still empty) and, critically, no
+    // _surfaceContext->getSurfaceWidth() call — the platform surface does
+    // not exist yet (dispatchCreateSurface has not been sent), so the
+    // one-shot size bootstrap here would fetch and permanently cache a
+    // not-yet-measurable {0,0}.
+    if (_layoutDirection == direction) return;
+    _layoutDirection = direction;
+    _layoutEngine->setDefaultRootDirection(direction);
+}
+
 std::shared_ptr<VirtualDOMNode> VirtualDOM::findNodeByComponentIdAndTypeRecursive(
     std::shared_ptr<VirtualDOMNode> parent, 
     const std::string& componentId, 

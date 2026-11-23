@@ -16,6 +16,7 @@ import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.IconResourceMapper;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.text.SimpleDateFormat;
@@ -122,7 +123,7 @@ public class DateTimeInputComponent extends A2UIComponent {
                 compactStyle.iconSize,
                 compactStyle.iconSize
         );
-        iconParams.leftMargin = compactStyle.iconSpacing;
+        iconParams.setMarginStart(compactStyle.iconSpacing);
         calendarIconView.setLayoutParams(iconParams);
         calendarIconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
 
@@ -139,9 +140,30 @@ public class DateTimeInputComponent extends A2UIComponent {
         containerLayout.addView(calendarIconView);
 
         // Initialize display
+        applyContainerDirection();
         updateDisplay();
 
         return containerLayout;
+    }
+
+    /**
+     * Mirror the trigger row with the page direction: the empty-state icon
+     * follows the text on the trailing edge, and the trigger text takes the
+     * page base direction. Runs on create and on direction-only updates.
+     */
+    private void applyContainerDirection() {
+        if (containerLayout == null) {
+            return;
+        }
+        int direction = TextDirectionSupport.resolveDirection(properties);
+        int layoutDirection = TextDirectionSupport.isRtl(direction)
+                ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR;
+        if (containerLayout.getLayoutDirection() != layoutDirection) {
+            containerLayout.setLayoutDirection(layoutDirection);
+        }
+        if (textView != null) {
+            textView.setTextDirection(TextDirectionSupport.viewTextDirection(direction));
+        }
     }
 
     /**
@@ -425,6 +447,9 @@ public class DateTimeInputComponent extends A2UIComponent {
     protected void onUpdateProperties(Map<String, Object> changedProps) {
         // Re-parse properties
         parseProperties(changedProps);
+
+        // Direction may change without a value/styles diff.
+        applyContainerDirection();
 
         // Update display
         updateDisplay();

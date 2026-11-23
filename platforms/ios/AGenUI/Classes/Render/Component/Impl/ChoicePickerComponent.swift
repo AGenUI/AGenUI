@@ -357,7 +357,7 @@ class ChoicePickerComponent: Component {
     /// 4. Vertical layout: accumulate itemH + choiceGap; Horizontal layout: take max itemH
     /// 5. Apply MeasureMode constraints
     /// 6. Adds extra space for search input and no-results label when filterable=true
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         // 1. Parse paramJson
         guard let jsonData = paramJson.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {

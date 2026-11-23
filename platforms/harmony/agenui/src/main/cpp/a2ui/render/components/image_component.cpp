@@ -119,6 +119,7 @@ void ImageComponent::onUpdateProperties(const nlohmann::json& properties) {
 
     applyFit(properties);
     applyStyles(properties);
+    applyPadding();
     applyBackgroundColor(properties);
 
     float yogaWidth = 0.0f;
@@ -345,24 +346,26 @@ void ImageComponent::applyStyles(const nlohmann::json& properties) {
         HM_LOGI( "Set border-color: 0x%X", color);
     }
 
-    // CSS padding -> ArkUI Image node setPadding
-    //
-    // ARKUI_NODE_IMAGE is a leaf node. Yoga has already accounted for padding
-    // when computing the leaf's borderBox layout, but the underlying image
-    // bitmap is drawn across the whole frame regardless. Translating CSS
-    // padding to NODE_PADDING shrinks the bitmap's draw area to the
-    // contentBox, mirroring Android `ImageView.setPadding(...)` and iOS
-    // anchor-based insets. Per W3C, `<img>` is a replaced element that
-    // honours `padding`. This is NOT a double-count with Yoga.
-    {
-        float pt = 0.0f, pr = 0.0f, pb = 0.0f, pl = 0.0f;
-        ::a2ui::padding_utils::resolveUserPadding(styles, pt, pr, pb, pl);
-        A2UINode imgBase(m_nodeHandle);
-        if (::a2ui::padding_utils::hasAnyPadding(pt, pr, pb, pl)) {
-            imgBase.setPadding(pt, pr, pb, pl);
-        } else {
-            imgBase.resetPadding();
+}
+
+void ImageComponent::applyPadding() {
+    const auto& properties = getProperties();
+    float top = 0.0f, right = 0.0f, bottom = 0.0f, left = 0.0f;
+    if (properties.contains("styles")) {
+        nlohmann::json parsedStyles;
+        const auto* styles = padding_utils::resolveStyleObject(properties["styles"], parsedStyles);
+        if (!styles && !properties["styles"].is_null()) {
+            return;
         }
+        if (styles) {
+            padding_utils::resolveUserPadding(*styles, isRtlLayout(), top, right, bottom, left);
+        }
+    }
+    A2UINode imageNode(m_nodeHandle);
+    if (padding_utils::hasAnyPadding(top, right, bottom, left)) {
+        imageNode.setPadding(top, right, bottom, left);
+    } else {
+        imageNode.resetPadding();
     }
 }
 

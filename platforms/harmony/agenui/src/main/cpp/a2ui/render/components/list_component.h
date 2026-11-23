@@ -68,6 +68,7 @@ private:
     void applyAlign(const nlohmann::json& properties);
     void applyStyles(const nlohmann::json& properties);
     void updateListItemMargins();
+    void resetToLogicalStartIfNeeded();
     static float parseCssLength(const nlohmann::json& val, float fallback);
     bool isHorizontal() const;
 
@@ -81,7 +82,10 @@ private:
     bool m_horizontal = false;
     std::string m_align = "stretch";
     float m_paddingRight = 0.0f;
+    float m_paddingLeft = 0.0f;
     float m_paddingBottom = 0.0f;
+    bool m_pendingDirectionReset = false;
+    writing_direction::Direction m_appliedWritingDirection = writing_direction::Direction::Ltr;
 
     void parseContainerPadding(const nlohmann::json& properties);
 

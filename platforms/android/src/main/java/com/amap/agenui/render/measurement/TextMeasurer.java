@@ -15,6 +15,7 @@ import android.text.TextUtils;
 import android.util.TypedValue;
 
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 
 import org.json.JSONObject;
 
@@ -95,7 +96,8 @@ public final class TextMeasurer {
                                             float maxWidth,
                                             int widthMode,
                                             float maxHeight,
-                                            int heightMode) {
+                                            int heightMode,
+                                            String direction) {
         return measureInternal(
                 context,
                 paramJson,
@@ -104,7 +106,8 @@ public final class TextMeasurer {
                 maxWidth,
                 widthMode,
                 maxHeight,
-                heightMode);
+                heightMode,
+                TextDirectionSupport.resolveDirection(direction));
     }
 
     public static MeasureResult measureRichText(Context context,
@@ -112,7 +115,8 @@ public final class TextMeasurer {
                                                 float maxWidth,
                                                 int widthMode,
                                                 float maxHeight,
-                                                int heightMode) {
+                                                int heightMode,
+                                                String direction) {
         return measureInternal(
                 context,
                 paramJson,
@@ -122,7 +126,8 @@ public final class TextMeasurer {
                 maxWidth,
                 widthMode,
                 maxHeight,
-                heightMode);
+                heightMode,
+                TextDirectionSupport.resolveDirection(direction));
     }
 
     private static MeasureResult measureInternal(Context context,
@@ -132,7 +137,8 @@ public final class TextMeasurer {
                                                  float maxWidth,
                                                  int widthMode,
                                                  float maxHeight,
-                                                 int heightMode) {
+                                                 int heightMode,
+                                                 int pageDirection) {
         try {
             JSONObject root = new JSONObject(paramJson);
             JSONObject styles = root.optJSONObject("styles");
@@ -147,7 +153,8 @@ public final class TextMeasurer {
                     widthMode,
                     maxHeight,
                     heightMode,
-                    defaultTextSizePx);
+                    defaultTextSizePx,
+                    pageDirection);
         } catch (Exception ignored) {
             return MeasureResult.zero();
         }
@@ -159,7 +166,8 @@ public final class TextMeasurer {
                                           float maxWidth,
                                           int widthMode,
                                           float maxHeight,
-                                          int heightMode) {
+                                          int heightMode,
+                                          int pageDirection) {
         return measureTextValue(
                 context,
                 text,
@@ -168,7 +176,8 @@ public final class TextMeasurer {
                 widthMode,
                 maxHeight,
                 heightMode,
-                StyleHelper.standardUnitToPx(context, StyleHelper.StyleDefaults.FONT_SIZE_A2UI));
+                StyleHelper.standardUnitToPx(context, StyleHelper.StyleDefaults.FONT_SIZE_A2UI),
+                pageDirection);
     }
 
     private static MeasureResult measureTextValue(Context context,
@@ -178,7 +187,8 @@ public final class TextMeasurer {
                                                   int widthMode,
                                                   float maxHeight,
                                                   int heightMode,
-                                                  float defaultTextSizePx) {
+                                                  float defaultTextSizePx,
+                                                  int pageDirection) {
         // Shared text primitive used by Text/RichText and by hybrid measurers that need to
         // measure inner labels with the same metric-affecting style subset as Android rendering.
         if (context == null || TextUtils.isEmpty(text)) {

@@ -377,14 +377,6 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
         }
     }
     
-    // Process direction attribute
-    {
-        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kDirection);
-        if (value.isValid()) {
-            applyDirection(yogaNode, value);
-        }
-    }
-    
     // Process aspect-ratio attribute
     {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kAspectRatio);
@@ -394,7 +386,18 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
     }
     
     // Process CSS Logical Properties
+    // NOTE: shorthands are applied BEFORE their per-edge longhands. The
+    // style map is unordered (CSS declaration order is lost), so a longhand
+    // coexisting with its shorthand must win — e.g.
+    // {"inset-inline":"0","inset-inline-start":"10px"} resolves start to
+    // 10px. Mirrors the physical padding/margin ordering above.
     // Inset logical properties
+    {
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInline);
+        if (value.isValid()) {
+            applyInsetInline(yogaNode, value);
+        }
+    }
     {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInlineStart);
         if (value.isValid()) {
@@ -419,8 +422,14 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
             applyInsetBlockEnd(yogaNode, value);
         }
     }
-    
+
     // Margin logical properties
+    {
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInline);
+        if (value.isValid()) {
+            applyMarginInline(yogaNode, value);
+        }
+    }
     {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInlineStart);
         if (value.isValid()) {
@@ -445,8 +454,14 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
             applyMarginBlockEnd(yogaNode, value);
         }
     }
-    
+
     // Padding logical properties
+    {
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInline);
+        if (value.isValid()) {
+            applyPaddingInline(yogaNode, value);
+        }
+    }
     {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInlineStart);
         if (value.isValid()) {
@@ -530,6 +545,12 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
     }
     // Inset logical properties camelCase
     {
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInlineCC);
+        if (value.isValid()) {
+            applyInsetInline(yogaNode, value);
+        }
+    }
+    {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kInsetInlineStartCC);
         if (value.isValid()) {
             applyInsetInlineStart(yogaNode, value);
@@ -555,6 +576,12 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
     }
     // Margin logical properties camelCase
     {
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInlineCC);
+        if (value.isValid()) {
+            applyMarginInline(yogaNode, value);
+        }
+    }
+    {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kMarginInlineStartCC);
         if (value.isValid()) {
             applyMarginInlineStart(yogaNode, value);
@@ -579,6 +606,12 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
         }
     }
     // Padding logical properties camelCase
+    {
+        YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInlineCC);
+        if (value.isValid()) {
+            applyPaddingInline(yogaNode, value);
+        }
+    }
     {
         YogaValue value = wrapper.getStyleValue(CSSPropertyNames::kPaddingInlineStartCC);
         if (value.isValid()) {
@@ -631,18 +664,14 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
         wrapper.clearStyle(CSSPropertyNames::kBottom);
         wrapper.clearStyle(CSSPropertyNames::kLeft);
         wrapper.clearStyle(CSSPropertyNames::kDisplay);
-        wrapper.clearStyle(CSSPropertyNames::kDirection);
         wrapper.clearStyle(CSSPropertyNames::kAspectRatio);
         
-        // Clear CSS logical properties
+        // Clear CSS logical inset properties
         wrapper.clearStyle(CSSPropertyNames::kInsetInlineStart);
         wrapper.clearStyle(CSSPropertyNames::kInsetInlineEnd);
+        wrapper.clearStyle(CSSPropertyNames::kInsetInline);
         wrapper.clearStyle(CSSPropertyNames::kInsetBlockStart);
         wrapper.clearStyle(CSSPropertyNames::kInsetBlockEnd);
-        wrapper.clearStyle(CSSPropertyNames::kMarginInlineStart);
-        wrapper.clearStyle(CSSPropertyNames::kMarginInlineEnd);
-        wrapper.clearStyle(CSSPropertyNames::kMarginBlockStart);
-        wrapper.clearStyle(CSSPropertyNames::kMarginBlockEnd);
 
         // camelCase aliases
         wrapper.clearStyle(CSSPropertyNames::kJustifyContentCC);
@@ -656,12 +685,9 @@ void CSSStyleConverter::convertToYoga(ILayoutDataWrapper& wrapper, YGNodeRef yog
         wrapper.clearStyle(CSSPropertyNames::kBorderWidthCC);
         wrapper.clearStyle(CSSPropertyNames::kInsetInlineStartCC);
         wrapper.clearStyle(CSSPropertyNames::kInsetInlineEndCC);
+        wrapper.clearStyle(CSSPropertyNames::kInsetInlineCC);
         wrapper.clearStyle(CSSPropertyNames::kInsetBlockStartCC);
         wrapper.clearStyle(CSSPropertyNames::kInsetBlockEndCC);
-        wrapper.clearStyle(CSSPropertyNames::kMarginInlineStartCC);
-        wrapper.clearStyle(CSSPropertyNames::kMarginInlineEndCC);
-        wrapper.clearStyle(CSSPropertyNames::kMarginBlockStartCC);
-        wrapper.clearStyle(CSSPropertyNames::kMarginBlockEndCC);
 
     }
 }
@@ -1398,24 +1424,6 @@ void CSSStyleConverter::applyOverflow(YGNodeRef yogaNode, YogaValue value) {
     }
 }
 
-void CSSStyleConverter::applyDirection(YGNodeRef yogaNode, YogaValue value) {
-    if (!yogaNode) {
-        return;
-    }
-    if (value.type() != YogaValue::kString) {
-        return;
-    }
-    const std::string& actualValue = value.asString();
-    
-    if (actualValue == "ltr") {
-        YGNodeStyleSetDirection(yogaNode, YGDirectionLTR);
-    } else if (actualValue == "rtl") {
-        YGNodeStyleSetDirection(yogaNode, YGDirectionRTL);
-    } else if (actualValue == "inherit") {
-        YGNodeStyleSetDirection(yogaNode, YGDirectionInherit);
-    }
-}
-
 void CSSStyleConverter::applyAspectRatio(YGNodeRef yogaNode, YogaValue value) {
     if (!yogaNode) {
         return;
@@ -1604,28 +1612,110 @@ void CSSStyleConverter::applyCellPadding(YGNodeRef yogaNode, ILayoutDataWrapper&
     }
 }
 
+namespace {
+
+// CSS inline logical properties resolve against the element's writing
+// direction. Per-node direction declarations are NOT supported (the surface
+// manager is the single direction entry point), so every node's resolved
+// direction equals its owner's — exactly the condition under which Yoga's
+// start/end edges match CSS inline-start/end semantics. Write the logical
+// edge directly and let Yoga resolve it against the inherited direction
+// chain at layout time; a direction flip re-resolves it via the
+// lastOwnerDirection cache invalidation.
+//
+// The setEdge* helpers below adapt the multi-form CSS value (float /
+// percent string / px string) to Yoga's dual API, mirroring the physical
+// apply* counterparts above.
+
+void setEdgePosition(YGNodeRef yogaNode, YGEdge edge, const YogaValue& value) {
+    if (!yogaNode) {
+        return;
+    }
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPosition(yogaNode, edge, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& actualValue = value.asString();
+    if (actualValue.empty()) {
+        return;
+    }
+    if (actualValue.back() == '%') {
+        float percent = yoga_internal::parseCssFloat(actualValue.substr(0, actualValue.size() - 1));
+        YGNodeStyleSetPositionPercent(yogaNode, edge, percent);
+    } else {
+        YGNodeStyleSetPosition(yogaNode, edge, parseLengthValue(actualValue));
+    }
+}
+
+void setEdgeMargin(YGNodeRef yogaNode, YGEdge edge, const YogaValue& value) {
+    if (!yogaNode) {
+        return;
+    }
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetMargin(yogaNode, edge, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
+    if (v == "auto") {
+        YGNodeStyleSetMarginAuto(yogaNode, edge);
+    } else if (!v.empty() && v.back() == '%') {
+        YGNodeStyleSetMarginPercent(yogaNode, edge, yoga_internal::parseCssFloat(v.substr(0, v.size() - 1)));
+    } else if (!v.empty()) {
+        YGNodeStyleSetMargin(yogaNode, edge, parseLengthValue(v));
+    }
+}
+
+void setEdgePadding(YGNodeRef yogaNode, YGEdge edge, const YogaValue& value) {
+    if (!yogaNode) {
+        return;
+    }
+    if (value.type() == YogaValue::kFloat) {
+        YGNodeStyleSetPadding(yogaNode, edge, value.asFloat());
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        return;
+    }
+    const std::string& v = value.asString();
+    if (!v.empty() && v.back() == '%') {
+        YGNodeStyleSetPaddingPercent(yogaNode, edge, yoga_internal::parseCssFloat(v.substr(0, v.size() - 1)));
+    } else if (!v.empty()) {
+        YGNodeStyleSetPadding(yogaNode, edge, parseLengthValue(v));
+    }
+}
+
+// Splits a multi-value CSS shorthand ("40px 20px") into whitespace-separated
+// tokens; each token keeps its raw form (px/%/auto) for the setEdge* helpers.
+std::vector<std::string> splitShorthandTokens(const std::string& s) {
+    std::istringstream iss(s);
+    std::vector<std::string> tokens;
+    std::string token;
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+}  // namespace
+
 void CSSStyleConverter::applyInsetInlineStart(YGNodeRef yogaNode, YogaValue value) {
     if (!yogaNode) {
         return;
     }
-    YGDirection direction = YGNodeStyleGetDirection(yogaNode);
-    if (direction == YGDirectionRTL) {
-        applyRight(yogaNode, value);
-    } else {
-        applyLeft(yogaNode, value);
-    }
+    setEdgePosition(yogaNode, YGEdgeStart, value);
 }
 
 void CSSStyleConverter::applyInsetInlineEnd(YGNodeRef yogaNode, YogaValue value) {
     if (!yogaNode) {
         return;
     }
-    YGDirection direction = YGNodeStyleGetDirection(yogaNode);
-    if (direction == YGDirectionRTL) {
-        applyLeft(yogaNode, value);
-    } else {
-        applyRight(yogaNode, value);
-    }
+    setEdgePosition(yogaNode, YGEdgeEnd, value);
 }
 
 void CSSStyleConverter::applyInsetBlockStart(YGNodeRef yogaNode, YogaValue value) {
@@ -1647,24 +1737,14 @@ void CSSStyleConverter::applyMarginInlineStart(YGNodeRef yogaNode, YogaValue val
     if (!yogaNode) {
         return;
     }
-    YGDirection direction = YGNodeStyleGetDirection(yogaNode);
-    if (direction == YGDirectionRTL) {
-        applyMarginRight(yogaNode, value);
-    } else {
-        applyMarginLeft(yogaNode, value);
-    }
+    setEdgeMargin(yogaNode, YGEdgeStart, value);
 }
 
 void CSSStyleConverter::applyMarginInlineEnd(YGNodeRef yogaNode, YogaValue value) {
     if (!yogaNode) {
         return;
     }
-    YGDirection direction = YGNodeStyleGetDirection(yogaNode);
-    if (direction == YGDirectionRTL) {
-        applyMarginLeft(yogaNode, value);
-    } else {
-        applyMarginRight(yogaNode, value);
-    }
+    setEdgeMargin(yogaNode, YGEdgeEnd, value);
 }
 
 void CSSStyleConverter::applyMarginBlockStart(YGNodeRef yogaNode, YogaValue value) {
@@ -1686,24 +1766,14 @@ void CSSStyleConverter::applyPaddingInlineStart(YGNodeRef yogaNode, YogaValue va
     if (!yogaNode) {
         return;
     }
-    YGDirection direction = YGNodeStyleGetDirection(yogaNode);
-    if (direction == YGDirectionRTL) {
-        applyPaddingRight(yogaNode, value);
-    } else {
-        applyPaddingLeft(yogaNode, value);
-    }
+    setEdgePadding(yogaNode, YGEdgeStart, value);
 }
 
 void CSSStyleConverter::applyPaddingInlineEnd(YGNodeRef yogaNode, YogaValue value) {
     if (!yogaNode) {
         return;
     }
-    YGDirection direction = YGNodeStyleGetDirection(yogaNode);
-    if (direction == YGDirectionRTL) {
-        applyPaddingLeft(yogaNode, value);
-    } else {
-        applyPaddingRight(yogaNode, value);
-    }
+    setEdgePadding(yogaNode, YGEdgeEnd, value);
 }
 
 void CSSStyleConverter::applyPaddingBlockStart(YGNodeRef yogaNode, YogaValue value) {
@@ -1718,6 +1788,90 @@ void CSSStyleConverter::applyPaddingBlockEnd(YGNodeRef yogaNode, YogaValue value
         return;
     }
     applyPaddingBottom(yogaNode, value);
+}
+
+// Inline shorthand properties (CSS Writing Modes): one value -> both inline
+// edges; two values -> start | end. The edges stay logical (YGEdgeStart/End),
+// so they follow the surface-level writing direction at layout time.
+void CSSStyleConverter::applyInsetInline(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        // Single numeric value: both inline edges take it.
+        setEdgePosition(yogaNode, YGEdgeStart, value);
+        setEdgePosition(yogaNode, YGEdgeEnd, value);
+        return;
+    }
+    const std::string& actualValue = value.asString();
+    if (actualValue.empty()) {
+        return;
+    }
+    std::vector<std::string> tokens = splitShorthandTokens(actualValue);
+    if (tokens.empty()) {
+        return;
+    }
+    if (tokens.size() == 1) {
+        // Single token feeds BOTH edges — must stay intact for the second
+        // call, so copy it (moving would leave a moved-from string).
+        setEdgePosition(yogaNode, YGEdgeStart, YogaValue(tokens[0]));
+        setEdgePosition(yogaNode, YGEdgeEnd, YogaValue(tokens[0]));
+    } else {
+        setEdgePosition(yogaNode, YGEdgeStart, YogaValue(std::move(tokens[0])));
+        setEdgePosition(yogaNode, YGEdgeEnd, YogaValue(std::move(tokens[1])));
+    }
+}
+
+void CSSStyleConverter::applyMarginInline(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        setEdgeMargin(yogaNode, YGEdgeStart, value);
+        setEdgeMargin(yogaNode, YGEdgeEnd, value);
+        return;
+    }
+    const std::string& actualValue = value.asString();
+    if (actualValue.empty()) {
+        return;
+    }
+    std::vector<std::string> tokens = splitShorthandTokens(actualValue);
+    if (tokens.empty()) {
+        return;
+    }
+    if (tokens.size() == 1) {
+        setEdgeMargin(yogaNode, YGEdgeStart, YogaValue(tokens[0]));
+        setEdgeMargin(yogaNode, YGEdgeEnd, YogaValue(tokens[0]));
+    } else {
+        setEdgeMargin(yogaNode, YGEdgeStart, YogaValue(std::move(tokens[0])));
+        setEdgeMargin(yogaNode, YGEdgeEnd, YogaValue(std::move(tokens[1])));
+    }
+}
+
+void CSSStyleConverter::applyPaddingInline(YGNodeRef yogaNode, YogaValue value) {
+    if (!yogaNode) {
+        return;
+    }
+    if (value.type() != YogaValue::kString) {
+        setEdgePadding(yogaNode, YGEdgeStart, value);
+        setEdgePadding(yogaNode, YGEdgeEnd, value);
+        return;
+    }
+    const std::string& actualValue = value.asString();
+    if (actualValue.empty()) {
+        return;
+    }
+    std::vector<std::string> tokens = splitShorthandTokens(actualValue);
+    if (tokens.empty()) {
+        return;
+    }
+    if (tokens.size() == 1) {
+        setEdgePadding(yogaNode, YGEdgeStart, YogaValue(tokens[0]));
+        setEdgePadding(yogaNode, YGEdgeEnd, YogaValue(tokens[0]));
+    } else {
+        setEdgePadding(yogaNode, YGEdgeStart, YogaValue(std::move(tokens[0])));
+        setEdgePadding(yogaNode, YGEdgeEnd, YogaValue(std::move(tokens[1])));
+    }
 }
 
 float CSSStyleConverter::parseStyleDimension(const nlohmann::json& styleConfig, const char* key, float fallbackValue) {

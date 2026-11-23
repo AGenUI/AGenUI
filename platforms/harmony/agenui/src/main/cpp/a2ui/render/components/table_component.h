@@ -43,6 +43,7 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
+    void applyWritingDirection();
     /** Parse table styling from styles. */
     void parseStyles(const nlohmann::json& properties);
 

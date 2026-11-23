@@ -2,6 +2,8 @@ package com.amap.agenui.render.measurement;
 
 import android.content.Context;
 
+import com.amap.agenui.render.style.TextDirectionSupport;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -32,7 +34,8 @@ public final class TableMeasurer {
                                  float maxWidth,
                                  int widthMode,
                                  float maxHeight,
-                                 int heightMode) {
+                                 int heightMode,
+                                 String direction) {
         JSONObject root = MeasurementSupport.parseRoot(paramJson);
         if (root == null) {
             return MeasureResult.zero();
@@ -44,6 +47,7 @@ public final class TableMeasurer {
         if (columnCount <= 0) {
             return MeasureResult.zero();
         }
+        int pageDirection = TextDirectionSupport.resolveDirection(direction);
 
         Map<String, String> styleConfig = MeasurementSupport.getComponentStyle(context, COMPONENT_NAME);
         TableStyle tableStyle = TableStyle.from(styleConfig);
@@ -59,7 +63,8 @@ public final class TableMeasurer {
                 rows,
                 columnCount,
                 tableStyle,
-                availableWidth);
+                availableWidth,
+                pageDirection);
 
         float contentWidth = sum(columnWidths);
         if (tableStyle.horizontalScroll && availableWidth > 0f && contentWidth < availableWidth) {
@@ -69,14 +74,16 @@ public final class TableMeasurer {
 
         float contentHeight = 0f;
         if (headerRow != null && headerRow.length() > 0) {
-            contentHeight += measureRowHeight(context, headerRow, columnWidths, tableStyle, true);
+            contentHeight += measureRowHeight(context, headerRow, columnWidths, tableStyle, true,
+                    pageDirection);
         }
 
         if (rows != null) {
             for (int i = 0; i < rows.length(); i++) {
                 JSONArray row = rows.optJSONArray(i);
                 if (row != null) {
-                    contentHeight += measureRowHeight(context, row, columnWidths, tableStyle, false);
+                    contentHeight += measureRowHeight(context, row, columnWidths, tableStyle, false,
+                            pageDirection);
                 }
             }
         }
@@ -133,7 +140,8 @@ public final class TableMeasurer {
                                                 JSONArray rows,
                                                 int columnCount,
                                                 TableStyle style,
-                                                float availableWidth) {
+                                                float availableWidth,
+                                                int pageDirection) {
         float[] columnWidths = new float[columnCount];
         int rowsToMeasure = rows == null ? 0 : Math.min(MAX_ROWS_TO_MEASURE, rows.length());
 
@@ -153,7 +161,8 @@ public final class TableMeasurer {
                         context,
                         headerRow.opt(column),
                         style.headerPaddingHorizontal,
-                        style.headerTextStyle));
+                        style.headerTextStyle,
+                        pageDirection));
             }
 
             for (int rowIndex = 0; rowIndex < rowsToMeasure; rowIndex++) {
@@ -165,7 +174,8 @@ public final class TableMeasurer {
                         context,
                         row.opt(column),
                         style.bodyPaddingHorizontal,
-                        style.bodyTextStyle));
+                        style.bodyTextStyle,
+                        pageDirection));
             }
 
             columnWidths[column] = Math.max(
@@ -179,7 +189,8 @@ public final class TableMeasurer {
     private static float measureIntrinsicCellWidth(Context context,
                                                    Object rawValue,
                                                    float horizontalPadding,
-                                                   JSONObject textStyle) {
+                                                   JSONObject textStyle,
+                                                   int pageDirection) {
         String text = MeasurementSupport.extractString(rawValue);
         MeasureResult textResult = TextMeasurer.measureTextValue(
                 context,
@@ -188,7 +199,8 @@ public final class TableMeasurer {
                 0f,
                 MeasurementSupport.MODE_UNDEFINED,
                 0f,
-                MeasurementSupport.MODE_UNDEFINED);
+                MeasurementSupport.MODE_UNDEFINED,
+                pageDirection);
         return textResult.width + horizontalPadding * 2f;
     }
 
@@ -196,7 +208,8 @@ public final class TableMeasurer {
                                           JSONArray row,
                                           float[] columnWidths,
                                           TableStyle style,
-                                          boolean header) {
+                                          boolean header,
+                                          int pageDirection) {
         float rowHeight = 0f;
         float horizontalPadding = header
                 ? style.headerPaddingHorizontal
@@ -217,7 +230,8 @@ public final class TableMeasurer {
                     innerWidth,
                     textWidthMode,
                     0f,
-                    MeasurementSupport.MODE_UNDEFINED);
+                    MeasurementSupport.MODE_UNDEFINED,
+                    pageDirection);
             rowHeight = Math.max(rowHeight, verticalPadding * 2f + textMeasure.height);
         }
 

@@ -265,4 +265,47 @@ bool EdgeInsetsParser::parse(const std::string& cssValue, EdgeInsets& result) {
     return true;
 }
 
+bool EdgeInsetsParser::parseInline(const std::string& cssValue, bool isRtl, EdgeInsets& result) {
+    // Zero-initialize result so callers get a clean state on failure
+    initEdgeInsetValue(result.top);
+    initEdgeInsetValue(result.right);
+    initEdgeInsetValue(result.bottom);
+    initEdgeInsetValue(result.left);
+
+    std::string input = trimWhitespace(cssValue);
+    if (input.empty()) {
+        return false;
+    }
+
+    std::vector<std::string> tokens = splitTokens(input);
+    if (tokens.empty()) {
+        return false;
+    }
+
+    // Inline-axis expansion: 1 value fills both edges; 2+ values map the
+    // first two tokens to start|end (extra tokens ignored), mirroring
+    // CSSStyleConverter::applyPaddingInline.
+    EdgeInsetValue startVal;
+    if (!parseSingleValue(tokens[0], startVal)) {
+        return false;
+    }
+    EdgeInsetValue endVal = startVal;
+    if (tokens.size() >= 2) {
+        if (!parseSingleValue(tokens[1], endVal)) {
+            return false;
+        }
+    }
+
+    // inline start/end physicalize against the writing direction; top/bottom
+    // stay zeroed — the inline axis has no block component.
+    if (isRtl) {
+        result.right = startVal;
+        result.left = endVal;
+    } else {
+        result.left = startVal;
+        result.right = endVal;
+    }
+    return true;
+}
+
 }  // namespace agenui

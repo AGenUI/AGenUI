@@ -32,6 +32,8 @@
 #include <memory>
 #include <string>
 
+#include "surface/agenui_layout_direction.h"
+
 namespace agenui {
 
 class ILayoutDataWrapper;
@@ -101,6 +103,38 @@ public:
 
     // ---------------- layout calculation ----------------
 
+    /**
+     * @brief Set the writing direction applied to the whole layout tree.
+     *
+     * This is the single writing-direction source for the whole tree:
+     * per-node `direction` styles are NOT supported, so every node resolves
+     * to this value at layout time (node-level DSL "direction" declarations
+     * pass through as ordinary styles and never reach the layout engine).
+     *
+     * Defaults to LTR. Optional capability: the base implementation is a
+     * no-op, so pre-existing delegates keep compiling and simply resolve
+     * the whole tree as LTR. Changing it does not trigger a re-layout;
+     * call calculateLayout afterwards to apply it.
+     */
+    virtual void setDefaultRootDirection(LayoutDirection direction) {
+        (void)direction;  // optional capability: the default keeps LTR
+    }
+
+    /**
+     * @brief Query the active writing direction (the layout INPUT of the
+     *        current pass, i.e. the value set via setDefaultRootDirection).
+     *
+     * Consumed by measurement call sites to fill MeasureModes.direction:
+     * reading the layout OUTPUT instead (snapshot.layout.direction /
+     * YGNodeLayoutGetDirection) would yield the PREVIOUS pass's direction,
+     * since measurement runs in the middle of the current one. Optional
+     * capability mirroring setDefaultRootDirection: defaults to LTR so
+     * pre-existing delegates keep compiling and resolve measurements as LTR.
+     */
+    virtual LayoutDirection getDefaultRootDirection() const {
+        return LayoutDirection::LTR;
+    }
+
     virtual bool calculateLayout(const std::string& rootId,
                                  float surfaceWidth) = 0;
 
@@ -158,6 +192,7 @@ public:
     void setupMeasureFunctionIfNeeded(const std::string&,
                                       ILayoutDataWrapper&) override {}
     bool calculateLayout(const std::string&, float) override { return false; }
+    void setDefaultRootDirection(LayoutDirection) override {}
     void updateTabsSelectedIndex(const std::string&, int) override {}
     bool readLayoutResult(const std::string&,
                           float& x, float& y,

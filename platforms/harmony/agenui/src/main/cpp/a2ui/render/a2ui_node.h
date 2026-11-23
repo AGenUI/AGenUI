@@ -6,6 +6,7 @@
 #include <arkui/drawable_descriptor.h>
 #include "a2ui/utils/a2ui_unit_utils.h"
 #include "a2ui/utils/hm_font_utils.h"
+#include "a2ui/utils/a2ui_writing_direction.h"
 #include "log/a2ui_capi_log.h"
 
 extern ArkUI_NativeNodeAPI_1 *g_nodeAPI;
@@ -23,6 +24,12 @@ public:
 
     ArkUI_NodeHandle getNodeHandle() const { 
         return m_nodeHandle; 
+    }
+
+    void setWritingDirection(writing_direction::Direction direction) {
+        ArkUI_NumberValue value[] = {{.i32 = static_cast<int32_t>(direction)}};
+        ArkUI_AttributeItem item = {value, 1};
+        g_nodeAPI->setAttribute(m_nodeHandle, NODE_DIRECTION, &item);
     }
 
     // ========== ID ==========
@@ -607,6 +614,17 @@ public:
         ArkUI_NumberValue value[] = {{.i32 = textAlign}};
         ArkUI_AttributeItem item = {value, 1};
         g_nodeAPI->setAttribute(m_nodeHandle, NODE_TEXT_ALIGN, &item);
+    }
+
+    void setTextAlign(const std::string& alignment, writing_direction::Direction direction) {
+        const auto physical = writing_direction::physicalTextAlignment(alignment, direction);
+        if (physical == writing_direction::TextAlignment::Center) {
+            setTextAlign(ARKUI_TEXT_ALIGNMENT_CENTER);
+            return;
+        }
+        const bool physicalRight = physical == writing_direction::TextAlignment::Right;
+        setTextAlign(physicalRight == (direction == writing_direction::Direction::Rtl)
+                         ? ARKUI_TEXT_ALIGNMENT_START : ARKUI_TEXT_ALIGNMENT_END);
     }
 
     void setLineHeight(float height) {

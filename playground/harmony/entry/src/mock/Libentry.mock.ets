@@ -169,6 +169,8 @@ export function destroySurfaceManager(engineId: number): void {
   mockBuffers.delete(engineId);
 }
 
+export function setSurfaceManagerLayoutDirection(engineId: number, direction: 'ltr' | 'rtl'): void {}
+
 export function sendMockData(mockData: string): void {}
 
 export function setWorkingDir(dir: string): void {}
@@ -325,6 +327,7 @@ const NativeMock: Record<string, Object> = {
   'getVersion': getVersion as Object,
   'createSurfaceManager': createSurfaceManager as Object,
   'destroySurfaceManager': destroySurfaceManager as Object,
+  'setSurfaceManagerLayoutDirection': setSurfaceManagerLayoutDirection as Object,
   'sendMockData': sendMockData as Object,
   'setWorkingDir': setWorkingDir as Object,
   'removeEventListener': removeEventListener as Object,

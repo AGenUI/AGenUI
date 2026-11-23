@@ -51,6 +51,7 @@ public:
     MOCK_METHOD(void, updateNode, (const ComponentSnapshot& snapshot), (override));
     MOCK_METHOD(void, clear, (), (override));
     MOCK_METHOD(BatchGuard*, batchGuard, (), (override));
+    void setLayoutDirection(LayoutDirection) override {}
 };
 
 // =============================================================================

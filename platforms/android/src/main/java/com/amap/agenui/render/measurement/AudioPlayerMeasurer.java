@@ -27,7 +27,8 @@ public final class AudioPlayerMeasurer {
                                  float maxWidth,
                                  int widthMode,
                                  float maxHeight,
-                                 int heightMode) {
+                                 int heightMode,
+                                 String direction) {
         Map<String, String> styleConfig = MeasurementSupport.getComponentStyle(context, COMPONENT_NAME);
         float size = MeasurementSupport.readStyleDimensionA2ui(styleConfig, "size", 80f);
         return resolveSyncResult(size, maxWidth, widthMode, maxHeight, heightMode);

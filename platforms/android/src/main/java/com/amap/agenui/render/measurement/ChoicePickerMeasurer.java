@@ -2,6 +2,8 @@ package com.amap.agenui.render.measurement;
 
 import android.content.Context;
 
+import com.amap.agenui.render.style.TextDirectionSupport;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -33,11 +35,13 @@ public final class ChoicePickerMeasurer {
                                  float maxWidth,
                                  int widthMode,
                                  float maxHeight,
-                                 int heightMode) {
+                                 int heightMode,
+                                 String direction) {
         JSONObject root = MeasurementSupport.parseRoot(paramJson);
         if (root == null) {
             return MeasureResult.zero();
         }
+        int pageDirection = TextDirectionSupport.resolveDirection(direction);
 
         JSONArray options = root.optJSONArray("options");
         if (options == null) options = new JSONArray();
@@ -76,7 +80,8 @@ public final class ChoicePickerMeasurer {
                             labelMaxWidth,
                             labelWidthMode,
                             0f,
-                            MeasurementSupport.MODE_UNDEFINED);
+                            MeasurementSupport.MODE_UNDEFINED,
+                            pageDirection);
 
             itemWidths[i] = reservedWidth + labelResult.width;
             itemHeights[i] = ITEM_PADDING_VERTICAL_A2UI * 2f
@@ -95,7 +100,8 @@ public final class ChoicePickerMeasurer {
             filterExtraHeight = filterPaddingV * 2f + filterTextSize * 1.4f + filterMarginBottom;
         }
 
-        MeasureResult title = MeasurementSupport.measureFormLabel(context, root, maxWidth, widthMode);
+        MeasureResult title = MeasurementSupport.measureFormLabel(context, root, maxWidth, widthMode,
+                pageDirection);
         MeasureResult content = resolveSyncResult(
                 horizontal,
                 itemWidths,

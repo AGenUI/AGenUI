@@ -362,6 +362,9 @@ YGSize VirtualDOMNode::routeMeasure(const ComponentSnapshot& snapshot,
     modes.width.mode      = static_cast<int>(widthMode);
     modes.height.maxValue = height;
     modes.height.mode     = static_cast<int>(heightMode);
+    modes.direction = _layoutDelegate
+        ? toLayoutDirectionString(_layoutDelegate->getDefaultRootDirection())
+        : "ltr";
 
     // Call unified measurement entry point
     ::agenui::MeasureResult result = _measurementManager->measure(
@@ -427,10 +430,15 @@ void VirtualDOMNode::notifyComponentUpdate(const ComponentSnapshot& newSnapshot)
     if (!_observer || !_snapshotWithLayout) {
         return;
     }
-    
+
     std::string diff;
+    // LayoutInfo.direction participates in the snapshot comparison like
+    // x/y/w/h: a direction flip (a render input — Tabs order, List start
+    // edge, Slider progress) forces the UPDATE even when the node's own
+    // coordinates are byte-identical. With no other change the diff builder
+    // then emits the minimal well-formed {id, component} payload.
     if (VirtualDOMNode::checkSnapshotChanged(*_snapshotWithLayout, newSnapshot, true, &diff)) {
-        _observer->onNodeUpdate(_id, diff);
+        _observer->onNodeUpdate(_id, diff, newSnapshot.layout.direction);
     }
 }
 
@@ -438,7 +446,18 @@ void VirtualDOMNode::notifyComponentAdded() {
     if (!_observer || !_snapshotWithLayout) {
         return;
     }
-    _observer->onNodeAdded(_parentId, _snapshotWithLayout->stringify());
+    _observer->onNodeAdded(_parentId, _snapshotWithLayout->stringify(),
+                           _snapshotWithLayout->layout.direction);
+}
+
+std::string VirtualDOMNode::resolvedDirectionString() const {
+    // Double null check, same as the other direct Yoga C API call sites in
+    // this file: a moved-from YogaNode can hold a null _ygNode, and
+    // YGNodeLayoutGetDirection(nullptr) would dereference it.
+    if (!_yogaNode || !_yogaNode->get()) {
+        return "ltr";
+    }
+    return YGNodeLayoutGetDirection(_yogaNode->get()) == YGDirectionRTL ? "rtl" : "ltr";
 }
 
 void VirtualDOMNode::notifyComponentRemoved() {
@@ -626,6 +645,12 @@ void VirtualDOMNode::checkAndNotifyLayoutChanges() {
         snapshotWithLayout.layout.width  = _yogaNode->getLayoutWidth();
         snapshotWithLayout.layout.height = _yogaNode->getLayoutHeight();
 
+        // Resolved writing direction: layout OUTPUT stored in LayoutInfo —
+        // compared by checkSnapshotChanged like x/y/w/h (a flip forces an
+        // UPDATE even when coordinates are identical), but never serialized
+        // into styles by stringify(); it rides on the message envelope.
+        snapshotWithLayout.layout.direction = resolvedDirectionString();
+
         // Propagate styleInfo saved earlier in setSnapshot (e.g. Image width/height)
         if (!_snapshot->layout.styleInfo.empty()) {
             snapshotWithLayout.layout.styleInfo = _snapshot->layout.styleInfo;
@@ -648,6 +673,13 @@ void VirtualDOMNode::checkAndNotifyLayoutChanges() {
             snapshotWithLayout.styles[pair.first] = SerializableData(SerializableData::Impl::parse(pair.second));
         }
     }
+
+    // text-align is a pure render property (never enters the Yoga layout):
+    // it passes through to the wire verbatim, including the logical
+    // start/end values. Resolving start/end against the node's resolved
+    // writing direction is delegated to the platform renderers (each maps
+    // them to native logical values, using the message-level direction
+    // attribute where the platform enum needs it).
 
     // If this layout update was triggered by a platform-reported size
     // (setYogaNodeSize), mark the styles so the component can distinguish

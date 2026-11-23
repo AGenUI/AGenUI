@@ -3,6 +3,7 @@
 #include "nlohmann/json.hpp"
 #include "a2ui/third_party/key_define.h"
 #include "a2ui/utils/a2ui_measure_mode.h"
+#include "a2ui/utils/a2ui_writing_direction.h"
 #include <climits>
 #include <cstdlib>
 #include <algorithm>
@@ -48,6 +49,7 @@ agenui::MeasureResult TextComponentMeasurement::measure(const std::string& param
                                                   const agenui::MeasureModes& modes) {
     std::string text;
     TextMeasureParam param;
+    param.isRtlLayout = writing_direction::resolve(modes.direction) == writing_direction::Direction::Rtl;
     using json = nlohmann::json;
     json j = json::parse(paramJson, nullptr, false);
     if (j.is_discarded()) return agenui::MeasureResult{agenui::CalcType::Sync, 0.0f, 0.0f, 0};
@@ -151,21 +153,21 @@ bool TextComponentMeasurement::buildParam(const nlohmann::json& j,
     }
     
     // text-align
-    const json& taVal = getValue("text-align");
+    const json& cssAlign = getValue("text-align");
+    const json& taVal = cssAlign.is_string() ? cssAlign : getValue("textAlign");
     if (taVal.is_string()) {
-        const std::string ta = taVal.get<std::string>();
-        if      (ta == "left top")        outParam.textAlign = TEXT_ALIGN_LEFT_TOP;
-        else if (ta == "left" ||
-                 ta == "left center")     outParam.textAlign = TEXT_ALIGN_LEFT_V_CENTER;
-        else if (ta == "left bottom")     outParam.textAlign = TEXT_ALIGN_LEFT_BOTTOM;
-        else if (ta == "center top")      outParam.textAlign = TEXT_ALIGN_TOP_H_CENTER;
-        else if (ta == "center" ||
-                 ta == "center center")   outParam.textAlign = TEXT_ALIGN_CENTER;
-        else if (ta == "center bottom")   outParam.textAlign = TEXT_ALIGN_BOTTOM_H_CENTER;
-        else if (ta == "right top")       outParam.textAlign = TEXT_ALIGN_RIGHT_TOP;
-        else if (ta == "right" ||
-                 ta == "right center")    outParam.textAlign = TEXT_ALIGN_RIGHT_V_CENTER;
-        else if (ta == "right bottom")    outParam.textAlign = TEXT_ALIGN_RIGHT_BOTTOM;
+        const auto direction = outParam.isRtlLayout ? writing_direction::Direction::Rtl : writing_direction::Direction::Ltr;
+        switch (writing_direction::physicalTextAlignment(taVal.get<std::string>(), direction)) {
+            case writing_direction::TextAlignment::Left:
+                outParam.textAlign = TEXT_ALIGN_LEFT_TOP;
+                break;
+            case writing_direction::TextAlignment::Center:
+                outParam.textAlign = TEXT_ALIGN_TOP_H_CENTER;
+                break;
+            case writing_direction::TextAlignment::Right:
+                outParam.textAlign = TEXT_ALIGN_RIGHT_TOP;
+                break;
+        }
     }
     
     // letter-spacing

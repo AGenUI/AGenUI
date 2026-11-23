@@ -1,5 +1,24 @@
 # AGenUI C++ test suite
 
+## Harmony RTL helpers
+
+`harmony/writing_direction_test.cpp` and `harmony/rtl_layout_test.cpp` are ordinary
+gtest cases in `agenui_unit_tests`, discovered by the existing `harmony/*.cpp`
+source glob and registered with CTest. Reconfigure after adding test sources:
+
+```bash
+cmake -S tests/cpp -B tests/cpp/build/host
+cmake --build tests/cpp/build/host --target agenui_unit_tests -j
+ctest --test-dir tests/cpp/build/host --output-on-failure \
+  -R 'Harmony(WritingDirection|ListLayout|RtlLayout)Test'
+```
+
+The five tests retain the former standalone programs' 47 direction/alignment/List
+checks and 64 margin/padding checks. They exercise production Harmony helpers,
+not ArkUI native rendering; device coverage lives in
+`test/cases/rendering/business-scenario/rtl/`. No separate `main()` or manual
+compiler invocation is needed.
+
 Standalone gtest-based test suite for the platform-agnostic C++ core in
 `core/`. Tests cover:
 

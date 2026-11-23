@@ -33,13 +33,27 @@ public class YogaAbsoluteLayout extends ViewGroup {
         public final int widthPx;
         public final int heightPx;
         public final int zIndex;
+        /**
+         * Root-only physicalized trailing margins, in px. Yoga consumes left/top
+         * (they are already folded into {@link #xPx} / {@link #yPx}) but never
+         * right/bottom, so the root carries them here. Zero for every other node.
+         */
+        public final int rightMarginPx;
+        public final int bottomMarginPx;
 
         public LayoutState(int xPx, int yPx, int widthPx, int heightPx, int zIndex) {
+            this(xPx, yPx, widthPx, heightPx, zIndex, 0, 0);
+        }
+
+        public LayoutState(int xPx, int yPx, int widthPx, int heightPx, int zIndex,
+                           int rightMarginPx, int bottomMarginPx) {
             this.xPx = xPx;
             this.yPx = yPx;
             this.widthPx = widthPx;
             this.heightPx = heightPx;
             this.zIndex = zIndex;
+            this.rightMarginPx = rightMarginPx;
+            this.bottomMarginPx = bottomMarginPx;
         }
 
         @Override
@@ -55,7 +69,9 @@ public class YogaAbsoluteLayout extends ViewGroup {
                     && yPx == that.yPx
                     && widthPx == that.widthPx
                     && heightPx == that.heightPx
-                    && zIndex == that.zIndex;
+                    && zIndex == that.zIndex
+                    && rightMarginPx == that.rightMarginPx
+                    && bottomMarginPx == that.bottomMarginPx;
         }
 
         @Override
@@ -65,6 +81,8 @@ public class YogaAbsoluteLayout extends ViewGroup {
             result = 31 * result + widthPx;
             result = 31 * result + heightPx;
             result = 31 * result + zIndex;
+            result = 31 * result + rightMarginPx;
+            result = 31 * result + bottomMarginPx;
             return result;
         }
     }

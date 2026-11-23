@@ -13,6 +13,7 @@ import com.amap.agenui.render.component.impl.list.ComponentAdapter;
 import com.amap.agenui.render.component.impl.list.YogaLayoutManager;
 import com.amap.agenui.render.layout.YogaAbsoluteLayout;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 
 import java.util.Map;
 
@@ -57,6 +58,10 @@ public class ListComponent extends A2UILayoutComponent {
     private RecyclerView recyclerView;
     private YogaLayoutManager layoutManager;
     private ComponentAdapter adapter;
+    /** Last applied padding; sentinels so the first application always runs. */
+    private int lastPaddingLeft = Integer.MIN_VALUE;
+    private int lastPaddingRight = Integer.MIN_VALUE;
+    private int lastPaddingBottom = Integer.MIN_VALUE;
     private final Runnable mDeferredRequestLayout = () -> {
         if (recyclerView != null) recyclerView.requestLayout();
     };
@@ -229,17 +234,38 @@ public class ListComponent extends A2UILayoutComponent {
         if (recyclerView == null || context == null) {
             return;
         }
-        Rect padding = StyleHelper.resolveCSSPaddingPx(extractStyles(properties), context);
-        recyclerView.setPadding(0, 0, padding.right, padding.bottom);
+        int writingDirection = TextDirectionSupport.resolveDirection(properties);
+        boolean rtl = TextDirectionSupport.isRtl(writingDirection);
+        if (layoutManager.isHorizontalRtl() != rtl) {
+            recyclerView.stopScroll();
+            layoutManager.setHorizontalRtl(rtl);
+        }
+        Rect padding = StyleHelper.resolveCSSPaddingPx(extractStyles(properties), context, writingDirection);
+        int paddingLeft = rtl ? padding.left : 0;
+        if (lastPaddingLeft == paddingLeft && lastPaddingRight == padding.right
+                && lastPaddingBottom == padding.bottom) {
+            return;
+        }
+        lastPaddingLeft = paddingLeft;
+        lastPaddingRight = padding.right;
+        lastPaddingBottom = padding.bottom;
+        // Yoga already includes the leading gutter; RTL normalization also needs the left trailing gutter.
+        recyclerView.setPadding(paddingLeft, 0, padding.right, padding.bottom);
         recyclerView.setClipToPadding(false);
+        layoutManager.invalidateFrameCache();
+        recyclerView.requestLayout();
     }
 
     @Override
     public void onUpdateProperties(Map<String, Object> changedProps) {
         super.onUpdateProperties(changedProps);
-        if (isHorizontal()
-                && changedProps != null
-                && changedProps.containsKey("styles")) {
+        if (!isHorizontal() || changedProps == null) {
+            return;
+        }
+        // Trailing padding is direction-sensitive through the logical padding keys, so a
+        // direction-only update must refresh it even without a styles diff.
+        if (changedProps.containsKey("styles")
+                || changedProps.containsKey(TextDirectionSupport.DIRECTION_KEY)) {
             Context context = recyclerView != null ? recyclerView.getContext() : null;
             applyContainerPaddingToRecyclerView(context);
         }

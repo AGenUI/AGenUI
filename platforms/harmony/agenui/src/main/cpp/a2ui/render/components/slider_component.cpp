@@ -264,8 +264,13 @@ void SliderComponent::updateThumbLayout() {
     const float outerDiameter = std::max(m_thumbOuterDiameter, 1.0f);
     const float innerDiameter = std::max(std::min(m_thumbInnerDiameter, outerDiameter), 1.0f);
 
+    // Follow the manager direction explicitly instead of relying on the system
+    // locale. Binding it on the native SLIDER keeps its value->position and
+    // drag->value mapping on the same side as the drawn track below.
+    const bool isRtl = isRtlLayout();
     {
         A2UINode sliderNode(m_sliderHandle);
+        sliderNode.setWritingDirection(getWritingDirection());
         sliderNode.setPosition(0.0f, m_titleHeight);
         sliderNode.setWidth(componentWidth);
         sliderNode.setHeight(componentHeight);
@@ -277,12 +282,20 @@ void SliderComponent::updateThumbLayout() {
         ratio = std::clamp((m_currentValue - m_minValue) / range, 0.0f, 1.0f);
     }
 
+    // ratio 0 is the logical start: physical left in LTR, physical right in RTL.
+    const float progress = isRtl ? (1.0f - ratio) : ratio;
     const float thumbTravel = std::max(componentWidth - outerDiameter, 0.0f);
-    const float thumbLeft = ratio * thumbTravel;
+    const float thumbLeft = progress * thumbTravel;
     const float thumbTop = m_titleHeight + std::max((componentHeight - outerDiameter) * 0.5f, 0.0f);
     const float thumbCenter = thumbLeft + outerDiameter * 0.5f;
     const float trackTop = m_titleHeight + std::max((componentHeight - trackHeight) * 0.5f, 0.0f);
-    const float selectedTrackWidth = std::clamp(thumbCenter, 0.0f, componentWidth);
+    // The filled (minimum) track always runs from the logical start to the thumb.
+    const float selectedTrackStart = isRtl
+        ? std::clamp(thumbCenter, 0.0f, componentWidth)
+        : 0.0f;
+    const float selectedTrackWidth = isRtl
+        ? std::clamp(componentWidth - thumbCenter, 0.0f, componentWidth)
+        : std::clamp(thumbCenter, 0.0f, componentWidth);
     const float innerLeft = thumbLeft + (outerDiameter - innerDiameter) * 0.5f;
     const float innerTop = thumbTop + (outerDiameter - innerDiameter) * 0.5f;
 
@@ -298,7 +311,7 @@ void SliderComponent::updateThumbLayout() {
         A2UINode minTrack(m_minTrackHandle);
         minTrack.setWidth(selectedTrackWidth);
         minTrack.setHeight(trackHeight);
-        minTrack.setPosition(0.0f, trackTop);
+        minTrack.setPosition(selectedTrackStart, trackTop);
         minTrack.setBorderRadius(trackRadius);
     }
 

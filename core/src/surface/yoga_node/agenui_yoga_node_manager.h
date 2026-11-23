@@ -63,6 +63,27 @@ public:
     void setRootNode(YogaNode* node) { _rootNode = node; }
 
     /**
+     * @brief Set the root direction used by calculateLayout.
+     *
+     * The single direction source for the whole tree (no node carries a
+     * style direction — DSL direction is not supported). Defaults to LTR.
+     */
+    void setDefaultRootDirection(YGDirection direction) {
+        _defaultRootDirection = direction;
+    }
+
+    /**
+     * @brief Query the root direction used by calculateLayout.
+     *
+     * The layout INPUT of the current pass — measurement call sites read this
+     * to fill MeasureModes.direction (the layout OUTPUT is stale mid-pass).
+     * Same-thread contract as calculateLayout itself (message thread).
+     */
+    YGDirection getDefaultRootDirection() const {
+        return _defaultRootDirection;
+    }
+
+    /**
      * @brief Destroy all managed nodes
      *
      * Typically called during Surface destruction or reset to safely release all nodes.
@@ -124,6 +145,7 @@ private:
     std::map<std::string, std::unique_ptr<YogaNode>> _nodes;
     YogaNode* _rootNode = nullptr;
     std::map<std::string, int> _tabsSelectedIndices;  // tabsId -> selectedIndex
+    YGDirection _defaultRootDirection = YGDirectionLTR;  // fallback when root inherits
 };
 
 }  // namespace agenui

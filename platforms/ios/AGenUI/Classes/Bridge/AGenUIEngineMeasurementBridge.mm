@@ -35,11 +35,13 @@ public:
             
             NSString *nsType = [NSString stringWithUTF8String:_type.c_str()];
             NSString *nsParamJson = [NSString stringWithUTF8String:paramJson.c_str()];
+            NSString *nsDirection = [NSString stringWithUTF8String:modes.direction.c_str()];
             
             CGSize size = callback(
                                    nsType, nsParamJson,
                                    modes.width.maxValue / 2., modes.width.mode,
-                                   modes.height.maxValue / 2., modes.height.mode);
+                                   modes.height.maxValue / 2., modes.height.mode,
+                                   nsDirection);
             
             // Convert pt -> a2ui units (1pt = 2 a2ui units, same as @2x logical pixel scale)
             return MeasureResult{

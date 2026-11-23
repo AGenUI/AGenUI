@@ -2,6 +2,8 @@ package com.amap.agenui.render.measurement;
 
 import android.content.Context;
 
+import com.amap.agenui.render.style.TextDirectionSupport;
+
 import java.util.Map;
 
 /**
@@ -27,11 +29,13 @@ public final class SliderMeasurer {
                                  float maxWidth,
                                  int widthMode,
                                  float maxHeight,
-                                 int heightMode) {
+                                 int heightMode,
+                                 String direction) {
         Map<String, String> styleConfig = MeasurementSupport.getComponentStyle(context, COMPONENT_NAME);
         float sliderHeight = MeasurementSupport.readStyleDimensionA2ui(styleConfig, "slider-height", 48f);
         MeasureResult label = MeasurementSupport.measureFormLabel(context,
-                MeasurementSupport.parseRoot(paramJson), maxWidth, widthMode);
+                MeasurementSupport.parseRoot(paramJson), maxWidth, widthMode,
+                TextDirectionSupport.resolveDirection(direction));
         return resolveSyncResult(
                 widthMode == MeasurementSupport.MODE_UNDEFINED ? label.width : maxWidth,
                 sliderHeight + CONTAINER_VERTICAL_PADDING_A2UI + label.height,

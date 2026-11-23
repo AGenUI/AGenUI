@@ -145,6 +145,18 @@ void TabsComponent::onUpdateProperties(const nlohmann::json& properties) {
         updateTabStyles();
     }
 
+    for (const auto& tab : m_tabInfos) {
+        if (tab.textHandle) {
+            A2UITextNode(tab.textHandle).setWritingDirection(getWritingDirection());
+        }
+    }
+
+    // The tab bar is a ROW: binding the manager direction makes ArkUI lay the
+    // tab cells from the logical start, so tab 0 stays at the start in RTL.
+    if (m_tabBarHandle) {
+        A2UINode(m_tabBarHandle).setWritingDirection(getWritingDirection());
+    }
+
     HM_LOGI( "id=%s, selectedIndex=%d",
                 m_id.c_str(), m_selectedIndex);
 }
@@ -269,6 +281,7 @@ void TabsComponent::buildTabBar(const nlohmann::json& properties) {
         }
 
         tabInfo.textHandle = g_nodeAPI->createNode(ARKUI_NODE_TEXT);
+        A2UITextNode(tabInfo.textHandle).setWritingDirection(getWritingDirection());
         {
             A2UITextNode text(tabInfo.textHandle);
             text.setTextContent(tabInfo.title);

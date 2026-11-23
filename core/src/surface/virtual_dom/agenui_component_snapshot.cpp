@@ -5,7 +5,8 @@
 namespace agenui {
 
 bool LayoutInfo::operator==(const LayoutInfo& other) const {
-    return x == other.x && y == other.y && width == other.width && height == other.height;
+    return x == other.x && y == other.y && width == other.width && height == other.height
+        && direction == other.direction;
 }
 
 bool LayoutInfo::operator!=(const LayoutInfo& other) const {

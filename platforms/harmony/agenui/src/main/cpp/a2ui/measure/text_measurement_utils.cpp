@@ -40,9 +40,12 @@ float TextMeasurementUtils::doMeasureHeight(const TextMeasureParam& param,
 float TextMeasurementUtils::measureTextHeight(const std::string& text,
                                                float maxWidth,
                                                float fontSize,
-                                               int fontWeight) {
+                                               int fontWeight,
+                                               bool isRtlLayout) {
     TextMeasureParam param;
     buildSimpleParam(text, fontSize, param, fontWeight);
+    param.isRtlLayout = isRtlLayout;
+    param.textAlign = isRtlLayout ? TEXT_ALIGN_RIGHT_TOP : TEXT_ALIGN_LEFT_TOP;
     return doMeasureHeight(param, maxWidth);
 }
 

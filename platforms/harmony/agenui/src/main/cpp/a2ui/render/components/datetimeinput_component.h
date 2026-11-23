@@ -35,6 +35,7 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
+    void applyWritingDirection();
     struct DialogSession;
 
     /** Apply the current date/time value. */

@@ -304,6 +304,10 @@ export class SurfaceManager {
     return this._surfaceBridge.instanceId;
   }
 
+  public setLayoutDirection(direction: 'ltr' | 'rtl'): void {
+    this._surfaceBridge.setLayoutDirection(direction);
+  }
+
   // MARK: - Listener Management
 
   /**

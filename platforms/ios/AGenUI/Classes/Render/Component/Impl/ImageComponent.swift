@@ -43,6 +43,12 @@ class ImageComponent: Component {
     private var currentUrl: String = ""
     private var currentWidth: Any?
     private var currentHeight: Any?
+
+    /// Last writing direction applyImagePadding ran with. Surface injects
+    /// "writingDirection" into every update whenever the envelope has one,
+    /// so only an actual value change re-applies the stored styles (mirrors
+    /// TextComponent's flip branch).
+    private var lastAppliedWritingDirection = ""
     
     // MARK: - Initialization
     
@@ -84,7 +90,7 @@ class ImageComponent: Component {
     
     // MARK: - Measurement Override
     
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         var measuredWidth: CGFloat = 0
         var measuredHeight: CGFloat = 0
 
@@ -108,6 +114,16 @@ class ImageComponent: Component {
             return
         }
         
+        // Direction: fresh envelope value from this diff, else the stored
+        // one. Surface injects "writingDirection" into every update whenever
+        // the envelope has one; logical inline padding keys resolve against it.
+        var writingDirection = ""
+        if case .value(let directionValue) = diff["writingDirection"], let s = directionValue as? String {
+            writingDirection = s
+        } else if let stored = properties["writingDirection"] as? String {
+            writingDirection = stored
+        }
+
         // styles is sent in full each time, so key-existence checks are always true.
         // Compare actual values to avoid unnecessary image reloads.
         var urlChanged = false
@@ -133,7 +149,7 @@ class ImageComponent: Component {
 
         // Apply CSS padding to the inner imageView.
         if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {
-            applyImagePadding(styles)
+            applyImagePadding(styles, writingDirection: writingDirection)
             
             let newWidth = styles["width"]
             let newHeight = styles["height"]
@@ -145,6 +161,14 @@ class ImageComponent: Component {
             if let w = newWidth as? NSNumber { yogaWidth = w.floatValue }
             if let h = newHeight as? NSNumber { yogaHeight = h.floatValue }
         }
+        // Direction-only flip: no styles key in the diff, re-apply the stored
+        // ones so logical inline keys re-resolve against the new direction.
+        else if writingDirection != lastAppliedWritingDirection {
+            if let storedStyles = properties["styles"] as? [String: Any] {
+                applyImagePadding(storedStyles, writingDirection: writingDirection)
+            }
+        }
+        lastAppliedWritingDirection = writingDirection
 
         // Only reload when URL or size values actually changed
         if urlChanged || (sizeChanged && !currentUrl.isEmpty) {
@@ -159,7 +183,7 @@ class ImageComponent: Component {
         return String(describing: a!) == String(describing: b!)
     }
 
-    private func applyImagePadding(_ styles: [String: Any]) {
+    private func applyImagePadding(_ styles: [String: Any], writingDirection: String) {
         guard let topC = imageTopConstraint,
               let leadingC = imageLeadingConstraint,
               let trailingC = imageTrailingConstraint,
@@ -174,7 +198,7 @@ class ImageComponent: Component {
             return
         }
 
-        let p = CSSPaddingResolver.resolve(styles)
+        let p = CSSPaddingResolver.resolve(styles, isRTL: writingDirection.lowercased() == "rtl")
         topC.constant = p.top
         leadingC.constant = p.left
         trailingC.constant = -p.right

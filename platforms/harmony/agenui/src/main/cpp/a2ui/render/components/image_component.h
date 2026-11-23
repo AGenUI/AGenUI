@@ -73,6 +73,7 @@ private:
 
     /** Apply styles such as border radius. */
     void applyStyles(const nlohmann::json& properties);
+    void applyPadding();
 
     /** Map fit strings to ArkUI ObjectFit values. */
     static int32_t mapObjectFit(const std::string& fit);

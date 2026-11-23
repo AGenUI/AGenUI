@@ -69,6 +69,7 @@ agenui::MeasureResult TabsComponentMeasurement::measure(
     nlohmann::json tabStyleJson = nlohmann::json::object();
     tabStyleJson["font-size"]   = tabFontSize;
     tabStyleJson["font-weight"] = tabFontWeightBold ? "bold" : "normal";
+    tabStyleJson["text-align"] = "center";
     tabStyleJson["text"]        = "";  // Placeholder; overwritten in-place within loop
     
     float measuredTabBarHeight = 0.0f;
@@ -80,6 +81,7 @@ agenui::MeasureResult TabsComponentMeasurement::measure(
             tabStyleJson["text"]        = text;
             std::string outText;
             TextMeasureParam param;
+            param.isRtlLayout = modes.direction == "rtl";
             if (TextComponentMeasurement::buildParam(tabStyleJson, outText, param)) {
                 float baseLine = 0.f, ascent = 0.f, descent = 0.f;
                 auto r = TextMeasureUtils::doMeasure(
@@ -96,6 +98,7 @@ agenui::MeasureResult TabsComponentMeasurement::measure(
             tabStyleJson["text"]        = text;
             std::string outText;
             TextMeasureParam param;
+            param.isRtlLayout = modes.direction == "rtl";
             if (TextComponentMeasurement::buildParam(tabStyleJson, outText, param)) {
                 float baseLine = 0.f, ascent = 0.f, descent = 0.f;
                 auto r = TextMeasureUtils::doMeasure(

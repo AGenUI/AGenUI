@@ -69,6 +69,10 @@ public:
     bool calculateLayout(const std::string& rootId,
                          float surfaceWidth) override;
 
+    void setDefaultRootDirection(LayoutDirection direction) override;
+
+    LayoutDirection getDefaultRootDirection() const override;
+
     void updateTabsSelectedIndex(const std::string& tabsId,
                                  int selectedIndex) override;
 

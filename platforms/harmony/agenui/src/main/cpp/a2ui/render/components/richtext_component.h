@@ -96,6 +96,10 @@ private:
 
     /** Cached font color from styles, applied to all spans */
     uint32_t m_fontColor = 0xFF000000;
+
+    /** Last writing direction applied; drives direction-only re-resolve of
+     *  text-align start/end and logical padding. */
+    writing_direction::Direction m_appliedWritingDirection = writing_direction::Direction::Ltr;
 };
 
 } // namespace a2ui

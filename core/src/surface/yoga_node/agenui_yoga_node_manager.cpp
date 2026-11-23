@@ -134,11 +134,15 @@ void YogaNodeManager::calculateLayout(float rootWidth, float rootHeight) {
         }
     }
 
+    // Direction is manager-level only: no node (root included) carries a
+    // style direction, so the manager default drives the whole tree.
+    const YGDirection ownerDirection = _defaultRootDirection;
+
     YGNodeCalculateLayout(
         rootNode->get(),
         rootWidth,
         YGUndefined,
-        YGDirectionLTR);
+        ownerDirection);
     (void)rootHeight;
 }
 

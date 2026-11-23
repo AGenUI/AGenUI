@@ -24,6 +24,12 @@
 //    without dragging viewport / font-baseline / physical-unit math into
 //    platform code.
 //    `padding-top/right/bottom/left` always override the shorthand.
+//    Logical inset keys (`padding-inline` / `-start` / `-end` / `block-start`
+//    / `block-end`, kebab-case only — no camelCase aliases) resolve against the surface
+//    writing direction (`isRTL`): inline-start routes to the right edge under
+//    RTL, the left edge otherwise; block edges alias top/bottom
+//    (horizontal-tb, direction-agnostic). Logical keys apply after physical
+//    ones, mirroring CSSStyleConverter's application order.
 //    Negative values are clamped to 0.
 //    Numeric tokens (NSNumber / Int / Double / CGFloat) are accepted and
 //    treated as raw px (legacy contract used by some style sources).
@@ -54,9 +60,11 @@ public enum CSSPaddingResolver {
     public static let pointScale: CGFloat = 0.5
 
     /// Resolve a CSS `styles` dictionary into a 4-edge padding tuple.
+    /// `isRTL` physicalizes the logical inline keys against the surface
+    /// writing direction (defaults to LTR when the caller has none).
     /// Returns `CSSPadding.zero` when no padding-* key is present so callers
     /// can rely on a non-nil result and decide whether to apply or skip.
-    public static func resolve(_ styles: [String: Any]) -> CSSPadding {
+    public static func resolve(_ styles: [String: Any], isRTL: Bool = false) -> CSSPadding {
         var top: CGFloat = 0
         var right: CGFloat = 0
         var bottom: CGFloat = 0
@@ -76,6 +84,27 @@ public enum CSSPaddingResolver {
         if let v = parseLengthPt(styles["padding-bottom"]) { bottom = v }
         if let v = parseLengthPt(styles["padding-left"]) { left = v }
 
+        // Logical inline shorthand: `padding-inline` — 1 value fills both
+        // edges, 2+ values map start|end; physicalized against isRTL.
+        if let raw = styles["padding-inline"],
+           let edges = resolveInlineEdges(raw, isRTL: isRTL) {
+            left = edges.left
+            right = edges.right
+        }
+
+        // Logical inline per-edge: start/end follow the writing direction.
+        if let v = parseLengthPt(styles["padding-inline-start"]) {
+            if isRTL { right = v } else { left = v }
+        }
+        if let v = parseLengthPt(styles["padding-inline-end"]) {
+            if isRTL { left = v } else { right = v }
+        }
+
+        // Logical block per-edge: the block axis is vertical in horizontal-tb
+        // and never flips with RTL.
+        if let v = parseLengthPt(styles["padding-block-start"]) { top = v }
+        if let v = parseLengthPt(styles["padding-block-end"]) { bottom = v }
+
         return CSSPadding(
             top: max(0, top),
             right: max(0, right),
@@ -84,16 +113,29 @@ public enum CSSPaddingResolver {
         )
     }
 
-    /// Returns true when the styles object carries any `padding*` key.
-    /// Used by callers that want to skip touching edge constraints when the
-    /// caller never asked for padding (avoids overwriting prior values).
+    /// Returns true when the styles object carries any `padding*` key,
+    /// physical or logical. Used by callers that want to skip touching edge
+    /// constraints when the caller never asked for padding (avoids
+    /// overwriting prior values) — logical-only styles must also report true.
     public static func hasAnyPaddingKey(_ styles: [String: Any]) -> Bool {
         return styles["padding"] != nil
             || styles["padding-top"] != nil
             || styles["padding-right"] != nil
             || styles["padding-bottom"] != nil
             || styles["padding-left"] != nil
+            || logicalPaddingKeys.contains { styles[$0] != nil }
     }
+
+    /// Logical padding keys the platform layer resolves. Kebab-case only,
+    /// matching the physical per-edge keys above — the platform layer never
+    /// reads camelCase style spellings.
+    private static let logicalPaddingKeys = [
+        "padding-inline",
+        "padding-inline-start",
+        "padding-inline-end",
+        "padding-block-start",
+        "padding-block-end",
+    ]
 
     /// Parse a single CSS length token into iOS points. Accepts String (any
     /// CSS length unit, parsed via the canonical C++ parser), NSNumber, Int,
@@ -125,6 +167,23 @@ public enum CSSPaddingResolver {
     }
 
     // MARK: - Private
+
+    /// Parse a `padding-inline` shorthand value into the two physical inline
+    /// edges. Strings route through the canonical C++ inline parser
+    /// (start|end expansion physicalized against `isRTL`); bare numbers fill
+    /// both edges uniformly. The inline axis carries no top/bottom meaning.
+    private static func resolveInlineEdges(_ raw: Any, isRTL: Bool) -> (left: CGFloat, right: CGFloat)? {
+        if let str = raw as? String {
+            let trimmed = str.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { return nil }
+            guard let insets = AGenUIEdgeInsetsBridge.parseInline(trimmed, isRTL: isRTL) else { return nil }
+            return (left: resolveSidePt(insets.left), right: resolveSidePt(insets.right))
+        }
+        if let n = parseLengthPt(raw) {
+            return (left: n, right: n)
+        }
+        return nil
+    }
 
     /// Parse `padding` shorthand value into a 4-edge tuple. Strings are
     /// routed through the canonical C++ parser; bare numbers are treated as

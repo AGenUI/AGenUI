@@ -66,7 +66,7 @@ class LottieComponent: Component {
     
     // MARK: - Measurement Override
     
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         let defaultSize: CGFloat = 100
         var measuredWidth = defaultSize
         var measuredHeight = defaultSize

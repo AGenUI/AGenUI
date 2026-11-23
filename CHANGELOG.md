@@ -4,12 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.9.0] - 2026-11-13
+## [1.9.0] - 2026-11-23
+
+### Features
+
+- **Cross-Platform RTL Layout**: Added `SurfaceManager.setLayoutDirection` (`ltr` / `rtl`) for all managed surfaces, covering text, horizontal Lists, Tabs, and other components. Component-level `styles.direction` is no longer applied.
+- **Logical Edges and Text Alignment**: `margin-inline`, `padding-inline`, `inset-inline`, and their start/end properties now follow layout direction. `text-align` supports logical `start` / `end`, while physical `left` / `right` remain unchanged.
+- **Direction-Aware Measurement**: Measurement callbacks now receive `direction`; Android component message callbacks receive `directions`. Custom implementations must update their signatures.
 
 ### Bug Fixes
 
 - (Core) Fixed static property write-back so the host can reset a control by resending its original value after user interaction. Added regression tests for resets and repeated values.
 - (HarmonyOS) Fixed hybrid view ID collisions across `SurfaceManager` instances so updates, teardown, and method calls reach the correct view.
+- (iOS) Fixed RTL horizontal List start alignment, scrollable range, and padding, including re-anchoring after direction or size changes.
+- (iOS Playground) Fixed Markdown and Lottie custom components failing to compile after the measurement interface gained the `direction` parameter.
 
 ---
 

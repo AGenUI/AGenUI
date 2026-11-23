@@ -23,13 +23,14 @@ final class FormLabel: UILabel {
         return (value as? [String: Any])?["literalString"] as? String ?? ""
     }
 
-    static func measure(_ value: Any?, width: CGFloat) -> CGSize {
+    static func measure(_ value: Any?, width: CGFloat, direction: String = "") -> CGSize {
         let text = text(from: value)
         guard !text.isEmpty else { return .zero }
-        let rect = (text as NSString).boundingRect(
+        let attributed = Component.measurementAttributedString(text, font: labelFont, direction: direction)
+        let rect = attributed.boundingRect(
             with: CGSize(width: max(1, width), height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: [.font: labelFont], context: nil)
+            context: nil)
         return CGSize(width: ceil(rect.width), height: ceil(rect.height) + spacing)
     }
 

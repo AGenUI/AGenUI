@@ -135,6 +135,7 @@ export const registerEtsFunction: (name: string, f: Function) => void;
 
 /** Sets device screen metrics. */
 export const setDeviceInfo: (width: number, height: number, density: number) => void;
+export const setSurfaceManagerLayoutDirection: (instanceId: number, direction: 'ltr' | 'rtl') => void;
 
 /** Reads a single ComponentState property. */
 export const hybridFactoryGetAttribute: (ptr: bigint, key: string) => string;
@@ -153,7 +154,7 @@ export interface MeasureResult {
 }
 
 /** Registers an ETS measurement callback for a given component type. */
-export const registerMeasurement: (instanceId: number, type: string, callback: (paramJson: string, widthMode: number, maxWidth: number, heightMode: number, maxHeight: number) => MeasureResult) => void;
+export const registerMeasurement: (instanceId: number, type: string, callback: (paramJson: string, widthMode: number, maxWidth: number, heightMode: number, maxHeight: number, direction: string) => MeasureResult) => void;
 
 /** Unregisters an ETS measurement callback for a given component type. */
 export const unregisterMeasurement: (instanceId: number, type: string) => void;

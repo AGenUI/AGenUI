@@ -127,6 +127,21 @@ public:
     virtual void invalidateFunctionCallValues() = 0;
 
     /**
+     * @brief Sets the surface-level (per SurfaceManager) writing direction.
+     *
+     * @param direction "ltr" or "rtl"; any other value is logged and ignored
+     *
+     * This is the SDK's only direction entry point: it applies to every
+     * surface owned by this SurfaceManager and triggers a re-layout +
+     * re-push. Re-setting the already-active direction is a no-op (no
+     * re-layout, no re-push). Node-level DSL direction declarations are
+     * NOT supported — they are ignored (passed through as unrecognized
+     * styles, never consumed; no per-subtree direction override).
+     * Defaults to "ltr" (legacy behavior) when never called.
+     */
+    virtual void setLayoutDirection(const std::string &direction) = 0;
+
+    /**
      * @brief Inject the host-supplied source of truth for per-surface sizes.
      *
      * The engine queries this provider synchronously when its locally cached

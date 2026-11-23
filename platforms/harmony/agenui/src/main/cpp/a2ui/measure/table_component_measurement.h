@@ -40,7 +40,7 @@ private:
                                         const std::vector<float>& weights) const;
     float measureCellText(const std::string& text, float colWidth,
                           float cellPaddingH, float cellPaddingV,
-                          nlohmann::json& cellStyleJson) const;
+                          nlohmann::json& cellStyleJson, bool isRtlLayout) const;
 
 };
 

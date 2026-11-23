@@ -54,23 +54,6 @@ float resolveLineHeightPx(const nlohmann::json& lhVal, float fontSize) {
     return 0.0f;
 }
 
-// Parse a single CSS length token (e.g. "12px", "12", number) into an a2ui-px
-// value. Returns true on success. Trailing/leading whitespace is allowed; the
-// `px` suffix is optional and stripped before atof.
-// (Migrated to a2ui::padding_utils; thin local wrappers retained for callers.)
-bool parsePaddingLength(const nlohmann::json& v, float& outPx) {
-    return ::a2ui::padding_utils::parseLength(v, outPx);
-}
-
-// Resolve CSS `padding` shorthand + `padding-top/right/bottom/left` overrides
-// into four a2ui-px edge values (top/right/bottom/left). Negative results are
-// clamped to 0. Values are returned in a2ui-px; the caller is responsible for
-// the eventual vp conversion (handled by `BaseNode::setPadding`).
-void resolveUserPadding(const nlohmann::json& styles,
-                        float& top, float& right, float& bottom, float& left) {
-    ::a2ui::padding_utils::resolveUserPadding(styles, top, right, bottom, left);
-}
-
 } // namespace
 
 TextComponent::TextComponent(const std::string& id, const nlohmann::json& properties) : A2UIComponent(id, "Text") {
@@ -103,10 +86,22 @@ void TextComponent::onUpdateProperties(const nlohmann::json& properties) {
         return;
     }
 
+    const auto direction = getWritingDirection();
+    const bool directionChanged = direction != m_appliedWritingDirection;
+    applyWritingDirection();
     applyTextContent(properties);
-    applyStyles(properties);
+    if (properties.contains("styles")) {
+        applyStyles(properties);
+    } else if (directionChanged) {
+        applyStyles(getProperties());
+    }
+    m_appliedWritingDirection = direction;
 
     HM_LOGI( "Applied properties, id=%s", m_id.c_str());
+}
+
+void TextComponent::applyWritingDirection() {
+    getNode().setWritingDirection(getWritingDirection());
 }
 
 // ---- Text Content ----
@@ -164,10 +159,19 @@ void TextComponent::applyTextContent(const nlohmann::json& properties) {
 }
 
 void TextComponent::applyStyles(const nlohmann::json& properties) {
-    if (properties.find("styles") == properties.end() || !properties["styles"].is_object()) {
+    if (!properties.contains("styles")) {
         return;
     }
-    const auto& styles = properties["styles"];
+    if (properties["styles"].is_null()) {
+        getNode().resetPadding();
+        return;
+    }
+    nlohmann::json parsedStyles;
+    const auto* resolvedStyles = padding_utils::resolveStyleObject(properties["styles"], parsedStyles);
+    if (!resolvedStyles) {
+        return;
+    }
+    const auto& styles = *resolvedStyles;
     applyBackgroundColor(properties);
     float fontSize = applyFontStyles(styles);
     applyTextLayoutStyles(properties, styles, fontSize);
@@ -239,17 +243,7 @@ void TextComponent::applyTextLayoutStyles(const nlohmann::json& properties, cons
         } else if (styles.find("textAlign") != styles.end() && styles["textAlign"].is_string()) {
             alignStr = styles["textAlign"].get<std::string>();
         }
-        if (m_parent && m_parent->getComponentType() == "Tabs") {
-            node.setTextAlign(ARKUI_TEXT_ALIGNMENT_START);
-            HM_LOGI("Parent is Tabs, forcing text-align to START, id=%s", m_id.c_str());
-        } else {
-            // Aligned with iOS (.left) / Android (TEXT_ALIGN="left").
-            // mapTextAlign defaults to START for unrecognised input.
-            ArkUI_TextAlignment align = alignStr.empty()
-                ? ARKUI_TEXT_ALIGNMENT_START
-                : static_cast<ArkUI_TextAlignment>(mapTextAlign(alignStr));
-            node.setTextAlign(align);
-        }
+        node.setTextAlign(alignStr, getWritingDirection());
     }
 
     // line-clamp
@@ -286,7 +280,8 @@ void TextComponent::applyTextLayoutStyles(const nlohmann::json& properties, cons
 
     // line-height + padding
     float userPadTop = 0.0f, userPadRight = 0.0f, userPadBottom = 0.0f, userPadLeft = 0.0f;
-    ::a2ui::padding_utils::resolveUserPadding(styles, userPadTop, userPadRight, userPadBottom, userPadLeft);
+    ::a2ui::padding_utils::resolveUserPadding(styles, isRtlLayout(),
+                                           userPadTop, userPadRight, userPadBottom, userPadLeft);
 
     if (userPadTop > 0.0f || userPadRight > 0.0f || userPadBottom > 0.0f || userPadLeft > 0.0f) {
         baseNode.setPadding(userPadTop, userPadRight, userPadBottom, userPadLeft);
@@ -649,36 +644,6 @@ int32_t TextComponent::mapFontWeight(const nlohmann::json& weight) {
         return font_weight::mapNumericToArkUIFontWeight(weight.get<int>());
     }
     return ARKUI_FONT_WEIGHT_NORMAL;
-}
-
-int32_t TextComponent::mapTextAlign(const std::string& align) {
-    // Extract the horizontal token (first whitespace-separated segment) so that
-    // two-axis CSS values like "center top" / "center center" / "right bottom"
-    // still resolve to the correct horizontal alignment. This matches the
-    // Android `StyleHelper.parseTextAlign` behaviour which also splits on
-    // whitespace and uses `parts[0]` for the horizontal axis.
-    //
-    // The vertical token is currently dropped on Harmony because the ArkUI
-    // Text node has no built-in vertical text-alignment attribute that mirrors
-    // Android `Gravity.TOP/CENTER_VERTICAL/BOTTOM`.
-    const auto firstNonSpace = align.find_first_not_of(" \t");
-    if (firstNonSpace == std::string::npos) {
-        return ARKUI_TEXT_ALIGNMENT_START;
-    }
-    const auto tokenEnd = align.find_first_of(" \t", firstNonSpace);
-    std::string token = align.substr(
-        firstNonSpace,
-        tokenEnd == std::string::npos ? std::string::npos : tokenEnd - firstNonSpace);
-    for (auto& c : token) {
-        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    if (token == "center") {
-        return ARKUI_TEXT_ALIGNMENT_CENTER;
-    } else if (token == "end" || token == "right") {
-        return ARKUI_TEXT_ALIGNMENT_END;
-    }
-    // Default to START (covers "left", "start", and any unrecognised value).
-    return ARKUI_TEXT_ALIGNMENT_START;
 }
 
 } // namespace a2ui

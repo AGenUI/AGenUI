@@ -85,6 +85,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                     playgroundVC.autoLoadGalleryTemplate()
                 }
             }
+
+            // Support --rtl (start with the writing direction toggle ON;
+            // runs before the --rtl-showcase auto-load so the surface is
+            // created under RTL)
+            if args.contains("--rtl") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    playgroundVC.startInRTL()
+                }
+            }
+
+            // Support --rtl-showcase (auto-load the RTL Showcase story; the
+            // nav-bar button still toggles LTR/RTL at runtime)
+            if args.contains("--rtl-showcase") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    playgroundVC.autoLoadTemplate(folder: "RTL Showcase")
+                }
+            }
         }
         
         window.rootViewController = rootVC

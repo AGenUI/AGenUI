@@ -97,6 +97,11 @@ void ChoicePickerComponent::onUpdateProperties(const nlohmann::json& properties)
         return;
     }
 
+    if (properties.size() == 1 && properties.contains("writingDirection")) {
+        applyWritingDirection();
+        return;
+    }
+
     m_config = parseChoicePickerConfig(m_properties);
     // null (delete signal) → clear displayStyle to "" (align iOS displayStyle→"").
     // parseChoicePickerConfig reads m_properties (merged, null erased → contains false →
@@ -115,6 +120,22 @@ void ChoicePickerComponent::onUpdateProperties(const nlohmann::json& properties)
 
     HM_LOGI("ChoicePickerComponent - Applied properties: id=%s, options=%zu, displayStyle=%s, filterable=%d",
             m_id.c_str(), m_options.size(), m_config.displayStyle.c_str(), m_config.filterable ? 1 : 0);
+}
+
+void ChoicePickerComponent::applyWritingDirection() {
+    if (m_searchInputHandle) {
+        A2UITextInputNode(m_searchInputHandle).setWritingDirection(getWritingDirection());
+    }
+    for (const auto& item : m_optionItems) {
+        if (item.labelHandle) {
+            A2UITextNode label(item.labelHandle);
+            label.setWritingDirection(getWritingDirection());
+            label.setTextAlign(ARKUI_TEXT_ALIGNMENT_START);
+        }
+        if (m_config.displayStyle == "chips" && item.indicatorHandle) {
+            A2UITextNode(item.indicatorHandle).setWritingDirection(getWritingDirection());
+        }
+    }
 }
 
 void ChoicePickerComponent::rebuildContent() {
@@ -172,6 +193,7 @@ void ChoicePickerComponent::rebuildOptions() {
     }
 
     applySelectedValues();
+    applyWritingDirection();
 }
 
 void ChoicePickerComponent::createSearchInput() {

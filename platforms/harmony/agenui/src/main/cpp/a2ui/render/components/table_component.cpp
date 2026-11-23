@@ -44,10 +44,31 @@ TableComponent::~TableComponent() {
 
 // ---- Property Updates ----
 
+void TableComponent::applyWritingDirection() {
+    // Each row is a ROW: binding the manager direction reverses the physical
+    // column order so logical column 0 renders at the start of the line.
+    for (auto rowHandle : m_rowNodes) {
+        if (rowHandle) {
+            A2UINode(rowHandle).setWritingDirection(getWritingDirection());
+        }
+    }
+    for (auto textHandle : m_cellTextNodes) {
+        if (textHandle) {
+            A2UITextNode text(textHandle);
+            text.setWritingDirection(getWritingDirection());
+            text.setTextAlign("left", getWritingDirection());
+        }
+    }
+}
+
 void TableComponent::onUpdateProperties(const nlohmann::json& properties) {
-    (void)properties;
     if (!m_nodeHandle) {
         HM_LOGE("handle is null, id=%s", m_id.c_str());
+        return;
+    }
+
+    if (properties.size() == 1 && properties.contains("writingDirection")) {
+        applyWritingDirection();
         return;
     }
 
@@ -344,6 +365,7 @@ ArkUI_NodeHandle TableComponent::createHeaderRow(const std::vector<std::string>&
     ArkUI_NodeHandle row = g_nodeAPI->createNode(ARKUI_NODE_ROW);
 
     A2UINode(row).setWidth(rowWidth);
+    A2UINode(row).setWritingDirection(getWritingDirection());
     {
         A2UIRowNode r(row);
         r.setJustifyContent(ARKUI_FLEX_ALIGNMENT_START);
@@ -366,6 +388,7 @@ ArkUI_NodeHandle TableComponent::createDataRow(const std::vector<std::string>& r
     ArkUI_NodeHandle row = g_nodeAPI->createNode(ARKUI_NODE_ROW);
 
     A2UINode(row).setWidth(rowWidth);
+    A2UINode(row).setWritingDirection(getWritingDirection());
     {
         A2UIRowNode r(row);
         r.setJustifyContent(ARKUI_FLEX_ALIGNMENT_START);
@@ -431,7 +454,8 @@ ArkUI_NodeHandle TableComponent::createCell(const std::string& text, bool isHead
         A2UITextNode t(textNode);
         t.setTextContent(text);
         t.setWidth(textWidth);
-        t.setTextAlign(ARKUI_TEXT_ALIGNMENT_START);
+        t.setWritingDirection(getWritingDirection());
+        t.setTextAlign("left", getWritingDirection());
 
         if (isHeader) {
             if (m_hasHeaderFontSize) {

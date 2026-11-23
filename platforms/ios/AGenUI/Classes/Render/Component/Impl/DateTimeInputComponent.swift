@@ -47,6 +47,11 @@ class DateTimeInputComponent: Component {
     private var enableDate: Bool = true
     private var enableTime: Bool = false
     private var isUpdatingFromNative = false
+
+    /// Page writing direction, injected by the surface envelope.
+    private var isRTL: Bool {
+        (properties["writingDirection"] as? String)?.lowercased() == "rtl"
+    }
     
     private var currentDate: Date = Date()
     private var minDate: Date?
@@ -125,7 +130,7 @@ class DateTimeInputComponent: Component {
     /// 4. measuredWidth = textWidth + paddingHorizontal*2 + (iconSpacing+iconSize if showIcon)
     /// 5. measuredHeight = max(compactHeight, textHeight + paddingVertical*2)
     /// 6. Apply MeasureMode constraints
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         // 1. Load compact style config
         var compactHeight: CGFloat = 56
         var fontSize: CGFloat = 24
@@ -188,7 +193,7 @@ class DateTimeInputComponent: Component {
         let reservedWidth = paddingHorizontal * 2 + (showIcon ? (iconSpacing + iconSize) : 0)
         let textAvailWidth = max(1.0, constraintWidth - reservedWidth)
         
-        let attributedString = NSAttributedString(string: displayText, attributes: [.font: font])
+        let attributedString = measurementAttributedString(displayText, font: font, direction: direction)
         let textBounds = attributedString.boundingRect(
             with: CGSize(width: textAvailWidth, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
@@ -248,6 +253,11 @@ class DateTimeInputComponent: Component {
             currentDate = Date()
             updateDisplayValue()
             isUpdatingFromNative = false
+        }
+
+        // Direction-only update: re-place the empty-state icon without resetting value.
+        if diff["writingDirection"] != nil {
+            updateButtonTitle()
         }
     }
     
@@ -478,20 +488,28 @@ class DateTimeInputComponent: Component {
             button.imageEdgeInsets = .zero
             button.titleEdgeInsets = .zero
             button.tintColor = compactSelectedTextColor
+            button.titleLabel?.semanticContentAttribute = isRTL ? .forceRightToLeft : .forceLeftToRight
         } else {
-            // No value: text + icon centered, icon 3pt to the right of text
+            // No value: text + icon centered, icon 3pt to the logical end of text.
             if let icon = iconImage {
                 button.setImage(icon, for: .normal)
                 button.tintColor = compactUnselectedTextColor
+                button.titleLabel?.semanticContentAttribute = isRTL ? .forceRightToLeft : .forceLeftToRight
                 
                 // Force layout to get actual text width
                 button.layoutIfNeeded()
                 let textWidth = button.titleLabel?.intrinsicContentSize.width ?? 0
                 
                 let imageShift = textWidth + spacing
-                button.imageEdgeInsets = UIEdgeInsets(top: 0, left: imageShift, bottom: 0, right: -imageShift)
                 let titleShift = iconSize + spacing
-                button.titleEdgeInsets = UIEdgeInsets(top: 0, left: -titleShift, bottom: 0, right: titleShift)
+                if isRTL {
+                    // Mirror the LTR offsets: icon moves left of the title.
+                    button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -imageShift, bottom: 0, right: imageShift)
+                    button.titleEdgeInsets = UIEdgeInsets(top: 0, left: titleShift, bottom: 0, right: -titleShift)
+                } else {
+                    button.imageEdgeInsets = UIEdgeInsets(top: 0, left: imageShift, bottom: 0, right: -imageShift)
+                    button.titleEdgeInsets = UIEdgeInsets(top: 0, left: -titleShift, bottom: 0, right: titleShift)
+                }
             } else {
                 // No icon, fall back to pure text centered
                 button.setImage(nil, for: .normal)

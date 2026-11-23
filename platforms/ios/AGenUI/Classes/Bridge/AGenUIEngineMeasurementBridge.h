@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// @param widthMode     Width mode (0=Undefined 1=Exactly 2=AtMost)
 /// @param maxHeight     Maximum available height (pt)
 /// @param heightMode    Height mode (0=Undefined 1=Exactly 2=AtMost)
+/// @param direction     Page writing direction ("ltr"/"rtl")
 /// @return Measurement result CGSize (width/height, pt)
 typedef CGSize (^AGenUIMeasureCallback)(
     NSString *componentType,
@@ -23,7 +24,8 @@ typedef CGSize (^AGenUIMeasureCallback)(
     float maxWidth,
     int widthMode,
     float maxHeight,
-    int heightMode);
+    int heightMode,
+    NSString *direction);
 
 /// AGenUI engine measurement bridge (static methods)
 ///

@@ -282,16 +282,19 @@ void Surface::appendDataModel(const nlohmann::json& dataModelData) {
     AGENUI_PERFORMANCE_LOG("surface_appendDataModel_end", "%s", _surfaceId.c_str());
 }
 
-void Surface::onNodeUpdate(const std::string& componentId, const std::string& nodeJson) {
+void Surface::onNodeUpdate(const std::string& componentId, const std::string& nodeJson,
+                           const std::string& direction) {
     if (!_surfaceManager) return;
     ComponentsUpdateMessage message;
     message.componentId = componentId;
     message.component = nodeJson;
+    message.direction = direction;
     _pendingDispatches.emplace_back(std::move(message));
     _dispatchGuard.requestFlush();
 }
 
-void Surface::onNodeAdded(const std::string& parentId, const std::string& nodeJson) {
+void Surface::onNodeAdded(const std::string& parentId, const std::string& nodeJson,
+                          const std::string& direction) {
     auto json = nlohmann::json::parse(nodeJson, nullptr, false);
     if (json.is_discarded() || !json.contains("id") || !json["id"].is_string()) {
         AGENUI_LOG("failed to parse componentId from nodeJson");
@@ -305,6 +308,7 @@ void Surface::onNodeAdded(const std::string& parentId, const std::string& nodeJs
     message.parentId = parentId;
     message.componentId = componentId;
     message.component = nodeJson;
+    message.direction = direction;
     _pendingDispatches.emplace_back(std::move(message));
     _dispatchGuard.requestFlush();
 }
@@ -427,6 +431,22 @@ void Surface::invalidateFunctionCallValues() {
     if (_componentManager != nullptr) {
         BatchScope batchScope(_virtualDom->batchGuard());
         _componentManager->invalidateFunctionCallValues();
+    }
+}
+
+void Surface::setLayoutDirection(LayoutDirection direction) {
+    if (_virtualDom) {
+        // VirtualDOM::setLayoutDirection re-layouts immediately and pushes
+        // the changed coordinates through the observer channel.
+        _virtualDom->setLayoutDirection(direction);
+    }
+}
+
+void Surface::initLayoutDirection(LayoutDirection direction) {
+    if (_virtualDom) {
+        // Creation-time path: engine default only, no re-layout / size
+        // bootstrap (see IVirtualDOM::initLayoutDirection).
+        _virtualDom->initLayoutDirection(direction);
     }
 }
 

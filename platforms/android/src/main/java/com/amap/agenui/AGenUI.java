@@ -534,4 +534,16 @@ public class AGenUI {
      * @return Parsed EdgeInsetsValue object, or null if parsing fails
      */
     public static native EdgeInsetsValue nativeParseEdgeInsets(String cssValue);
+
+    /**
+     * Parses a CSS inline-axis shorthand string (padding-inline / margin-inline
+     * value) and physicalizes it for the given writing direction.
+     *
+     * @param cssValue CSS shorthand string, e.g. "12px", "24px 8px" (start|end)
+     * @param isRtl    true routes inline-start to the right edge, false to the left
+     * @return Parsed EdgeInsetsValue (left/right carry the inline edges,
+     *         top/bottom are zero), or null if parsing fails
+     */
+    public static native EdgeInsetsValue nativeParseInlineEdgeInsets(
+            String cssValue, boolean isRtl);
 }

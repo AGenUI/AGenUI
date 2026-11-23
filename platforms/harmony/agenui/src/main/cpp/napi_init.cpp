@@ -611,6 +611,7 @@ static napi_value Init(napi_env env, napi_value exports)
         { "setMinLogLevel", nullptr, SetMinLogLevel, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "createSurfaceManager", nullptr, CreateSurfaceManager, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "destroySurfaceManager", nullptr, DestroySurfaceManager, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "setSurfaceManagerLayoutDirection", nullptr, SetSurfaceManagerLayoutDirection, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "setPathConfig", nullptr, SetPathConfig, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "getVersion", nullptr, GetVersion, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "requestSurface", nullptr, RequestSurface, nullptr, nullptr, nullptr, napi_default, nullptr },

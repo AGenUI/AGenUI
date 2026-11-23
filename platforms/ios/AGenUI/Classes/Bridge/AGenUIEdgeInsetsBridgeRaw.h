@@ -31,6 +31,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// `AGUIEdgeInsetsModel.swift`.
 @interface AGenUIEdgeInsetsBridgeRaw : NSObject
 + (nullable NSDictionary *)parseEdgeInsets:(NSString *)cssValue;
+
+/// Same schema as `+parseEdgeInsets:`, for the inline-axis shorthand value
+/// (`padding-inline` / `margin-inline`). `isRTL` routes inline-start to the
+/// right edge (true) or the left edge (false); top/bottom are zeroed.
++ (nullable NSDictionary *)parseInlineEdgeInsets:(NSString *)cssValue isRTL:(BOOL)isRTL;
 @end
 
 NS_ASSUME_NONNULL_END

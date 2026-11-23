@@ -83,7 +83,7 @@ bool initializeMeasurementBridgeLocked(JNIEnv* env) {
     jmethodID directMeasureMethod = env->GetStaticMethodID(
             measurementBridgeGlobal,
             "directMeasure",
-            "(Ljava/lang/String;Ljava/lang/String;FIFI)Lcom/amap/agenui/render/measurement/MeasureResult;");
+            "(Ljava/lang/String;Ljava/lang/String;FIFILjava/lang/String;)Lcom/amap/agenui/render/measurement/MeasureResult;");
     if (directMeasureMethod == nullptr) {
         env->ExceptionClear();
         env->DeleteGlobalRef(measurementBridgeGlobal);
@@ -184,16 +184,18 @@ public:
         }
 
         AGENUI_LOG(
-                "[JNI] AndroidBridgeMeasurement.measure start: type=%s, paramJson=%s, width={maxValue=%f, mode=%d}, height={maxValue=%f, mode=%d}",
+                "[JNI] AndroidBridgeMeasurement.measure start: type=%s, paramJson=%s, width={maxValue=%f, mode=%d}, height={maxValue=%f, mode=%d}, direction=%s",
                 m_type.c_str(),
                 paramJson.c_str(),
                 modes.width.maxValue,
                 modes.width.mode,
                 modes.height.maxValue,
-                modes.height.mode);
+                modes.height.mode,
+                modes.direction.c_str());
 
         jstring jType = env->NewStringUTF(m_type.c_str());
         jstring jParamJson = env->NewStringUTF(paramJson.c_str());
+        jstring jDirection = env->NewStringUTF(modes.direction.c_str());
 
         jobject resultObj = env->CallStaticObjectMethod(
                 measurementBridgeClass,
@@ -203,10 +205,12 @@ public:
                 modes.width.maxValue,
                 modes.width.mode,
                 modes.height.maxValue,
-                modes.height.mode);
+                modes.height.mode,
+                jDirection);
 
         env->DeleteLocalRef(jType);
         env->DeleteLocalRef(jParamJson);
+        env->DeleteLocalRef(jDirection);
 
         if (env->ExceptionCheck()) {
             env->ExceptionClear();

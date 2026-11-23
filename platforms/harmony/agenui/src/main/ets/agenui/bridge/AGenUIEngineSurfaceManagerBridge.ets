@@ -16,6 +16,7 @@ import { ISurfaceListener,
   unregisterA2UISurfaceListener,
   submitUIAction,
   submitUIDataModel,
+  setSurfaceManagerLayoutDirection,
 } from 'liba2ui-capi.so';
 
 import internal_a2ui from 'liba2ui-capi.so';
@@ -57,6 +58,10 @@ export class AGenUIEngineSurfaceManagerBridge {
       throw new Error('AGenUIEngineSurfaceManagerBridge: Failed to create SurfaceManager, native returned instanceId=0');
     }
     this.instanceId = instanceId;
+  }
+
+  setLayoutDirection(direction: 'ltr' | 'rtl'): void {
+    setSurfaceManagerLayoutDirection(this.instanceId, direction);
   }
 
   /**

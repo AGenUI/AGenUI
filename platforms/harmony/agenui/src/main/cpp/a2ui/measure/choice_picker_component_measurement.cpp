@@ -128,6 +128,7 @@ agenui::MeasureResult ChoicePickerComponentMeasurement::measure(
     nlohmann::json styleJson = nlohmann::json::object();
     styleJson["font-size"]   = textFontSize;
     styleJson["font-weight"] = textFontWeight;
+    styleJson["text-align"] = "start";
     styleJson["text"]        = "";  // Placeholder; overwritten in-place within loop
 
     // Available text width: total - checkbox size - checkbox margin (both sides) - text left margin
@@ -158,6 +159,7 @@ agenui::MeasureResult ChoicePickerComponentMeasurement::measure(
             styleJson["text"] = text;  // Overwrite in-place, no copy
             std::string outText;
             TextMeasureParam param;
+            param.isRtlLayout = modes.direction == "rtl";
             if (TextComponentMeasurement::buildParam(styleJson, outText, param)) {
                 float baseLine = 0.f, ascent = 0.f, descent = 0.f;
                 auto r = TextMeasureUtils::doMeasure(

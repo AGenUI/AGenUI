@@ -168,6 +168,12 @@ private:
      */
     void notifyComponentUpdate(const ComponentSnapshot& newSnapshot);
 
+    // Resolved writing direction from the Yoga layout ("rtl"/"ltr"). Layout
+    // output — stored in LayoutInfo (snapshot comparison via
+    // checkSnapshotChanged) and carried on the observer notifications / wire
+    // messages, never written into the component styles.
+    std::string resolvedDirectionString() const;
+
     /**
      * @brief Notify the observer that a component was added
      * @param parentId Parent node ID

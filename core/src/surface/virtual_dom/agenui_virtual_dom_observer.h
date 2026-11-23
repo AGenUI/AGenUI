@@ -19,17 +19,21 @@ public:
      * @brief Node update callback
      * @param componentId Component ID
      * @param nodeJson Node JSON string
+     * @param direction Resolved writing direction ("rtl"/"ltr") — layout output
      * @remark Called when a virtual DOM node is updated
      */
-    virtual void onNodeUpdate(const std::string& componentId, const std::string& nodeJson) = 0;
+    virtual void onNodeUpdate(const std::string& componentId, const std::string& nodeJson,
+                              const std::string& direction) = 0;
 
     /**
      * @brief Node added callback
      * @param parentId Parent node ID
      * @param nodeJson Node JSON string
+     * @param direction Resolved writing direction ("rtl"/"ltr") — layout output
      * @remark Called when a virtual DOM node is added
      */
-    virtual void onNodeAdded(const std::string& parentId, const std::string& nodeJson) = 0;
+    virtual void onNodeAdded(const std::string& parentId, const std::string& nodeJson,
+                             const std::string& direction) = 0;
 
     /**
      * @brief Node removed callback

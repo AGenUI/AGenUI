@@ -80,8 +80,8 @@ JNIMessageListenerBridge::JNIMessageListenerBridge(JNIEnv* env, jobject javaList
 
     // Cache method IDs
     _onCreateSurfaceMethod = env->GetMethodID(listenerClass.get(), "onCreateSurface", "(Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;ZZLjava/lang/String;)V");
-    _onComponentsUpdateMethod = env->GetMethodID(listenerClass.get(), "onComponentsUpdate", "(Ljava/lang/String;[Ljava/lang/String;)V");
-    _onComponentsAddMethod = env->GetMethodID(listenerClass.get(), "onComponentsAdd", "(Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V");
+    _onComponentsUpdateMethod = env->GetMethodID(listenerClass.get(), "onComponentsUpdate", "(Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V");
+    _onComponentsAddMethod = env->GetMethodID(listenerClass.get(), "onComponentsAdd", "(Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V");
     _onComponentsRemoveMethod = env->GetMethodID(listenerClass.get(), "onComponentsRemove", "(Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;)V");
     _onDeleteSurfaceMethod = env->GetMethodID(listenerClass.get(), "onDeleteSurface", "(Ljava/lang/String;)V");
     _onActionEventRouted = env->GetMethodID(listenerClass.get(), "onActionEventRouted", "(Ljava/lang/String;)V");
@@ -143,18 +143,29 @@ void JNIMessageListenerBridge::onComponentsUpdate(
     }
 
     std::vector<std::string> components;
+    std::vector<std::string> directions;
     components.reserve(msg.size());
+    directions.reserve(msg.size());
     for (const auto& item : msg) {
         components.emplace_back(item.component);
+        // Resolved writing direction rides on the message envelope; forward it so the
+        // render layer can translate logical text-align without a Surface-level lookup.
+        directions.emplace_back(item.direction);
     }
 
     ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(surfaceId.c_str()));
     ScopedLocalRef<jobjectArray> jComponentsArray(env, createJavaStringArray(env, components));
-    if (jComponentsArray.get() == nullptr) {
+    ScopedLocalRef<jobjectArray> jDirectionsArray(env, createJavaStringArray(env, directions));
+    if (jComponentsArray.get() == nullptr || jDirectionsArray.get() == nullptr) {
         return;
     }
 
-    env->CallVoidMethod(_javaListener, _onComponentsUpdateMethod, jSurfaceId.get(), jComponentsArray.get());
+    env->CallVoidMethod(
+            _javaListener,
+            _onComponentsUpdateMethod,
+            jSurfaceId.get(),
+            jComponentsArray.get(),
+            jDirectionsArray.get());
 }
 
 void JNIMessageListenerBridge::onComponentsAdd(
@@ -173,17 +184,22 @@ void JNIMessageListenerBridge::onComponentsAdd(
 
     std::vector<std::string> parentIds;
     std::vector<std::string> components;
+    std::vector<std::string> directions;
     parentIds.reserve(msg.size());
     components.reserve(msg.size());
+    directions.reserve(msg.size());
     for (const auto& item : msg) {
         parentIds.emplace_back(item.parentId);
         components.emplace_back(item.component);
+        directions.emplace_back(item.direction);
     }
 
     ScopedLocalRef<jstring> jSurfaceId(env, env->NewStringUTF(surfaceId.c_str()));
     ScopedLocalRef<jobjectArray> jParentIdsArray(env, createJavaStringArray(env, parentIds));
     ScopedLocalRef<jobjectArray> jComponentsArray(env, createJavaStringArray(env, components));
-    if (jParentIdsArray.get() == nullptr || jComponentsArray.get() == nullptr) {
+    ScopedLocalRef<jobjectArray> jDirectionsArray(env, createJavaStringArray(env, directions));
+    if (jParentIdsArray.get() == nullptr || jComponentsArray.get() == nullptr ||
+        jDirectionsArray.get() == nullptr) {
         return;
     }
 
@@ -192,7 +208,8 @@ void JNIMessageListenerBridge::onComponentsAdd(
             _onComponentsAddMethod,
             jSurfaceId.get(),
             jParentIdsArray.get(),
-            jComponentsArray.get());
+            jComponentsArray.get(),
+            jDirectionsArray.get());
 }
 
 void JNIMessageListenerBridge::onComponentsRemove(

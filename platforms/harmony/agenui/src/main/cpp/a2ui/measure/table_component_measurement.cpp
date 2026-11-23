@@ -70,7 +70,7 @@ agenui::MeasureResult TableComponentMeasurement::measure(
         float rowHeight = 0.0f;
         for (int c = 0; c < colCount; c++) {
             const std::string& text = (c < static_cast<int>(table.headers.size())) ? table.headers[c] : "";
-            float h = measureCellText(text, colWidths[c], cellPaddingH, cellPaddingV, headerStyleJson);
+            float h = measureCellText(text, colWidths[c], cellPaddingH, cellPaddingV, headerStyleJson, modes.direction == "rtl");
             rowHeight = std::max(rowHeight, h);
         }
         totalHeight += rowHeight;
@@ -81,7 +81,7 @@ agenui::MeasureResult TableComponentMeasurement::measure(
         float rowHeight = 0.0f;
         for (int c = 0; c < colCount; c++) {
             const std::string& text = (c < static_cast<int>(row.size())) ? row[c] : "";
-            float h = measureCellText(text, colWidths[c], cellPaddingH, cellPaddingV, bodyStyleJson);
+            float h = measureCellText(text, colWidths[c], cellPaddingH, cellPaddingV, bodyStyleJson, modes.direction == "rtl");
             rowHeight = std::max(rowHeight, h);
         }
         totalHeight += rowHeight;
@@ -174,7 +174,7 @@ std::vector<float> TableComponentMeasurement::calcColumnWidths(
 float TableComponentMeasurement::measureCellText(
         const std::string& text, float colWidth,
         float cellPaddingH, float cellPaddingV,
-        nlohmann::json& cellStyleJson) const {
+        nlohmann::json& cellStyleJson, bool isRtlLayout) const {
     float innerWidth = colWidth - cellPaddingH * 2.0f;
     if (innerWidth < 1.0f) innerWidth = 1.0f;
 
@@ -184,6 +184,7 @@ float TableComponentMeasurement::measureCellText(
     // Use TextComponentMeasurement::buildParam to parse complete font parameters
     std::string outText;
     TextMeasureParam param;
+    param.isRtlLayout = isRtlLayout;
     if (!TextComponentMeasurement::buildParam(cellStyleJson, outText, param)) {
         // Empty text: return height with padding only
         return cellPaddingV * 2.0f;

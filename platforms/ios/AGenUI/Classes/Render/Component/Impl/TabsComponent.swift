@@ -27,6 +27,11 @@ class InnerTabsView: UIView {
     /// Store all content components, keyed by childId
     private var contentComponents: [String: UIView] = [:]
 
+    /// Mirror tab order and indicator placement when true (logical tab 1 on
+    /// the physical right edge). Set by TabsComponent from the envelope
+    /// writing direction.
+    var isRTL: Bool = false
+
     /// Layout change callback (set by TabsComponent)
     var onLayoutChanged: (() -> Void)?
 
@@ -98,13 +103,17 @@ class InnerTabsView: UIView {
 
         guard bounds.width > 0 else { return }
 
-        // Layout tab buttons evenly across tabBarView
+        // Layout tab buttons evenly across tabBarView; under RTL the logical
+        // first tab sits on the physical right edge.
         if !tabButtons.isEmpty, tabBarView.bounds.width > 0 {
             let buttonWidth = tabBarView.bounds.width / CGFloat(tabButtons.count)
             let buttonHeight = tabBarView.bounds.height
             for (index, button) in tabButtons.enumerated() {
+                let x = isRTL
+                    ? tabBarView.bounds.width - buttonWidth * CGFloat(index + 1)
+                    : buttonWidth * CGFloat(index)
                 button.frame = CGRect(
-                    x: buttonWidth * CGFloat(index),
+                    x: x,
                     y: 0,
                     width: buttonWidth,
                     height: buttonHeight
@@ -134,9 +143,12 @@ class InnerTabsView: UIView {
     private func updateIndicatorPosition(animated: Bool) {
         guard !tabButtons.isEmpty, selectedIndex < tabButtons.count, tabBarView.bounds.width > 0 else { return }
 
-        // Calculate indicator position using frame-based layout
+        // Calculate indicator position using frame-based layout; under RTL
+        // the slot centers mirror across the tab bar width.
         let buttonWidth = tabBarView.bounds.width / CGFloat(tabButtons.count)
-        let indicatorLeft = buttonWidth * CGFloat(selectedIndex) + (buttonWidth - indicatorWidth) / 2
+        let slotCenter = buttonWidth * CGFloat(selectedIndex) + buttonWidth / 2
+        let centerX = isRTL ? tabBarView.bounds.width - slotCenter : slotCenter
+        let indicatorLeft = centerX - indicatorWidth / 2
 
         let targetFrame = CGRect(
             x: indicatorLeft,
@@ -300,6 +312,11 @@ open class TabsComponent: Component {
 
     private var innerTabsView: InnerTabsView!
 
+    /// Envelope writing direction ("rtl" | "ltr"/absent), injected by Surface
+    /// into properties. Stored (not computed) so updateProperties can snapshot
+    /// the old value before parsing and detect a flip.
+    private var isRTL = false
+
     // MARK: - Initialization
 
     public init(componentId: String, properties: [String: Any]) {
@@ -356,9 +373,23 @@ open class TabsComponent: Component {
     // MARK: - Component Override
 
     open override func updateProperties(_ diff: [String: DiffValue]) {
+        // Snapshot the stored state before parsing — so a direction flip is
+        // detectable.
+        let oldIsRTL = isRTL
+
         // Note: children sync is completed in init
         // Only call super here to handle CSS properties etc.
         super.updateProperties(diff)
+
+        // Parse writing direction (envelope injected by Surface)
+        isRTL = (properties["writingDirection"] as? String)?.lowercased() == "rtl"
+
+        // Direction flip: mirror the tab bar — button order and the indicator
+        // slot both recompute on the next layout pass.
+        if oldIsRTL != isRTL {
+            innerTabsView.isRTL = isRTL
+            innerTabsView.setNeedsLayout()
+        }
 
         // Parse tab text colors from styles
         if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {

@@ -21,6 +21,7 @@ public interface IMeasurer {
      * @param widthMode  Width mode (0=Undefined 1=Exactly 2=AtMost)
      * @param maxHeight  Maximum available height (A2UI logical units)
      * @param heightMode Height mode (0=Undefined 1=Exactly 2=AtMost)
+     * @param direction  Surface writing direction ("ltr" or "rtl")
      * @return Measurement result in A2UI logical units
      */
     MeasureResult measure(Context context,
@@ -28,5 +29,6 @@ public interface IMeasurer {
                           float maxWidth,
                           int widthMode,
                           float maxHeight,
-                          int heightMode);
+                          int heightMode,
+                          String direction);
 }

@@ -33,8 +33,11 @@ public interface IAGenUIMessageListener {
      *
      * @param surfaceId  Surface identifier
      * @param components String array of component JSON payloads
+     * @param directions Resolved writing direction ("ltr"/"rtl") aligned with
+     *                   {@code components}; empty string when not resolved. Being a
+     *                   layout output, it also changes when only the direction flips.
      */
-    void onComponentsUpdate(String surfaceId, String[] components);
+    void onComponentsUpdate(String surfaceId, String[] components, String[] directions);
 
     /**
      * Callback when components are added incrementally.
@@ -42,8 +45,10 @@ public interface IAGenUIMessageListener {
      * @param surfaceId  Surface identifier
      * @param parentIds  Parent component IDs aligned with {@code components}
      * @param components String array of component JSON payloads
+     * @param directions Resolved writing direction ("ltr"/"rtl") aligned with
+     *                   {@code components}; empty string when not resolved
      */
-    void onComponentsAdd(String surfaceId, String[] parentIds, String[] components);
+    void onComponentsAdd(String surfaceId, String[] parentIds, String[] components, String[] directions);
 
     /**
      * Callback when components are removed incrementally.

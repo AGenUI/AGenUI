@@ -5,8 +5,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "log/a2ui_capi_log.h"
 #include "style_parser/agenui_edge_insets_parser.h"
+#include "a2ui_padding_utils.h"
 
 namespace a2ui {
 
@@ -128,7 +128,8 @@ inline std::string extractUrlFromCssUrl(const std::string& value) {
  * Mirrors padding_utils::resolveUserPadding in structure and parser usage.
  */
 inline void resolveUserMargin(const nlohmann::json& styles,
-                           float& top, float& right, float& bottom, float& left) {
+                           float& top, float& right, float& bottom, float& left,
+                           bool isRtlLayout = false) {
     top = right = bottom = left = 0.0f;
     if (styles.is_null() || !styles.is_object()) return;
 
@@ -174,6 +175,7 @@ inline void resolveUserMargin(const nlohmann::json& styles,
     if (right < 0.0f) right = 0.0f;
     if (bottom < 0.0f) bottom = 0.0f;
     if (left < 0.0f) left = 0.0f;
+    padding_utils::resolveLogicalEdges(styles, "margin", isRtlLayout, top, right, bottom, left);
 }
 
 } // namespace a2ui
