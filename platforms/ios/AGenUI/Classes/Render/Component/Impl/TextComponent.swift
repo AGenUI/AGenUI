@@ -143,14 +143,14 @@ struct TextDecorationConfig {
 
 /// UILabel subclass supporting W3C standard text decorations
 class TextDecorationLabel: UILabel {
-    
+
     /// Text decoration configuration
     var decorationConfig: TextDecorationConfig? {
         didSet {
             updateTextDecoration()
         }
     }
-    
+
     override var text: String? {
         didSet {
             updateTextDecoration()
@@ -447,7 +447,9 @@ extension TextAlignment {
 ///   - font-weight: Font weight (String: bold, normal, light, thin or numeric 100-700)
 ///   - font-family: Font family name (String)
 ///   - color: Text color in hex or named format (String)
-///   - text-align: Text alignment (String: left, center, right)
+///   - text-align: Text alignment (String: left, center, right + logical start/end
+///     which resolve against the envelope writingDirection; "start top" etc. combos
+///     and camelCase are accepted by the shared normalizer)
 ///   - line-height: Line height as multiplier or px value (String/Double/Int)
 ///   - line-clamp: Maximum number of lines (Int/String)
 ///   - text-overflow: Overflow behavior (String: ellipsis, clip, head, middle)
@@ -456,6 +458,10 @@ extension TextAlignment {
 ///   - text-decoration-style: Decoration style (String: solid, double, dotted, dashed, wavy)
 ///   - text-decoration-color: Decoration color (String)
 ///   - text-decoration-thickness: Decoration thickness (String/CGFloat)
+///
+/// Writing direction: the envelope "writingDirection" (injected by Surface)
+/// resolves to an explicit paragraph baseWritingDirection, never `.natural`
+/// first-strong-character inference.
 ///
 /// Design notes:
 /// - Uses TextDecorationLabel (custom UILabel subclass) for W3C-compliant text decorations
@@ -481,6 +487,14 @@ class TextComponent: Component {
     private var labelTopConstraint: NSLayoutConstraint?
     private var labelLeadingConstraint: NSLayoutConstraint?
     private var labelTrailingConstraint: NSLayoutConstraint?
+
+    /// Last writing direction applyStyles ran with. A diff carrying the
+    /// "writingDirection" key does not mean the direction changed (Surface
+    /// injects it into every update whenever the envelope has one) — only an
+    /// actual value change needs the stored styles re-applied so text-align
+    /// start/end re-resolve. Mirrors the old-vs-new flip snapshots in
+    /// ListComponent/TabsComponent.
+    private var lastAppliedWritingDirection = ""
     
     // MARK: - Initialization
     
@@ -562,9 +576,30 @@ class TextComponent: Component {
             label.invalidateIntrinsicContentSize()
         }
 
+        // Direction: fresh envelope value from this diff, else the stored one.
+        let freshDirection: String?
+        if case .value(let directionValue) = diff["writingDirection"], let s = directionValue as? String {
+            freshDirection = s
+        } else {
+            freshDirection = nil
+        }
+        let writingDirection = freshDirection
+            ?? (properties["writingDirection"] as? String) ?? ""
+
         // Update style properties
         if case .value(let stylesValue) = diff["styles"], let styles = stylesValue as? [String: Any] {
-            applyStyles(styles)
+            applyStyles(styles, writingDirection: writingDirection)
+            lastAppliedWritingDirection = writingDirection
+        }
+        // Direction-only flip: no styles key in the diff, re-apply the stored
+        // ones so start/end re-resolve against the new direction. The key
+        // being present is not enough — Surface injects writingDirection on
+        // every update, so compare against the last applied value. No stored
+        // styles yet → empty dictionary so the direction still applies.
+        else if writingDirection != lastAppliedWritingDirection {
+            let storedStyles = (properties["styles"] as? [String: Any]) ?? [:]
+            applyStyles(storedStyles, writingDirection: writingDirection)
+            lastAppliedWritingDirection = writingDirection
         }
     }
     
@@ -582,11 +617,17 @@ class TextComponent: Component {
         var lineClamp: Int = 0
         var textOverflow: String = "ellipsis"
         var decorationConfig: TextDecorationConfig?  // nil = no decoration
+        /// Base writing direction from the envelope; nil = `.natural` (legacy)
+        var baseWritingDirection: NSWritingDirection? = nil
     }
 
     /// Parse styles dictionary into intermediate representation
     /// Shared by applyStyles and measure to ensure consistent parsing logic
-    private class func parseStyles(_ styles: [String: Any]) -> ParsedTextStyles {
+    /// - Parameter writingDirection: envelope writing direction ("ltr"/"rtl",
+    ///   default "" = none); resolves start/end alignment and the base writing
+    ///   direction. The measure path receives it from the measurement bridge.
+    private class func parseStyles(_ styles: [String: Any],
+                                   writingDirection: String = "") -> ParsedTextStyles {
         var parsed = ParsedTextStyles()
 
         // Parse font-size (supports String with px unit and NSNumber)
@@ -619,11 +660,17 @@ class TextComponent: Component {
             }
         }
 
-        // Parse text-align
+        // Parse text-align (logical start/end resolve against writingDirection)
         if let textAlignValue = styles["text-align"] as? String {
-            if let result = parseTextAlign(textAlignValue) {
+            if let result = parseTextAlign(textAlignValue, writingDirection: writingDirection) {
                 parsed.textAlign = result
             }
+        }
+
+        // Envelope writing direction → explicit base writing direction
+        if !writingDirection.isEmpty {
+            parsed.baseWritingDirection = writingDirection.lowercased() == "rtl"
+                ? .rightToLeft : .leftToRight
         }
 
         // Parse line-height (compatible with string and number)
@@ -660,13 +707,16 @@ class TextComponent: Component {
     /// - Phase 2: Synthesize UIFont with family + weight + size in one pass
     /// - Phase 3: Synthesize NSAttributedString with font + color + lineHeight + align + decoration in one pass
     /// - Phase 4: Apply non-text properties (lineClamp, textOverflow)
-    private func applyStyles(_ styles: [String: Any]) {
+    /// - Parameter writingDirection: resolved writing direction ("ltr"/"rtl",
+    ///   default "" = LTR), passed in by updateProperties (fresh envelope value
+    ///   from the diff, else the previously merged one).
+    private func applyStyles(_ styles: [String: Any], writingDirection: String) {
         guard let label = label else { return }
 
         // ========================
         // Phase 1: Collect - parse all styles to intermediate variables (reuse parseStyles)
         // ========================
-        let parsed = TextComponent.parseStyles(styles)
+        let parsed = TextComponent.parseStyles(styles, writingDirection: writingDirection)
 
         // ========================
         // Phase 2: Synthesize UIFont - family + weight + size one-time build
@@ -689,9 +739,11 @@ class TextComponent: Component {
 
         label.numberOfLines = parsed.lineClamp
 
-        // Only create attributedText when lineHeight or decoration exists
+        // An explicit writing direction also requires the attributed path
+        // (plain label.text cannot carry a paragraph style)
         let needsAttributedText = parsed.lineHeight != nil
             || parsed.decorationConfig != nil
+            || parsed.baseWritingDirection != nil
 
         if needsAttributedText {
             let currentText = label.text ?? ""
@@ -702,7 +754,8 @@ class TextComponent: Component {
                 textAlignment: label.textAlignment,
                 lineHeight: parsed.lineHeight,
                 lineClamp: parsed.lineClamp,
-                decorationConfig: parsed.decorationConfig
+                decorationConfig: parsed.decorationConfig,
+                baseWritingDirection: parsed.baseWritingDirection
             ) {
                 label.attributedText = attributedString
             }
@@ -723,22 +776,24 @@ class TextComponent: Component {
         // `TextView.setPadding(...)` behaviour and Harmony's
         // `BaseNode.setPadding(...)`. setPadding-style updates do NOT affect
         // self.frame, so this is not double-counted with Yoga.
-        applyTextPadding(styles)
+        applyTextPadding(styles, writingDirection: writingDirection)
     }
 
     /// Translate CSS `padding` (and the four single-edge overrides) into the
     /// `constant` of the four label edge constraints. Supports the W3C 1/2/3/4
-    /// component shorthand and `padding-top/right/bottom/left` overrides.
-    /// Parsing is delegated to the shared `CSSPaddingResolver` so all
-    /// leaf-style components share a single implementation.
-    private func applyTextPadding(_ styles: [String: Any]) {
+    /// component shorthand, `padding-top/right/bottom/left` overrides, and
+    /// the logical inset family (`padding-inline*` / `padding-block*`)
+    /// resolved against `writingDirection`. Parsing is delegated to the
+    /// shared `CSSPaddingResolver` so all leaf-style components share a
+    /// single implementation.
+    private func applyTextPadding(_ styles: [String: Any], writingDirection: String) {
         guard let topC = labelTopConstraint,
               let leadingC = labelLeadingConstraint,
               let trailingC = labelTrailingConstraint else { return }
 
         // When no padding-* key is present, resolve() returns all zeros,
         // resetting the constraints to their default (no inset).
-        let p = CSSPaddingResolver.resolve(styles)
+        let p = CSSPaddingResolver.resolve(styles, isRTL: writingDirection.lowercased() == "rtl")
         topC.constant = p.top
         leadingC.constant = p.left
         // trailing anchor is pinned with `equalTo: parent`, so a positive
@@ -792,8 +847,25 @@ class TextComponent: Component {
     // MARK: - Phase 1 Helpers: Pure parsing, no view state modification
     
     /// Parse text-align string to NSTextAlignment
-    private class func parseTextAlign(_ alignment: String) -> NSTextAlignment? {
-        guard let textAlignment = TextAlignment(normalizedString: alignment) else { return nil }
+    ///
+    /// Logical horizontal keywords `start` / `end` resolve against the writing
+    /// direction (message-envelope "writingDirection", injected by Surface):
+    /// start → leading edge (right in RTL), end → trailing edge (left in RTL).
+    /// Physical left / right never flip. The value is lowercased and the
+    /// leading token rewritten to its physical counterpart BEFORE the mapping
+    /// lookup, so every start/end + vertical combination ("start", "start
+    /// top", "starttop", "Start Top", ...) resolves through the existing
+    /// 12-key table in one pass. Default ("") = LTR.
+    class func parseTextAlign(_ alignment: String,
+                              writingDirection: String = "") -> NSTextAlignment? {
+        let isRTL = writingDirection.lowercased() == "rtl"
+        var key = alignment.lowercased()
+        if key.hasPrefix("start") {
+            key = (isRTL ? "right" : "left") + key.dropFirst("start".count)
+        } else if key.hasPrefix("end") {
+            key = (isRTL ? "left" : "right") + key.dropFirst("end".count)
+        }
+        guard let textAlignment = TextAlignment(normalizedString: key) else { return nil }
         
         switch textAlignment {
         case .leftTop, .leftCenter, .leftBottom:
@@ -1000,7 +1072,8 @@ class TextComponent: Component {
                                 maxWidth: Float,
                                 widthMode: MeasureMode,
                                 maxHeight: Float,
-                                heightMode: MeasureMode) -> CGSize {
+                                heightMode: MeasureMode,
+                                direction: String = "") -> CGSize {
         // 1. Parse paramJson
         guard let jsonData = paramJson.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
@@ -1012,7 +1085,7 @@ class TextComponent: Component {
       
         // 3. Parse styles (reuse same parsing as applyStyles Phase 1)
         let styles = json["styles"] as? [String: Any] ?? [:]
-        let parsed = parseStyles(styles)
+        let parsed = parseStyles(styles, writingDirection: direction)
 
         // 4. Build UIFont (reuse same logic as applyStyles Phase 2)
         let fontSize = parsed.fontSize
@@ -1031,7 +1104,8 @@ class TextComponent: Component {
             textAlignment: textAlignment,
             lineHeight: parsed.lineHeight,
             lineClamp: lineClamp,
-            decorationConfig: parsed.decorationConfig
+            decorationConfig: parsed.decorationConfig,
+            baseWritingDirection: parsed.baseWritingDirection
         ) else {
             return .zero
         }
@@ -1103,14 +1177,15 @@ class TextComponent: Component {
                 : CGFloat(maxHeight)
         }
 
-        let result = CGSize(width: measuredWidth, height: measuredHeight)
-        return result
+        return CGSize(width: measuredWidth, height: measuredHeight)
     }
 
     // MARK: - Shared Text Construction (used by both applyStyles and measure)
 
     /// Build NSAttributedString from parsed style parameters
     /// Shared by applyStyles (Phase 3) and measure to ensure consistent text rendering
+    /// - Parameter baseWritingDirection: explicit base writing direction;
+    ///   nil keeps `.natural`
     private class func buildAttributedText(
         text: String,
         font: UIFont,
@@ -1118,7 +1193,8 @@ class TextComponent: Component {
         textAlignment: NSTextAlignment,
         lineHeight: LineHeightType?,
         lineClamp: Int,
-        decorationConfig: TextDecorationConfig?
+        decorationConfig: TextDecorationConfig?,
+        baseWritingDirection: NSWritingDirection? = nil
     ) -> NSAttributedString? {
         guard !text.isEmpty else { return nil }
 
@@ -1134,6 +1210,11 @@ class TextComponent: Component {
         // Synthesize paragraph style
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = textAlignment
+
+        // Explicit base writing direction; absent → `.natural` default
+        if let baseWritingDirection = baseWritingDirection {
+            paragraphStyle.baseWritingDirection = baseWritingDirection
+        }
 
         if let lineHeight = lineHeight {
             // W3C line-height semantics: the line box height equals `multiplier * font-size`

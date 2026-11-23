@@ -111,7 +111,7 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
         // Create a self-unregistering listener
         IAGenUIMessageListener selfUnregListener = new IAGenUIMessageListener() {
             @Override
-            public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components) {
+            public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components, String[] directions) {
                 callbackFired.set(true);
                 Log.i(TAG, "[RISK30] onComponentsAdd fired on thread: "
                         + Thread.currentThread().getName()
@@ -134,7 +134,7 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
                                         Map<String, String> theme, boolean sendDataModel,
                                         boolean animated, String rawProtocolContent) {}
             @Override
-            public void onComponentsUpdate(String surfaceId, String[] components) {}
+            public void onComponentsUpdate(String surfaceId, String[] components, String[] directions) {}
             @Override
             public void onComponentsRemove(String surfaceId, String[] parentIds, String[] componentIds) {}
             @Override
@@ -223,7 +223,7 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
 
         IAGenUIMessageListener selfUnregOnUpdate = new IAGenUIMessageListener() {
             @Override
-            public void onComponentsUpdate(String surfaceId, String[] components) {
+            public void onComponentsUpdate(String surfaceId, String[] components, String[] directions) {
                 callbackFired.set(true);
                 Log.i(TAG, "[RISK30v2] onComponentsUpdate fired — self-removing");
                 try {
@@ -239,7 +239,7 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
                                         Map<String, String> theme, boolean sendDataModel,
                                         boolean animated, String rawProtocolContent) {}
             @Override
-            public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components) {}
+            public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components, String[] directions) {}
             @Override
             public void onComponentsRemove(String surfaceId, String[] parentIds, String[] componentIds) {}
             @Override
@@ -328,9 +328,9 @@ public class SDKRiskProbeListenerSelfUnregDeadlockTest extends AGenUIBaseTest {
             }
 
             @Override
-            public void onComponentsUpdate(String surfaceId, String[] components) {}
+            public void onComponentsUpdate(String surfaceId, String[] components, String[] directions) {}
             @Override
-            public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components) {}
+            public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components, String[] directions) {}
             @Override
             public void onComponentsRemove(String surfaceId, String[] parentIds, String[] componentIds) {}
             @Override

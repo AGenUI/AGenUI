@@ -39,7 +39,8 @@ public:
     static float measureTextHeight(const std::string& text,
                                    float maxWidth,
                                    float fontSize = 0.0f,
-                                   int fontWeight = 0);
+                                   int fontWeight = 0,
+                                   bool isRtlLayout = false);
 
     /**
      * @brief Convenience interface: directly measure height from TextMeasureParam

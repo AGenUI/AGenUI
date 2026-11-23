@@ -14,6 +14,8 @@ import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.amap.agenui.render.style.TextDirectionSupport;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +53,8 @@ public class CustomTabLayout extends FrameLayout {
     private float indicatorLeft = 0;
     private float indicatorRight = 0;
     private ValueAnimator indicatorAnimator;
+    private boolean scrollToSelectionAfterLayout;
+    private boolean rtl;
 
     private OnTabSelectedListener listener;
     private OnTabClickListener tabClickListener;
@@ -62,12 +66,32 @@ public class CustomTabLayout extends FrameLayout {
 
     private void init(Context context) {
         setWillNotDraw(false);
+        setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
 
-        tabStrip = new LinearLayout(context);
+        // Mirror locally: the host may not enable Android's application-wide supportsRtl flag.
+        tabStrip = new LinearLayout(context) {
+            @Override
+            protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+                super.onLayout(changed, left, top, right, bottom);
+                if (rtl) {
+                    for (int i = 0; i < getChildCount(); i++) {
+                        View child = getChildAt(i);
+                        int childLeft = getWidth() - child.getRight();
+                        child.layout(childLeft, child.getTop(), childLeft + child.getWidth(), child.getBottom());
+                    }
+                }
+            }
+        };
         tabStrip.setOrientation(LinearLayout.HORIZONTAL);
         tabStrip.setGravity(Gravity.CENTER_VERTICAL);
 
-        scrollView = new HorizontalScrollView(context);
+        scrollView = new HorizontalScrollView(context) {
+            @Override
+            protected void onScrollChanged(int l, int t, int oldl, int oldt) {
+                super.onScrollChanged(l, t, oldl, oldt);
+                CustomTabLayout.this.invalidate();
+            }
+        };
         scrollView.setHorizontalScrollBarEnabled(false);
         scrollView.setOverScrollMode(OVER_SCROLL_NEVER);
         scrollView.setFillViewport(true);
@@ -88,6 +112,7 @@ public class CustomTabLayout extends FrameLayout {
 
     public void addTab(Tab tab, boolean setSelected) {
         tabs.add(tab);
+        scrollToSelectionAfterLayout |= rtl;
         addTabView(tab, tabs.size() - 1);
         if (setSelected) {
             selectTab(tab);
@@ -97,6 +122,7 @@ public class CustomTabLayout extends FrameLayout {
     public void removeTabAt(int position) {
         if (position < 0 || position >= tabs.size()) return;
         Tab removed = tabs.remove(position);
+        scrollToSelectionAfterLayout |= rtl;
         tabStrip.removeViewAt(position);
         if (selectedPosition == position) {
             selectedPosition = -1;
@@ -207,7 +233,7 @@ public class CustomTabLayout extends FrameLayout {
         selectedPosition = newPosition;
         updateAllTabStyles();
         animateIndicator(oldPosition, newPosition);
-        scrollToTab(newPosition);
+        scrollToTab(newPosition, true);
 
         if (listener != null) {
             listener.onTabSelected(tab);
@@ -220,6 +246,8 @@ public class CustomTabLayout extends FrameLayout {
         Context context = getContext();
         TextView textView = new TextView(context);
         textView.setText(tab.text);
+        textView.setTextDirection(TextDirectionSupport.viewTextDirection(
+                rtl ? TextDirectionSupport.RTL : TextDirectionSupport.LTR));
         textView.setGravity(Gravity.CENTER);
         textView.setSingleLine(true);
         textView.setAllCaps(true);
@@ -364,15 +392,36 @@ public class CustomTabLayout extends FrameLayout {
 
     // ==================== Scroll ====================
 
-    private void scrollToTab(int position) {
+    private void scrollToTab(int position, boolean animate) {
         if (tabMode != MODE_SCROLLABLE) return;
         if (position < 0 || position >= tabStrip.getChildCount()) return;
 
         View tab = tabStrip.getChildAt(position);
         if (tab == null) return;
 
-        int scrollTarget = tab.getLeft() + tab.getWidth() / 2 - scrollView.getWidth() / 2;
-        scrollView.smoothScrollTo(Math.max(0, scrollTarget), 0);
+        int scrollTarget = tabStrip.getLeft() + tab.getLeft()
+                + tab.getWidth() / 2 - scrollView.getWidth() / 2;
+        if (animate) {
+            scrollView.smoothScrollTo(Math.max(0, scrollTarget), 0);
+        } else {
+            scrollView.scrollTo(Math.max(0, scrollTarget), 0);
+            // scrollTo alone leaves an old fling or smooth scroll running toward its previous target.
+            scrollView.smoothScrollTo(scrollView.getScrollX(), 0);
+        }
+    }
+
+    void setRtl(boolean rtl) {
+        if (this.rtl == rtl) return;
+        this.rtl = rtl;
+        if (indicatorAnimator != null) {
+            indicatorAnimator.cancel();
+        }
+        for (Tab tab : tabs) {
+            tab.view.setTextDirection(TextDirectionSupport.viewTextDirection(
+                    rtl ? TextDirectionSupport.RTL : TextDirectionSupport.LTR));
+        }
+        scrollToSelectionAfterLayout = true;
+        tabStrip.requestLayout();
     }
 
     // ==================== Layout Callback ====================
@@ -390,6 +439,10 @@ public class CustomTabLayout extends FrameLayout {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
+        if (scrollToSelectionAfterLayout && selectedPosition >= 0) {
+            scrollToTab(selectedPosition, false);
+            scrollToSelectionAfterLayout = false;
+        }
         // After layout, always sync indicator to current selection (no animation)
         if (selectedPosition >= 0 && (indicatorAnimator == null || !indicatorAnimator.isRunning())) {
             updateIndicatorPosition(selectedPosition);
@@ -409,7 +462,11 @@ public class CustomTabLayout extends FrameLayout {
         }
 
         public void setText(String text) {
-            this.text = text != null ? text : "";
+            String newText = text != null ? text : "";
+            if (parent.rtl && !this.text.equals(newText)) {
+                parent.scrollToSelectionAfterLayout = true;
+            }
+            this.text = newText;
             if (view != null) {
                 view.setText(this.text);
             }

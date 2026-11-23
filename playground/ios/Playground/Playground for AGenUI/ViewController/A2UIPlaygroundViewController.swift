@@ -36,6 +36,13 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
     /// Edit button reference
     private var editBarButtonItem: UIBarButtonItem!
     
+    /// RTL demo toggle. False (LTR) by default — the pre-existing behaviour.
+    /// The whole-tree writing direction lives on the C++ SurfaceManager
+    /// (message-level, not a component style); flipping it re-layouts every
+    /// existing surface without re-sending the DSL.
+    private var isRTLMode = false
+    private var rtlBarButtonItem: UIBarButtonItem!
+    
     /// Registered functions (strong references to prevent deallocation)
     private let toastFunction = ToastFunction()
 
@@ -86,26 +93,27 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         surfaceSizeLock.unlock()
     }
     
-    /// Auto-load Gallery template from Bundle (used by --gallery launch argument).
-    func autoLoadGalleryTemplate() {
+    /// Auto-load a template folder from Bundle (used by the --gallery /
+    /// --rtl-showcase launch arguments).
+    func autoLoadTemplate(folder: String) {
         guard let templatesPath = Bundle.main.path(forResource: "Templates", ofType: nil) else {
             print("⚠️ [AutoGallery] Templates folder not found in Bundle")
             return
         }
         
         let fileManager = FileManager.default
-        // Look for Gallery under "A2UI Show" folder
-        let galleryPath = templatesPath + "/A2UI Show/Gallery"
-        guard fileManager.fileExists(atPath: galleryPath) else {
-            print("⚠️ [AutoGallery] Gallery folder not found at: \(galleryPath)")
+        // Look for the folder under "A2UI Show"
+        let templatePath = templatesPath + "/A2UI Show/" + folder
+        guard fileManager.fileExists(atPath: templatePath) else {
+            print("⚠️ [AutoGallery] \(folder) folder not found at: \(templatePath)")
             return
         }
         
         var componentsJSON: String?
         var dataModelJSON: String?
         
-        let componentsFile = galleryPath + "/updateComponents.json"
-        let dataModelFile = galleryPath + "/updateDataModel.json"
+        let componentsFile = templatePath + "/updateComponents.json"
+        let dataModelFile = templatePath + "/updateDataModel.json"
         
         if fileManager.fileExists(atPath: componentsFile) {
             componentsJSON = try? String(contentsOfFile: componentsFile, encoding: .utf8)
@@ -118,10 +126,15 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
             currentComponentsJSON = componentsJSON
             currentDataModelJSON = dataModelJSON
             sendJSONData(componentsJSON: componentsJSON, dataModelJSON: dataModelJSON)
-            print("✅ [AutoGallery] Gallery template loaded successfully")
+            print("✅ [AutoGallery] \(folder) template loaded successfully")
         } else {
-            print("⚠️ [AutoGallery] No JSON files found in Gallery folder")
+            print("⚠️ [AutoGallery] No JSON files found in \(folder) folder")
         }
+    }
+    
+    /// Auto-load Gallery template from Bundle (used by --gallery launch argument).
+    func autoLoadGalleryTemplate() {
+        autoLoadTemplate(folder: "Gallery")
     }
     
     /// Register components that have been decoupled from the SDK.
@@ -202,7 +215,18 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         )
         scanButton.accessibilityLabel = "Scan QR"
 
-        // Visual order (left -> right): Scan | Theme | Edit. Since
+        // RTL demo toggle (title shows the ACTIVE direction). Tapping flips
+        // the whole-tree writing direction on the engine — existing surfaces
+        // re-layout immediately, no DSL re-send needed.
+        rtlBarButtonItem = UIBarButtonItem(
+            title: "LTR",
+            style: .plain,
+            target: self,
+            action: #selector(rtlToggleTapped)
+        )
+        rtlBarButtonItem.accessibilityLabel = "Toggle writing direction"
+
+        // Visual order (left -> right): RTL | Scan | Theme | Edit. Since
         // rightBarButtonItems index 0 is the rightmost item, the array is
         // declared in reverse of the visual order. Negative-width fixed
         // spaces tighten the gaps so the centered performance display gets
@@ -211,7 +235,9 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         compactSpace1.width = -8
         let compactSpace2 = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
         compactSpace2.width = -8
-        navigationItem.rightBarButtonItems = [editButton, compactSpace1, themeButton, compactSpace2, scanButton]
+        let compactSpace3 = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        compactSpace3.width = -8
+        navigationItem.rightBarButtonItems = [editButton, compactSpace1, themeButton, compactSpace2, scanButton, compactSpace3, rtlBarButtonItem]
         
         // Configure navigation bar appearance
         navigationController?.navigationBar.prefersLargeTitles = true
@@ -331,6 +357,26 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
         themeManager.showThemeSelector(from: self)
     }
     
+    @objc private func rtlToggleTapped() {
+        isRTLMode.toggle()
+        applyLayoutDirection()
+    }
+
+    /// Launch-argument hook for --rtl: start the demo with the toggle ON.
+    func startInRTL() {
+        isRTLMode = true
+        applyLayoutDirection()
+    }
+
+    /// Push the toggle state into the engine. The engine deduplicates, so
+    /// re-applying the active direction before each sendJSONData is a no-op —
+    /// it only guarantees newly created surfaces inherit the toggle state.
+    private func applyLayoutDirection() {
+        let direction = isRTLMode ? "rtl" : "ltr"
+        surfaceManager.setLayoutDirection(direction)
+        rtlBarButtonItem?.title = direction.uppercased()
+    }
+
     @objc private func editButtonTapped() {
         let editVC = A2UIPlaygroundEditViewController()
         editVC.initialComponentsJSON = currentComponentsJSON
@@ -788,6 +834,11 @@ class A2UIPlaygroundViewController: UIViewController, SurfaceManagerListener, AV
     ///   - componentsJSON: Components JSON string
     ///   - dataModelJSON: DataModel JSON string
     private func sendJSONData(componentsJSON: String?, dataModelJSON: String?) {
+        // Re-assert the writing direction so the surface about to be created
+        // inherits the toggle state (engine-side dedup makes this a no-op when
+        // the direction is already active).
+        applyLayoutDirection()
+
         surfaceManager.beginTextStream()
 
         if let componentsJSON = componentsJSON {

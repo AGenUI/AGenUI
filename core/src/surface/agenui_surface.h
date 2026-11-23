@@ -15,6 +15,7 @@
 #include "agenui_dispatcher_types.h"
 #include "agenui_render_info_types.h"
 #include "agenui_isurface_context.h"
+#include "agenui_layout_direction.h"
 #include "component_manager/agenui_icomponent_manager.h"
 #include "virtual_dom/agenui_virtual_dom_observer.h"
 #include "virtual_dom/agenui_ivirtual_dom.h"
@@ -55,14 +56,30 @@ public:
 
     // Tabs selected index update
     void updateTabsSelectedIndex(const ComponentRenderInfo& info);
+
+    /**
+     * @brief Apply the writing direction to the VirtualDOM (re-layout + push).
+     */
+    void setLayoutDirection(LayoutDirection direction);
+
+    /**
+     * @brief Creation-time direction initialization: configures the
+     *        VirtualDOM's default direction without the re-layout / size
+     *        bootstrap that setLayoutDirection triggers (the platform
+     *        surface does not exist yet; see
+     *        IVirtualDOM::initLayoutDirection).
+     */
+    void initLayoutDirection(LayoutDirection direction);
     
     // Surface size update
     void updateSurfaceSize(const SurfaceLayoutInfo& info);
     
     // Component management
     AGenUIExeCode updateComponents(const nlohmann::json& componentsData);
-    void onNodeUpdate(const std::string& componentId, const std::string& nodeJson) override;
-    void onNodeAdded(const std::string& parentId, const std::string& nodeJson) override;
+    void onNodeUpdate(const std::string& componentId, const std::string& nodeJson,
+                      const std::string& direction) override;
+    void onNodeAdded(const std::string& parentId, const std::string& nodeJson,
+                     const std::string& direction) override;
     void onNodeRemoved(const std::string& parentId, const std::string& id) override;
     
     // Data model management

@@ -68,6 +68,23 @@ enum AGenUIEdgeInsetsBridge {
         return AGUIEdgeInsets(top: top, right: right, bottom: bottom, left: left)
     }
 
+    /// Parse an inline-axis shorthand value (`padding-inline` / `margin-inline`)
+    /// into physical edges resolved against `isRTL`: inline-start routes to the
+    /// right edge under RTL, the left edge otherwise; top/bottom are zeroed.
+    /// 1 value fills both edges, 2+ values map the first two to start|end.
+    static func parseInline(_ cssValue: String, isRTL: Bool) -> AGUIEdgeInsets? {
+        guard let dict = AGenUIEdgeInsetsBridgeRaw.parseInlineEdgeInsets(cssValue, isRTL: isRTL) as? [String: Any] else {
+            return nil
+        }
+        guard let top = decodeSide(dict["top"]),
+              let right = decodeSide(dict["right"]),
+              let bottom = decodeSide(dict["bottom"]),
+              let left = decodeSide(dict["left"]) else {
+            return nil
+        }
+        return AGUIEdgeInsets(top: top, right: right, bottom: bottom, left: left)
+    }
+
     private static func decodeSide(_ raw: Any?) -> AGUIEdgeInsetSide? {
         guard let d = raw as? [String: Any] else { return nil }
         let value = (d["value"] as? NSNumber)?.floatValue ?? 0

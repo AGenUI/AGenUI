@@ -39,6 +39,8 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
+    writing_direction::Direction m_appliedWritingDirection = writing_direction::Direction::Ltr;
+    void applyWritingDirection();
     void applyTextContent(const nlohmann::json& properties);
     void applyStyles(const nlohmann::json& properties);
 
@@ -50,7 +52,6 @@ private:
                                float& blur, uint32_t& color) const;
 
     static int32_t mapFontWeight(const nlohmann::json& weight);
-    static int32_t mapTextAlign(const std::string& align);
 };
 
 } // namespace a2ui

@@ -250,9 +250,27 @@ void DateTimeInputComponent::dismissPickerDialog() {
     m_dialogSession = nullptr;
 }
 
+void DateTimeInputComponent::applyWritingDirection() {
+    // Trigger ROW is [text, icon]: binding direction puts the icon at the
+    // logical end (left in RTL), mirroring the LTR layout.
+    if (m_triggerHandle) {
+        A2UINode(m_triggerHandle).setWritingDirection(getWritingDirection());
+    }
+    if (m_textHandle) {
+        A2UITextNode text(m_textHandle);
+        text.setWritingDirection(getWritingDirection());
+        text.setTextAlign(ARKUI_TEXT_ALIGNMENT_START);
+    }
+}
+
 void DateTimeInputComponent::onUpdateProperties(const nlohmann::json& properties) {
     if (!m_nodeHandle) {
         HM_LOGE("handle is null, id=%s", m_id.c_str());
+        return;
+    }
+
+    applyWritingDirection();
+    if (properties.size() == 1 && properties.contains("writingDirection")) {
         return;
     }
 
@@ -405,7 +423,12 @@ void DateTimeInputComponent::updateTriggerAppearance() {
         icon.setSrc(iconSrc);
     }
 
-    A2UINode(m_iconHandle).setMargin(0.0f, 0.0f, 0.0f, m_compactStyle.iconSpacing);
+    // Spacing sits between text and icon, i.e. on the icon's logical start side.
+    if (isRtlLayout()) {
+        A2UINode(m_iconHandle).setMargin(0.0f, m_compactStyle.iconSpacing, 0.0f, 0.0f);
+    } else {
+        A2UINode(m_iconHandle).setMargin(0.0f, 0.0f, 0.0f, m_compactStyle.iconSpacing);
+    }
     A2UINode(m_iconHandle).setVisibility(hasValue ? ARKUI_VISIBILITY_NONE : ARKUI_VISIBILITY_VISIBLE);
 }
 

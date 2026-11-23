@@ -46,13 +46,17 @@ public final class SurfaceLayoutDispatcher {
         final View view;
         final YogaAbsoluteLayout.LayoutState state;
         final boolean measureWrapContentHeightWhenZero;
+        /** Root nodes carry physicalized trailing margins in {@code state}. */
+        final boolean applyRootEdges;
 
         LayoutUpdate(View view,
                      YogaAbsoluteLayout.LayoutState state,
-                     boolean measureWrapContentHeightWhenZero) {
+                     boolean measureWrapContentHeightWhenZero,
+                     boolean applyRootEdges) {
             this.view = view;
             this.state = state;
             this.measureWrapContentHeightWhenZero = measureWrapContentHeightWhenZero;
+            this.applyRootEdges = applyRootEdges;
         }
     }
 
@@ -87,15 +91,18 @@ public final class SurfaceLayoutDispatcher {
     }
 
     /**
-     * Enqueues one component frame update for the given parent container.
-     *
-     * YogaAbsoluteLayout parents use the batched absolute-layout path, while non-Yoga parents
-     * fall back to a direct MarginLayoutParams update path.
+     * Enqueues one component frame update, optionally applying the trailing
+     * (right/bottom) margins carried by {@code state} to the direct-parent
+     * LayoutParams. Only the surface {@code root} opts in: Yoga already folds its
+     * left/top margin into the frame position, but never its right/bottom margin,
+     * so those two edges must be written on the LayoutParams to match the
+     * non-dispatcher path.
      */
     public void dispatchLayout(@NonNull View view,
                                @Nullable ViewGroup parent,
                                @NonNull YogaAbsoluteLayout.LayoutState state,
-                               boolean measureWrapContentHeightWhenZero) {
+                               boolean measureWrapContentHeightWhenZero,
+                               boolean applyRootEdges) {
         ViewGroup targetParent = parent;
         if (targetParent == null && view.getParent() instanceof ViewGroup) {
             targetParent = (ViewGroup) view.getParent();
@@ -110,7 +117,7 @@ public final class SurfaceLayoutDispatcher {
                     .add(new YogaAbsoluteLayout.ChildLayout(view, state));
         } else {
             getOrCreateDirectUpdates(targetParent)
-                    .add(new LayoutUpdate(view, state, measureWrapContentHeightWhenZero));
+                    .add(new LayoutUpdate(view, state, measureWrapContentHeightWhenZero, applyRootEdges));
         }
 
         if (!inTransaction) {
@@ -218,12 +225,20 @@ public final class SurfaceLayoutDispatcher {
             }
 
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) rawParams;
+            int targetRightMargin = update.applyRootEdges
+                    ? update.state.rightMarginPx : params.rightMargin;
+            int targetBottomMargin = update.applyRootEdges
+                    ? update.state.bottomMarginPx : params.bottomMargin;
             if (params.width != update.state.widthPx || params.height != targetHeight
-                    || params.leftMargin != update.state.xPx || params.topMargin != update.state.yPx) {
+                    || params.leftMargin != update.state.xPx || params.topMargin != update.state.yPx
+                    || params.rightMargin != targetRightMargin
+                    || params.bottomMargin != targetBottomMargin) {
                 params.width = update.state.widthPx;
                 params.height = targetHeight;
                 params.leftMargin = update.state.xPx;
                 params.topMargin = update.state.yPx;
+                params.rightMargin = targetRightMargin;
+                params.bottomMargin = targetBottomMargin;
                 parentNeedsLayout = true;
             }
 

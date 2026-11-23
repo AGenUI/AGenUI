@@ -96,6 +96,11 @@ extern NSString * const AGenUIErrorMessageKey;
 /// @param data Text chunk string
 - (void)receiveTextChunk:(NSString *)data;
 
+/// Set the surface-level writing direction
+/// @param direction "ltr" or "rtl"; whole-tree, message-level (not a component style).
+/// Flipping re-layouts every existing surface and re-publishes coordinates.
+- (void)setLayoutDirection:(NSString *)direction;
+
 /// Trigger user action on a component
 /// @param surfaceId Surface ID
 /// @param componentId Component ID

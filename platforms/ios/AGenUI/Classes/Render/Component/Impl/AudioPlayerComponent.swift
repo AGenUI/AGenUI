@@ -410,7 +410,7 @@ class AudioPlayerComponent: Component {
         cleanup()
     }
     
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         let defaultSize: CGFloat = 0
         var measuredWidth = defaultSize
         var measuredHeight = defaultSize

@@ -28,6 +28,7 @@
 // vp via `BaseNode::setPadding`.
 
 #include <cstdlib>
+#include <algorithm>
 #include <string>
 #include <nlohmann/json.hpp>
 
@@ -35,6 +36,19 @@
 
 namespace a2ui {
 namespace padding_utils {
+
+inline const nlohmann::json* resolveStyleObject(const nlohmann::json& styles, nlohmann::json& storage) {
+    if (styles.is_object()) {
+        return &styles;
+    }
+    if (styles.is_string()) {
+        storage = nlohmann::json::parse(styles.get_ref<const std::string&>(), nullptr, false);
+        if (storage.is_object()) {
+            return &storage;
+        }
+    }
+    return nullptr;
+}
 
 namespace detail {
 
@@ -109,6 +123,43 @@ inline void resolveUserPadding(const nlohmann::json& styles,
     if (right < 0.0f) right = 0.0f;
     if (bottom < 0.0f) bottom = 0.0f;
     if (left < 0.0f) left = 0.0f;
+}
+
+inline void resolveLogicalEdges(const nlohmann::json& styles, const std::string& family,
+                                bool isRtlLayout, float& top, float& right, float& bottom, float& left) {
+    if (!styles.is_object()) return;
+    auto findValue = [&](const std::string& suffix) -> const nlohmann::json* {
+        auto found = styles.find(family + suffix);
+        return found == styles.end() ? nullptr : &*found;
+    };
+    if (const auto* value = findValue("-inline")) {
+        const std::string token = value->is_string() ? value->get<std::string>() : value->dump();
+        agenui::EdgeInsets insets{};
+        if (agenui::EdgeInsetsParser::parseInline(token, isRtlLayout, insets)) {
+            left = detail::resolveSidePx(insets.left);
+            right = detail::resolveSidePx(insets.right);
+        }
+    }
+    float& inlineStart = isRtlLayout ? right : left;
+    float& inlineEnd = isRtlLayout ? left : right;
+    const auto applyLength = [](const nlohmann::json* value, float& target) {
+        float parsed = 0.0f;
+        if (value && parseLength(*value, parsed)) target = parsed;
+    };
+    applyLength(findValue("-inline-start"), inlineStart);
+    applyLength(findValue("-inline-end"), inlineEnd);
+    applyLength(findValue("-block-start"), top);
+    applyLength(findValue("-block-end"), bottom);
+    top = std::max(0.0f, top);
+    right = std::max(0.0f, right);
+    bottom = std::max(0.0f, bottom);
+    left = std::max(0.0f, left);
+}
+
+inline void resolveUserPadding(const nlohmann::json& styles, bool isRtlLayout,
+                               float& top, float& right, float& bottom, float& left) {
+    resolveUserPadding(styles, top, right, bottom, left);
+    resolveLogicalEdges(styles, "padding", isRtlLayout, top, right, bottom, left);
 }
 
 // Convenience: returns true when any of the four edges is > 0.

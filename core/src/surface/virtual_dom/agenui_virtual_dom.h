@@ -57,6 +57,18 @@ public:
     BatchGuard* batchGuard() override { return &_batchGuard; }
 
     /**
+     * @brief Set the surface-level default writing direction (see
+     *        IVirtualDOM::setLayoutDirection).
+     */
+    void setLayoutDirection(LayoutDirection direction) override;
+
+    /**
+     * @brief Creation-time direction initialization (see
+     *        IVirtualDOM::initLayoutDirection).
+     */
+    void initLayoutDirection(LayoutDirection direction) override;
+
+    /**
      * @brief Get the root node
      * @return Shared pointer to the root node; nullptr if the tree is empty
      */
@@ -150,6 +162,13 @@ private:
     std::map<std::string, ComponentSnapshot> _dataDependentOrphanSnapshots;   // Orphan snapshots that depend on data binding state
     ::agenui::IMeasurementManager* _measurementManager = nullptr;  // Component measurement manager (non-owning)
     std::unique_ptr<YogaLayoutEngine> _layoutEngine;             // Layout engine (ILayoutDelegate, owns the YogaNodeManager)
+
+    // Active surface-level direction, mirroring the engine's default root
+    // direction (both are only written in setLayoutDirection /
+    // initLayoutDirection and survive clear()). Only touched on the message
+    // thread, so no atomic needed. Dedups setLayoutDirection: re-applying
+    // the active value skips the replayed layout pass.
+    LayoutDirection _layoutDirection = LayoutDirection::LTR;
 
     // ---- Batched updateNode bookkeeping ----
     // _batchGuard: manages batch depth and triggers the deferred layout

@@ -84,6 +84,21 @@ const nlohmann::json& A2UIComponent::getProperties() const {
     return m_properties;
 }
 
+writing_direction::Direction A2UIComponent::getWritingDirection() const {
+    const auto& properties = getProperties();
+    const auto direction = properties.find("writingDirection");
+    return direction != properties.end() && direction->is_string()
+        ? writing_direction::resolve(direction->get<std::string>())
+        : writing_direction::Direction::Ltr;
+}
+
+void A2UIComponent::applyRootMargins(const nlohmann::json& styles) {
+    if (m_id != "root" || !m_nodeHandle) return;
+    float marginTop = 0.0f, marginRight = 0.0f, marginBottom = 0.0f, marginLeft = 0.0f;
+    resolveUserMargin(styles, marginTop, marginRight, marginBottom, marginLeft, isRtlLayout());
+    getNode().setMargin(0.0f, marginRight, marginBottom, 0.0f);
+}
+
 void A2UIComponent::updateProperties(const nlohmann::json& newProps) {
     if (!newProps.is_null() && !newProps.is_object()) {
         return;
@@ -139,6 +154,14 @@ void A2UIComponent::updateProperties(const nlohmann::json& newProps) {
 }
 
 void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
+    if (!newProps.contains("styles")) {
+        const auto& properties = getProperties();
+        if (newProps.contains("writingDirection") && properties.contains("styles")) {
+            applyRootMargins(properties["styles"]);
+        }
+        return;
+    }
+
     float posX = 0.0f;
     float posY = 0.0f;
     float width = 100.0f;
@@ -158,10 +181,10 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
             }
         }
         if (stylesValid) {
-            posX = stylesJson.value("x", 0.0f);
-            posY = stylesJson.value("y", 0.0f);
-            width = stylesJson.value("width", 0.0f);
-            height = stylesJson.value("height", 0.0f);
+            posX = stylesJson.value("x", m_x);
+            posY = stylesJson.value("y", m_y);
+            width = stylesJson.value("width", m_width);
+            height = stylesJson.value("height", m_height);
             
             if (stylesJson.contains("styleInfo") && stylesJson["styleInfo"].is_string()) {
                 m_styleInfo = stylesJson["styleInfo"].get<std::string>();
@@ -192,11 +215,7 @@ void A2UIComponent::updateLayoutProperties(const nlohmann::json& newProps) {
                 // position, but margin-bottom/right are lost. Apply them to the
                 // ArkUI node so the parent Stack can allocate the correct space.
                 if (m_id == "root") {
-                    float mt = 0, mr = 0, mb = 0, ml = 0;
-                    resolveUserMargin(stylesJson, mt, mr, mb, ml);
-                    if (mb > 0 || mr > 0) {
-                        getNode().setMargin(0, mr, mb, 0);
-                    }
+                    applyRootMargins(stylesJson);
                 }
             }
             if (m_parent) {

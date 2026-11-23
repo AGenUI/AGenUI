@@ -11,13 +11,13 @@ import android.text.Html;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
 import android.util.TypedValue;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
@@ -51,6 +51,8 @@ public class RichTextComponent extends A2UIComponent {
     private Context context;
     private TextView textView;
     private boolean currentHtmlContainsImage;
+    /** Page writing direction last applied to the view, for change detection. */
+    private Integer appliedDirection;
     private final AsyncRenderSizeReporter asyncRenderSizeReporter =
             createAsyncRenderSizeReporter("RichText", TAG);
 
@@ -75,6 +77,7 @@ public class RichTextComponent extends A2UIComponent {
         // Set default text size and color
         textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         textView.setTextColor(Color.BLACK);
+        appliedDirection = null;
         asyncRenderSizeReporter.bind(textView);
         asyncRenderSizeReporter.setEnabled(false);
 
@@ -90,22 +93,16 @@ public class RichTextComponent extends A2UIComponent {
             return;
         }
 
-        // Handle text-align and color from styles
+        Integer direction = TextDirectionSupport.resolveDirection(properties);
+        boolean directionChanged = appliedDirection == null || !direction.equals(appliedDirection);
+
+        // Handle color from styles
         if (changedProps.containsKey("styles")) {
             Object stylesValue = changedProps.get("styles");
             if (stylesValue instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> styles = (Map<String, Object>) stylesValue;
-                
-                // Handle text-align
-                if (styles.containsKey("text-align")) {
-                    String textAlign = String.valueOf(styles.get("text-align")).toLowerCase().trim();
-                    int gravity = parseTextAlign(textAlign);
-                    if (gravity != -1) {
-                        textView.setGravity(gravity);
-                    }
-                }
-                
+
                 // Handle color
                 if (styles.containsKey("color")) {
                     Object colorValue = styles.get("color");
@@ -120,6 +117,15 @@ public class RichTextComponent extends A2UIComponent {
                 // filter: drop-shadow is handled by the base class via
                 // StyleHelper.applyFilter (component-level shadow using elevation).
             }
+        }
+
+        // text-align and padding share the direction-aware Text path: "left" /
+        // "right" stay physical, "start" / "end" resolve against the page writing
+        // direction, and padding-inline* flips with it. The merged properties are
+        // read so a direction-only diff can re-resolve both.
+        if (changedProps.containsKey("styles") || directionChanged) {
+            StyleHelper.applyTextDirectionEdgesOnly(textView, extractStyles(properties), context, direction);
+            appliedDirection = direction;
         }
 
         // Handle link click setting (must be set before setting content)
@@ -204,36 +210,6 @@ public class RichTextComponent extends A2UIComponent {
 
         // Direct string
         return String.valueOf(textValue);
-    }
-
-    /**
-     * Parse text-align value to Gravity
-     * Supports: left, center, right, start, end
-     * @param textAlign Alignment string
-     * @return Gravity value, or -1 if parsing fails
-     */
-    private int parseTextAlign(String textAlign) {
-        if (textAlign == null || textAlign.isEmpty()) {
-            return -1;
-        }
-
-        String[] parts = textAlign.toLowerCase().trim().split("\\s+");
-        int horizontal = Gravity.START;
-
-        // Parse horizontal alignment
-        String h = parts[0];
-        if (h.equals("left") || h.equals("start")) {
-            horizontal = Gravity.START;
-        } else if (h.equals("center")) {
-            horizontal = Gravity.CENTER_HORIZONTAL;
-        } else if (h.equals("right") || h.equals("end")) {
-            horizontal = Gravity.END;
-        } else {
-            return -1;  // Invalid value
-        }
-
-        // Combine with default vertical center
-        return horizontal | Gravity.CENTER_VERTICAL;
     }
 
     /**

@@ -89,11 +89,12 @@ agenui::MeasureResult DateTimeInputComponentMeasurement::measure(
         }
 
         TextMeasureParam param;
+        param.isRtlLayout = modes.direction == "rtl";
         param.text             = displayText.c_str();
         param.fontSize         = static_cast<int>(fontSize);
         param.fontWeight       = hasValue ? NODE_PROPERTY_FONT_BOLD : NODE_PROPERTY_FONT_NORMAL;
         param.fontStyle        = NODE_PROPERTY_FONT_NORMAL;
-        param.textAlign        = TEXT_ALIGN_LEFT_V_CENTER;
+        param.textAlign        = param.isRtlLayout ? TEXT_ALIGN_RIGHT_V_CENTER : TEXT_ALIGN_LEFT_V_CENTER;
         param.maxLines         = 1;
         param.id               = 0;
         param.textOverflow     = NODE_PROPERTY_TEXT_OVERFLOW_CLIP;

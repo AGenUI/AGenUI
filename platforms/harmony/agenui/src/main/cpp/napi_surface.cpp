@@ -86,6 +86,37 @@ napi_value DestroySurfaceManager(napi_env env, napi_callback_info info) {
     NAPI_RETURN_UNDEFINED(env);
 }
 
+napi_value SetSurfaceManagerLayoutDirection(napi_env env, napi_callback_info info) {
+    size_t argc = 2;
+    napi_value args[2];
+    if (napi_get_cb_info(env, info, &argc, args, nullptr, nullptr) != napi_ok || argc < 2) {
+        NAPI_RETURN_UNDEFINED(env);
+    }
+    int32_t instanceId = 0;
+    size_t length = 0;
+    if (napi_get_value_int32(env, args[0], &instanceId) != napi_ok
+            || napi_get_value_string_utf8(env, args[1], nullptr, 0, &length) != napi_ok) {
+        NAPI_RETURN_UNDEFINED(env);
+    }
+    if (length != 3) {
+        NAPI_RETURN_UNDEFINED(env);
+    }
+    std::string direction(length + 1, '\0');
+    if (napi_get_value_string_utf8(env, args[1], direction.data(), direction.size(), &length) != napi_ok) {
+        NAPI_RETURN_UNDEFINED(env);
+    }
+    direction.resize(length);
+    if (direction != "ltr" && direction != "rtl") {
+        NAPI_RETURN_UNDEFINED(env);
+    }
+    auto* engine = agenui::getAGenUIEngine();
+    auto manager = engine ? engine->findSurfaceManagerShared(instanceId) : nullptr;
+    if (manager) {
+        manager->setLayoutDirection(direction);
+    }
+    NAPI_RETURN_UNDEFINED(env);
+}
+
 napi_value RequestSurface(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value args[2];

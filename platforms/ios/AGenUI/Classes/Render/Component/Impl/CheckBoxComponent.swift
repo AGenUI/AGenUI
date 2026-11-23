@@ -43,6 +43,11 @@ class CheckBoxComponent: Component {
     private var textColor: UIColor = .black
     private var textColorDisabled: UIColor = UIColor.black.withAlphaComponent(0.4)
     private var textSize: CGFloat = 16
+
+    /// Page writing direction, injected by the surface envelope.
+    private var isRTL: Bool {
+        (properties["writingDirection"] as? String)?.lowercased() == "rtl"
+    }
     
     // MARK: - Initialization
     
@@ -79,7 +84,7 @@ class CheckBoxComponent: Component {
     /// 3. Measure text height using NSAttributedString.boundingRect
     /// 4. Height = max(checkboxSize, textHeight)
     /// 5. Apply MeasureMode constraints
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         // 1. Parse paramJson
         guard let jsonData = paramJson.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
@@ -116,7 +121,7 @@ class CheckBoxComponent: Component {
         var measuredHeight: CGFloat = checkboxSize
         if !labelText.isEmpty {
             let font = UIFont.systemFont(ofSize: textSize, weight: .regular)
-            let attributedString = NSAttributedString(string: labelText, attributes: [.font: font])
+            let attributedString = measurementAttributedString(labelText, font: font, direction: direction)
             let textBounds = attributedString.boundingRect(
                 with: CGSize(width: textAvailWidth, height: .greatestFiniteMagnitude),
                 options: [.usesLineFragmentOrigin, .usesFontLeading],
@@ -176,6 +181,11 @@ class CheckBoxComponent: Component {
         // Call parent method to apply CSS properties to self
         super.updateProperties(diff)
         
+        // Direction-only update: mirror the error label without touching state.
+        if diff["writingDirection"] != nil {
+            errorLabel?.semanticContentAttribute = isRTL ? .forceRightToLeft : .forceLeftToRight
+        }
+
         // Update label text
         if case .value(let label) = diff["label"] {
             let labelText = extractTextValue(label)

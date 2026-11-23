@@ -13,6 +13,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.text.Layout;
+import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -1057,8 +1058,25 @@ public class StyleHelper {
      * @param styles   Style property map
      * @param context  Android Context
      */
-    @SuppressLint("WrongConstant")
     public static void applyTextStyles(TextView textView, Map<String, Object> styles, Context context) {
+        applyTextStyles(textView, styles, context, null);
+    }
+
+    /**
+     * Applies text styles to a TextView, resolving start/end alignment against a page
+     * writing direction.
+     *
+     * @param textView  TextView to apply styles to
+     * @param styles    Style property map
+     * @param context   Android Context
+     * @param direction page writing direction ({@link TextDirectionSupport#LTR} /
+     *                  {@link TextDirectionSupport#RTL}); {@code null} when the caller has
+     *                  no direction, in which case the legacy physical alignment path runs
+     *                  and text-align is applied as-is.
+     */
+    @SuppressLint("WrongConstant")
+    public static void applyTextStyles(TextView textView, Map<String, Object> styles,
+                                       Context context, @Nullable Integer direction) {
         if (textView == null || styles == null) return;
 
         ParsedTextStyles p = ParsedTextStyles.from(styles, context);
@@ -1099,14 +1117,21 @@ public class StyleHelper {
         textView.setEllipsize(ParsedTextStyles.resolveEllipsize(p.textOverflow, currentMaxLines));
 
         // 6. Text-align
-        int gravity = parseTextAlign(p.textAlign);
-        if (gravity != -1) textView.setGravity(gravity);
+        if (direction != null) {
+            applyTextDirection(textView, direction, p.textAlign);
+        } else {
+            int gravity = parseTextAlign(p.textAlign);
+            if (gravity != -1) textView.setGravity(gravity);
+        }
 
         // 7. Text decoration
-        applyTextDecoration(textView, styles, context);
+        //    The direction-aware Text path replaces a previously applied decoration before
+        //    attaching the new one (the old span caches the pre-flip gravity); the 3-arg
+        //    non-directional callers keep the baseline attach-only behaviour.
+        applyTextDecoration(textView, styles, context, direction != null);
 
         // 8. CSS padding -> TextView.setPadding
-        applyTextPadding(textView, styles, context);
+        applyTextPadding(textView, styles, context, direction);
 
         // 9. Filter: drop-shadow -> per-glyph text shadow
         ShadowPainter.setConfig(textView, null);
@@ -1122,29 +1147,97 @@ public class StyleHelper {
     }
 
     /**
-     * Applies CSS `padding` (and the four physical sub-properties) to a TextView.
+     * Direction-only update for the SDK Text component: re-applies the page writing direction
+     * and the derived horizontal alignment, without touching font, size, color, line height,
+     * clamp, ellipsize, padding or shadow.
      *
-     * Supports the same shorthand grammar as W3C CSS:
-     *   - 1 value : all four sides
-     *   - 2 values: vertical | horizontal
-     *   - 3 values: top | horizontal | bottom
-     *   - 4 values: top | right | bottom | left
+     * <p>text-align is normalized before use: a missing / null / blank value falls back to
+     * {@link StyleDefaults#TEXT_ALIGN} ("left"), because {@code parseHorizontalAlign(null)}
+     * would otherwise resolve to start and silently change the default alignment.
      *
-     * Per-side overrides (`padding-top` / `padding-right` / `padding-bottom` /
-     * `padding-left`) take precedence over the shorthand value.  Each token is
-     * parsed via {@link #parseDimension(Object, Context)} so dp conversion
-     * matches the rest of the engine.
+     * <p>An existing underline / strikethrough span caches the gravity it was built with, so
+     * when the physical horizontal gravity actually changes and the text already carries such a
+     * span, the decoration is rebuilt once against the new gravity. Without an existing
+     * decoration the style map is not consulted for one — this entry only keeps what is already
+     * rendered in sync, it never adds decoration.
      *
-     * NOTE: Yoga's `padding` already shapes the leaf TextView's borderBox; this
-     * method only narrows the glyph area inside that borderBox so the rendered
-     * text stops at the contentBox.  See applyTextStyles step 8b for context.
-     *
-     * @param textView Target TextView
-     * @param styles   Style map
-     * @param context  Android Context (required for dp conversion)
+     * @param textView  TextView to update
+     * @param styles    Current full style map (read for text-align and decoration props)
+     * @param context   Android Context
+     * @param direction page writing direction ({@link TextDirectionSupport#LTR} /
+     *                  {@link TextDirectionSupport#RTL})
      */
-    private static void applyTextPadding(TextView textView, Map<String, Object> styles, Context context) {
-        applyCSSPadding(textView, styles, context);
+    public static void applyTextDirectionOnly(TextView textView, Map<String, Object> styles,
+                                              Context context, int direction) {
+        if (textView == null) {
+            return;
+        }
+
+        int previousHorizontal = textView.getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK;
+        applyTextDirection(textView, direction, resolveTextAlign(styles));
+        int currentHorizontal = textView.getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK;
+
+        if (previousHorizontal != currentHorizontal && styles != null
+                && hasDecorationSpan(textView.getText())) {
+            applyTextDecoration(textView, styles, context, true);
+        }
+
+        // Logical padding depends on the page direction, so a direction-only update must
+        // re-resolve it — otherwise start/end padding keeps the pre-flip physical edge.
+        applyTextPadding(textView, styles, context, direction);
+    }
+
+    /**
+     * Direction-only refresh for text leaves that own their vertical gravity
+     * (TextField / CheckBox). Re-resolves logical padding and horizontal alignment,
+     * preserving the control's vertical gravity without reapplying text styles or decorations.
+     */
+    public static void applyTextDirectionEdgesOnly(TextView textView, Map<String, Object> styles,
+                                                   Context context, int direction) {
+        if (textView == null) {
+            return;
+        }
+        applyTextDirection(textView, direction, resolveTextAlign(styles),
+                textView.getGravity() & Gravity.VERTICAL_GRAVITY_MASK);
+        applyTextPadding(textView, styles, context, direction);
+    }
+
+    private static String resolveTextAlign(@Nullable Map<String, Object> styles) {
+        Object alignValue = styles != null ? styles.get("text-align") : null;
+        if (alignValue != null) {
+            String value = String.valueOf(alignValue).trim();
+            if (!value.isEmpty()) {
+                return value;
+            }
+        }
+        return StyleDefaults.TEXT_ALIGN;
+    }
+
+    /** True when the text already carries one of this project's decoration spans. */
+    private static boolean hasDecorationSpan(CharSequence text) {
+        if (!(text instanceof Spanned)) {
+            return false;
+        }
+        Spanned spanned = (Spanned) text;
+        return spanned.getSpans(0, spanned.length(),
+                com.amap.agenui.render.component.impl.span.CustomUnderlineSpan.class).length > 0
+                || spanned.getSpans(0, spanned.length(),
+                com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan.class).length > 0;
+    }
+
+    /**
+     * Direction-aware padding resolution for text leaves. When {@code direction}
+     * is non-null the logical {@code padding-inline*}/{@code padding-block*}
+     * keys resolve against the page direction; otherwise the physical helper runs.
+     */
+    private static void applyTextPadding(TextView textView, Map<String, Object> styles,
+                                         Context context, @Nullable Integer direction) {
+        if (direction != null) {
+            Rect padding = resolveCSSPaddingPx(styles, context, direction);
+            textView.setPadding(padding.left, padding.top, padding.right, padding.bottom);
+        } else {
+            applyCSSPadding(textView, styles, context);
+        }
     }
 
     /**
@@ -1168,6 +1261,20 @@ public class StyleHelper {
             return;
         }
         Rect padding = resolveCSSPaddingPx(styles, context);
+        view.setPadding(padding.left, padding.top, padding.right, padding.bottom);
+    }
+
+    /**
+     * Direction-aware variant of {@link #applyCSSPadding(View, Map, Context)}:
+     * logical {@code padding-inline*}/{@code padding-block*} keys resolve against
+     * {@code pageDirection} before being handed to {@link View#setPadding}.
+     */
+    public static void applyCSSPadding(View view, Map<String, Object> styles,
+                                       Context context, int pageDirection) {
+        if (view == null) {
+            return;
+        }
+        Rect padding = resolveCSSPaddingPx(styles, context, pageDirection);
         view.setPadding(padding.left, padding.top, padding.right, padding.bottom);
     }
 
@@ -1231,6 +1338,31 @@ public class StyleHelper {
     }
 
     /**
+     * Direction-aware variant of {@link #resolveCSSPaddingPx(Map, Context)}.
+     *
+     * <p>Starts from the physical values and then applies the kebab-case logical
+     * CSS keys ({@code padding-inline*}/{@code padding-block*}), shorthand before
+     * longhands. Later declarations override the same physical edge; the map's
+     * iteration order is irrelevant. Logical edge camelCase aliases are not supported.
+     *
+     * <p>Absolute lengths only, mirroring the physical helper: the inline
+     * shorthand goes through {@link AGenUI#nativeParseInlineEdgeInsets} and every
+     * logical longhand goes through {@link #parseDimension}. {@code %} / auto /
+     * calc collapse to 0 — this method does not compute relative units.
+     */
+    public static Rect resolveCSSPaddingPx(@Nullable Map<String, Object> styles,
+                                           @NonNull Context context, int pageDirection) {
+        Rect out = resolveCSSPaddingPx(styles, context);
+        if (styles == null || styles.isEmpty()) {
+            return out;
+        }
+        applyLogicalEdges(styles, context, TextDirectionSupport.isRtl(pageDirection),
+                "padding", out);
+        clampNonNegative(out);
+        return out;
+    }
+
+    /**
      * Resolve a single edge value parsed by {@link AGenUI#nativeParseEdgeInsets}
      * into absolute pixels. Only {@code px} (and unitless, which the C++ parser
      * normalizes to px) is honored — every other unit collapses to 0. The
@@ -1251,11 +1383,20 @@ public class StyleHelper {
     /**
      * Applies text decoration properties.
      *
-     * @param textView TextView
-     * @param styles   Style map
-     * @param context  Android Context
+     * <p>The buffer is copied from the view's current text so the line-height span and every
+     * other span survive. {@link SpannableString} copies the source spans, so when
+     * {@code replaceExisting} is set the two decoration span types are dropped from the copy
+     * before the new one is attached — a re-applied decoration must not stack a second span
+     * that still carries the pre-flip gravity.
+     *
+     * @param textView        TextView
+     * @param styles          Style map
+     * @param context         Android Context
+     * @param replaceExisting {@code true} on the direction-aware Text paths; {@code false} for
+     *                        the 3-arg non-directional callers (baseline attach-only behaviour)
      */
-    private static void applyTextDecoration(TextView textView, Map<String, Object> styles, Context context) {
+    private static void applyTextDecoration(TextView textView, Map<String, Object> styles,
+                                            Context context, boolean replaceExisting) {
         // Decoration properties
         String decorationLine = null;      // underline or line-through
         String decorationStyle = "solid";  // solid, dashed, dotted, double, wavy
@@ -1305,48 +1446,74 @@ public class StyleHelper {
             decorationThickness = String.valueOf(styles.get("text-decoration-thickness")).trim();
         }
 
-        // 3. If no decoration line type is set, return early
+        // 3. Absent / null / "none" adds nothing and leaves the existing spans untouched
+        //    (baseline semantics — a stale span is not cleaned up here).
         if (decorationLine == null || decorationLine.isEmpty() || decorationLine.equals("none")) {
             return;
         }
 
-        // 4. Parse decoration line parameters
-        // When text-decoration-color is not specified, fall back to the text color so
-        // the decoration line is always visible (Color.TRANSPARENT would be invisible).
-        int color = (decorationColor != null) ? parseColor(decorationColor) : textView.getCurrentTextColor();
-        int thickness = parseDimension(decorationThickness, context);
-        if (thickness <= 0) {
-            thickness = StyleHelper.standardUnitToPx(context, 2); // Default: 2 a2ui unit
-        }
-
-        // 5. Get the TextView's gravity
-        int gravity = textView.getGravity();
-
-        // 6. Create a SpannableString and apply decoration
         CharSequence text = textView.getText();
         if (text == null || text.length() == 0) {
             return;
         }
 
-        SpannableString spannableString = new SpannableString(text);
+        boolean renderable = decorationLine.equals("underline") || decorationLine.equals("line-through");
 
-        // Create the appropriate Span based on decoration line type and style (passing gravity)
-        if (decorationLine.equals("underline")) {
-            com.amap.agenui.render.component.impl.span.CustomUnderlineSpan.Style style = parseUnderlineStyle(decorationStyle);
-            com.amap.agenui.render.component.impl.span.CustomUnderlineSpan span =
-                    new com.amap.agenui.render.component.impl.span.CustomUnderlineSpan(
-                            color, thickness, style, gravity, context);
-            spannableString.setSpan(span, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        } else if (decorationLine.equals("line-through")) {
-            com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan.Style style = parseStrikethroughStyle(decorationStyle);
-            com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan span =
-                    new com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan(
-                            color, thickness, style, gravity, context);
-            spannableString.setSpan(span, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        // 4. Copy the current text so the line-height span and every other span survive.
+        SpannableString buffer = new SpannableString(text);
+        if (replaceExisting && renderable) {
+            removeDecorationSpans(buffer);
         }
 
-        // 7. Apply the SpannableString
-        textView.setText(spannableString);
+        if (renderable) {
+            // 5. Parse decoration line parameters. When text-decoration-color is not
+            //    specified, fall back to the text color so the decoration line is always
+            //    visible (Color.TRANSPARENT would be invisible).
+            int color = (decorationColor != null) ? parseColor(decorationColor) : textView.getCurrentTextColor();
+            int thickness = parseDimension(decorationThickness, context);
+            if (thickness <= 0) {
+                thickness = StyleHelper.standardUnitToPx(context, 2); // Default: 2 a2ui unit
+            }
+
+            int gravity = textView.getGravity();
+
+            // Create the appropriate Span based on decoration line type and style (passing gravity)
+            if (decorationLine.equals("underline")) {
+                com.amap.agenui.render.component.impl.span.CustomUnderlineSpan.Style style = parseUnderlineStyle(decorationStyle);
+                com.amap.agenui.render.component.impl.span.CustomUnderlineSpan span =
+                        new com.amap.agenui.render.component.impl.span.CustomUnderlineSpan(
+                                color, thickness, style, gravity, context);
+                buffer.setSpan(span, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else {
+                com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan.Style style = parseStrikethroughStyle(decorationStyle);
+                com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan span =
+                        new com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan(
+                                color, thickness, style, gravity, context);
+                buffer.setSpan(span, 0, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+
+        // 6. Apply the buffer once (baseline applies the copy even when no line type matched).
+        textView.setText(buffer);
+    }
+
+    /**
+     * Removes any previously applied underline / strikethrough span while preserving every
+     * other span (e.g. line-height). Called only from the replace path of
+     * {@link #applyTextDecoration}: the {@link SpannableString} copy would otherwise carry the
+     * old decoration, stacking a second span that still holds the pre-flip gravity.
+     */
+    private static void removeDecorationSpans(Spannable spannable) {
+        for (com.amap.agenui.render.component.impl.span.CustomUnderlineSpan span
+                : spannable.getSpans(0, spannable.length(),
+                com.amap.agenui.render.component.impl.span.CustomUnderlineSpan.class)) {
+            spannable.removeSpan(span);
+        }
+        for (com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan span
+                : spannable.getSpans(0, spannable.length(),
+                com.amap.agenui.render.component.impl.span.CustomStrikethroughSpan.class)) {
+            spannable.removeSpan(span);
+        }
     }
 
     /**
@@ -1501,6 +1668,31 @@ public class StyleHelper {
         }
 
         return horizontal | Gravity.TOP;
+    }
+
+    /**
+     * Applies direction-aware text alignment: layout/text direction from the page writing
+     * direction, horizontal gravity with start/end mapped against it, and vertical gravity
+     * kept at TOP (the A2UI two-axis vertical token is dropped, matching iOS/HarmonyOS).
+     */
+    private static void applyTextDirection(TextView textView, int direction, String textAlign) {
+        applyTextDirection(textView, direction, textAlign, Gravity.TOP);
+    }
+
+    private static void applyTextDirection(TextView textView, int direction, String textAlign,
+                                           int verticalGravity) {
+        boolean rtl = TextDirectionSupport.isRtl(direction);
+        int hAlign = TextDirectionSupport.parseHorizontalAlign(textAlign);
+        int horizontalGravity = TextDirectionSupport.physicalHorizontalGravity(hAlign, direction);
+
+        // 对齐用物理 gravity 表达（TEXT_ALIGNMENT_GRAVITY 下 LEFT/RIGHT 不随方向翻转）；
+        // 对齐先于方向设置。
+        textView.setTextAlignment(View.TEXT_ALIGNMENT_GRAVITY);
+        textView.setGravity(horizontalGravity | verticalGravity);
+
+        // API 21/22 的 FIRST_STRONG 依赖 layoutDirection 处理无强字符段落。
+        textView.setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
+        textView.setTextDirection(TextDirectionSupport.viewTextDirection(direction));
     }
 
     /**
@@ -1724,5 +1916,111 @@ public class StyleHelper {
 
         Rect out = new Rect(leftPx, topPx, rightPx, bottomPx);
         return out;
+    }
+
+    /**
+     * Direction-aware variant of {@link #resolveCSSMarginPx(Map, Context)}.
+     *
+     * <p>Same logical-key cascade as {@link #resolveCSSPaddingPx(Map, Context, int)}.
+     * A margin is considered present when either a physical or a logical margin
+     * key is declared: a styles map carrying only {@code margin-inline-start}
+     * still returns a Rect, while a map with no margin key at all keeps the
+     * {@code null} contract of the physical helper.
+     */
+    @Nullable
+    public static Rect resolveCSSMarginPx(@Nullable Map<String, Object> styles,
+                                          @NonNull Context context, int pageDirection) {
+        if (styles == null || styles.isEmpty()) {
+            return null;
+        }
+        Rect base = resolveCSSMarginPx(styles, context);
+        Rect out = base != null ? new Rect(base) : new Rect(0, 0, 0, 0);
+        boolean logicalPresent = applyLogicalEdges(styles, context,
+                TextDirectionSupport.isRtl(pageDirection), "margin", out);
+        if (base == null && !logicalPresent) {
+            return null;
+        }
+        clampNonNegative(out);
+        return out;
+    }
+
+    /**
+     * Applies the logical CSS keys of one family ({@code "padding"} or
+     * {@code "margin"}) onto {@code out}, physicalizing the inline axis for the
+     * given writing direction.
+     *
+     * <p>Only kebab-case keys are accepted, shorthand before longhands.
+     * The inline shorthand writes both edges and never touches top/bottom (the
+     * native parser zeroes them for the inline axis).
+     *
+     * @return {@code true} when at least one logical key was declared
+     */
+    private static boolean applyLogicalEdges(Map<String, Object> styles, Context context,
+                                             boolean rtl, String family, Rect out) {
+        boolean present = false;
+
+        if (isStylePresent(styles, family + "-inline")) {
+            applyInlineShorthand(styles.get(family + "-inline"), context, rtl, out);
+            present = true;
+        }
+        if (isStylePresent(styles, family + "-inline-start")) {
+            setInlineStart(out, parseDimension(styles.get(family + "-inline-start"), context), rtl);
+            present = true;
+        }
+        if (isStylePresent(styles, family + "-inline-end")) {
+            setInlineEnd(out, parseDimension(styles.get(family + "-inline-end"), context), rtl);
+            present = true;
+        }
+        if (isStylePresent(styles, family + "-block-start")) {
+            out.top = parseDimension(styles.get(family + "-block-start"), context);
+            present = true;
+        }
+        if (isStylePresent(styles, family + "-block-end")) {
+            out.bottom = parseDimension(styles.get(family + "-block-end"), context);
+            present = true;
+        }
+
+        return present;
+    }
+
+    /** Inline shorthand sets both edges; the native parser already orients start/end. */
+    private static void applyInlineShorthand(Object raw, Context context, boolean rtl, Rect out) {
+        String shorthand = String.valueOf(raw).trim();
+        if (shorthand.isEmpty() || shorthand.equalsIgnoreCase("null")) {
+            return;
+        }
+        EdgeInsetsValue insets = AGenUI.nativeParseInlineEdgeInsets(shorthand, rtl);
+        if (insets == null) {
+            return;
+        }
+        out.left = resolveSidePx(insets.left, context);
+        out.right = resolveSidePx(insets.right, context);
+    }
+
+    private static void setInlineStart(Rect out, int px, boolean rtl) {
+        if (rtl) {
+            out.right = px;
+        } else {
+            out.left = px;
+        }
+    }
+
+    private static void setInlineEnd(Rect out, int px, boolean rtl) {
+        if (rtl) {
+            out.left = px;
+        } else {
+            out.right = px;
+        }
+    }
+
+    private static boolean isStylePresent(Map<String, Object> styles, String key) {
+        return styles.containsKey(key) && styles.get(key) != null;
+    }
+
+    private static void clampNonNegative(Rect r) {
+        if (r.left   < 0) r.left   = 0;
+        if (r.top    < 0) r.top    = 0;
+        if (r.right  < 0) r.right  = 0;
+        if (r.bottom < 0) r.bottom = 0;
     }
 }

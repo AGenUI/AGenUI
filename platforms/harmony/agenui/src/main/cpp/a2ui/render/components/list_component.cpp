@@ -1,7 +1,7 @@
 #include "list_component.h"
 #include "../a2ui_node.h"
 #include "a2ui/utils/a2ui_parse_utils.h"
-#include "style_parser/agenui_edge_insets_parser.h"
+#include "a2ui/utils/a2ui_list_layout_utils.h"
 #include "log/a2ui_capi_log.h"
 #include <algorithm>
 
@@ -30,6 +30,7 @@ ListComponent::ListComponent(const std::string& id, const nlohmann::json& proper
     }
 
     A2UIListNode node(m_nodeHandle);
+    node.setWritingDirection(writing_direction::Direction::Ltr);
     node.setScrollBarDisplayOff();
     if (m_horizontal) {
         node.setScrollDirectionHorizontal();
@@ -170,7 +171,13 @@ void ListComponent::onUpdateProperties(const nlohmann::json& properties) {
     applyScrollable(properties);
     applyAlign(properties);
     applyStyles(properties);
-    parseContainerPadding(properties);
+    const auto writingDirection = getWritingDirection();
+    if (m_horizontal && writingDirection != m_appliedWritingDirection) {
+        m_pendingDirectionReset = true;
+    }
+    getNode().setWritingDirection(m_horizontal ? writingDirection : writing_direction::Direction::Ltr);
+    m_appliedWritingDirection = writingDirection;
+    parseContainerPadding(getProperties());
 
     // Sync ListItem cross-axis size to match Yoga layout.
     // Vertical list: ListItem width = 100% (children fill the list width).
@@ -202,6 +209,16 @@ void ListComponent::onUpdateProperties(const nlohmann::json& properties) {
     HM_LOGD("id=%s, properties=%s", m_id.c_str(), properties.dump().c_str());
 }
 
+void ListComponent::resetToLogicalStartIfNeeded() {
+    if (!m_pendingDirectionReset || m_children.empty() || getWidth() <= 0.0f) return;
+    if (!m_children.front() || m_children.front()->getWidth() <= 0.0f) return;
+    ArkUI_NumberValue values[] = {{.i32 = 0}, {.i32 = 0}, {.i32 = ARKUI_SCROLL_ALIGNMENT_START}};
+    ArkUI_AttributeItem item = {values, 3};
+    if (g_nodeAPI->setAttribute(m_nodeHandle, NODE_LIST_SCROLL_TO_INDEX, &item) == 0) {
+        m_pendingDirectionReset = false;
+    }
+}
+
 // ---- direction ----
 
 void ListComponent::applyDirection(const nlohmann::json& properties) {
@@ -214,6 +231,7 @@ void ListComponent::applyDirection(const nlohmann::json& properties) {
     if (nowHorizontal == m_horizontal) {
         return;
     }
+    m_pendingDirectionReset = true;
 
     // Handle adapter ↔ eager migration on direction change.
     if (nowHorizontal && !m_adapterActive) {
@@ -229,6 +247,7 @@ void ListComponent::applyDirection(const nlohmann::json& properties) {
     }
 
     A2UIListNode node(m_nodeHandle);
+    node.setWritingDirection(m_horizontal ? getWritingDirection() : writing_direction::Direction::Ltr);
     if (m_horizontal) {
         node.setScrollDirectionHorizontal();
     } else {
@@ -391,6 +410,7 @@ void ListComponent::applyStyles(const nlohmann::json& properties) {
 
 void ListComponent::updateListItemMargins() {
     if (m_children.empty()) return;
+    const bool horizontalRtl = m_horizontal && isRtlLayout();
 
     bool isLast = false;
     for (size_t i = 0; i < m_children.size(); ++i) {
@@ -409,7 +429,9 @@ void ListComponent::updateListItemMargins() {
         if (i == 0) {
             // First item: margin = Yoga main-axis offset (includes list padding).
             if (m_horizontal) {
-                marginLeft = child->getX();
+                const float leading = list_layout::leadingSpacing(child->getX(), child->getWidth(), getWidth(), horizontalRtl);
+                if (horizontalRtl) marginRight = leading;
+                else marginLeft = leading;
             } else {
                 marginTop = child->getY();
             }
@@ -418,7 +440,10 @@ void ListComponent::updateListItemMargins() {
             if (prev) {
                 if (m_horizontal) {
                     // Gap = current x - (prev x + prev width)
-                    marginLeft = child->getX() - (prev->getX() + prev->getWidth());
+                    const float spacing = list_layout::itemSpacing(child->getX(), child->getWidth(),
+                                                                  prev->getX(), prev->getWidth(), horizontalRtl);
+                    if (horizontalRtl) marginRight = spacing;
+                    else marginLeft = spacing;
                 } else {
                     // Gap = current y - (prev y + prev height)
                     marginTop = child->getY() - (prev->getY() + prev->getHeight());
@@ -429,7 +454,14 @@ void ListComponent::updateListItemMargins() {
         // Last item: append the container's padding-right/bottom so
         // scrolling to the end reveals the trailing padding gutter.
         if (isLast) {
-            marginRight = m_paddingRight;
+            float childTop = 0.0f, childRight = 0.0f, childBottom = 0.0f, childLeft = 0.0f;
+            const auto& childProperties = child->getProperties();
+            if (m_horizontal && childProperties.contains("styles")) {
+                resolveUserMargin(childProperties["styles"], childTop, childRight, childBottom, childLeft,
+                                  child->isRtlLayout());
+            }
+            if (horizontalRtl) marginLeft = list_layout::trailingSpacing(m_paddingLeft, childLeft);
+            else marginRight = list_layout::trailingSpacing(m_paddingRight, childRight);
             marginBottom = m_paddingBottom;
         }
 
@@ -438,6 +470,7 @@ void ListComponent::updateListItemMargins() {
 
         A2UINode(listItemHandle).setMargin(marginTop, marginRight, marginBottom, marginLeft);
     }
+    resetToLogicalStartIfNeeded();
 }
 
 // ---- Container Padding ----
@@ -446,39 +479,28 @@ void ListComponent::updateListItemMargins() {
 // scroll gutter is visible when scrolling to the end.
 
 void ListComponent::parseContainerPadding(const nlohmann::json& properties) {
+    m_paddingLeft = m_paddingRight = m_paddingBottom = 0.0f;
     if (!properties.contains("styles") || !properties["styles"].is_object()) {
         return;
     }
     const auto& styles = properties["styles"];
 
+    float paddingTop = 0.0f;
     float paddingRight = 0.0f;
     float paddingBottom = 0.0f;
-
-    if (styles.contains("padding") && styles["padding"].is_string()) {
-        agenui::EdgeInsets insets{};
-        if (agenui::EdgeInsetsParser::parse(styles["padding"].get<std::string>(), insets)) {
-            if (insets.right.unit == agenui::EdgeInsetUnit::Px) {
-                paddingRight = insets.right.value;
-            }
-            if (insets.bottom.unit == agenui::EdgeInsetUnit::Px) {
-                paddingBottom = insets.bottom.value;
-            }
-        }
-    }
+    float paddingLeft = 0.0f;
+    padding_utils::resolveUserPadding(styles, paddingTop, paddingRight, paddingBottom, paddingLeft);
     if (styles.contains("padding-right")) {
         paddingRight = parseCssLength(styles["padding-right"], paddingRight);
-    }
-    if (styles.contains("paddingRight")) {
-        paddingRight = parseCssLength(styles["paddingRight"], paddingRight);
     }
     if (styles.contains("padding-bottom")) {
         paddingBottom = parseCssLength(styles["padding-bottom"], paddingBottom);
     }
-    if (styles.contains("paddingBottom")) {
-        paddingBottom = parseCssLength(styles["paddingBottom"], paddingBottom);
-    }
+    padding_utils::resolveLogicalEdges(styles, "padding", isRtlLayout(),
+                                      paddingTop, paddingRight, paddingBottom, paddingLeft);
 
     m_paddingRight = paddingRight;
+    m_paddingLeft = paddingLeft;
     m_paddingBottom = paddingBottom;
 }
 
@@ -490,6 +512,7 @@ bool ListComponent::isHorizontal() const {
 
 ArkUI_NodeHandle ListComponent::createListItemWrapper(ArkUI_NodeHandle childHandle) {
     ArkUI_NodeHandle listItemHandle = g_nodeAPI->createNode(ARKUI_NODE_LIST_ITEM);
+    A2UINode(listItemHandle).setWritingDirection(writing_direction::Direction::Ltr);
     g_nodeAPI->addChild(listItemHandle, childHandle);
     if (!m_horizontal) {
         // Vertical list: ListItem fills the list width so children stretch horizontally.

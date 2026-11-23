@@ -246,6 +246,49 @@ void SurfaceManager::invalidateFunctionCallValues() {
     });
 }
 
+void SurfaceManager::setLayoutDirection(const std::string& direction) {
+    LayoutDirection dir = LayoutDirection::LTR;
+    if (!parseLayoutDirection(direction, dir)) {
+        AGENUI_LOG("invalid direction '%s', ignored (expected \"ltr\" or \"rtl\", instance %d)",
+                   direction.c_str(), _instanceId);
+        return;
+    }
+    if (!_isRunning.load()) {
+        AGENUI_LOG("not running, setLayoutDirection ignored (instance %d)", _instanceId);
+        return;
+    }
+    auto messageThread = getMessageThread();
+    if (!messageThread) {
+        AGENUI_LOG("MessageThread is null, setLayoutDirection ignored (instance %d)",
+                   _instanceId);
+        return;
+    }
+    // Dedup AND storage both run inside the message-thread task. The task
+    // queue is FIFO and single-threaded, so the stored value and the value
+    // delivered to the coordinator are always updated together, in queue
+    // order — they can never diverge (dedup-and-store on the calling thread
+    // could be reordered against its own post: thread A CAS-succeeds, thread
+    // B CAS-succeeds and posts first, A then posts last — the coordinator
+    // would end up applying A while the stored value says B, and same-value
+    // retries would be swallowed by the dedup check forever). A dropped task
+    // (thread teardown) never writes the stored value, so a later retry of
+    // the same value is not swallowed either. New surfaces inherit the
+    // stored value at creation time, which always equals the last value
+    // actually applied to existing surfaces.
+    auto self = shared_from_this();
+    messageThread->post([self, dir]() {
+        if (self->_layoutDirection.exchange(dir) == dir) {
+            AGENUI_LOG("direction already active, ignored (instance %d)", self->_instanceId);
+            return;
+        }
+        AGENUI_LOG("surface layout direction set to %s (instance %d)",
+                   toLayoutDirectionString(dir), self->_instanceId);
+        if (self->_surfaceCoordinator) {
+            self->_surfaceCoordinator->setLayoutDirection(dir);
+        }
+    });
+}
+
 void SurfaceManager::setSurfaceSizeProvider(ISurfaceSizeProvider* provider) {
     std::lock_guard<std::mutex> lock(_surfaceSizeProviderMutex);
     _surfaceSizeProvider = provider;

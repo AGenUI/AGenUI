@@ -122,12 +122,18 @@ void YogaLayoutEngine::setupMeasureFunctionIfNeeded(const std::string& nodeId,
         case ::agenui::MeasureDecision::Register: {
             auto* mgr = _measurementManager;
             std::string type = wrapper.componentType();
+            // Snapshot the manager (not `this`) into the lambda: the callback
+            // runs inside calculateLayout, whose owner direction — read at
+            // call time — is the layout INPUT of the current pass and thus
+            // the correct MeasureModes.direction (never the stale layout
+            // OUTPUT). Same lifetime assumption as the existing `mgr` capture.
+            YogaNodeManager* manager = _manager.get();
             // weak_ptr instead of raw pointer: if the wrapper is destroyed
             // before Yoga schedules this callback on the layout thread, lock()
             // returns null and we fall back to YGUndefined sizing instead of UAF.
             std::weak_ptr<ILayoutDataWrapper> wrapperWeak = wrapper.weak_from_this();
             node->setMeasureFunc(
-                [mgr, type, wrapperWeak](float w, YGMeasureMode wMode,
+                [mgr, type, manager, wrapperWeak](float w, YGMeasureMode wMode,
                                          float h, YGMeasureMode hMode) -> YGSize {
                     if (!mgr) return YGSize{YGUndefined, YGUndefined};
                     auto wrapperLocked = wrapperWeak.lock();
@@ -137,6 +143,12 @@ void YogaLayoutEngine::setupMeasureFunctionIfNeeded(const std::string& nodeId,
                     modes.width.mode      = static_cast<int>(wMode);
                     modes.height.maxValue = h;
                     modes.height.mode     = static_cast<int>(hMode);
+                    modes.direction = manager
+                        ? toLayoutDirectionString(
+                              manager->getDefaultRootDirection() == YGDirectionRTL
+                                  ? LayoutDirection::RTL
+                                  : LayoutDirection::LTR)
+                        : "ltr";
                     auto result = mgr->measure(type,
                                                wrapperLocked->serializeForMeasure(),
                                                modes);
@@ -164,6 +176,17 @@ bool YogaLayoutEngine::calculateLayout(const std::string& rootId,
 void YogaLayoutEngine::updateTabsSelectedIndex(const std::string& tabsId,
                                                int selectedIndex) {
     _manager->updateTabsSelectedIndex(tabsId, selectedIndex);
+}
+
+void YogaLayoutEngine::setDefaultRootDirection(LayoutDirection direction) {
+    _manager->setDefaultRootDirection(
+        direction == LayoutDirection::RTL ? YGDirectionRTL : YGDirectionLTR);
+}
+
+LayoutDirection YogaLayoutEngine::getDefaultRootDirection() const {
+    return _manager->getDefaultRootDirection() == YGDirectionRTL
+               ? LayoutDirection::RTL
+               : LayoutDirection::LTR;
 }
 
 // ---------------- layout result query ----------------

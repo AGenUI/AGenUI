@@ -17,6 +17,15 @@ struct LayoutInfo {
     float y = 0.0f;        // Y position
     float width = 0.0f;    // Width
     float height = 0.0f;   // Height
+    // Resolved writing direction ("rtl"/"ltr"). Defaults to "ltr" so the
+    // field is NEVER empty on the wire: a node that emits its first ADD
+    // without having gone through a Yoga layout pass still reports a valid
+    // direction (platforms skip direction injection on empty strings).
+    // Layout output compared by checkSnapshotChanged like x/y/w/h — a flip
+    // forces an UPDATE even when the coordinates are byte-identical — but
+    // stringify() never emits it: it rides on the message envelope
+    // (ComponentsAdd/UpdateMessage.direction), never in component styles.
+    std::string direction = "ltr";
     int lines = 0;         // Number of text lines (valid for text components)
     std::string styleInfo; // Saved width/height style info from snapshot.styles (JSON format)
 

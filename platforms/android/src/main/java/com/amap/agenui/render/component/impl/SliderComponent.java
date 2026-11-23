@@ -11,6 +11,7 @@ import com.amap.agenui.render.component.view.FormLabelView;
 import com.amap.agenui.render.component.view.CustomSliderView;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 
 import java.util.Map;
 
@@ -73,6 +74,7 @@ public class SliderComponent extends A2UIComponent {
 
         // Create custom slider
         sliderView = new CustomSliderView(context);
+        applySliderDirection();
 
         // Apply style configuration
         applySliderStyles(context);
@@ -107,7 +109,25 @@ public class SliderComponent extends A2UIComponent {
 
     @Override
     protected void onUpdateProperties(Map<String, Object> changedProps) {
+        applySliderDirection();
         applyProperties(changedProps);
+    }
+
+    /**
+     * The slider canvas mirrors its axis and drag mapping from this layout
+     * direction, so direction-only updates must re-arm it too.
+     */
+    private void applySliderDirection() {
+        if (sliderView == null) {
+            return;
+        }
+        int direction = TextDirectionSupport.resolveDirection(properties);
+        int layoutDirection = TextDirectionSupport.isRtl(direction)
+                ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR;
+        if (sliderView.getLayoutDirection() != layoutDirection) {
+            sliderView.setLayoutDirection(layoutDirection);
+            sliderView.invalidate();
+        }
     }
 
     /**

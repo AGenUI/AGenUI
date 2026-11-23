@@ -63,6 +63,21 @@ public:
      * @return true if parsing succeeds, false otherwise
      */
     static bool parse(const std::string& cssValue, EdgeInsets& result);
+
+    /**
+     * @brief Parse a CSS inline-axis shorthand string (padding-inline / margin-inline value)
+     * @param cssValue [in] Input shorthand string (e.g. "12px", "24px 8px" = start|end)
+     * @param isRtl [in] Writing direction: true routes inline-start to the right edge,
+     *                   false to the left edge
+     * @param result [out] Output insets: left/right carry the physicalized inline edges;
+     *                     top/bottom are zeroed (the inline axis has no block component)
+     * @return true if parsing succeeds, false otherwise
+     * @remark 1 value fills both edges; 2+ values map the first two tokens to
+     *         start|end and extra tokens are ignored — mirroring the token
+     *         mapping in CSSStyleConverter::applyPaddingInline. Family-agnostic:
+     *         the same expansion serves padding-inline and margin-inline.
+     */
+    static bool parseInline(const std::string& cssValue, bool isRtl, EdgeInsets& result);
 };
 
 }  // namespace agenui

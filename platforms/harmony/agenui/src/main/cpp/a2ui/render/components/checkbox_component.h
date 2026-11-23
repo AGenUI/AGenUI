@@ -25,6 +25,7 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
+    void applyWritingDirection();
     struct CheckBoxStyle;
 
     /**

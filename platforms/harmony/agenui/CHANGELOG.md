@@ -236,11 +236,19 @@
 
 ---
 
-## [1.9.0] - 2026-11-13
+## [1.9.0] - 2026-11-23
+
+### 新特性
+
+- **三端 RTL 布局支持**：新增 `SurfaceManager.setLayoutDirection`（`ltr` / `rtl`），统一控制所属 Surface 的方向，适配文本、横向 List、Tabs 等组件。组件级 `styles.direction` 不再生效。
+- **逻辑边与文本对齐**：`margin-inline`、`padding-inline`、`inset-inline` 及其 start/end 属性随布局方向解析；`text-align` 支持逻辑 `start` / `end`，物理 `left` / `right` 保持不变。
+- **方向感知测量**：测量回调新增 `direction` 参数，Android 组件消息回调新增 `directions` 参数，自定义实现需同步更新签名。
 
 ### Bug 修复
 
 - (Core) 修复用户交互后静态属性未回写的问题，宿主重发原值即可复位控件。补充复位和重复值更新的回归测试。
 - (鸿蒙) 修复不同 `SurfaceManager` 实例中同 ID 的混合视图冲突，确保属性更新、销毁和方法调用作用于正确的视图。
+- (iOS) 修复 RTL 横向 List 的起点、滚动范围及边距异常，方向或尺寸变化后正确对齐逻辑起点。
+- (iOS Playground) 修复 Markdown、Lottie 自定义组件未同步测量接口的 `direction` 参数而导致的编译失败。
 
 ---

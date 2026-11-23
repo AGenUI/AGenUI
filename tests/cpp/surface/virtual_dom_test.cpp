@@ -14,8 +14,8 @@ using namespace agenui;
 
 class MockVirtualDOMObserver : public IVirtualDOMObserver {
 public:
-    MOCK_METHOD(void, onNodeUpdate, (const std::string& componentId, const std::string& nodeJson), (override));
-    MOCK_METHOD(void, onNodeAdded, (const std::string& parentId, const std::string& nodeJson), (override));
+    MOCK_METHOD(void, onNodeUpdate, (const std::string& componentId, const std::string& nodeJson, const std::string& direction), (override));
+    MOCK_METHOD(void, onNodeAdded, (const std::string& parentId, const std::string& nodeJson, const std::string& direction), (override));
     MOCK_METHOD(void, onNodeRemoved, (const std::string& parentId, const std::string& id), (override));
 };
 
@@ -178,8 +178,8 @@ TEST_F(VirtualDOMTest, BatchGuard_NotNull) {
 // =============================================================================
 
 TEST_F(VirtualDOMTest, UpdateNode_Root_SetsRootSnapshot) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto snapshot = makeSnapshot("root", "Column", {"child_1"});
     vdom_->updateNode(snapshot);
@@ -190,8 +190,8 @@ TEST_F(VirtualDOMTest, UpdateNode_Root_SetsRootSnapshot) {
 }
 
 TEST_F(VirtualDOMTest, UpdateNode_Root_WithChildren_CreatesChildNodes) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto snapshot = makeSnapshot("root", "Column", {"child_1", "child_2"});
     vdom_->updateNode(snapshot);
@@ -202,8 +202,8 @@ TEST_F(VirtualDOMTest, UpdateNode_Root_WithChildren_CreatesChildNodes) {
 
 TEST_F(VirtualDOMTest, UpdateNode_UnknownId_StoredAsOrphan) {
     // Update a node that doesn't exist in the tree — should be stored as orphan
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto snapshot = makeSnapshot("non_existent", "Text");
     vdom_->updateNode(snapshot);
@@ -216,8 +216,8 @@ TEST_F(VirtualDOMTest, UpdateNode_UnknownId_StoredAsOrphan) {
 }
 
 TEST_F(VirtualDOMTest, UpdateNode_ExistingChild_UpdatesSnapshot) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     // Build root with a child
     auto rootSnap = makeSnapshot("root", "Column", {"child_1"});
@@ -244,8 +244,8 @@ TEST_F(VirtualDOMTest, UpdateNode_ExistingChild_UpdatesSnapshot) {
 // =============================================================================
 
 TEST_F(VirtualDOMTest, Clear_ResetsTree) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
     EXPECT_CALL(*observer_, onNodeRemoved(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto snapshot = makeSnapshot("root", "Column", {"c1", "c2"});
@@ -261,8 +261,8 @@ TEST_F(VirtualDOMTest, Clear_ResetsTree) {
 }
 
 TEST_F(VirtualDOMTest, Clear_OrphansAlsoCleared) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto orphanSnap = makeSnapshot("orphan_1", "Button");
     vdom_->updateNode(orphanSnap);
@@ -283,8 +283,8 @@ TEST_F(VirtualDOMTest, TakeOrphanSnapshot_NotExist_ReturnsFalse) {
 }
 
 TEST_F(VirtualDOMTest, TakeOrphanSnapshot_Exists_ReturnsTrueAndRemoves) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto snap = makeSnapshot("orphan_x", "Image");
     vdom_->updateNode(snap);
@@ -303,8 +303,8 @@ TEST_F(VirtualDOMTest, TakeOrphanSnapshot_Exists_ReturnsTrueAndRemoves) {
 // =============================================================================
 
 TEST_F(VirtualDOMTest, Orphan_DisplayRuleAlways_CanBeTaken) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     ComponentSnapshot snap;
     snap.id = "always_show";
@@ -318,8 +318,8 @@ TEST_F(VirtualDOMTest, Orphan_DisplayRuleAlways_CanBeTaken) {
 }
 
 TEST_F(VirtualDOMTest, Orphan_AllDataReady_NotReadyStatus_CannotBeTaken) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     ComponentSnapshot snap;
     snap.id = "needs_data";
@@ -333,8 +333,8 @@ TEST_F(VirtualDOMTest, Orphan_AllDataReady_NotReadyStatus_CannotBeTaken) {
 }
 
 TEST_F(VirtualDOMTest, Orphan_AnyDataReady_FullyReadyStatus_CanBeTaken) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     ComponentSnapshot snap;
     snap.id = "partial_ok";
@@ -352,8 +352,8 @@ TEST_F(VirtualDOMTest, Orphan_AnyDataReady_FullyReadyStatus_CanBeTaken) {
 // =============================================================================
 
 TEST_F(VirtualDOMTest, BatchScope_CoalescesMultipleUpdates) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     // Within a batch, multiple updateNode calls should coalesce layout
     {
@@ -374,8 +374,8 @@ TEST_F(VirtualDOMTest, BatchScope_CoalescesMultipleUpdates) {
 // =============================================================================
 
 TEST_F(VirtualDOMTest, Node_FindChild_ExistingId_ReturnsNode) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto rootSnap = makeSnapshot("root", "Column", {"findme"});
     vdom_->updateNode(rootSnap);
@@ -387,8 +387,8 @@ TEST_F(VirtualDOMTest, Node_FindChild_ExistingId_ReturnsNode) {
 }
 
 TEST_F(VirtualDOMTest, Node_FindChild_NonExistingId_ReturnsNull) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto rootSnap = makeSnapshot("root", "Column", {"child_1"});
     vdom_->updateNode(rootSnap);
@@ -409,8 +409,8 @@ TEST_F(VirtualDOMTest, Node_HasSnapshot_InitiallyFalse) {
 }
 
 TEST_F(VirtualDOMTest, Node_SetSnapshot_MakesHasSnapshotTrue) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     auto rootSnap = makeSnapshot("root", "Column");
     vdom_->updateNode(rootSnap);
@@ -424,8 +424,8 @@ TEST_F(VirtualDOMTest, Node_SetSnapshot_MakesHasSnapshotTrue) {
 // =============================================================================
 
 TEST_F(VirtualDOMTest, DeepTree_NestedChildren_FoundCorrectly) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     // root -> level1 -> level2
     vdom_->updateNode(makeSnapshot("root", "Column", {"level1"}));
@@ -443,8 +443,8 @@ TEST_F(VirtualDOMTest, DeepTree_NestedChildren_FoundCorrectly) {
 }
 
 TEST_F(VirtualDOMTest, UpdateNode_ChildrenReordering_UpdatesCorrectly) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
     EXPECT_CALL(*observer_, onNodeRemoved(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     // Initial: root with children [a, b, c]
@@ -502,41 +502,41 @@ protected:
 };
 
 TEST_F(VirtualDOMObserverTest, UpdateNode_Root_NotifiesOnNodeAdded) {
-    EXPECT_CALL(*observer_, onNodeAdded("", ::testing::_)).Times(1);
+    EXPECT_CALL(*observer_, onNodeAdded("", ::testing::_, ::testing::_)).Times(1);
 
     vdom_->updateNode(makeSnapshot("root", "Column"));
 }
 
 TEST_F(VirtualDOMObserverTest, UpdateNode_ChildSnapshot_NotifiesOnNodeAdded) {
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
     vdom_->updateNode(makeSnapshot("root", "Column", {"child_a", "child_b"}));
     ::testing::Mock::VerifyAndClearExpectations(observer_.get());
 
-    EXPECT_CALL(*observer_, onNodeAdded("root", ::testing::_)).Times(2);
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded("root", ::testing::_, ::testing::_)).Times(2);
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     vdom_->updateNode(makeSnapshot("child_a", "Text"));
     vdom_->updateNode(makeSnapshot("child_b", "Image"));
 }
 
 TEST_F(VirtualDOMObserverTest, UpdateNode_ExistingChild_NotifiesUpdateNotAdd) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     vdom_->updateNode(makeSnapshot("root", "Column", {"child_1"}));
     vdom_->updateNode(makeSnapshot("child_1", "Text"));
 
     ::testing::Mock::VerifyAndClearExpectations(observer_.get());
 
-    EXPECT_CALL(*observer_, onNodeUpdate("child_1", ::testing::_)).Times(1);
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(0);
+    EXPECT_CALL(*observer_, onNodeUpdate("child_1", ::testing::_, ::testing::_)).Times(1);
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(0);
 
     vdom_->updateNode(makeSnapshot("child_1", "Markdown"));
 }
 
 TEST_F(VirtualDOMObserverTest, Clear_NotifiesOnNodeRemovedForRoot) {
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     vdom_->updateNode(makeSnapshot("root", "Column"));
 
@@ -548,8 +548,8 @@ TEST_F(VirtualDOMObserverTest, Clear_NotifiesOnNodeRemovedForRoot) {
 }
 
 TEST_F(VirtualDOMObserverTest, ChildrenReorder_NotifiesRemovedForDroppedChild) {
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     vdom_->updateNode(makeSnapshot("root", "Column", {"a", "b", "c"}));
     vdom_->updateNode(makeSnapshot("a", "Text"));
@@ -560,8 +560,8 @@ TEST_F(VirtualDOMObserverTest, ChildrenReorder_NotifiesRemovedForDroppedChild) {
 
     EXPECT_CALL(*observer_, onNodeRemoved(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
     EXPECT_CALL(*observer_, onNodeRemoved("root", "b")).Times(1);
-    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
-    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeUpdate(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
+    EXPECT_CALL(*observer_, onNodeAdded(::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber());
 
     vdom_->updateNode(makeSnapshot("root", "Column", {"a", "c"}));
 }

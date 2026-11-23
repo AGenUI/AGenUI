@@ -22,6 +22,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.utils.AGenUILogger;
 import com.squareup.picasso.Picasso;
 
@@ -149,12 +150,32 @@ public class CarouselComponent extends A2UIComponent {
         // Initialize Handler
         autoPlayHandler = new Handler(Looper.getMainLooper());
 
+        // Pager axis and indicator order follow the page direction.
+        applyDirection();
+
         // If properties already contain attributes, apply them immediately
         if (!properties.isEmpty()) {
             onUpdateProperties(properties);
         }
 
         return rootLayout;
+    }
+
+    /**
+     * Mirror the pager and the indicator row with the page direction. Page
+     * indices stay logical: ViewPager2 keeps reporting adapter positions in
+     * data order, so callbacks and autoplay never see a reversed index.
+     */
+    private void applyDirection() {
+        if (rootLayout == null) {
+            return;
+        }
+        int direction = TextDirectionSupport.resolveDirection(properties);
+        int layoutDirection = TextDirectionSupport.isRtl(direction)
+                ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR;
+        if (rootLayout.getLayoutDirection() != layoutDirection) {
+            rootLayout.setLayoutDirection(layoutDirection);
+        }
     }
 
     @Override
@@ -167,6 +188,9 @@ public class CarouselComponent extends A2UIComponent {
             AGenUILogger.w(TAG, "viewPager is NULL, skipping update");
             return;
         }
+
+        // Direction may change without any content diff.
+        applyDirection();
 
         // Update image URL list
         if (changedProps.containsKey("content")) {
@@ -311,9 +335,9 @@ public class CarouselComponent extends A2UIComponent {
                     indicatorContainerHeight
             );
 
-            // Set indicator bar spacing
+            // Set indicator bar spacing (leading side, flips with the direction)
             if (i > 0) {
-                params.leftMargin = indicatorDotSpacing;
+                params.setMarginStart(indicatorDotSpacing);
             }
 
             indicator.setLayoutParams(params);

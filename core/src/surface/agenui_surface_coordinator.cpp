@@ -48,6 +48,22 @@ void SurfaceCoordinator::invalidateFunctionCallValues() {
     }
 }
 
+void SurfaceCoordinator::setLayoutDirection(LayoutDirection direction) {
+    for (const auto &pair : _surfaces) {
+        if (pair.second) {
+            // A direction flip re-publishes every component of the surface
+            // as an update (Surface::setLayoutDirection → VirtualDOM
+            // re-layout → per-node observer callbacks → requestFlush).
+            // Batch the whole re-layout into one dispatch burst per surface,
+            // same as every other coordinator entry point — without the
+            // batch scope each changed node would flush immediately,
+            // producing N single-message dispatches.
+            BatchScope batchScope(pair.second->batchGuard());
+            pair.second->setLayoutDirection(direction);
+        }
+    }
+}
+
 AGenUIExeCode SurfaceCoordinator::createSurface(const std::string &jsonData) {
     CreateSurfaceMessage message;
     AGenUIExeCode exeCode = AGenUIMessageParser::parseCreateSurfaceData(jsonData, message);
@@ -78,6 +94,13 @@ AGenUIExeCode SurfaceCoordinator::createSurface(const std::string &jsonData) {
 
     std::unique_ptr<Surface> surface(
         new Surface(message.surfaceId, theme, _owner));
+    // Inherit the SurfaceManager's current direction so the first layout
+    // already resolves against it (no extra re-layout round-trip).
+    // initLayoutDirection (not setLayoutDirection): the platform surface
+    // does not exist yet at this point — a layout pass would be wasted on
+    // an empty tree and would trigger the one-shot surface-size bootstrap
+    // fetch against a not-yet-created view (permanently caching {0,0}).
+    surface->initLayoutDirection(_owner->getLayoutDirection());
     _surfaces[message.surfaceId] = std::move(surface);
 
     AGENUI_LOG("success: %s", jsonData.c_str());

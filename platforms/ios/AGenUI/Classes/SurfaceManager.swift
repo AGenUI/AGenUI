@@ -133,14 +133,15 @@ import UIKit
         // mid-layout when its surface is re-streamed). Component lookup goes through
         // `ComponentRegister.shared` (a process-wide singleton) and `Component.measure`
         // is a class method, so SurfaceManager instance state is not needed here.
-        AGenUIEngineMeasurementBridge.measureCallback = { (componentType: String, paramJson: String, maxWidth: Float, widthMode: Int32, maxHeight: Float, heightMode: Int32) -> CGSize in
+        AGenUIEngineMeasurementBridge.measureCallback = { (componentType: String, paramJson: String, maxWidth: Float, widthMode: Int32, maxHeight: Float, heightMode: Int32, direction: String) -> CGSize in
             return SurfaceManager.measureComponent(
                 type: componentType,
                 paramJson: paramJson,
                 maxWidth: maxWidth,
                 widthMode: Int(widthMode),
                 maxHeight: maxHeight,
-                heightMode: Int(heightMode))
+                heightMode: Int(heightMode),
+                direction: direction)
         }
 
         surfaceBridge.surfaceSizeProviderBlock = { [weak self] surfaceId -> CGSize in
@@ -400,6 +401,28 @@ import UIKit
         surfaceBridge.receiveTextChunk(dataString)
     }
 
+    /// Set the surface-level writing direction ("ltr" or "rtl").
+    ///
+    /// Whole-tree, message-level — not a component style. Logical properties
+    /// (margin-inline-start etc.) and Row layout resolve against it. Flipping
+    /// re-layouts every existing surface and re-publishes coordinates; the DSL
+    /// does not need to be re-sent.
+    ///
+    /// The input is normalized (trimmed + lowercased), so host-derived values
+    /// like "RTL" or " rtl " are accepted. Unrecognized values are rejected
+    /// with a warning log instead of failing silently deep in the core.
+    ///
+    /// - Parameter direction: "ltr" or "rtl" (case-insensitive)
+    @objc public func setLayoutDirection(_ direction: String) {
+        let normalized = direction.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard normalized == "ltr" || normalized == "rtl" else {
+            Logger.shared.warning("setLayoutDirection ignored: invalid direction '\(direction)' (expected \"ltr\" or \"rtl\")")
+            return
+        }
+        Logger.shared.debug("setLayoutDirection: \(normalized)")
+        surfaceBridge.setLayoutDirection(normalized)
+    }
+
     /// Re-evaluate every component's attributes and styles across all surfaces managed by
     /// this SurfaceManager, then emit field-level diffs to the native renderer for any value
     /// that actually changed.
@@ -618,7 +641,8 @@ import UIKit
                                           maxWidth: Float,
                                           widthMode: Int,
                                           maxHeight: Float,
-                                          heightMode: Int) -> CGSize {
+                                          heightMode: Int,
+                                          direction: String) -> CGSize {
         guard let componentClass = ComponentRegister.shared.classForType(type) else {
             return .zero
         }
@@ -629,7 +653,8 @@ import UIKit
                                       maxWidth: maxWidth,
                                       widthMode: wMode,
                                       maxHeight: maxHeight,
-                                      heightMode: hMode)
+                                      heightMode: hMode,
+                                      direction: direction)
     }
 
 }

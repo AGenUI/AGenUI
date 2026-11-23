@@ -24,10 +24,15 @@
 
 ## v1.9.0 新版本亮点
 
-> 发布于 2026-11-13
+> 发布于 2026-11-23
 
+- **三端 RTL 布局**：新增 `SurfaceManager.setLayoutDirection`，支持 `ltr` / `rtl`，适配文本、横向 List、Tabs 等组件。
+- **逻辑样式适配**：逻辑边距、定位及 `text-align: start/end` 随布局方向解析。
+- **方向感知测量**：测量回调新增 `direction` 参数，自定义实现需同步更新签名。
 - (Core) 修复用户交互后，宿主重发静态属性原值无法复位控件的问题。
 - (鸿蒙) 修复不同 `SurfaceManager` 实例之间的混合视图 ID 冲突。
+- (iOS) 修复 RTL 横向 List 的起点、滚动范围及边距异常。
+- (iOS Playground) 修复自定义组件测量接口签名未同步导致的编译失败。
 
 ---
 

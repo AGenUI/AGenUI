@@ -29,7 +29,7 @@ public class ImageComponentFactory implements IComponentFactory {
     @Nullable
     @Override
     public IMeasurer getMeasurer() {
-        return (context, paramJson, maxWidth, widthMode, maxHeight, heightMode) ->
+        return (context, paramJson, maxWidth, widthMode, maxHeight, heightMode, direction) ->
                 ImageMeasurer.measure(paramJson, maxWidth, widthMode, maxHeight, heightMode);
     }
 }

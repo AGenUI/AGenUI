@@ -112,6 +112,27 @@ public class SurfaceManager implements ISurfaceSizeProviderHost {
     }
 
     /**
+     * Sets the surface-level writing direction for every Surface owned by this instance.
+     * <p>
+     * This is the single direction source for the whole component tree: the native engine
+     * re-runs layout with this as the root Yoga direction, so logical edges
+     * (start/end, inline-start/end) and the resolved direction pushed back on component
+     * messages all follow it. Node-level DSL {@code direction} styles are not supported.
+     * <p>
+     * On a flip the engine republishes the affected components with their new resolved
+     * direction; no DSL needs to be re-sent.
+     *
+     * @param direction "ltr" or "rtl" (case-insensitive). Any other value is ignored.
+     */
+    public void setLayoutDirection(String direction) {
+        try {
+            nativeSetLayoutDirection(instanceId, direction);
+        } catch (RuntimeException e) {
+            AGenUILogger.e(TAG, "Failed to setLayoutDirection", e);
+        }
+    }
+
+    /**
      * Re-evaluates every component's attributes and styles across all surfaces managed by
      * this SurfaceManager, then emits field-level diffs to the native renderer for any value
      * that actually changed.
@@ -608,6 +629,8 @@ public class SurfaceManager implements ISurfaceSizeProviderHost {
     private static native void nativeNotifySurfaceSizeChanged(int instanceId, String surfaceId, float width, float height);
 
     private static native void nativeInvalidateFunctionCallValues(int engineId);
+
+    private static native void nativeSetLayoutDirection(int instanceId, String direction);
 
     // Surface size pull-channel: register / detach the C++ bridge that proxies
     // ISurfaceSizeProvider calls back into this Java SurfaceManager. The bridge

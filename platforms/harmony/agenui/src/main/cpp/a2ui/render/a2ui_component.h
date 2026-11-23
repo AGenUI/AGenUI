@@ -10,6 +10,7 @@
 #include "a2ui_component_state.h"
 #include "a2ui/utils/a2ui_animate_utils.h"
 #include "a2ui/a2ui_component_render_observable.h"
+#include "a2ui/utils/a2ui_writing_direction.h"
 
 namespace a2ui {
 
@@ -92,6 +93,9 @@ public:
     int getInstanceId() const {
         return m_instanceId;
     }
+
+    writing_direction::Direction getWritingDirection() const;
+    bool isRtlLayout() const { return getWritingDirection() == writing_direction::Direction::Rtl; }
     
     // ---- State binding (new)----
     // Backfill instanceId from the freshly-bound state: hybrid views are constructed
@@ -295,6 +299,7 @@ public:
 
 protected:
     void setHeight(float height);
+    void applyRootMargins(const nlohmann::json& styles);
     
     // Saved raw style information for width and height.
     const std::string& getStyleInfo() const { return m_styleInfo; }
@@ -320,7 +325,7 @@ protected:
      * Used for initialization or compatibility with legacy logic
      */
     virtual void onUpdateProperties(const nlohmann::json& properties);
-    
+
     /**
      * Apply the background-image style on the node's own background layer
      * (NODE_BACKGROUND_IMAGE), not on a stacked child Image node: the layer

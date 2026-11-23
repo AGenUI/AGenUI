@@ -2,6 +2,8 @@ package com.amap.agenui.render.measurement;
 
 import android.content.Context;
 
+import com.amap.agenui.render.style.TextDirectionSupport;
+
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -32,7 +34,8 @@ public final class DateTimeInputMeasurer {
                                  float maxWidth,
                                  int widthMode,
                                  float maxHeight,
-                                 int heightMode) {
+                                 int heightMode,
+                                 String direction) {
         JSONObject root = MeasurementSupport.parseRoot(paramJson);
         if (root == null) {
             return MeasureResult.zero();
@@ -66,7 +69,8 @@ public final class DateTimeInputMeasurer {
                 0f,
                 MeasurementSupport.MODE_UNDEFINED,
                 0f,
-                MeasurementSupport.MODE_UNDEFINED);
+                MeasurementSupport.MODE_UNDEFINED,
+                TextDirectionSupport.resolveDirection(direction));
 
         return resolveSyncResult(
                 inputHeight,

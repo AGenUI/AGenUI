@@ -10,6 +10,7 @@
 #include "agenui_render_info_types.h"
 #include "agenui_surface.h"
 #include "agenui_errorcode_define.h"
+#include "surface/agenui_layout_direction.h"
 
 namespace agenui {
 
@@ -37,6 +38,11 @@ public:
     SurfaceCoordinator& operator=(const SurfaceCoordinator&) = delete;
 
     void invalidateFunctionCallValues();
+
+    /**
+     * @brief Applies a writing direction to every surface (re-layout + push).
+     */
+    void setLayoutDirection(LayoutDirection direction);
 
     // Surface management
     AGenUIExeCode createSurface(const std::string& jsonData);

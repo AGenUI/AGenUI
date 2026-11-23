@@ -28,10 +28,14 @@ class ListComponent: Component {
     private var align: String = "start"
 
     /// Whether the list renders horizontally via UICollectionView with lazy cell recycling.
-    private var isHorizontalList: Bool { direction == .horizontal }
+    /// fileprivate: HorizontalCollectionView (same file) reads it in scrollViewDidScroll.
+    fileprivate var isHorizontalList: Bool { direction == .horizontal }
 
-    /// Guard flag to prevent recursive onFrameChange handling when we reset child origin.
-    private var isResettingChildOrigin = false
+    /// Envelope writing direction ("rtl" | "ltr"/absent), injected by Surface
+    /// into properties. Stored (not computed), parsed together with direction
+    /// in parseProperties — so updateProperties can snapshot the old value
+    /// before parsing, exactly like the direction flip detection above.
+    fileprivate var isRTL = false
 
     private let yogaLayout = YogaCollectionViewLayout()
     
@@ -69,16 +73,27 @@ class ListComponent: Component {
     }
     
     override func updateProperties(_ diff: [String: DiffValue]) {
+        // Snapshot the stored state before parsing the merged properties —
+        // same pattern as direction below, so a flip is detectable.
+        let oldDirection = direction
+        let oldIsRTL = isRTL
+
         // Call parent method to apply CSS properties to self
         super.updateProperties(diff)
         
         // Parse properties
-        let oldDirection = direction
         parseProperties()
         
         // Reconfigure layout if direction changed
         if oldDirection != direction {
             collectionView.configureLayout()
+        }
+        
+        // Direction flip: force a re-read of the Yoga frames. The mirrored
+        // child styles arrive as per-child updates that re-fire onFrameChange,
+        // which re-anchors the start edge as the mirrored content lands.
+        if oldIsRTL != isRTL, isHorizontalList {
+            collectionView.refreshHorizontalLayout()
         }
     }
     
@@ -96,6 +111,9 @@ class ListComponent: Component {
         if let alignValue = properties["align"] as? String {
             align = alignValue
         }
+        
+        // Parse writing direction (envelope injected by Surface)
+        isRTL = (properties["writingDirection"] as? String)?.lowercased() == "rtl"
     }
 
 
@@ -161,14 +179,32 @@ private class YogaCollectionViewLayout: UICollectionViewLayout {
         // sits flush against the right/bottom edge of the scroll area and the
         // right/bottom padding gutter visually disappears.
         let listStyles = (listComponent.properties["styles"] as? [String: Any]) ?? [:]
-        let listPadding = CSSPaddingResolver.resolve(listStyles)
+        let listPadding = CSSPaddingResolver.resolve(listStyles, isRTL: listComponent.isRTL)
+
+        // RTL normalization: Yoga mirrors children inside the container width,
+        // so content wider than one screen extends to NEGATIVE x. UIScrollView
+        // cannot scroll into negative territory, and contentSize below only
+        // tracks the positive span — which froze RTL scrolling (contentSize ≈
+        // viewport, maxOffset = 0). Shift every frame so the leftmost content
+        // sits at the LEFT PADDING edge, not at x = 0: the plain max(0, -minX)
+        // shift glued the last child to the screen edge and dropped the
+        // physical-left (= logical inline-end) gutter from the scroll content.
+        // Non-overflowing RTL keeps minX >= listPadding.left, so the shift
+        // evaluates to 0 there; LTR is unchanged.
+        let minX = frames.map { $0.minX }.min() ?? 0
+        let rtlShift = max(0, -minX + (listComponent.isRTL ? listPadding.left : 0))
 
         for (index, yogaFrame) in frames.enumerated() {
             let attrs = UICollectionViewLayoutAttributes(forCellWith: IndexPath(item: index, section: 0))
-            attrs.frame = yogaFrame
+            attrs.frame = CGRect(
+                x: yogaFrame.minX + rtlShift,
+                y: yogaFrame.minY,
+                width: yogaFrame.width,
+                height: yogaFrame.height
+            )
             cachedAttributes.append(attrs)
 
-            let rightExtent = yogaFrame.maxX + listPadding.right
+            let rightExtent = attrs.frame.maxX + listPadding.right
             if rightExtent > contentBounds.width {
                 contentBounds.width = rightExtent
             }
@@ -191,7 +227,7 @@ private class YogaCollectionViewLayout: UICollectionViewLayout {
     
     /// Returns cached attributes for elements in the visible rect
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
-        return  cachedAttributes.filter { attr in attr.frame.intersects(rect) }
+        return cachedAttributes.filter { attr in attr.frame.intersects(rect) }
     }
     
     /// Returns the layout attributes for a specific item at indexPath
@@ -233,6 +269,28 @@ private class ComponentCell: UICollectionViewCell {
 private  class HorizontalCollectionView: UICollectionView, UICollectionViewDelegate, UICollectionViewDataSource{
     private weak var owner: ListComponent?
     private var isResettingChildOrigins = false
+
+    /// True while addHorizontalChild runs its synchronous refresh pass:
+    /// reloadData → cell attach writes child.frame → the onFrameChange
+    /// handler fires nested inside this pass. The outer alignToLogicalStart
+    /// right after the refresh already re-anchors with the final contentSize,
+    /// so the handler skips its own forced relayout to avoid a nested
+    /// layoutIfNeeded and a doubled (stale-contentSize) offset write. Only
+    /// this call site sets the flag — the direction-flip path relies on the
+    /// handler's own re-anchor and must keep it.
+    private var isRefreshingHorizontalLayout = false
+
+    /// Geometry snapshot from the last layoutSubviews re-anchor pass.
+    /// contentOffset IS bounds.origin, so scrolling fires layoutSubviews
+    /// every frame — and isTracking/isDecelerating leave gaps (finger-lift
+    /// frame before deceleration starts; animated setContentOffset where
+    /// both are false). Instead of scroll-state flags, anchor only when the
+    /// geometry that defines maxOffset itself changed: viewport size or
+    /// content size. Scrolling never changes either, so every user-driven
+    /// frame — tracking, decelerating, and the gaps between — is silent
+    /// by construction.
+    private var lastAnchorViewportSize: CGSize = .zero
+    private var lastAnchorContentSize: CGSize = .zero
     
     init(layout: UICollectionViewLayout) {
         super.init(frame: .zero, collectionViewLayout: layout)
@@ -257,6 +315,69 @@ private  class HorizontalCollectionView: UICollectionView, UICollectionViewDeleg
         collectionViewLayout.invalidateLayout()
         reloadData()
         layoutIfNeeded()
+    }
+    
+    /// Re-anchor the offset to the logical start edge: RTL start is the
+    /// physical right end (maxOffset), LTR start is 0. Called on every content
+    /// change — child arrival (addHorizontalChild) and child frame updates
+    /// (onFrameChange) — after a synchronous layout pass so contentSize is
+    /// fresh. Scrolling never triggers it: scrolling moves cells, not child
+    /// frames.
+    func alignToLogicalStart() {
+        guard let owner, bounds.width > 0 else { return }
+        let maxOffset = max(0, contentSize.width - bounds.width)
+        contentOffset.x = owner.isRTL ? maxOffset : 0
+    }
+    
+    /// After a direction flip UIKit animates the offset back to its
+    /// anchor-restoration target, walking it off the logical start edge.
+    /// That animation ignores plain model-layer writes, but an explicit
+    /// setContentOffset(_:animated:) call stops it — so any external push
+    /// while no user interaction is in flight (tracking / decelerating)
+    /// snaps the offset back to the logical start edge.
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard let owner, owner.isHorizontalList,
+              !isTracking, !isDecelerating,
+              bounds.width > 0 else { return }
+
+        let target = owner.isRTL ? max(0, contentSize.width - bounds.width) : 0
+        guard abs(scrollView.contentOffset.x - target) > 0.5 else { return }
+        setContentOffset(CGPoint(x: target, y: scrollView.contentOffset.y), animated: false)
+    }
+
+    /// Re-anchor after ANY size change, not just content changes.
+    ///
+    /// Every size change — first-frame width arrival, sheet width animation,
+    /// contentSize growth from late-arriving children — runs a layout pass
+    /// that lands here with bounds and contentSize both fresh (super already
+    /// ran prepare()). alignToLogicalStart cannot cover these: on the first
+    /// frame every call runs before the collection view has any width, and
+    /// the guard drops the request with no retry, leaving the offset at 0 =
+    /// the RTL logical END. Anchoring is keyed on geometry change (see
+    /// lastAnchorViewportSize) so user scrolling — which reproduces this
+    /// callback every frame but never changes size or contentSize — never
+    /// re-anchors. RTL start is the physical right end (maxOffset); LTR
+    /// start is 0 and is left untouched — snapping LTR here would introduce
+    /// new behavior (idle layout passes pulling a browsing user back to the
+    /// head). Geometry changes that land mid-gesture stay pending: the
+    /// snapshot only advances on an actual write, so the first post-gesture
+    /// layout pass completes the deferred anchor.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard let owner, owner.isHorizontalList, owner.isRTL,
+              bounds.width > 0 else { return }
+        guard bounds.size != lastAnchorViewportSize
+                || contentSize != lastAnchorContentSize else { return }
+        // Mid-gesture (tracking / decelerating, e.g. sheet width animating
+        // under a dragging finger): return WITHOUT advancing the snapshot —
+        // the geometry diff stays pending, so the next post-gesture layout
+        // pass (deceleration settle frames, any later invalidation) still
+        // sees the diff and completes the anchor. Advancing the snapshot
+        // here would swallow the diff and drop the re-anchor permanently.
+        guard !isTracking, !isDecelerating else { return }
+        lastAnchorViewportSize = bounds.size
+        lastAnchorContentSize = contentSize
+        contentOffset.x = max(0, contentSize.width - bounds.width)
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -284,9 +405,20 @@ private  class HorizontalCollectionView: UICollectionView, UICollectionViewDeleg
             self.isResettingChildOrigins = true
             child.frame = CGRect(origin: .zero, size: newFrame.size)
             self.isResettingChildOrigins = false
+            // Nested inside addHorizontalChild's refresh (reloadData → attach
+            // → frame reset): the outer refresh + alignToLogicalStart below
+            // already relayout and re-anchor with the final contentSize.
+            guard !self.isRefreshingHorizontalLayout else { return }
             collectionViewLayout.invalidateLayout()
+            // Synchronous relayout so contentSize reflects the new frame, then
+            // re-anchor to the logical start edge.
+            layoutIfNeeded()
+            alignToLogicalStart()
         }
+        isRefreshingHorizontalLayout = true
         refreshHorizontalLayout()
+        isRefreshingHorizontalLayout = false
+        alignToLogicalStart()
     }
     
     func configureLayout() {

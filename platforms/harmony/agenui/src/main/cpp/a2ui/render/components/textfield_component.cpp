@@ -149,12 +149,36 @@ void TextFieldComponent::onDestroy() {
 
 }
 
+void TextFieldComponent::applyWritingDirection() {
+    if (m_textInputHandle) {
+        A2UINode(m_textInputHandle).setWritingDirection(getWritingDirection());
+        // text-align start/end resolves against the page direction, so it has to
+        // be re-applied whenever the direction itself changes.
+        const auto& properties = getProperties();
+        if (properties.contains("styles") && properties["styles"].is_object()) {
+            const auto& styles = properties["styles"];
+            if (styles.contains("text-align") && styles["text-align"].is_string()) {
+                A2UITextNodeBase(m_textInputHandle).setTextAlign(
+                    styles["text-align"].get<std::string>(), getWritingDirection());
+            }
+        }
+    }
+    if (m_errorTextHandle) {
+        A2UITextNode(m_errorTextHandle).setWritingDirection(getWritingDirection());
+    }
+}
+
 void TextFieldComponent::onUpdateProperties(const nlohmann::json& properties) {
     if (!m_nodeHandle || !m_textInputHandle || !m_errorTextHandle) {
         HM_LOGE("handle is null, id=%s", m_id.c_str());
         return;
     }
 
+    applyWritingDirection();
+    if (properties.size() == 1 && properties.contains("writingDirection")) {
+        applyPadding();
+        return;
+    }
     if (properties.contains("placeholder") || properties.contains("label")) {
         applyPlaceholder(m_properties);
     }
@@ -182,8 +206,12 @@ void TextFieldComponent::onUpdateProperties(const nlohmann::json& properties) {
     refreshLocalValidationState(false);
     updateValidationPresentation();
 
-    if (getHeight() <= m_borderWidth * 2) {
+    const bool needsDefaultHeight = getHeight() <= m_borderWidth * 2;
+    if (needsDefaultHeight) {
         setHeight(kDefaultHeight);
+    }
+    if (needsDefaultHeight || properties.contains("styles") || properties.contains("writingDirection")) {
+        applyPadding();
     }
 }
 
@@ -320,24 +348,33 @@ void TextFieldComponent::applyStyles(const nlohmann::json& properties) {
     applyBorderWidth(styles);
     applyBorderColor(styles);
 
-    // Translate CSS padding into ArkUI insets.
-    {
-        float pt = 0.0f, pr = 0.0f, pb = 0.0f, pl = 0.0f;
-        ::a2ui::padding_utils::resolveUserPadding(styles, pt, pr, pb, pl);
-        //compute an extra top inset to keep the single line visually centered.
-        if (m_isTextArea) {
-            const float height = getHeight();
-            const float lineHeight = m_fontSize > 0.0f ? m_fontSize : kDefaultFontSize;
-            const float centerInset = std::max(0.0f, (height - pt - pb - lineHeight) / 2.0f);
-            pt += centerInset;
-        }
+}
 
-        A2UINode base(m_nodeHandle);
-        if (::a2ui::padding_utils::hasAnyPadding(pt, pr, pb, pl)) {
-            base.setPadding(pt, pr, pb, pl);
-        } else {
-            base.resetPadding();
+void TextFieldComponent::applyPadding() {
+    const auto& properties = getProperties();
+    float top = 0.0f, right = 0.0f, bottom = 0.0f, left = 0.0f;
+    if (properties.contains("styles")) {
+        nlohmann::json parsedStyles;
+        const auto* styles = padding_utils::resolveStyleObject(properties["styles"], parsedStyles);
+        if (!styles && !properties["styles"].is_null()) {
+            return;
         }
+        if (styles) {
+            padding_utils::resolveUserPadding(*styles, isRtlLayout(), top, right, bottom, left);
+        }
+    }
+    if (m_isTextArea) {
+        const float height = getHeight();
+        const float lineHeight = m_fontSize > 0.0f ? m_fontSize : kDefaultFontSize;
+        const float centerInset = std::max(0.0f, (height - top - bottom - lineHeight) / 2.0f);
+        top += centerInset;
+    }
+
+    A2UINode base(m_nodeHandle);
+    if (padding_utils::hasAnyPadding(top, right, bottom, left)) {
+        base.setPadding(top, right, bottom, left);
+    } else {
+        base.resetPadding();
     }
 }
 

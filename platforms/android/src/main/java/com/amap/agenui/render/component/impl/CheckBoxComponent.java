@@ -12,6 +12,7 @@ import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.view.CustomCheckBoxView;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 
 import java.util.Map;
 
@@ -51,6 +52,8 @@ public class CheckBoxComponent extends A2UIComponent {
     private TextView labelTextView;
     private TextView errorTextView;
     private String dataPath;
+    /** Page writing direction last applied to the label, for change detection. */
+    private Integer appliedDirection;
     
     public CheckBoxComponent(Context context, String id, Map<String, Object> properties) {
         super(id, "CheckBox");
@@ -106,7 +109,8 @@ public class CheckBoxComponent extends A2UIComponent {
         String textMarginStr = defaultStyles.get("text-margin");
         if (textMarginStr != null) {
             int textLeftMargin = StyleHelper.parseDimension(textMarginStr, context);
-            labelTextView.setPadding(textLeftMargin, 0, 0, 0);
+            // The gap sits on the label's leading edge, which flips with the page direction.
+            labelTextView.setPaddingRelative(textLeftMargin, 0, 0, 0);
         }
 
         // Set text layout params to fill remaining space
@@ -240,6 +244,23 @@ public class CheckBoxComponent extends A2UIComponent {
                 Map<String, Object> stylesMap = (Map<String, Object>) stylesValue;
                 applyCustomStyles(stylesMap);
             }
+        }
+
+        // Direction-only update: refresh the label's logical padding and text direction
+        // without a styles diff (their value depends on the page direction).
+        Integer direction = TextDirectionSupport.resolveDirection(properties);
+        int layoutDirection = TextDirectionSupport.isRtl(direction)
+                ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR;
+        if (outerContainer != null && outerContainer.getLayoutDirection() != layoutDirection) {
+            // Row order follows the page: marker on the leading edge, label trailing.
+            outerContainer.setLayoutDirection(layoutDirection);
+        }
+        if (props.containsKey("styles")) {
+            appliedDirection = direction;
+        } else if (appliedDirection == null || !direction.equals(appliedDirection)) {
+            StyleHelper.applyTextDirectionEdgesOnly(labelTextView, extractStyles(properties),
+                    context, direction);
+            appliedDirection = direction;
         }
         
         // Update label text
@@ -375,7 +396,7 @@ public class CheckBoxComponent extends A2UIComponent {
         // Handle text-margin
         if (styles.containsKey("text-margin")) {
             int margin = StyleHelper.parseDimension(styles.get("text-margin"), context);
-            labelTextView.setPadding(margin, 0, 0, 0);
+            labelTextView.setPaddingRelative(margin, 0, 0, 0);
         }
 
         // Handle text-color
@@ -391,7 +412,8 @@ public class CheckBoxComponent extends A2UIComponent {
         }
 
         // Apply text styles (using StyleHelper.applyTextStyles)
-        StyleHelper.applyTextStyles(labelTextView, styles, context);
+        StyleHelper.applyTextStyles(labelTextView, styles, context,
+                TextDirectionSupport.resolveDirection(properties));
     }
     
     /**

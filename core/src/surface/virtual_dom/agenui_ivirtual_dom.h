@@ -1,6 +1,7 @@
 #pragma once
 
 #include "agenui_component_snapshot.h"
+#include "surface/agenui_layout_direction.h"
 #include <string>
 
 namespace agenui {
@@ -38,6 +39,33 @@ public:
      *         for a live instance.
      */
     virtual BatchGuard* batchGuard() = 0;
+
+    /**
+     * @brief Set the surface-level writing direction.
+     *
+     * The surface-level value is the single direction source for the whole
+     * tree: node-level DSL "direction" styles are NOT supported (they pass
+     * through as ordinary styles and never reach the layout engine). If the
+     * tree already has content, a re-layout pass runs immediately and
+     * changes are notified downstream.
+     */
+    virtual void setLayoutDirection(LayoutDirection direction) = 0;
+
+    /**
+     * @brief Creation-time direction initialization.
+     *
+     * Configures the direction for a freshly built (still empty) tree
+     * WITHOUT the immediate re-layout and surface-size bootstrap fetch that
+     * setLayoutDirection performs: at creation time the platform surface
+     * does not exist yet, so a layout pass would be wasted work and the
+     * one-shot size pull would cache a not-yet-measurable {0,0}.
+     *
+     * The default implementation falls back to setLayoutDirection for
+     * implementations that do not distinguish the two entry points.
+     */
+    virtual void initLayoutDirection(LayoutDirection direction) {
+        setLayoutDirection(direction);
+    }
 };
 
 }  // namespace agenui

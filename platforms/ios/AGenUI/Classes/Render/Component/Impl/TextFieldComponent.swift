@@ -95,7 +95,8 @@ class TextFieldComponent: Component {
                                 maxWidth: Float,
                                 widthMode: MeasureMode,
                                 maxHeight: Float,
-                                heightMode: MeasureMode) -> CGSize {
+                                heightMode: MeasureMode,
+                                direction: String = "") -> CGSize {
         // 1. Parse paramJson
         guard let jsonData = paramJson.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {

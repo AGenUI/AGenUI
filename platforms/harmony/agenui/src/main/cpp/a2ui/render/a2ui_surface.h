@@ -261,7 +261,8 @@ private:
     std::function<void(const agenui::ErrorMessage&)> errorReporter_;
     std::function<void(const std::string&, float, float)> contentSizeChangedCallback_;
     std::function<void(const std::string&, const std::string&)> rootComponentUpdateCallback_;
-    float lastNotifiedRootHeight_ = 0.0f;
+    float lastNotifiedRootWidth_ = -1.0f;
+    float lastNotifiedRootHeight_ = -1.0f;
     agenui::IComponentRenderObservable* componentRenderObservable_;  // Non-owning component render observer
     agenui::ISurfaceLayoutObservable* surfaceLayoutObservable_;       // Non-owning surface layout observer
     std::mutex blankCheckMutex_;

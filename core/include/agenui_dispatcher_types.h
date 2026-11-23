@@ -78,9 +78,16 @@ struct SyncUIToDataMessage {
  */
 struct ComponentsUpdateMessage {
     static const char* kVersion;  // "v0.9"
-    
+
     std::string componentId;  // Component ID
     std::string component;    // Component content (JSON string)
+    // Resolved writing direction ("rtl"/"ltr") — layout OUTPUT carried on the
+    // message, not a component style.
+    // NOTE: currently consumed only by the iOS bridge (injected as the
+    // engine-internal "writingDirection" key); the JNI and Harmony bridges
+    // drop this field — platform forwarding is pending (see
+    // docs/AGenUI_RTL_适配.md §6).
+    std::string direction;
 };
 
 /**
@@ -88,10 +95,17 @@ struct ComponentsUpdateMessage {
  */
 struct ComponentsAddMessage {
     static const char* kVersion;  // "v0.9"
-    
+
     std::string parentId;     // Parent component ID
     std::string componentId;  // New component ID
     std::string component;    // Component content (JSON string)
+    // Resolved writing direction ("rtl"/"ltr") — layout OUTPUT carried on the
+    // message, not a component style.
+    // NOTE: currently consumed only by the iOS bridge (injected as the
+    // engine-internal "writingDirection" key); the JNI and Harmony bridges
+    // drop this field — platform forwarding is pending (see
+    // docs/AGenUI_RTL_适配.md §6).
+    std::string direction;
 };
 
 /**

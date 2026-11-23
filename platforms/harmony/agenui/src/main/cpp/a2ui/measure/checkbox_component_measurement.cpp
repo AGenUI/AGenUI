@@ -49,7 +49,8 @@ agenui::MeasureResult CheckBoxComponentMeasurement::measure(
     if (!text.empty()) {
         float textAvailWidth = maxWidth - checkboxSize - textMargin;
         if (textAvailWidth < 1.0f) textAvailWidth = 1.0f;
-        textHeight = TextMeasurementUtils::measureTextHeight(text, textAvailWidth, textFontSize);
+        textHeight = TextMeasurementUtils::measureTextHeight(text, textAvailWidth, textFontSize,
+                                                            NODE_PROPERTY_FONT_NORMAL, modes.direction == "rtl");
     }
 
     float totalHeight = std::max(checkboxSize, textHeight);

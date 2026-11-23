@@ -53,6 +53,8 @@ protected:
     void onUpdateProperties(const nlohmann::json& properties) override;
 
 private:
+    void applyWritingDirection();
+    void applyPadding();
     /**
      * @brief Apply the placeholder text.
      * @param properties Property JSON object

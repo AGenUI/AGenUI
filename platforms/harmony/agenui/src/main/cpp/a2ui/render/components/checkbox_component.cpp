@@ -145,6 +145,7 @@ bool CheckBoxComponent::extractDisabledValue(const nlohmann::json& properties) {
 
 void CheckBoxComponent::applyCheckBoxStyles(const CheckBoxStyle& style, bool checked, bool disabled) {
     (void)checked;
+    applyWritingDirection();
 
     // Configure the container layout.
     A2UIRowNode(m_nodeHandle).setAlignItems(ARKUI_VERTICAL_ALIGNMENT_CENTER);
@@ -169,17 +170,42 @@ void CheckBoxComponent::applyCheckBoxStyles(const CheckBoxStyle& style, bool che
     checkbox.setSelectedColor(disabled ? style.disabledBgColor : style.selectedBgColor);
     checkbox.setUnselectedColor(disabled ? style.disabledBorderColor : style.unselectedBorderColor);
 
-    // Apply label styling.
-    A2UITextNode(m_labelHandle).setMargin(0.0f, 0.0f, 0.0f, style.textMargin);
+    // Apply label styling. The gap separates checkbox and label, so it belongs
+    // to the label's logical start side: left in LTR, right in RTL.
+    if (isRtlLayout()) {
+        A2UITextNode(m_labelHandle).setMargin(0.0f, style.textMargin, 0.0f, 0.0f);
+    } else {
+        A2UITextNode(m_labelHandle).setMargin(0.0f, 0.0f, 0.0f, style.textMargin);
+    }
     A2UITextNode(m_labelHandle).setFontSize(style.textSize);
     A2UITextNode(m_labelHandle).setFontColor(disabled ? style.textDisabledColor : style.textColor);
     // Let the label consume the remaining row width.
     A2UINode(m_labelHandle).setLayoutWeight(1);
 }
 
+void CheckBoxComponent::applyWritingDirection() {
+    // The root ROW places the checkbox at its logical start; the label follows.
+    if (m_nodeHandle) {
+        A2UINode(m_nodeHandle).setWritingDirection(getWritingDirection());
+    }
+    if (m_labelHandle) {
+        A2UITextNode label(m_labelHandle);
+        label.setWritingDirection(getWritingDirection());
+        label.setTextAlign(ARKUI_TEXT_ALIGNMENT_START);
+    }
+}
+
 void CheckBoxComponent::onUpdateProperties(const nlohmann::json& properties) {
     if (!m_nodeHandle || !m_checkboxHandle || !m_labelHandle) {
         HM_LOGE( "handle is null, id=%s", m_id.c_str());
+        return;
+    }
+
+    if (properties.size() == 1 && properties.contains("writingDirection")) {
+        // Re-apply styles so direction-dependent spacing (label margin) flips too.
+        const bool checked = m_properties.contains("value") && extractBooleanValue(m_properties["value"]);
+        const bool disabled = extractDisabledValue(m_properties);
+        applyCheckBoxStyles(resolveStyle(m_properties), checked, disabled);
         return;
     }
 

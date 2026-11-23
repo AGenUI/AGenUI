@@ -7,8 +7,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.amap.agenui.render.component.A2UIComponent;
-import com.amap.agenui.render.component.widget.A2UITextView;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.utils.AGenUILogger;
 
 import java.util.Map;
@@ -50,6 +50,9 @@ public class TextComponent extends A2UIComponent {
 
     private StringBuilder currentText = new StringBuilder(); // stores the current full text
 
+    /** Page writing direction last applied to the view, for change detection. */
+    private Integer appliedDirection;
+
     public TextComponent(Context context, String id, Map<String, Object> properties) {
         super(id, "Text");
         this.context = context;
@@ -70,6 +73,9 @@ public class TextComponent extends A2UIComponent {
         // keeping the no-styles render path aligned with the measure default and Harmony/iOS.
         textView.setTextSize(TypedValue.COMPLEX_UNIT_PX,
                 StyleHelper.standardUnitToPx(context, StyleHelper.StyleDefaults.FONT_SIZE_A2UI));
+
+        // A freshly created view has had no direction applied yet.
+        appliedDirection = null;
 
         // ⚠️ Important: apply initial properties
         onUpdateProperties(this.properties);
@@ -118,16 +124,29 @@ public class TextComponent extends A2UIComponent {
         // setText replaces the Spannable that carries metric-affecting styles such as
         // CenteredLineHeightSpan. Reapply the full resolved style map after every text
         // update so TextView's line boxes stay consistent with TextMeasurer/Yoga.
+        // A styles key in this round's diff drives the same full pass; a direction
+        // change on its own is served by the narrow direction path below, reading
+        // the already-merged properties keeps alignment / decoration available.
+        Integer direction = TextDirectionSupport.resolveDirection(properties);
+        boolean directionChanged = (appliedDirection == null) || !direction.equals(appliedDirection);
+
         if (textChanged || changedProps.containsKey("styles")) {
             try {
                 Map<String, Object> styles = extractStyles(this.properties);
                 if (styles != null && !styles.isEmpty()) {
-                    applyStyles(styles);
+                    StyleHelper.applyTextStyles(textView, styles, context, direction);
                 }
+                appliedDirection = direction;
             } catch (Exception e) {
                 AGenUILogger.e(TAG, "Failed to apply styles", e);
             }
-
+        } else if (directionChanged) {
+            try {
+                StyleHelper.applyTextDirectionOnly(textView, extractStyles(properties), context, direction);
+                appliedDirection = direction;
+            } catch (Exception e) {
+                AGenUILogger.e(TAG, "Failed to apply direction", e);
+            }
         }
     }
 
@@ -152,21 +171,6 @@ public class TextComponent extends A2UIComponent {
 
         // Direct string
         return String.valueOf(textValue);
-    }
-
-    /**
-     * Apply W3C standard style properties.
-     * Uses StyleHelper.applyTextStyles for unified text style handling.
-     *
-     * @param styles style Map
-     */
-    private void applyStyles(Map<String, Object> styles) {
-        if (styles == null || styles.isEmpty()) {
-            return;
-        }
-
-        // Use StyleHelper for unified text style handling
-        StyleHelper.applyTextStyles(textView, styles, context);
     }
 
     @Override

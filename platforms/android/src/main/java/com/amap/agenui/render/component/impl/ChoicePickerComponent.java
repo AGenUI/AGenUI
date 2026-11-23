@@ -18,6 +18,7 @@ import com.amap.agenui.render.component.view.FormLabelView;
 import com.amap.agenui.render.component.view.CustomCheckBoxView;
 import com.amap.agenui.render.style.ComponentStyleConfig;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.utils.AGenUILogger;
 
 import org.json.JSONArray;
@@ -81,6 +82,7 @@ public class ChoicePickerComponent extends A2UIComponent {
     public View onCreateView(Context context) {
         containerLayout = new LinearLayout(context);
         containerLayout.setOrientation(LinearLayout.VERTICAL);
+        applyContainerDirection();
 
         styleConfig = ComponentStyleConfig.getInstance(context).getComponentStyle("ChoicePicker");
         parseProperties();
@@ -121,6 +123,7 @@ public class ChoicePickerComponent extends A2UIComponent {
         if (containerLayout == null) return;
 
         Context context = containerLayout.getContext();
+        applyContainerDirection();
         containerLayout.removeAllViews();
         errorTextView = null;
 
@@ -157,6 +160,23 @@ public class ChoicePickerComponent extends A2UIComponent {
         containerLayout.addView(errorTextView);
 
         applyChecksProperty();
+    }
+
+    /**
+     * Mirror the whole picker with the page direction: option rows, chips and
+     * the filter field all inherit the container's layout direction, so the
+     * first option/marker sits on the leading edge without reordering data.
+     */
+    private void applyContainerDirection() {
+        if (containerLayout == null) {
+            return;
+        }
+        int direction = TextDirectionSupport.resolveDirection(properties);
+        int layoutDirection = TextDirectionSupport.isRtl(direction)
+                ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR;
+        if (containerLayout.getLayoutDirection() != layoutDirection) {
+            containerLayout.setLayoutDirection(layoutDirection);
+        }
     }
 
     /**
@@ -422,6 +442,8 @@ public class ChoicePickerComponent extends A2UIComponent {
         chip.setText(isSelected ? label + " ×" : label);
         chip.setTextColor(isSelected ? selTxtColor : txtColor);
         chip.setTextSize(TypedValue.COMPLEX_UNIT_PX, txtSizePx);
+        chip.setTextDirection(TextDirectionSupport.viewTextDirection(
+                TextDirectionSupport.resolveDirection(properties)));
         chip.setPadding(padH, padV, padH, padV);
         chip.setBackground(bg);
 
@@ -840,10 +862,15 @@ public class ChoicePickerComponent extends A2UIComponent {
             }
 
             // Pass 2: lay out each row centered horizontally inside availableWidth.
+            // RTL packs the same logical order from the right edge so chip 0
+            // stays the logical first option without reversing the data.
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
             int currentY = paddingTop;
             for (int row = 0; row < rowCount; row++) {
-                int rowOffset = paddingLeft + Math.max(0, (availableWidth - rowWidth[row]) / 2);
-                int currentX = rowOffset;
+                int centerGap = Math.max(0, (availableWidth - rowWidth[row]) / 2);
+                int currentX = rtl
+                        ? width - paddingRight - centerGap
+                        : paddingLeft + centerGap;
 
                 int start = rowStartIndex[row];
                 int end = start + rowChildCount[row];
@@ -853,10 +880,18 @@ public class ChoicePickerComponent extends A2UIComponent {
                     MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
                     int childW = child.getMeasuredWidth();
                     int childH = child.getMeasuredHeight();
-                    int childLeft = currentX + lp.leftMargin;
-                    int childTop = currentY + lp.topMargin;
-                    child.layout(childLeft, childTop, childLeft + childW, childTop + childH);
-                    currentX += childW + lp.leftMargin + lp.rightMargin;
+                    if (rtl) {
+                        int childRight = currentX - lp.rightMargin;
+                        int childLeft = childRight - childW;
+                        int childTop = currentY + lp.topMargin;
+                        child.layout(childLeft, childTop, childRight, childTop + childH);
+                        currentX = childLeft - lp.leftMargin;
+                    } else {
+                        int childLeft = currentX + lp.leftMargin;
+                        int childTop = currentY + lp.topMargin;
+                        child.layout(childLeft, childTop, childLeft + childW, childTop + childH);
+                        currentX += childW + lp.leftMargin + lp.rightMargin;
+                    }
                 }
 
                 currentY += rowHeights[row];

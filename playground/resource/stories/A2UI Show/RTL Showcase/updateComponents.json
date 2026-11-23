@@ -1,0 +1,248 @@
+{
+  "version": "v0.9",
+  "updateComponents": {
+    "surfaceId": "rtl_showcase",
+    "components": [
+      {
+        "id": "root",
+        "component": "Column",
+        "children": [
+          "title",
+          "subtitle",
+          "orderNote",
+          "orderRow",
+          "marginNote",
+          "marginRow",
+          "paddingNote",
+          "paddingChip",
+          "insetNote",
+          "insetAnchorBox",
+          "insetStretchBox",
+          "pendingNote"
+        ],
+        "styles": {
+          "width": "100%",
+          "height": "100%",
+          "padding": "16px"
+        }
+      },
+      {
+        "id": "title",
+        "component": "Text",
+        "text": "RTL Showcase",
+        "variant": "h3",
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "4px"
+        }
+      },
+      {
+        "id": "subtitle",
+        "component": "Text",
+        "text": "Core layout mirroring: Row order + CSS logical properties. Toggle the nav bar direction button and compare.",
+        "variant": "caption",
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "orderNote",
+        "component": "Text",
+        "text": "Row children order mirrors under RTL",
+        "variant": "caption",
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "4px"
+        }
+      },
+      {
+        "id": "orderRow",
+        "component": "Row",
+        "children": [
+          "chipA",
+          "chipB",
+          "chipC"
+        ],
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "chipA",
+        "component": "Text",
+        "text": "1",
+        "variant": "caption",
+        "styles": {
+          "margin-inline-start": "8px",
+          "padding": "8px 12px",
+          "background-color": "#FDE2E4"
+        }
+      },
+      {
+        "id": "chipB",
+        "component": "Text",
+        "text": "2",
+        "variant": "caption",
+        "styles": {
+          "margin-inline-start": "8px",
+          "padding": "8px 12px",
+          "background-color": "#D6E4FF"
+        }
+      },
+      {
+        "id": "chipC",
+        "component": "Text",
+        "text": "3",
+        "variant": "caption",
+        "styles": {
+          "margin-inline-start": "8px",
+          "padding": "8px 12px",
+          "background-color": "#E2F5D9"
+        }
+      },
+      {
+        "id": "marginNote",
+        "component": "Text",
+        "text": "margin-inline: 40px 8px — start edge swaps sides under RTL",
+        "variant": "caption",
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "4px"
+        }
+      },
+      {
+        "id": "marginRow",
+        "component": "Row",
+        "children": [
+          "marginChip"
+        ],
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "marginChip",
+        "component": "Text",
+        "text": "start=40px, end=8px",
+        "variant": "caption",
+        "styles": {
+          "margin-inline": "40px 8px",
+          "padding": "8px 12px",
+          "background-color": "#FDF3D8"
+        }
+      },
+      {
+        "id": "paddingNote",
+        "component": "Text",
+        "text": "padding-inline: 32px 8px — inner inset mirrors",
+        "variant": "caption",
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "4px"
+        }
+      },
+      {
+        "id": "paddingChip",
+        "component": "Text",
+        "text": "padding-inline: 32px 8px",
+        "variant": "caption",
+        "styles": {
+          "width": "100%",
+          "padding-inline": "32px 8px",
+          "background-color": "#EEF1F6",
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "insetNote",
+        "component": "Text",
+        "text": "inset-inline anchors flip; 2-value shorthand stretches between both edges",
+        "variant": "caption",
+        "styles": {
+          "width": "100%",
+          "margin-bottom": "4px"
+        }
+      },
+      {
+        "id": "insetAnchorBox",
+        "component": "Row",
+        "children": [
+          "insetStart",
+          "insetEnd"
+        ],
+        "styles": {
+          "width": "100%",
+          "height": "72px",
+          "position": "relative",
+          "background-color": "#EEF1F6",
+          "margin-bottom": "8px"
+        }
+      },
+      {
+        "id": "insetStart",
+        "component": "Text",
+        "text": "inset-inline-start: 12px",
+        "variant": "caption",
+        "styles": {
+          "position": "absolute",
+          "inset-inline-start": "12px",
+          "top": "12px",
+          "padding": "4px 6px",
+          "background-color": "#D6E4FF"
+        }
+      },
+      {
+        "id": "insetEnd",
+        "component": "Text",
+        "text": "inset-inline-end: 12px",
+        "variant": "caption",
+        "styles": {
+          "position": "absolute",
+          "inset-inline-end": "12px",
+          "bottom": "12px",
+          "padding": "4px 6px",
+          "background-color": "#FDE2E4"
+        }
+      },
+      {
+        "id": "insetStretchBox",
+        "component": "Row",
+        "children": [
+          "insetStretch"
+        ],
+        "styles": {
+          "width": "100%",
+          "height": "48px",
+          "position": "relative",
+          "background-color": "#EEF1F6",
+          "margin-bottom": "12px"
+        }
+      },
+      {
+        "id": "insetStretch",
+        "component": "Text",
+        "text": "inset-inline: 12px 96px",
+        "variant": "caption",
+        "styles": {
+          "position": "absolute",
+          "inset-inline": "12px 96px",
+          "height": "100%",
+          "text-align": "center",
+          "background-color": "#E2F5D9"
+        }
+      },
+      {
+        "id": "pendingNote",
+        "component": "Text",
+        "text": "text-align: start / end passes through verbatim; native alignment mapping ships with the renderer follow-up.",
+        "variant": "caption",
+        "styles": {
+          "width": "100%"
+        }
+      }
+    ]
+  }
+}

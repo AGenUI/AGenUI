@@ -15,6 +15,7 @@ import com.amap.agenui.render.image.ImageLoadResult;
 import com.amap.agenui.render.image.ImageLoaderConfig;
 import com.amap.agenui.render.image.ImageLoaderError;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.utils.AGenUILogger;
 import com.amap.agenui.render.utils.ImageTransition;
 import com.amap.agenui.render.utils.ImageTransitionManager;
@@ -53,6 +54,9 @@ public class ImageComponent extends A2UIComponent {
     private String currentUrl = "";
     private Object currentWidth;
     private Object currentHeight;
+
+    /** Page writing direction last applied to the content padding, for change detection. */
+    private Integer appliedDirection;
 
     /**
      * Keeps the ImageView clipped to its own Yoga-assigned box, re-applying the clip rect on
@@ -159,13 +163,14 @@ public class ImageComponent extends A2UIComponent {
             imageView.setScaleType(parseFit(fit));
         }
 
+        Integer direction = TextDirectionSupport.resolveDirection(properties);
+        boolean directionChanged = appliedDirection == null || !direction.equals(appliedDirection);
+
         // Handle styles (read from styles)
         if (changedProps.containsKey("styles")) {
             @SuppressWarnings("unchecked")
             Map<String, Object> styles = (Map<String, Object>) changedProps.get("styles");
             if (styles != null) {
-                StyleHelper.applyCSSPadding(imageView, styles, context);
-
                 Object newWidth = styles.get("width");
                 Object newHeight = styles.get("height");
                 if (!Objects.equals(newWidth, currentWidth)
@@ -177,6 +182,14 @@ public class ImageComponent extends A2UIComponent {
                 if (newWidth instanceof Number) yogaWidth = ((Number) newWidth).floatValue();
                 if (newHeight instanceof Number) yogaHeight = ((Number) newHeight).floatValue();
             }
+        }
+
+        // Content padding depends on the page direction through the logical padding keys, so
+        // it is re-resolved on a style change or a direction-only change. Refreshing the
+        // padding must never trigger an image reload.
+        if (changedProps.containsKey("styles") || directionChanged) {
+            StyleHelper.applyCSSPadding(imageView, extractStyles(properties), context, direction);
+            appliedDirection = direction;
         }
 
         // Only reload when URL or size values actually changed

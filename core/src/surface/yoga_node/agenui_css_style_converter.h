@@ -58,8 +58,7 @@ namespace CSSPropertyNames {
     // Display and overflow properties
     inline constexpr const char* kDisplay = "display";
     inline constexpr const char* kOverflow = "overflow";
-    inline constexpr const char* kDirection = "direction";
-    
+
     // Other properties
     inline constexpr const char* kAspectRatio = "aspect-ratio";
     
@@ -77,18 +76,21 @@ namespace CSSPropertyNames {
     // Inset logical properties
     inline constexpr const char* kInsetInlineStart = "inset-inline-start";
     inline constexpr const char* kInsetInlineEnd = "inset-inline-end";
+    inline constexpr const char* kInsetInline = "inset-inline";
     inline constexpr const char* kInsetBlockStart = "inset-block-start";
     inline constexpr const char* kInsetBlockEnd = "inset-block-end";
-    
+
     // Margin logical properties
     inline constexpr const char* kMarginInlineStart = "margin-inline-start";
     inline constexpr const char* kMarginInlineEnd = "margin-inline-end";
+    inline constexpr const char* kMarginInline = "margin-inline";
     inline constexpr const char* kMarginBlockStart = "margin-block-start";
     inline constexpr const char* kMarginBlockEnd = "margin-block-end";
-    
+
     // Padding logical properties
     inline constexpr const char* kPaddingInlineStart = "padding-inline-start";
     inline constexpr const char* kPaddingInlineEnd = "padding-inline-end";
+    inline constexpr const char* kPaddingInline = "padding-inline";
     inline constexpr const char* kPaddingBlockStart = "padding-block-start";
     inline constexpr const char* kPaddingBlockEnd = "padding-block-end";
 
@@ -105,16 +107,19 @@ namespace CSSPropertyNames {
     // Inset logical properties camelCase aliases
     inline constexpr const char* kInsetInlineStartCC   = "insetInlineStart";
     inline constexpr const char* kInsetInlineEndCC     = "insetInlineEnd";
+    inline constexpr const char* kInsetInlineCC        = "insetInline";
     inline constexpr const char* kInsetBlockStartCC    = "insetBlockStart";
     inline constexpr const char* kInsetBlockEndCC      = "insetBlockEnd";
     // Margin logical properties camelCase aliases
     inline constexpr const char* kMarginInlineStartCC  = "marginInlineStart";
     inline constexpr const char* kMarginInlineEndCC    = "marginInlineEnd";
+    inline constexpr const char* kMarginInlineCC       = "marginInline";
     inline constexpr const char* kMarginBlockStartCC   = "marginBlockStart";
     inline constexpr const char* kMarginBlockEndCC     = "marginBlockEnd";
     // Padding logical properties camelCase aliases
     inline constexpr const char* kPaddingInlineStartCC = "paddingInlineStart";
     inline constexpr const char* kPaddingInlineEndCC   = "paddingInlineEnd";
+    inline constexpr const char* kPaddingInlineCC      = "paddingInline";
     inline constexpr const char* kPaddingBlockStartCC  = "paddingBlockStart";
     inline constexpr const char* kPaddingBlockEndCC    = "paddingBlockEnd";
 }
@@ -196,7 +201,6 @@ public:
     // Display and overflow properties
     static void applyDisplay(YGNodeRef yogaNode, YogaValue value);
     static void applyOverflow(YGNodeRef yogaNode, YogaValue value);
-    static void applyDirection(YGNodeRef yogaNode, YogaValue value);
     
     // Other properties
     static void applyAspectRatio(YGNodeRef yogaNode, YogaValue value);
@@ -205,18 +209,21 @@ public:
     // Inset logical properties
     static void applyInsetInlineStart(YGNodeRef yogaNode, YogaValue value);
     static void applyInsetInlineEnd(YGNodeRef yogaNode, YogaValue value);
+    static void applyInsetInline(YGNodeRef yogaNode, YogaValue value);
     static void applyInsetBlockStart(YGNodeRef yogaNode, YogaValue value);
     static void applyInsetBlockEnd(YGNodeRef yogaNode, YogaValue value);
-    
+
     // Margin logical properties
     static void applyMarginInlineStart(YGNodeRef yogaNode, YogaValue value);
     static void applyMarginInlineEnd(YGNodeRef yogaNode, YogaValue value);
+    static void applyMarginInline(YGNodeRef yogaNode, YogaValue value);
     static void applyMarginBlockStart(YGNodeRef yogaNode, YogaValue value);
     static void applyMarginBlockEnd(YGNodeRef yogaNode, YogaValue value);
-    
+
     // Padding logical properties
     static void applyPaddingInlineStart(YGNodeRef yogaNode, YogaValue value);
     static void applyPaddingInlineEnd(YGNodeRef yogaNode, YogaValue value);
+    static void applyPaddingInline(YGNodeRef yogaNode, YogaValue value);
     static void applyPaddingBlockStart(YGNodeRef yogaNode, YogaValue value);
     static void applyPaddingBlockEnd(YGNodeRef yogaNode, YogaValue value);
 };

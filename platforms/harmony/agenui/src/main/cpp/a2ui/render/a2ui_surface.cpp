@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <string>
 #include <cmath>
+#include <algorithm>
 
 #include "a2ui_component.h"
 #include "log/a2ui_capi_log.h"
@@ -77,6 +78,10 @@ void A2UISurface::handleComponentAdd(const agenui::ComponentsAddMessage& msg) {
         return;
     }
 
+    if (!componentJson.is_object()) {
+        return;
+    }
+    componentJson["writingDirection"] = msg.direction;
     std::string componentId = componentJson.value("id", "");
     std::string componentType = componentJson.value("component", "");
 
@@ -151,6 +156,13 @@ void A2UISurface::handleComponentsUpdate(const std::vector<agenui::ComponentsUpd
             HM_LOGE("Failed to parse component JSON: %s", e.what());
             continue;
         }
+
+        if (!componentJson.is_object()) {
+            continue;
+        }
+        componentJson.erase("id");
+        componentJson.erase("component");
+        componentJson["writingDirection"] = msg.direction;
 
         // Updates may arrive before the component is created.
         auto* component = getComponent(msg.componentId);
@@ -374,7 +386,7 @@ void A2UISurface::notifyRootContentSizeIfChanged() {
         return;
     }
     float currentHeight = rootComponent_->getHeight();
-    if (currentHeight <= 0.0f) {
+    if (currentHeight < 0.0f) {
         return;
     }
     float currentWidth = rootComponent_->getWidth();
@@ -388,16 +400,19 @@ void A2UISurface::notifyRootContentSizeIfChanged() {
     const auto& props = rootComponent_->getProperties();
     if (props.contains("styles") && props["styles"].is_object()) {
         float mt = 0, mr = 0, mb = 0, ml = 0;
-        resolveUserMargin(props["styles"], mt, mr, mb, ml);
+        resolveUserMargin(props["styles"], mt, mr, mb, ml, rootComponent_->isRtlLayout());
         // top/left already in Yoga position (m_x/m_y), only add bottom/right
         currentWidth  += mr;
         currentHeight += mb;
     }
 
-    // Only notify when height actually changes (avoid redundant callbacks during streaming).
-    if (std::abs(currentHeight - lastNotifiedRootHeight_) < 0.5f) {
+    currentWidth = std::max(0.0f, rootComponent_->getX() + currentWidth);
+    currentHeight = std::max(0.0f, rootComponent_->getY() + currentHeight);
+    if (std::abs(currentWidth - lastNotifiedRootWidth_) < 0.5f &&
+        std::abs(currentHeight - lastNotifiedRootHeight_) < 0.5f) {
         return;
     }
+    lastNotifiedRootWidth_ = currentWidth;
     lastNotifiedRootHeight_ = currentHeight;
     HM_LOGI("notifyRootContentSizeIfChanged: surfaceId=%s w=%.1f h=%.1f",
             surfaceId_.c_str(), currentWidth, currentHeight);

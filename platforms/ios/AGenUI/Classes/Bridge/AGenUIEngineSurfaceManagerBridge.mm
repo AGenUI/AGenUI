@@ -144,7 +144,8 @@ public:
             for (const auto& m : msg) {
                 [messagesArray addObject:@{
                     @"componentId": AGenUIStringFromCxx(m.componentId),
-                    @"component":   AGenUIStringFromCxx(m.component)
+                    @"component":   AGenUIStringFromCxx(m.component),
+                    @"direction":   AGenUIStringFromCxx(m.direction)
                 }];
             }
             
@@ -182,7 +183,8 @@ public:
                 [messagesArray addObject:@{
                     @"parentId":    AGenUIStringFromCxx(m.parentId),
                     @"componentId": AGenUIStringFromCxx(m.componentId),
-                    @"component":   AGenUIStringFromCxx(m.component)
+                    @"component":   AGenUIStringFromCxx(m.component),
+                    @"direction":   AGenUIStringFromCxx(m.direction)
                 }];
             }
             
@@ -495,6 +497,11 @@ private:
     if (!data || data.length == 0 || _surfaceManager == nullptr) { return; }
     std::string dataStr = [data UTF8String];
     _surfaceManager->receiveTextChunk(dataStr);
+}
+
+- (void)setLayoutDirection:(NSString *)direction {
+    if (!direction || direction.length == 0 || _surfaceManager == nullptr) { return; }
+    _surfaceManager->setLayoutDirection([direction UTF8String]);
 }
 
 - (void)triggerAction:(NSString *)surfaceId

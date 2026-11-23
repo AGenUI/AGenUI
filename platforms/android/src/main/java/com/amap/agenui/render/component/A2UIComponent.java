@@ -11,6 +11,7 @@ import androidx.annotation.RestrictTo;
 
 import com.amap.agenui.render.layout.YogaAbsoluteLayout;
 import com.amap.agenui.render.style.StyleHelper;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.surface.SurfaceLayoutDispatcher;
 import com.amap.agenui.render.utils.AGenUILogger;
 
@@ -268,10 +269,13 @@ public abstract class A2UIComponent {
         }
 
         if (view != null) {
-            // Re-layout + common styles only when styles changed
             if (changedProps.containsKey("styles")) {
                 applyYogaLayout(view, changedProps, null, true);
                 applyCommonStyles(view, changedProps);
+            } else if ("root".equals(getId())
+                    && changedProps.containsKey(TextDirectionSupport.DIRECTION_KEY)) {
+                // Direction-only diffs omit the frame but can change the root's trailing margins.
+                applyYogaLayout(view, properties, null, true);
             }
 
             // Accessibility: handled independently from styles.
@@ -1065,7 +1069,8 @@ public abstract class A2UIComponent {
                     targetView,
                     parent,
                     nextLayout,
-                    shouldMeasureWrapContentHeightWhenYogaHeightIsZero());
+                    shouldMeasureWrapContentHeightWhenYogaHeightIsZero(),
+                    "root".equals(getId()));
         } else {
             applyYogaLayoutDirectly(targetView, parent, nextLayout);
         }
@@ -1084,7 +1089,26 @@ public abstract class A2UIComponent {
         int widthPx = Math.max(0, Math.round(StyleHelper.standardUnitToPx(targetView.getContext(), readA2uiFloat(styles.get("width")))));
         int heightPx = Math.max(0, Math.round(StyleHelper.standardUnitToPx(targetView.getContext(), readA2uiFloat(styles.get("height")))));
         int zIndex = readInt(styles.get("z-index"), readInt(styles.get("zIndex"), 0));
-        return new YogaAbsoluteLayout.LayoutState(xPx, yPx, widthPx, heightPx, zIndex);
+
+        int rightMarginPx = 0;
+        int bottomMarginPx = 0;
+        if ("root".equals(getId())) {
+            // Yoga folds the root's margin-left/top into the frame position and leaves
+            // margin-right/bottom out of both position and size, so the trailing edges
+            // must ride the LayoutParams. Resolving them (direction-aware) here keeps the
+            // batched dispatcher and the direct-apply path consistent, and folding them
+            // into LayoutState means a trailing-margin change is never short-circuited by
+            // an unchanged frame rectangle.
+            Rect marginPx = StyleHelper.resolveCSSMarginPx(styles, targetView.getContext(),
+                    TextDirectionSupport.resolveDirection(properties));
+            if (marginPx != null) {
+                rightMarginPx = marginPx.right;
+                bottomMarginPx = marginPx.bottom;
+            }
+        }
+
+        return new YogaAbsoluteLayout.LayoutState(xPx, yPx, widthPx, heightPx, zIndex,
+                rightMarginPx, bottomMarginPx);
     }
 
     /**
@@ -1123,22 +1147,14 @@ public abstract class A2UIComponent {
         params.leftMargin = layoutState.xPx;
         params.topMargin = layoutState.yPx;
 
-        // Root node has no Yoga parent to consume its margin.
-        // Yoga's getLayoutLeft/Top already include margin-left/top in the
-        // position (see YGNode::setPosition), so leftMargin/topMargin above
-        // are correct. But margin-bottom/right are not reflected in either
-        // position or width/height, so set them explicitly on LayoutParams.
+        // Root node has no Yoga parent to consume its margin. Yoga's getLayoutLeft/Top
+        // already include margin-left/top in the position (see YGNode::setPosition), so
+        // leftMargin/topMargin above are correct. margin-right/bottom are not reflected
+        // in either position or width/height, so they are carried on the LayoutState by
+        // buildYogaLayout and written here.
         if ("root".equals(getId())) {
-            Map<String, Object> styles = extractStyles(properties);
-            if (styles != null) {
-                Context ctx = targetView.getContext();
-                Rect marginPx = StyleHelper.resolveCSSMarginPx(styles, ctx);
-                if (marginPx != null) {
-                    // top/left already in Yoga position (xPx/yPx), only set bottom/right
-                    params.bottomMargin = marginPx.bottom;
-                    params.rightMargin = marginPx.right;
-                }
-            }
+            params.rightMargin = layoutState.rightMarginPx;
+            params.bottomMargin = layoutState.bottomMarginPx;
         }
 
         targetView.setLayoutParams(params);

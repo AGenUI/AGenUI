@@ -11,7 +11,7 @@
  * Measurement callback signature:
  *   (paramJson: string,
  *    widthMode: number, maxWidth: number,
- *    heightMode: number, maxHeight: number) => { width: number; height: number }
+ *    heightMode: number, maxHeight: number, direction: string) => { width: number; height: number }
  */
 
 import {
@@ -25,10 +25,11 @@ import {
  *
  * @param paramJson    Component attribute JSON string (contains component/attrs/styles)
  * @param widthMode    Width mode (0=Undefined 1=Exactly 2=AtMost)
- * @param maxWidth     Maximum available width (vp)
+ * @param maxWidth     Maximum available width (a2ui)
  * @param heightMode   Height mode
- * @param maxHeight    Maximum available height (vp)
- * @returns            Measurement result { width, height, calcType? } (unit: vp)
+ * @param maxHeight    Maximum available height (a2ui)
+ * @param direction    Writing direction supplied by the current measurement (ltr/rtl)
+ * @returns            Measurement result { width, height, calcType? } (unit: a2ui)
  *                     calcType: 0=Sync (default) 1=Async (async components return {0,0} first, then markDirty after loading)
  */
 export type MeasurementHandler = (
@@ -36,7 +37,8 @@ export type MeasurementHandler = (
   widthMode: number,
   maxWidth: number,
   heightMode: number,
-  maxHeight: number
+  maxHeight: number,
+  direction: string
 ) => MeasureResult;
 
 /**
@@ -65,10 +67,11 @@ export class MeasurementManager {
       widthMode: number,
       maxWidth: number,
       heightMode: number,
-      maxHeight: number
+      maxHeight: number,
+      direction: string = 'ltr'
     ): MeasureResult => {
       try {
-        return handler(paramJson, widthMode, maxWidth, heightMode, maxHeight);
+        return handler(paramJson, widthMode, maxWidth, heightMode, maxHeight, direction);
       } catch (e) {
         console.error(`[MeasurementManager] measure error for type=${type}: ${e}`);
         const fallback: MeasureResult = { width: 0, height: 0 };

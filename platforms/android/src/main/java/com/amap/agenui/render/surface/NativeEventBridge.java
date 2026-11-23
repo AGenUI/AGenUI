@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import com.amap.agenui.IAGenUIMessageListener;
 import com.amap.agenui.render.component.A2UIComponent;
 import com.amap.agenui.render.component.ComponentRegistry;
+import com.amap.agenui.render.style.TextDirectionSupport;
 import com.amap.agenui.render.utils.AGenUILogger;
 import com.google.gson.Gson;
 
@@ -28,6 +29,14 @@ import java.util.Map;
 public class NativeEventBridge implements IAGenUIMessageListener {
 
     private static final String TAG = "NativeEventBridge";
+
+    /**
+     * Component-property key carrying the resolved writing direction from the message
+     * envelope. The engine never emits it inside component styles, so it is injected here
+     * to ride the existing property channel down to the render layer. Shared with the
+     * render layer via {@link TextDirectionSupport#DIRECTION_KEY}.
+     */
+    private static final String PROP_WRITING_DIRECTION = TextDirectionSupport.DIRECTION_KEY;
 
     private final SurfaceManager surfaceManager;
     private final int instanceId;
@@ -54,25 +63,25 @@ public class NativeEventBridge implements IAGenUIMessageListener {
     }
 
     @Override
-    public void onComponentsUpdate(String surfaceId, String[] components) {
+    public void onComponentsUpdate(String surfaceId, String[] components, String[] directions) {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.d(TAG, "onComponentsUpdate: surfaceId=" + surfaceId + ", count=" + (components != null ? components.length : 0));
         }
         mainHandler.post(() -> {
-            applyIncrementalComponentUpdates(surfaceId, components);
+            applyIncrementalComponentUpdates(surfaceId, components, directions);
             AGenUILogger.perf("components_applied", surfaceId);
         });
     }
 
     @Override
-    public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components) {
+    public void onComponentsAdd(String surfaceId, String[] parentIds, String[] components, String[] directions) {
         if (AGenUILogger.isLoggingEnabled()) {
             AGenUILogger.i(TAG, "onComponentsAdd: surfaceId=" + surfaceId
                     + ", parents=" + (parentIds != null ? parentIds.length : 0)
                     + ", components=" + (components != null ? components.length : 0) + ", components=" + (components != null ? Arrays.toString(components) : "null"));
         }
         mainHandler.post(() -> {
-            applyIncrementalComponentAdds(surfaceId, parentIds, components);
+            applyIncrementalComponentAdds(surfaceId, parentIds, components, directions);
             AGenUILogger.perf("components_applied", surfaceId);
         });
     }
@@ -120,9 +129,12 @@ public class NativeEventBridge implements IAGenUIMessageListener {
      * @param componentData    Component data (contains id, type, properties, etc.)
      * @param explicitParentId Explicitly specified parent component ID (optional; if null, obtained
      *                         from componentData)
+     * @param direction        Resolved writing direction from the message envelope; null/empty
+     *                         when not resolved
      * @return true if the component was successfully added; false otherwise
      */
-    private boolean processComponent(Surface surface, Map<String, Object> componentData, String explicitParentId) {
+    private boolean processComponent(Surface surface, Map<String, Object> componentData,
+                                     String explicitParentId, String direction) {
         try {
             String componentId = extractComponentId(componentData);
             String componentType = extractComponentType(componentData);
@@ -138,6 +150,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
                 AGenUILogger.e(TAG, "Component already exists, updating: " + componentId);
 
                 Map<String, Object> updateProperties = extractComponentProperties(componentData);
+                putWritingDirection(updateProperties, direction);
                 if (updateProperties != null && !updateProperties.isEmpty()) {
                     existingComponent.updateProperties(updateProperties);
                 }
@@ -154,6 +167,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
             }
 
             Map<String, Object> properties = extractComponentProperties(componentData);
+            putWritingDirection(properties, direction);
 
             // Create component
             Context componentContext = surfaceManager.getContext();
@@ -182,7 +196,8 @@ public class NativeEventBridge implements IAGenUIMessageListener {
         }
     }
 
-    private void applyIncrementalComponentUpdates(String surfaceId, String[] components) {
+    private void applyIncrementalComponentUpdates(String surfaceId, String[] components,
+                                                  String[] directions) {
         Surface surface = surfaceManager.getSurface(surfaceId);
         if (surface == null) {
             AGenUILogger.e(TAG, "onComponentsUpdate: Surface not found: " + surfaceId);
@@ -195,8 +210,8 @@ public class NativeEventBridge implements IAGenUIMessageListener {
             if (components == null) {
                 return;
             }
-            for (String componentJson : components) {
-                Map<String, Object> componentData = parseComponentData(componentJson);
+            for (int i = 0; i < components.length; i++) {
+                Map<String, Object> componentData = parseComponentData(components[i]);
                 if (componentData == null) {
                     continue;
                 }
@@ -218,6 +233,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
                 }
 
                 Map<String, Object> updateProperties = extractComponentProperties(componentData);
+                putWritingDirection(updateProperties, directionAt(directions, i));
                 if (updateProperties == null || updateProperties.isEmpty()) {
                     if (AGenUILogger.isLoggingEnabled()) {
                         AGenUILogger.d(TAG, "onComponentsUpdate: no properties to update, id=" + componentId);
@@ -235,7 +251,8 @@ public class NativeEventBridge implements IAGenUIMessageListener {
         }
     }
 
-    private void applyIncrementalComponentAdds(String surfaceId, String[] parentIds, String[] components) {
+    private void applyIncrementalComponentAdds(String surfaceId, String[] parentIds,
+                                               String[] components, String[] directions) {
         Surface surface = surfaceManager.getSurface(surfaceId);
         if (surface == null) {
             AGenUILogger.e(TAG, "onComponentsAdd: Surface not found: " + surfaceId);
@@ -261,7 +278,7 @@ public class NativeEventBridge implements IAGenUIMessageListener {
                 }
 
                 String parentId = parentIds != null && i < parentIds.length ? normalizeParentId(parentIds[i]) : null;
-                processComponent(surface, componentData, parentId);
+                processComponent(surface, componentData, parentId, directionAt(directions, i));
             }
         } finally {
             surface.endLayoutTransaction();
@@ -352,6 +369,28 @@ public class NativeEventBridge implements IAGenUIMessageListener {
     }
 
     /**
+     * Reads the envelope direction aligned with index {@code i}; null when the array is
+     * missing/shorter or the entry is unresolved (empty string).
+     */
+    private static String directionAt(String[] directions, int index) {
+        if (directions == null || index < 0 || index >= directions.length) {
+            return null;
+        }
+        String direction = directions[index];
+        return (direction == null || direction.isEmpty()) ? null : direction;
+    }
+
+    /**
+     * Injects the resolved direction into a property map so it reaches the component
+     * through the normal update diff (a direction flip alone is enough to mark it dirty).
+     */
+    private static void putWritingDirection(Map<String, Object> properties, String direction) {
+        if (properties != null && direction != null) {
+            properties.put(PROP_WRITING_DIRECTION, direction);
+        }
+    }
+
+    /**
      * Extracts the root component's properties as a String map.
      * Returns null if there is no root component or it has no properties.
      */
@@ -363,7 +402,9 @@ public class NativeEventBridge implements IAGenUIMessageListener {
         if (props == null || props.isEmpty()) return null;
         Map<String, String> result = new HashMap<>();
         for (Map.Entry<String, Object> entry : props.entrySet()) {
-            if (entry.getValue() != null) {
+            // Skip the direction injected above: it is engine-internal, not a component
+            // property, and this map is host-visible.
+            if (entry.getValue() != null && !PROP_WRITING_DIRECTION.equals(entry.getKey())) {
                 result.put(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }

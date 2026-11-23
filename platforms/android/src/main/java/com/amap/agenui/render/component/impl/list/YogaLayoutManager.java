@@ -53,6 +53,7 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
     public static final int VERTICAL = 1;
 
     private int direction = VERTICAL;
+    private boolean horizontalRtl;
 
     /**
      * Live reference to ListComponent.children. The LM reads each child's
@@ -69,7 +70,7 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
     @Nullable
     private Context cachedContext;
 
-    /** Current scroll offset (horizontal or vertical depending on direction). */
+    /** Distance from logical start, so RTL content updates preserve the user's scroll position. */
     private int scrollOffset = 0;
 
     // ---- Two-level frame cache ----
@@ -102,6 +103,25 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
 
     public int getDirection() {
         return direction;
+    }
+
+    public void setHorizontalRtl(boolean rtl) {
+        if (horizontalRtl != rtl) {
+            horizontalRtl = rtl;
+            scrollOffset = 0;
+            invalidateFrameCache();
+            requestLayout();
+        }
+    }
+
+    public boolean isHorizontalRtl() {
+        return direction == HORIZONTAL && horizontalRtl;
+    }
+
+    private int horizontalScrollOffset() {
+        return isHorizontalRtl()
+                ? Math.max(0, Math.max(0, computeContentBoundsPx().right - getWidth()) - scrollOffset)
+                : scrollOffset;
     }
 
     /**
@@ -160,6 +180,19 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
         List<Frame> out = new ArrayList<>(children.size());
         for (A2UIComponent c : children) {
             out.add(extractFrame(c, cachedContext));
+        }
+        if (isHorizontalRtl()) {
+            int minLeft = getPaddingLeft();
+            for (Frame frame : out) {
+                if (!frame.isEmpty() && !isGone(frame.child)) {
+                    minLeft = Math.min(minLeft, frame.rect.left);
+                }
+            }
+            // Yoga has already mirrored the items; translate, never reverse or mirror them again.
+            int shift = getPaddingLeft() - minLeft;
+            for (Frame frame : out) {
+                frame.rect.offset(shift, 0);
+            }
         }
         cachedPxFrames = out;
         return out;
@@ -258,6 +291,9 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
     public void onLayoutChildren(@NonNull RecyclerView.Recycler recycler,
                                  @NonNull RecyclerView.State state) {
         if (state.getItemCount() == 0) {
+            if (isHorizontalRtl()) {
+                scrollOffset = 0;
+            }
             removeAndRecycleAllViews(recycler);
             return;
         }
@@ -304,9 +340,9 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
             View v = recycler.getViewForPosition(i);
             addView(v);
             measureChildExactly(v, width, height);
-            // Convert absolute frame → screen coords by subtracting scroll offset,
-            // and add container padding as the layout origin (mirrors YogaAbsoluteLayout).
-            int left = f.rect.left + getPaddingLeft() - (direction == HORIZONTAL ? scrollOffset : 0);
+            // RTL frames already include both gutters after normalization.
+            int left = f.rect.left + (isHorizontalRtl() ? 0 : getPaddingLeft())
+                    - (direction == HORIZONTAL ? horizontalScrollOffset() : 0);
             int top = f.rect.top + getPaddingTop() - (direction == VERTICAL ? scrollOffset : 0);
             layoutDecorated(v, left, top, left + width, top + height);
             // z-index: drive draw order via View.setZ (mirrors SurfaceLayoutDispatcher
@@ -317,7 +353,7 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
     }
 
     private Rect computeViewportRect() {
-        int viewportLeft = direction == HORIZONTAL ? scrollOffset : 0;
+        int viewportLeft = direction == HORIZONTAL ? horizontalScrollOffset() : 0;
         int viewportTop = direction == VERTICAL ? scrollOffset : 0;
         int viewportRight = viewportLeft + getWidth();
         int viewportBottom = viewportTop + getHeight();
@@ -345,8 +381,9 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
                                     @NonNull RecyclerView.State state) {
         if (direction != HORIZONTAL || dx == 0) return 0;
         int max = Math.max(0, computeContentBoundsPx().right - getWidth());
-        int newOffset = Math.max(0, Math.min(scrollOffset + dx, max));
-        int actualDx = newOffset - scrollOffset;
+        int delta = isHorizontalRtl() ? -dx : dx;
+        int newOffset = Math.max(0, Math.min(scrollOffset + delta, max));
+        int actualDx = isHorizontalRtl() ? scrollOffset - newOffset : newOffset - scrollOffset;
         if (actualDx == 0) return 0;
         scrollOffset = newOffset;
         offsetChildrenHorizontal(-actualDx);
@@ -379,7 +416,11 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
         if (position < 0 || position >= upperBound) return;
         Frame f = frames.get(position);
         if (f.isEmpty()) return;
-        scrollOffset = direction == HORIZONTAL ? f.rect.left : f.rect.top;
+        if (isHorizontalRtl()) {
+            scrollOffset = computeContentBoundsPx().right - f.rect.right - getPaddingRight();
+        } else {
+            scrollOffset = direction == HORIZONTAL ? f.rect.left : f.rect.top;
+        }
         // Clamp so the offset never exceeds the scrollable range (same
         // protection as onLayoutChildren and scrollVerticallyBy/scrollHorizontallyBy).
         clampScrollOffset();
@@ -388,7 +429,7 @@ public class YogaLayoutManager extends RecyclerView.LayoutManager {
 
     @Override
     public int computeHorizontalScrollOffset(@NonNull RecyclerView.State state) {
-        return direction == HORIZONTAL ? scrollOffset : 0;
+        return direction == HORIZONTAL ? horizontalScrollOffset() : 0;
     }
 
     @Override

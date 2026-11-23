@@ -111,7 +111,9 @@ import UIKit
         // Each Component's frame is set by applyLayoutFromStyles() when updateProperties() is called.
         // Without this step, surface.view always has zero height and callers cannot read the
         // rendered content height from surface.view.frame in the onLayoutChanged callback.
-        var contentWidth  = rootComponent.frame.width
+        // maxX (not width) includes origin.x pushed by the root margin, so the
+        // surface view spans the full root box instead of clipping the offset.
+        var contentWidth  = rootComponent.frame.maxX
         var contentHeight = rootComponent.frame.maxY  // use maxY to include absolute-positioned children that extend below root
 
         // Root node has no Yoga parent to consume its margin.
@@ -120,7 +122,11 @@ import UIKit
         // so margin-top is already accounted for. Only margin-bottom/right
         // are lost — add them here.
         if let styles = rootComponent.properties["styles"] as? [String: Any] {
-            let margin = CSSMarginResolver.resolve(styles)
+            // Root margin may carry logical keys (margin-inline etc.) —
+            // resolve against the envelope direction injected into the
+            // root's properties at creation time, same as every component.
+            let rootIsRTL = (rootComponent.properties["writingDirection"] as? String)?.lowercased() == "rtl"
+            let margin = CSSMarginResolver.resolve(styles, isRTL: rootIsRTL)
             // top/left already in Yoga position (frame.origin), only add bottom/right
             contentWidth  += margin.right
             contentHeight += margin.bottom
@@ -178,13 +184,25 @@ import UIKit
     ///   - componentId: Component ID
     ///   - componentType: Component type
     ///   - properties: Component properties
-    @MainActor func addComponent(componentId: String, componentType: String, properties: [String: Any], parentId: String?) {
+    ///   - direction: Resolved writing direction ("ltr"/"rtl") from the message envelope
+    @MainActor func addComponent(componentId: String, componentType: String, properties: [String: Any], parentId: String?, direction: String) {
         Logger.shared.debug("[Surface] Adding component: \(componentId) (\(componentType))")
         
         // Check if component already exists
         if componentTree[componentId] != nil {
             Logger.shared.debug("⚠ Component already exists: \(componentId)")
             return
+        }
+        
+        // Resolved writing direction rides on the message envelope (never a
+        // DSL style). Inject it into the properties payload BEFORE creation
+        // so the factory init's first updateProperties sees it as first-hand
+        // data. It is NOT consumed or stripped by the Component base class —
+        // it stays in the properties map, and each component reads and
+        // handles it itself as needed.
+        var properties = properties
+        if !direction.isEmpty {
+            properties["writingDirection"] = direction
         }
         
         // Create component
@@ -378,7 +396,7 @@ import UIKit
     /// Process single component JSON
     ///
     /// - Parameter componentJson: Component JSON string
-    @MainActor func processAddComponentJson(_ componentJson: String, parentId: String?) {
+    @MainActor func processAddComponentJson(_ componentJson: String, parentId: String?, direction: String) {
         // Parse component JSON
         guard var componentData = parseJSON(componentJson) else {
             Logger.shared.error("Failed to parse component JSON")
@@ -419,12 +437,14 @@ import UIKit
         properties.removeValue(forKey: "component")
         properties.removeValue(forKey: "parent")
         
-        // Add new component
+        // Add new component (the envelope direction is injected into the
+        // properties payload inside addComponent, before creation)
         addComponent(
             componentId: componentId,
             componentType: type,
             properties: properties,
-            parentId: parentId
+            parentId: parentId,
+            direction: direction
         )
         Logger.shared.info("Component added: \(componentId)")
     }
@@ -449,6 +469,17 @@ import UIKit
             componentData.removeValue(forKey: "type")
             componentData.removeValue(forKey: "component")
             componentData.removeValue(forKey: "parent")
+
+            // Resolved writing direction rides on the message envelope —
+            // inject it into the properties payload (a direction flip
+            // re-publishes every component as an update, even with identical
+            // coordinates). It is NOT consumed or stripped by the Component
+            // base class — it stays in the properties map, same as the add
+            // flow, and each component reads and handles it itself as needed.
+            if let direction = message["direction"], !direction.isEmpty {
+                componentData["writingDirection"] = direction
+            }
+
             updateComponent(componentId: componentId, properties: componentData)
         }
     }
@@ -464,7 +495,9 @@ import UIKit
             }
             
             let parentId = message["parentId"]
-            processAddComponentJson(componentJson, parentId: parentId)
+            processAddComponentJson(componentJson,
+                                    parentId: parentId,
+                                    direction: message["direction"] ?? "")
         }
     }
     

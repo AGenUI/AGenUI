@@ -785,11 +785,29 @@ public enum MeasureMode: Int {
                        maxWidth: Float,
                        widthMode: MeasureMode,
                        maxHeight: Float,
-                       heightMode: MeasureMode) -> CGSize {
+                       heightMode: MeasureMode,
+                       direction: String = "") -> CGSize {
         return .zero
     }
 
     // MARK: - Measurement Helpers
+
+    /// Build a text-measurement string that honors the page writing direction.
+    /// - Parameter direction: "ltr" / "rtl"; empty = `.natural` (legacy behavior)
+    class func measurementAttributedString(_ text: String,
+                                           font: UIFont,
+                                           direction: String) -> NSAttributedString {
+        guard !direction.isEmpty else {
+            return NSAttributedString(string: text, attributes: [.font: font])
+        }
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.baseWritingDirection = direction.lowercased() == "rtl"
+            ? .rightToLeft : .leftToRight
+        return NSAttributedString(string: text, attributes: [
+            .font: font,
+            .paragraphStyle: paragraphStyle,
+        ])
+    }
 
     /// Parse CGFloat from an attribute value (compatible with NSNumber and "32px" format strings)
     class func parseFloat(_ value: Any?, defaultValue: CGFloat) -> CGFloat {

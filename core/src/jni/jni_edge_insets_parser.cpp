@@ -55,15 +55,7 @@ static jobject buildEdgeInsetSide(JNIEnv* env, const EdgeInsetValue& side) {
     return obj;
 }
 
-static jobject jni_parseEdgeInsets(JNIEnv* env, jclass, jstring jInput) {
-    if (jInput == nullptr) return nullptr;
-
-    ScopedUtfChars inputStr(env, jInput);
-    std::string input = inputStr.c_str();
-
-    EdgeInsets insets;
-    if (!EdgeInsetsParser::parse(input, insets)) return nullptr;
-
+static jobject buildEdgeInsetsValue(JNIEnv* env, const EdgeInsets& insets) {
     jobject result = env->AllocObject(sEdgeInsetsValueClass);
     if (result == nullptr) return nullptr;
 
@@ -78,6 +70,33 @@ static jobject jni_parseEdgeInsets(JNIEnv* env, jclass, jstring jInput) {
     env->SetObjectField(result, sEIV_left, left.get());
 
     return result;
+}
+
+static jobject jni_parseEdgeInsets(JNIEnv* env, jclass, jstring jInput) {
+    if (jInput == nullptr) return nullptr;
+
+    ScopedUtfChars inputStr(env, jInput);
+    std::string input = inputStr.c_str();
+
+    EdgeInsets insets;
+    if (!EdgeInsetsParser::parse(input, insets)) return nullptr;
+
+    return buildEdgeInsetsValue(env, insets);
+}
+
+static jobject jni_parseInlineEdgeInsets(JNIEnv* env, jclass, jstring jInput,
+                                         jboolean jIsRtl) {
+    if (jInput == nullptr) return nullptr;
+
+    ScopedUtfChars inputStr(env, jInput);
+    std::string input = inputStr.c_str();
+
+    EdgeInsets insets;
+    if (!EdgeInsetsParser::parseInline(input, jIsRtl == JNI_TRUE, insets)) {
+        return nullptr;
+    }
+
+    return buildEdgeInsetsValue(env, insets);
 }
 
 jint register_jni_EdgeInsetsParser(JNIEnv* env) {
@@ -102,6 +121,9 @@ jint register_jni_EdgeInsetsParser(JNIEnv* env) {
         {"nativeParseEdgeInsets",
          "(Ljava/lang/String;)Lcom/amap/agenui/EdgeInsetsValue;",
          (void*)jni_parseEdgeInsets},
+        {"nativeParseInlineEdgeInsets",
+         "(Ljava/lang/String;Z)Lcom/amap/agenui/EdgeInsetsValue;",
+         (void*)jni_parseInlineEdgeInsets},
     };
 
     jint ret = env->RegisterNatives(agenui.get(), nativeMethods,

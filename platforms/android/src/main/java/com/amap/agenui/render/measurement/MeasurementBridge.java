@@ -77,7 +77,8 @@ public final class MeasurementBridge {
                                               float maxWidth,
                                               int widthMode,
                                               float maxHeight,
-                                              int heightMode) {
+                                              int heightMode,
+                                              String direction) {
         Context context = AGenUI.getInstance().getApplicationContextForSdk();
         if (context == null || type == null || paramJson == null) {
             MeasureResult result = MeasureResult.zero();
@@ -93,13 +94,14 @@ public final class MeasurementBridge {
                     + ", maxWidth=" + maxWidth
                     + ", widthMode=" + widthMode
                     + ", maxHeight=" + maxHeight
-                    + ", heightMode=" + heightMode);
+                    + ", heightMode=" + heightMode
+                    + ", direction=" + direction);
         }
 
         IMeasurer measurer = sMeasurers.get(type);
         MeasureResult result;
         if (measurer != null) {
-            result = measurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode);
+            result = measurer.measure(context, paramJson, maxWidth, widthMode, maxHeight, heightMode, direction);
         } else {
             result = MeasureResult.zero();
         }

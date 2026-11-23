@@ -494,7 +494,7 @@ class TableComponent: Component {
 
     // MARK: - Measurement Override
 
-    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode) -> CGSize {
+    override class func measure(type: String, paramJson: String, maxWidth: Float, widthMode: MeasureMode, maxHeight: Float, heightMode: MeasureMode, direction: String = "") -> CGSize {
         guard let jsonData = paramJson.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
             return .zero

@@ -1,0 +1,43 @@
+{
+  "description": "Harmony measurement bridge probe with intrinsic height and no direction in the payload; direction must come from the owning SurfaceManager.",
+  "surfaceId": "measurement-direction-surface",
+  "messages": [
+    {
+      "version": "v0.9",
+      "createSurface": {
+        "surfaceId": "measurement-direction-surface",
+        "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+      }
+    },
+    {
+      "version": "v0.9",
+      "updateComponents": {
+        "surfaceId": "measurement-direction-surface",
+        "components": [
+          {
+            "id": "root",
+            "component": "Column",
+            "children": ["measurement-direction-probe"],
+            "styles": {
+              "width": "240px"
+            }
+          },
+          {
+            "id": "measurement-direction-probe",
+            "component": "MeasurementDirectionProbe",
+            "styles": {
+              "width": "240px"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "expect": {
+    "componentCount": 2,
+    "componentTypes": ["Column", "MeasurementDirectionProbe"],
+    "rootComponentId": "root",
+    "rootComponentType": "Column",
+    "componentIds": ["root", "measurement-direction-probe"]
+  }
+}

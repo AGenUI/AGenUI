@@ -57,6 +57,7 @@ void registerEtsFunction(const std::string& name, napi_env env, napi_value value
 // napi_surface.cpp
 napi_value CreateSurfaceManager(napi_env env, napi_callback_info info);
 napi_value DestroySurfaceManager(napi_env env, napi_callback_info info);
+napi_value SetSurfaceManagerLayoutDirection(napi_env env, napi_callback_info info);
 napi_value RequestSurface(napi_env env, napi_callback_info info);
 napi_value RegisterA2UISurfaceListener(napi_env env, napi_callback_info info);
 napi_value UnregisterA2UISurfaceListener(napi_env env, napi_callback_info info);
