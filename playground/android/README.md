@@ -78,8 +78,18 @@ The SDK uses [yoga](https://github.com/aspect-build/rules_js) for layout. By def
 # (Optional) Path to prebuilt yoga artifacts (libyoga.so + headers)
 yoga.prebuilt.dir=/path/to/yoga_prebuilt/android/arm64-v8a/Release
 
-# (Optional) Whether to bundle libyoga.so into the AAR (default: true)
+# (Optional) Whether to bundle the yoga .so into the AAR (default: true)
 yoga.include.in.aar=true
+```
+
+The yoga .so keeps its **original name `libyoga.so` by default**, so consumers that
+rely on that name are unaffected. When the host app already bundles its own `libyoga.so`
+(e.g. React Native 0.70 ships libyoga.so 1.14.0), build with `--rename-yoga` so the
+SDK's bundled yoga 2.0.0 is named `libagenui_yoga.so` (OUTPUT_NAME=agenui_yoga in
+CMakeLists) and never collides at runtime:
+
+```bash
+./scripts/android/build.sh --rename-yoga
 ```
 
 **Priority:** Gradle `-P` parameter > `local.properties` > default (FetchContent).
