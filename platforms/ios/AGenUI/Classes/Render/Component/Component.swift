@@ -63,6 +63,26 @@ public enum MeasureMode: Int {
         CATransaction.commit()
     }
 
+    // MARK: - Background Image
+
+    /// Current background-image loading task identifier (for cancellation), mirroring
+    /// `ImageComponent.currentTaskId`. Internal rather than private because the logic
+    /// lives in Component+BackgroundImage.swift and a cross-file extension cannot
+    /// reach private members. Only that file should touch it.
+    var backgroundImageTaskId: String?
+
+    /// Cancel any in-flight background-image load when the component is truly
+    /// deallocated. Deliberately NOT in removeFromSuperview: removal also happens on
+    /// List cell reuse / reparenting while the component is still alive and may be
+    /// re-mounted, so cancelling there would drop a load that is still needed.
+    /// deinit is the only point where the component is gone for good. The loader
+    /// cancel is thread-safe and touches no UIKit, so it is safe in nonisolated deinit.
+    deinit {
+        if let taskId = backgroundImageTaskId {
+            ImageLoaderConfiguration.shared.loader.cancel(for: taskId)
+        }
+    }
+
     // MARK: - Core Properties
     
     /// Unique component identifier
