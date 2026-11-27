@@ -22,17 +22,12 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-## What's New in v1.9.0
+## What's New in v1.10.0
 
-> Released on 2026-11-23
+> Released on 2026-11-27
 
-- **Cross-Platform RTL Layout**: Added `SurfaceManager.setLayoutDirection` (`ltr` / `rtl`) for text, horizontal Lists, Tabs, and other components.
-- **Logical Styles**: Logical spacing, positioning, and `text-align: start/end` now follow layout direction.
-- **Direction-Aware Measurement**: Measurement callbacks now receive `direction`; custom implementations must update their signatures.
-- (Core) Fixed static property write-back so the host can reset controls by resending their original values after user interaction.
-- (HarmonyOS) Fixed hybrid view ID collisions across `SurfaceManager` instances.
-- (iOS) Fixed RTL horizontal List start alignment, scrolling range, and padding.
-- (iOS Playground) Fixed custom component compilation errors caused by outdated measurement signatures.
+- (iOS) Background images now use the shared `ImageLoader`, so host loaders can apply their caching and cropping policies. Local assets and files require loader support.
+- (iOS) Replacing or clearing a background image or deallocating its component cancels the pending load.
 
 ---
 

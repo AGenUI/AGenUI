@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.10.0] - 2026-11-27
+
+### Features
+
+- **(iOS) Background images** now use the shared `ImageLoader` and pass the component’s pixel dimensions to the configured loader for caching and cropping. Local assets and files require loader support.
+
+### Bug Fixes
+
+- (iOS) Replacing or clearing a background image now cancels the previous load. Pending loads are also cancelled when the component is deallocated.
+
+---
+
 ## [1.9.0] - 2026-11-23
 
 ### Features

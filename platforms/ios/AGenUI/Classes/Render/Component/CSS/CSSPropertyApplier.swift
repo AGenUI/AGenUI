@@ -59,7 +59,7 @@ class CSSPropertyApplier {
         ifPresent("border-style",     valueType: .keyword,   validValues: ["solid"],            defaultValue: .keyword("solid"))  { applyBorderStyle($0, to: view) }
         ifPresent("border-width",     valueType: .dimension,                                   defaultValue: .number(0))         { applyBorderWidth($0, to: view) }
         ifPresent("filter",           valueType: .shadow,                                      defaultValue: .invalid)           { applyFilter($0, to: view) }
-        ifPresent("background-image", valueType: .url,                                          defaultValue: .url(""))           { applyBackgroundImage($0, to: view) }
+        applyBackgroundImage(properties: properties, to: view)
 
         // overflow + border-radius clip decision (depends on both, runs after the loop)
         applyClipDecision(properties: properties, to: view)
@@ -168,76 +168,15 @@ class CSSPropertyApplier {
         }
     }
     
-    /// Applies background image
-    /// Supports URL formats:
-    /// - Network URL: url("https://example.com/image.png")
-    /// - Local resource: url("res://icon") or url(paper.gif)
-    /// - Local file: url("file:///path/to/image.png")
-    /// - Parameters:
-    ///   - value: CSS property value
-    ///   - view: Target view
-    @MainActor private static func applyBackgroundImage(_ value: CSSPropertyValue, to view: UIView) {
-        guard case .url(let urlString) = value else {
-            view.layer.contents = nil
-            return
-        }
-        
-        if urlString.isEmpty {
-            // Clear background image
-            view.layer.contents = nil
-            return
-        }
-        
-        // Determine URL type and load
-        if urlString.hasPrefix("http://") || urlString.hasPrefix("https://") {
-            // Network image - async load
-            loadBackgroundImage(from: urlString, for: view)
-        } else if urlString.hasPrefix("res://") {
-            // Local resource
-            let resName = String(urlString.dropFirst(6))
-            if let image = UIImage(named: resName) {
-                setBackgroundImage(image, for: view)
-            }
-        } else if urlString.hasPrefix("file://") {
-            // Local file
-            let filePath = String(urlString.dropFirst(7))
-            if let image = UIImage(contentsOfFile: filePath) {
-                setBackgroundImage(image, for: view)
-            }
-        } else {
-            // Load as resource name
-            if let image = UIImage(named: urlString) {
-                setBackgroundImage(image, for: view)
-            }
-        }
-    }
-    
-    /// Sets background image to view layer
-    /// - Parameters:
-    ///   - image: Image
-    ///   - view: Target view
-    @MainActor private static func setBackgroundImage(_ image: UIImage, for view: UIView) {
-        view.layer.contents = image.cgImage
-        view.layer.contentsGravity = .resizeAspectFill
-    }
-    
-    /// Asynchronously loads network background image
-    /// - Parameters:
-    ///   - urlString: Image URL
-    ///   - view: Target view
-    @MainActor private static func loadBackgroundImage(from urlString: String, for view: UIView) {
-        guard let url = URL(string: urlString) else { return }
-        
-        URLSession.shared.dataTask(with: url) { data, _, error in
-            guard let data = data,
-                  let image = UIImage(data: data),
-                  error == nil else {
-                return
-            }
-            DispatchQueue.main.async {
-                setBackgroundImage(image, for: view)
-            }
-        }.resume()
+    /// Applies background-image.
+    ///
+    /// Sole entry point: the per-component state machine in
+    /// Component+BackgroundImage.swift owns loading (through ImageLoader), dedupe,
+    /// cancellation, stale-result dropping and clearing. A plain UIView carries no
+    /// background-image state and is not supported.
+    @MainActor private static func applyBackgroundImage(properties: [String: Any], to view: UIView) {
+        guard let component = view as? Component else { return }
+        component.applyBackgroundImage(rawStyle: properties["background-image"])
     }
     
     /// Applies border radius.
